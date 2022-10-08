@@ -152,6 +152,11 @@ class Runner(object):
         df = df.reindex(full_indexes)
         df = Lines.from_dataframe(df)
         df = df.fillna()
+        self.add_statistic_column(df)
+        self.data = df
+        self.logger.info("data has benn prepared")
+
+    def add_statistic_column(self, df):
         # 增加统计列
         df["open"] = df["openTick"].map(lambda x: self.broker.tick_to_price(x))
         df["price"] = df["closeTick"].map(lambda x: self.broker.tick_to_price(x))
@@ -161,8 +166,6 @@ class Runner(object):
         df["high"] = df[low_name].map(lambda x: self.broker.tick_to_price(x))
         df["volume0"] = df["inAmount0"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token0.decimal)
         df["volume1"] = df["inAmount1"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token1.decimal)
-        self.data = df
-        self.logger.info("data has benn prepared")
 
     def run(self):
         self.reset()

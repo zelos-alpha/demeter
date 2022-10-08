@@ -138,6 +138,7 @@ class Broker(object):
         capital = (base_asset.balance + base_fee_sum + base_deposit_amount) + \
                   (quote_asset.balance + quote_fee_sum + quote_deposit_amount) * price
         base_init_amount, quote_init_amount = self.__convert_pair(self._init_amount0, self._init_amount1)
+
         net_value = capital / (base_init_amount + price * quote_init_amount)
 
         profit_pct = (net_value - 1) * 100

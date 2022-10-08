@@ -29,53 +29,53 @@ class WithSMA(Strategy):
         pass
 
 
-class TestDemeter(unittest.TestCase):
+class TestRunner(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         self.pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
-        super(TestDemeter, self).__init__(*args, **kwargs)
+        super(TestRunner, self).__init__(*args, **kwargs)
 
     def test_new(self):
-        demeter = Runner(self.pool)
-        print(demeter)
+        runner = Runner(self.pool)
+        print(runner)
 
-    def get_one_demeter(self) -> Runner:
-        demeter = Runner(self.pool)
-        demeter.strategy = EmptyStrategy()
-        demeter.set_assets([Asset(usdc, 1067), Asset(eth, 1)])
-        demeter.data_path = "../data"
-        demeter.load_data(ChainType.Polygon.name,
-                          "0x45dda9cb7c25131df268515131f647d726f50608",
-                          date(2022, 7, 1),
-                          date(2022, 7, 1))
-        return demeter
+    def get_one_runner(self) -> Runner:
+        runner = Runner(self.pool)
+        runner.strategy = EmptyStrategy()
+        runner.set_assets([Asset(usdc, 1067), Asset(eth, 1)])
+        runner.data_path = "../data"
+        runner.load_data(ChainType.Polygon.name,
+                         "0x45dda9cb7c25131df268515131f647d726f50608",
+                         date(2022, 7, 1),
+                         date(2022, 7, 1))
+        return runner
 
     def test_simple_run(self):
-        demeter = self.get_one_demeter()
-        print(demeter.data.head(5))
-        print(demeter)
+        runner = self.get_one_runner()
+        print(runner.data.head(5))
+        print(runner)
 
     def test_lines(self):
         print(Lines())
 
     def test_run_empty_strategy(self):
-        demeter = self.get_one_demeter()
-        demeter.run()
+        runner = self.get_one_runner()
+        runner.run()
 
     def test_run_buy_on_second(self):
-        demeter = self.get_one_demeter()
-        demeter.strategy = BuyOnSecond()
-        demeter.run()
-        self.assertEqual(len(demeter.actions), 1)
+        runner = self.get_one_runner()
+        runner.strategy = BuyOnSecond()
+        runner.run()
+        self.assertEqual(len(runner.actions), 1)
 
     def test_run_empty_with_indicator(self):
-        demeter = self.get_one_demeter()
-        demeter.strategy = WithSMA()
-        demeter.run()
+        runner = self.get_one_runner()
+        runner.strategy = WithSMA()
+        runner.run()
 
     def test_load_missing_data(self):
-        demeter = Runner(self.pool)
-        demeter.data_path = "../data"
-        demeter.load_data(ChainType.Polygon.name,
-                          "0x45dda9cb7c25131df268515131f647d726f50608",
-                          date(2022, 7, 23),
-                          date(2022, 7, 24))
+        runner = Runner(self.pool)
+        runner.data_path = "../data"
+        runner.load_data(ChainType.Polygon.name,
+                         "0x45dda9cb7c25131df268515131f647d726f50608",
+                         date(2022, 7, 23),
+                         date(2022, 7, 24))

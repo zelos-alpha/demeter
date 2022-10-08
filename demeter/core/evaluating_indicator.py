@@ -1,6 +1,6 @@
 import pandas as pd
 
-from .._typing import BarStatus, EvaluatingIndicator, DECIMAL_ZERO, UnitDecimal
+from .._typing import BarStatus, EvaluatingIndicator, DECIMAL_ZERO, UnitDecimal, ZelosError
 from decimal import Decimal
 
 
@@ -11,6 +11,9 @@ class Evaluator(object):
         self.init_capital = init_status.base_balance.number + init_status.quote_balance.number * init_status.price.number
         self.end_status = data.iloc[-1]
         self.data = data
+        if len(data) < 2:
+            raise ZelosError("not enought data")
+        self.time_span_in_day = (data.index[1] - data.index[0]).seconds / (60 * 60 * 24)
         self._evaluating_indicator: EvaluatingIndicator = None
 
     def run(self):
@@ -21,7 +24,7 @@ class Evaluator(object):
 
     def get_annualized_returns(self):
         """年化收益率"""
-        return (self.end_status.capital.number / self.init_capital) ** Decimal(365 / self.data.size) - 1
+        return (self.end_status.capital.number / self.init_capital) ** Decimal(365 / self.time_span_in_day) - 1
 
     def get_benchmark_returns(self):
         """
@@ -31,7 +34,7 @@ class Evaluator(object):
         """
         base_amount, quote_amount = self.__get_benchmark_asset()
         final_benchmark_capital = base_amount + quote_amount * self.end_status.price.number
-        return (final_benchmark_capital / self.init_capital) ** Decimal(365 / self.data.size) - 1
+        return (final_benchmark_capital / self.init_capital) ** Decimal(365 / self.time_span_in_day) - 1
 
     def __get_benchmark_asset(self):
         base_amount = self.init_capital / 2
