@@ -1,8 +1,9 @@
 from datetime import date, datetime
-
+from typing import Union
 import demeter.indicator
 from download import ChainType
-from demeter import Broker, TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, Lines, BarStatus, BuyAction, SellAction
+from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, BarStatus, BuyAction, SellAction, RowData
+import pandas as pd
 
 
 class AddLpByMa(Strategy):
@@ -21,7 +22,7 @@ class AddLpByMa(Strategy):
         elif quote_amount_diff < 0:
             self.sell(0 - quote_amount_diff)
 
-    def next(self, time: datetime, row_data: Lines):
+    def next(self, time: datetime, row_data: Union[RowData, pd.Series]):
         if time.minute != 0:
             return
         if len(self.broker.positions) > 0:
@@ -52,8 +53,8 @@ if __name__ == "__main__":
     runner_instance.set_assets([Asset(usdc, 1835), Asset(eth, 1)])
     runner_instance.data_path = "../../data"
     runner_instance.load_data(ChainType.Polygon.name,
-                      "0x45dda9cb7c25131df268515131f647d726f50608",
-                      date(2022, 8, 19),
-                      date(2022, 8, 20))
+                              "0x45dda9cb7c25131df268515131f647d726f50608",
+                              date(2022, 8, 19),
+                              date(2022, 8, 20))
     runner_instance.run()
     runner_instance.output()

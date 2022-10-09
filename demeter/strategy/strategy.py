@@ -1,7 +1,10 @@
 from decimal import Decimal
 from datetime import datetime
+from typing import Union
+
 from demeter import PositionInfo, BaseAction, AddLiquidityAction, SellAction, BuyAction, CollectFeeAction, \
-    RemoveLiquidityAction, TradeEnum
+    RemoveLiquidityAction, RowData
+import pandas as pd
 
 
 class Strategy(object):
@@ -13,7 +16,16 @@ class Strategy(object):
     def initialize(self):
         pass
 
-    def next(self, time: datetime, row_data):
+    def next(self, time: datetime, row_data: Union[RowData, pd.Series]):
+        """
+
+        :param time:
+        :type time: datetime
+        :param row_data:
+        :type row_data:
+        :return:
+        :rtype:
+        """
         pass
 
     def notify_on_next(self, actions: [BaseAction]):

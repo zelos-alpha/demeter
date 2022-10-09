@@ -3,7 +3,7 @@ from .. import BarData
 from ..data_line import Lines
 from ..broker import Broker, PoolBaseInfo
 from .._typing import BarStatus, BarStatusNames, BaseAction, Asset, ZelosError, TokenInfo, TradeEnum, \
-    EvaluatingIndicator
+    EvaluatingIndicator, RowData
 from ..strategy import Strategy
 from datetime import date, timedelta
 from .evaluating_indicator import Evaluator
@@ -17,8 +17,7 @@ def decimal_from_value(value):
     return Decimal(value)
 
 
-class RowData(object):
-    pass
+
 
 
 class Runner(object):
@@ -184,7 +183,7 @@ class Runner(object):
         self.logger.info("start main loop...")
         for index, row in self._data.iterrows():
             row_data = RowData()
-            setattr(row_data, "timestamp", index)
+            setattr(row_data, "timestamp", index.to_pydatetime())
             setattr(row_data, "row_id", row_id)
             row_id += 1
             for column_name in row.index:

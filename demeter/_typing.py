@@ -109,6 +109,27 @@ class BarStatus:
         ]
 
 
+class RowData(object):
+    def __init__(self):
+        self.timestamp: datetime = None
+        self.row_id: int = None
+        self.netAmount0: int = None
+        self.netAmount1: int = None
+        self.closeTick: int = None
+        self.openTick: int = None
+        self.lowestTick: int = None
+        self.highestTick: int = None
+        self.inAmount0: int = None
+        self.inAmount1: int = None
+        self.currentLiquidity: Decimal = None
+        self.open: Decimal = None
+        self.price: Decimal = None
+        self.low: Decimal = None
+        self.high: Decimal = None
+        self.volume0: Decimal = None
+        self.volume1: Decimal = None
+
+
 @dataclass
 class BaseAction(object):
     trade_type: TradeEnum = field(default=False, init=False)
