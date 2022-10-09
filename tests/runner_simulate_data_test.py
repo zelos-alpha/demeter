@@ -4,7 +4,7 @@ import numpy as np
 import demeter.indicator
 from demeter.broker.v3_core import V3CoreLib
 from download import ChainType
-from demeter import Broker, TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, Lines
+from demeter import Broker, TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, Lines, BarStatus
 import pandas as pd
 from decimal import Decimal
 
@@ -79,3 +79,6 @@ class TestRunner(unittest.TestCase):
 
         runner.run()
         runner.output()
+        status: BarStatus = runner.final_status
+        self.assertEqual(status.uncollect_fee_base.number.quantize(Decimal('1.0000')), Decimal("0.025"))
+        self.assertEqual(status.uncollect_fee_quote.number.quantize(Decimal('1.0000000')), Decimal("0.0000250"))

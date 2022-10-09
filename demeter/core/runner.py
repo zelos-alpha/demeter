@@ -42,6 +42,10 @@ class Runner(object):
         # internal var
         self.__backtest_finished = False
 
+    @property
+    def final_status(self) -> BarStatus:
+        return self.bar_status[len(self.bar_status) - 1]
+
     def reset(self):
         self._actions = []
         self._evaluator = None
