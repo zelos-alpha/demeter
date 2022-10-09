@@ -10,17 +10,21 @@ Welcome to demeter's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   quickstart
+   references/broker
+   references/runner
 
 
 Indices and tables
-==================
+====================================
 
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
 * :doc:`quickstart`
 
-Appendix
-=========
+API references
+====================================
 
-:doc:`references/api_reference`
+* :doc:`references/broker`
+* :doc:`references/runner`

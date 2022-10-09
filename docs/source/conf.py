@@ -12,8 +12,8 @@ import myst_parser
 sys.path.insert(0, os.path.abspath('../..'))
 
 project = 'demeter'
-copyright = '2022, florije4ex@gmail.com'
-author = 'florije4ex@gmail.com'
+copyright = '2022, zelos team'
+author = 'zelos team'
 release = '0.0.1'
 
 # -- General configuration ---------------------------------------------------

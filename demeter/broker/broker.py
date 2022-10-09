@@ -11,7 +11,9 @@ from .helper import tick_to_quote_price, quote_price_to_tick
 
 
 class Broker(object):
-    # 稍后我把日志部分加进来
+    """
+    Broker manage your assets. Including asset, positions.
+    """
 
     def __init__(self, pool_info: PoolBaseInfo):
         self._pool_info = pool_info
@@ -100,7 +102,19 @@ class Broker(object):
         for position_info, position in self._positions.items():
             V3CoreLib.update_fee(self.pool_info, position_info, position, self._current_data)
 
-    def get_init_status(self, init_price):
+    def get_init_status(self, init_price: Decimal) -> BarStatus:
+        """
+        Get initial status, which will be saved before running any test.
+
+        :param init_price: beginning price of testing, usually the price in the first item of data array
+
+        :type init_price: Decimal
+
+        :return: status
+
+        :rtype: BarStatus
+
+        """
         base_init_amount, quote_init_amount = self.__convert_pair(self._init_amount0, self._init_amount1)
         capital = base_init_amount + quote_init_amount * init_price
         return BarStatus(UnitDecimal(base_init_amount, self.base_asset.name),
@@ -117,8 +131,10 @@ class Broker(object):
     def get_status(self, price) -> BarStatus:
         """
         获取当前状态, 包括仓位状态等
+
         :param price: 价格, 用于辅助计算净值. 为了和current_data解耦, 单独传入
-        :return:
+
+        :return: BarStatus
         """
         base_asset, quote_asset = self.__convert_pair(self._asset0, self._asset1)
         base_fee_sum = DECIMAL_ZERO

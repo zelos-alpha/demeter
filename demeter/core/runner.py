@@ -9,7 +9,9 @@ from datetime import date, timedelta
 from .evaluating_indicator import Evaluator
 import pandas as pd
 from decimal import Decimal
-
+"""
+11111111111111111111111111111111111111111
+"""
 DEFAULT_DATA_PATH = "./data"
 
 
@@ -24,9 +26,12 @@ class Runner(object):
 
     def __init__(self, pool_info: PoolBaseInfo):
         """
-        create a new runner instance
-        :param pool_info: pool info
+        Create a new Runner
+
+        :param pool_info: pool information
+
         :type pool_info: PoolBaseInfo
+
         """
         self._broker: Broker = Broker(pool_info)
         self._data: Lines = None  # 数据
