@@ -17,11 +17,17 @@ def decimal_from_value(value):
     return Decimal(value)
 
 
-
-
-
 class Runner(object):
+    """
+    Core component of a back test
+    """
+
     def __init__(self, pool_info: PoolBaseInfo):
+        """
+        create a new runner instance
+        :param pool_info: pool info
+        :type pool_info: PoolBaseInfo
+        """
         self._broker: Broker = Broker(pool_info)
         self._data: Lines = None  # 数据
         self._strategy: Strategy = Strategy()  # 策略
@@ -43,7 +49,19 @@ class Runner(object):
 
     @property
     def final_status(self) -> BarStatus:
-        return self.bar_status[len(self.bar_status) - 1]
+        """
+        Get status after back test finish.
+
+        If test has not run, an error will be raised.
+
+        :return: Final state of broker
+
+        :rtype: BarStatus
+        """
+        if self.__backtest_finished:
+            return self.bar_status[len(self.bar_status) - 1]
+        else:
+            raise ZelosError("please run strategy first")
 
     def reset(self):
         self._actions = []
