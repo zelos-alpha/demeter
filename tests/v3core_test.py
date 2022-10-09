@@ -41,14 +41,27 @@ class V3CoreTest(unittest.TestCase):
         self.assertTrue(assert_equal_with_error(position.liquidity, Decimal(461087602302446)))
 
     def test_add_position3(self):
-        # https://polygonscan.com/tx/0x68a80c67a6579cd7b390784ebe9d539f6405763d799b31f55fcac2fdd1665050#eventlog
+        #https://polygonscan.com/tx/0x68a80c67a6579cd7b390784ebe9d539f6405763d799b31f55fcac2fdd1665050#eventlog
         token0_used, token1_used, position = V3CoreLib.new_position(self.pool,
                                                                     Decimal(74.315359),
                                                                     Decimal(0.02722552310238334),
                                                                     203960,
                                                                     204090,
-                                                                    204011)
+                                                                    204012)
         print(token0_used, token1_used, position)
+
+        # for x in range(203960,204090):
+        #     print(x)
+        #     token0_used, token1_used, position = V3CoreLib.new_position(self.pool,
+        #                                                                 Decimal(74.315359),
+        #                                                                 Decimal(0.02722552310238334),
+        #                                                                 203960,
+        #                                                                 204090,
+        #                                                                 x)
+        #     print(token0_used / Decimal(56.491219))
+        #     print(token1_used / Decimal(0.027225523102383337))
+        #     print("---")
+        #
         self.assertTrue(assert_equal_with_error(token0_used, Decimal(56.491219)))
         self.assertTrue(assert_equal_with_error(token1_used, Decimal(0.027225523102383337)))
         self.assertTrue(assert_equal_with_error(position.liquidity, Decimal(390188993876725)))
