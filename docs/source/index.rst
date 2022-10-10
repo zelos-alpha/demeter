@@ -12,6 +12,7 @@ Welcome to demeter's documentation!
 
    quickstart
    references/types
+   references/strategy
    references/broker
    references/runner
 

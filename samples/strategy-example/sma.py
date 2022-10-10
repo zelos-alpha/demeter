@@ -64,7 +64,6 @@ if __name__ == "__main__":
                               date(2022, 8, 5),
                               date(2022, 8, 20))
     runner_instance.run(enable_notify=False)
-
     print(runner_instance.final_status.net_value)
 
     runner_instance.broker.get_status(runner_instance.final_status.price.number)

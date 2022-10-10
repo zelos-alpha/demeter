@@ -208,7 +208,7 @@ class Runner(object):
                                                      row_data.inAmount0,
                                                      row_data.inAmount1,
                                                      row_data.price)
-            self._strategy.next(index.to_pydatetime(), row_data)
+            self._strategy.next(row_data)
             # 更新broker中的统计信息, 比如价格, 手续费
             # 顺便从broker中读取新添加的event
             self._broker.update()
@@ -237,8 +237,10 @@ class Runner(object):
                                      data=map(lambda d: d.to_array(), self.bar_status))
         # 评价指标计算
         self.logger.info("run evaluating indicator")
-        self._evaluator = Evaluator(self._broker.get_init_status(init_price, self.data.index[0].to_pydatetime()), bar_status_df)
+        self._evaluator = Evaluator(self._broker.get_init_status(init_price, self.data.index[0].to_pydatetime()),
+                                    bar_status_df)
         self._evaluator.run()
+        self._strategy.finalize()
         self.logger.info("back testing finish")
         self.__backtest_finished = True
 

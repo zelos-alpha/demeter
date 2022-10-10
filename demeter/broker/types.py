@@ -105,6 +105,9 @@ class BrokerAsset(object):  # 类型使用decimal.Decimal防止出现python floa
 
 @dataclass
 class Position(object):
+    """
+    variables for position
+    """
     def __init__(self):
         self.uncollected_fee_token0: Decimal = Decimal(0)
         self.uncollected_fee_token1: Decimal = Decimal(0)

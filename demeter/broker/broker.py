@@ -362,14 +362,14 @@ class Broker(object):
                                                      created_position))
         return created_position, base_used, quote_used
 
-    def remove_liquidity(self, positions: [PositionInfo]):
+    def remove_liquidity(self, positions: Union[PositionInfo, list]) -> {PositionInfo: (Decimal, Decimal)}:
         """
-        remove liquidity from pool, after
+        remove liquidity from pool, position will be deleted
 
-        :param positions:
-        :type positions:
-        :return:
-        :rtype:
+        :param positions: position info, as an object or an array
+        :type positions: [PositionInfo]
+        :return: a dict, key is position info, value is (base_got,quote_get), base_got is base token amount collected from position
+        :rtype: {PositionInfo: (Decimal,Decimal)}
         """
         amount_dict = dict()
         position_list = positions if type(positions) is list else [positions, ]
@@ -387,7 +387,15 @@ class Broker(object):
                 ))
         return amount_dict
 
-    def collect_fee(self, positions: [PositionInfo]):
+    def collect_fee(self, positions: [PositionInfo]) -> {PositionInfo: tuple}:
+        """
+        collect fee from positions
+
+        :param positions: position info, as an object or an array
+        :type positions: [PositionInfo]
+        :return: a dict, key is position info, value is (base_got,quote_get), base_got is base token fee collected from position
+        :rtype: {Position: tuple(base_got,quote_get)}
+        """
         amount_dict = dict()
         position_list = positions if type(positions) is list else [positions, ]
         for position in position_list:
@@ -405,15 +413,16 @@ class Broker(object):
         return amount_dict
 
     @float_param_formatter
-    def buy(self, amount: Union[Decimal, float], price: Union[Decimal, float] = None):
+    def buy(self, amount: Union[Decimal, float], price: Union[Decimal, float] = None) -> (Decimal, Decimal, Decimal):
         """
+        buy token, swap from base token to quote token.
 
-        :param amount:
-        :param price:
-        :return:
-            fee:
-            base_token_used
-            quote_token_get
+        :param amount: amount to buy(in quote token)
+        :type amount:  Union[Decimal, float]
+        :param price: price
+        :type price: Union[Decimal, float]
+        :return: fee, base token amount spend, quote token amount got
+        :rtype: (Decimal, Decimal, Decimal)
         """
         price = price if price else self.current_status.price
         from_amount = price * amount
@@ -436,15 +445,16 @@ class Broker(object):
         return fee, base_amount, quote_amount
 
     @float_param_formatter
-    def sell(self, amount: Union[Decimal, float], price: Union[Decimal, float] = None):
+    def sell(self, amount: Union[Decimal, float], price: Union[Decimal, float] = None) -> (Decimal, Decimal, Decimal):
         """
+        sell token, swap from quote token to base token.
 
-        :param amount:
-        :param price:
-        :return:
-            fee:
-            base_token_get
-            quote_token_used
+        :param amount: amount to sell(in quote token)
+        :type amount:  Union[Decimal, float]
+        :param price: price
+        :type price: Union[Decimal, float]
+        :return: fee, base token amount got, quote token amount spend
+        :rtype: (Decimal, Decimal, Decimal)
         """
         # None 无滑点current 成交，收手续费
         # price 则视为limit order book,，可能部分成交？
