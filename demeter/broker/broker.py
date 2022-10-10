@@ -206,16 +206,18 @@ class Broker(object):
                             UnitDecimal(Decimal(1), ""),
                             UnitDecimal(DECIMAL_ZERO, ""))
 
-    def get_status(self, price: Decimal, timestamp: datetime = None) -> BrokerStatus:
+    def get_status(self, price: Decimal = None, timestamp: datetime = None) -> BrokerStatus:
         """
         get current status, including positions, balances
 
         :param timestamp: current timestamp, default is none
         :type timestamp: datetime
-        :param price: current price, used for calculate position value and net value
+        :param price: current price, used for calculate position value and net value, if set to None, will use price in current status
         :type price: Decimal
         :return: BrokerStatus
         """
+        if price is None:
+            price = self.current_status.price
         base_asset, quote_asset = self.__convert_pair(self._asset0, self._asset1)
         base_fee_sum = DECIMAL_ZERO
         quote_fee_sum = DECIMAL_ZERO
@@ -361,6 +363,14 @@ class Broker(object):
         return created_position, base_used, quote_used
 
     def remove_liquidity(self, positions: [PositionInfo]):
+        """
+        remove liquidity from pool, after
+
+        :param positions:
+        :type positions:
+        :return:
+        :rtype:
+        """
         amount_dict = dict()
         position_list = positions if type(positions) is list else [positions, ]
         for position in position_list:
