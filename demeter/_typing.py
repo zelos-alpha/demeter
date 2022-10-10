@@ -76,7 +76,7 @@ class ActionTypeEnum(Enum):
 
 class PositionInfo(NamedTuple):
     """
-    position information, including tick range and liquidity
+    position information, including tick range and liquidity. It's the immute properties of a position
 
     :param lower_tick: lower tick
     :type lower_tick: int
@@ -112,6 +112,8 @@ class BrokerStatus:
     """
     current status of broker
 
+    :param timestamp: timestamp
+    :type timestamp: datetime
     :param base_balance: balance of base token
     :type base_balance: UnitDecimal
     :param quote_balance: balance of quote token
@@ -133,6 +135,7 @@ class BrokerStatus:
     :param profit_pct: current total profit rate
     :type profit_pct: UnitDecimal
     """
+    timestamp:datetime
     base_balance: UnitDecimal
     quote_balance: UnitDecimal
     uncollect_fee_base: UnitDecimal

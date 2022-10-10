@@ -9,6 +9,7 @@ from datetime import date, timedelta
 from .evaluating_indicator import Evaluator
 import pandas as pd
 from decimal import Decimal
+
 """
 11111111111111111111111111111111111111111
 """
@@ -43,8 +44,6 @@ class Runner(object):
         self._data_path: str = DEFAULT_DATA_PATH  # 存放数据的路径
         self._evaluator: Evaluator = None  # 评价策略
 
-        # configs
-        self._enable_notify: bool = True
         # logging
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
         self.logger = logging.getLogger(__name__)
@@ -82,14 +81,6 @@ class Runner(object):
     @data_path.setter
     def data_path(self, value):
         self._data_path = value
-
-    @property
-    def enable_notify(self):
-        return self._enable_notify
-
-    @enable_notify.setter
-    def enable_notify(self, value):
-        self._enable_notify = value
 
     @property
     def actions(self):
@@ -135,8 +126,6 @@ class Runner(object):
         return Decimal(amount0) / 10 ** asset.decimal
 
     def notify(self, strategy: Strategy, actions: list[BaseAction]):  # 默认参数, 使用不可变对象
-        if not self.enable_notify:
-            return
         if len(actions) < 1:
             return
         strategy.notify_on_next(actions)
@@ -193,7 +182,7 @@ class Runner(object):
         df["volume0"] = df["inAmount0"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token0.decimal)
         df["volume1"] = df["inAmount1"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token1.decimal)
 
-    def run(self):
+    def run(self, enable_notify=True):
         self.reset()
         self.logger.info("init strategy...")
         self.init_strategy()
@@ -213,20 +202,20 @@ class Runner(object):
                 setattr(row_data, column_name, row[column_name])
             # 执行策略, 以及一些计算
             # 更新price tick
-            self.broker.current_status = PoolStatus(index.to_pydatetime(),
-                                                    row_data.closeTick,
-                                                    row_data.currentLiquidity,
-                                                    row_data.inAmount0,
-                                                    row_data.inAmount1,
-                                                    row_data.price)
+            self._broker.current_status = PoolStatus(index.to_pydatetime(),
+                                                     row_data.closeTick,
+                                                     row_data.currentLiquidity,
+                                                     row_data.inAmount0,
+                                                     row_data.inAmount1,
+                                                     row_data.price)
             self._strategy.next(index.to_pydatetime(), row_data)
             # 更新broker中的统计信息, 比如价格, 手续费
             # 顺便从broker中读取新添加的event
-            self._broker.update_on_bar(row_data)
+            self._broker.update()
             if first:
                 init_price = row_data.price
                 first = False
-            self.bar_status.append(self._broker.get_status(row_data.price))
+            self.bar_status.append(self._broker.get_status(row_data.price, index.to_pydatetime()))
 
             # 通知
             # 汇报在这次迭代发生了哪些操作
@@ -237,7 +226,8 @@ class Runner(object):
 
             if current_event_list and len(current_event_list) > 0:
                 self._actions.extend(current_event_list)
-                self.notify(self.strategy, current_event_list)
+                if enable_notify:
+                    self.notify(self.strategy, current_event_list)
 
             # 准备处理下一条
             self._data.move_cursor_to_next()
