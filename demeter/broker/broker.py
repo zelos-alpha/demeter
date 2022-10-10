@@ -34,7 +34,7 @@ class Broker(object):
         self._init_amount1 = DECIMAL_ZERO
         # 状态
         self._positions: dict[PositionInfo:Position] = {}
-        self._current_data = PoolStatus(None, 0, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO)
+        self._pool_status = PoolStatus(None, 0, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO)
         self._price_unit = f"{self.base_asset.name}/{self.quote_asset.name}"
         # 临时变量
         self.action_buffer = []
@@ -100,17 +100,17 @@ class Broker(object):
         return self._quote_asset
 
     @property
-    def current_status(self) -> PoolStatus:
+    def pool_status(self) -> PoolStatus:
         """
         current pool status. will be writen by runner.
 
         :return: PoolStatus
         :rtype: PoolStatus
         """
-        return self._current_data
+        return self._pool_status
 
-    @current_status.setter
-    def current_status(self, value: PoolStatus):
+    @pool_status.setter
+    def pool_status(self, value: PoolStatus):
         """
         current pool status. will be writen by runner.
 
@@ -119,7 +119,7 @@ class Broker(object):
         :param value: current pool status
         :type value: PoolStatus
         """
-        self._current_data = value
+        self._pool_status = value
 
     def position(self, position_info: PositionInfo) -> Position:
         """
@@ -178,9 +178,9 @@ class Broker(object):
         fee will be calculated by liquidity
         """
         for position_info, position in self._positions.items():
-            V3CoreLib.update_fee(self.pool_info, position_info, position, self.current_status)
+            V3CoreLib.update_fee(self.pool_info, position_info, position, self.pool_status)
 
-    def get_init_status(self, init_price: Decimal, timestamp: datetime = None) -> BrokerStatus:
+    def get_init_broker_status(self, init_price: Decimal, timestamp: datetime = None) -> BrokerStatus:
         """
         Get initial status, which will be saved before running any test.
 
@@ -206,7 +206,7 @@ class Broker(object):
                             UnitDecimal(Decimal(1), ""),
                             UnitDecimal(DECIMAL_ZERO, ""))
 
-    def get_status(self, price: Decimal = None, timestamp: datetime = None) -> BrokerStatus:
+    def get_broker_status(self, price: Decimal = None, timestamp: datetime = None) -> BrokerStatus:
         """
         get current status, including positions, balances
 
@@ -217,7 +217,7 @@ class Broker(object):
         :return: BrokerStatus
         """
         if price is None:
-            price = self.current_status.price
+            price = self.pool_status.price
         base_asset, quote_asset = self.__convert_pair(self._asset0, self._asset1)
         base_fee_sum = DECIMAL_ZERO
         quote_fee_sum = DECIMAL_ZERO
@@ -302,7 +302,7 @@ class Broker(object):
 
     def __remove_liquidity(self, position: PositionInfo):
         token0_get, token1_get = V3CoreLib.close_position(self._pool_info, position, self._positions[position],
-                                                          self.current_status.current_tick)
+                                                          self.pool_status.current_tick)
         del self._positions[position]
         # collect fee and token
         self._asset0.add(token0_get)
@@ -349,7 +349,7 @@ class Broker(object):
                                                                             token1_amt,
                                                                             lower_tick,
                                                                             upper_tick,
-                                                                            self.current_status.current_tick)
+                                                                            self.pool_status.current_tick)
         base_used, quote_used = self.__convert_pair(token0_used, token1_used)
         self.action_buffer.append(AddLiquidityAction(UnitDecimal(self.base_asset.balance, self.base_asset.name),
                                                      UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
@@ -424,7 +424,7 @@ class Broker(object):
         :return: fee, base token amount spend, quote token amount got
         :rtype: (Decimal, Decimal, Decimal)
         """
-        price = price if price else self.current_status.price
+        price = price if price else self.pool_status.price
         from_amount = price * amount
         from_amount_with_fee = from_amount * (1 + self.pool_info.fee_rate)
         fee = from_amount_with_fee - from_amount
@@ -459,7 +459,7 @@ class Broker(object):
         # None 无滑点current 成交，收手续费
         # price 则视为limit order book,，可能部分成交？
         # TODO 写swap的时候, 没感觉有部分成交这回事啊
-        price = price if price else self.current_status.price
+        price = price if price else self.pool_status.price
         from_amount_with_fee = amount
         from_amount = from_amount_with_fee * (1 - self.pool_info.fee_rate)
         to_amount = from_amount * price

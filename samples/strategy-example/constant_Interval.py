@@ -14,7 +14,7 @@ class ConstantInterval(dt.Strategy):
         self.a = a
 
     def initialize(self):
-        P0 = self.broker.current_status.price
+        P0 = self.broker.pool_status.price
         print(P0)
         self.rebalance(P0)#rebalance all reserve token#
         # new_position(self, baseToken, quoteToken, usd_price_a, usd_price_b):
@@ -27,7 +27,7 @@ class ConstantInterval(dt.Strategy):
 
 
     def rebalance(self, price):
-        status: BrokerStatus = self.broker.get_status(price)
+        status: BrokerStatus = self.broker.get_broker_status(price)
         base_amount = status.capital.number / 2
         quote_amount_diff = base_amount / price - status.quote_balance.number
         if quote_amount_diff > 0:
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     print(runner_instance.final_status.net_value)
 
-    runner_instance.broker.get_status(runner_instance.final_status.price.number)
+    runner_instance.broker.get_broker_status(runner_instance.final_status.price.number)
     net_value_ts = [status.net_value.number for status in runner_instance.bar_status]
     time_ts =  [status.timestamp for status in runner_instance.bar_status]
     plt.plot(time_ts,net_value_ts)

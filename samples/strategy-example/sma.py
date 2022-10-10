@@ -5,8 +5,8 @@ from download import ChainType
 from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, BrokerStatus, BuyAction, SellAction, RowData
 import pandas as pd
 
+import matplotlib.pylab as plt
 
-import  matplotlib.pylab as plt
 
 class AddLpByMa(Strategy):
     price_width = None
@@ -20,7 +20,7 @@ class AddLpByMa(Strategy):
         self._add_column("ma5", demeter.indicator.simple_moving_average(prices, 5))
 
     def rebalance(self, price):
-        status: BrokerStatus = self.broker.get_status(price)
+        status: BrokerStatus = self.broker.get_broker_status(price)
         base_amount = status.capital.number / 2
         quote_amount_diff = base_amount / price - status.quote_balance.number
         if quote_amount_diff > 0:
@@ -28,8 +28,8 @@ class AddLpByMa(Strategy):
         elif quote_amount_diff < 0:
             self.sell(0 - quote_amount_diff)
 
-    def next(self, time: datetime, row_data: Union[RowData, pd.Series]):
-        if time.minute != 0:
+    def next(self, row_data: Union[RowData, pd.Series]):
+        if row_data.timestamp.minute != 0:
             return
         if len(self.broker.positions) > 0:
             keys = list(self.broker.positions.keys())
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     runner_instance.run(enable_notify=False)
     print(runner_instance.final_status.net_value)
 
-    runner_instance.broker.get_status(runner_instance.final_status.price.number)
+    runner_instance.broker.get_broker_status(runner_instance.final_status.price.number)
     net_value_ts = [status.net_value.number for status in runner_instance.bar_status]
-    time_ts =  [status.timestamp for status in runner_instance.bar_status]
-    plt.plot(time_ts,net_value_ts)
+    time_ts = [status.timestamp for status in runner_instance.bar_status]
+    plt.plot(time_ts, net_value_ts)

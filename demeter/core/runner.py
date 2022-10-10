@@ -184,10 +184,17 @@ class Runner(object):
 
     def run(self, enable_notify=True):
         self.reset()
-        self.logger.info("init strategy...")
-        self.init_strategy()
         if self._data is None:
             return
+        self.logger.info("init strategy...")
+        first_data = self._data.iloc[0]
+        self._broker.pool_status = PoolStatus(self._data.index[0].to_pydatetime(),
+                                              first_data.closeTick,
+                                              first_data.currentLiquidity,
+                                              first_data.inAmount0,
+                                              first_data.inAmount1,
+                                              first_data.price)
+        self.init_strategy()
         if not isinstance(self._data, Lines):
             raise ZelosError("Data must be instance of Lines")
         row_id = 0
@@ -202,12 +209,12 @@ class Runner(object):
                 setattr(row_data, column_name, row[column_name])
             # 执行策略, 以及一些计算
             # 更新price tick
-            self._broker.current_status = PoolStatus(index.to_pydatetime(),
-                                                     row_data.closeTick,
-                                                     row_data.currentLiquidity,
-                                                     row_data.inAmount0,
-                                                     row_data.inAmount1,
-                                                     row_data.price)
+            self._broker.pool_status = PoolStatus(index.to_pydatetime(),
+                                                  row_data.closeTick,
+                                                  row_data.currentLiquidity,
+                                                  row_data.inAmount0,
+                                                  row_data.inAmount1,
+                                                  row_data.price)
             self._strategy.next(row_data)
             # 更新broker中的统计信息, 比如价格, 手续费
             # 顺便从broker中读取新添加的event
@@ -215,7 +222,7 @@ class Runner(object):
             if first:
                 init_price = row_data.price
                 first = False
-            self.bar_status.append(self._broker.get_status(row_data.price, index.to_pydatetime()))
+            self.bar_status.append(self._broker.get_broker_status(row_data.price, index.to_pydatetime()))
 
             # 通知
             # 汇报在这次迭代发生了哪些操作
@@ -237,7 +244,7 @@ class Runner(object):
                                      data=map(lambda d: d.to_array(), self.bar_status))
         # 评价指标计算
         self.logger.info("run evaluating indicator")
-        self._evaluator = Evaluator(self._broker.get_init_status(init_price, self.data.index[0].to_pydatetime()),
+        self._evaluator = Evaluator(self._broker.get_init_broker_status(init_price, self.data.index[0].to_pydatetime()),
                                     bar_status_df)
         self._evaluator.run()
         self._strategy.finalize()
@@ -248,7 +255,7 @@ class Runner(object):
         if self.__backtest_finished:
             # 最终状态
             print("Final status")
-            print(self.broker.get_status(self.data.tail(1).price[0]).get_output_str())
+            print(self.broker.get_broker_status(self.data.tail(1).price[0]).get_output_str())
             # 评价指标
             print("Evaluating indicator")
             print(self._evaluator.evaluating_indicator.get_output_str())
