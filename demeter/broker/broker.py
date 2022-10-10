@@ -41,6 +41,7 @@ class Broker(object):
     def positions(self) -> dict[PositionInfo:Position]:
         """
         current positions in broker
+
         :return: all positions
         :rtype: dict[PositionInfo:Position]
         """
@@ -49,14 +50,29 @@ class Broker(object):
     @property
     def pool_info(self) -> PoolBaseInfo:
         """
+        Get pool info.
 
-        :return:
-        :rtype:
+        :return: pool info
+        :rtype: PoolBaseInfo
         """
         return self._pool_info
+    @property
+    def asset0(self) -> BrokerAsset:
+        """
+        get asset 0 info, including balance
 
+        :return: BrokerAsset
+        :rtype: BrokerAsset
+        """
+        return self._asset0
     @property
     def asset1(self) -> BrokerAsset:
+        """
+        get asset 1 info, including balance
+
+        :return: BrokerAsset
+        :rtype: BrokerAsset
+        """
         return self._asset1
 
     @property
@@ -75,9 +91,7 @@ class Broker(object):
     def current_data(self, value):
         self._current_data = value
 
-    @property
-    def asset0(self) -> BrokerAsset:
-        return self._asset0
+
 
     def position(self, position: PositionInfo) -> Position:
         return self._positions[position]
