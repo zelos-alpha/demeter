@@ -237,7 +237,7 @@ class Runner(object):
                                      data=map(lambda d: d.to_array(), self.bar_status))
         # 评价指标计算
         self.logger.info("run evaluating indicator")
-        self._evaluator = Evaluator(self._broker.get_init_status(init_price), bar_status_df)
+        self._evaluator = Evaluator(self._broker.get_init_status(init_price, self.data.index[0].to_pydatetime()), bar_status_df)
         self._evaluator.run()
         self.logger.info("back testing finish")
         self.__backtest_finished = True

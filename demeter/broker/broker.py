@@ -180,10 +180,12 @@ class Broker(object):
         for position_info, position in self._positions.items():
             V3CoreLib.update_fee(self.pool_info, position_info, position, self.current_status)
 
-    def get_init_status(self, init_price: Decimal) -> BrokerStatus:
+    def get_init_status(self, init_price: Decimal, timestamp: datetime = None) -> BrokerStatus:
         """
         Get initial status, which will be saved before running any test.
 
+        :param timestamp: timestamp
+        :type timestamp: datetime
         :param init_price: beginning price of testing, usually the price in the first item of data array
         :type init_price: Decimal
         :return: status
@@ -192,7 +194,8 @@ class Broker(object):
         """
         base_init_amount, quote_init_amount = self.__convert_pair(self._init_amount0, self._init_amount1)
         capital = base_init_amount + quote_init_amount * init_price
-        return BrokerStatus(UnitDecimal(base_init_amount, self.base_asset.name),
+        return BrokerStatus(timestamp,
+                            UnitDecimal(base_init_amount, self.base_asset.name),
                             UnitDecimal(quote_init_amount, self.quote_asset.name),
                             UnitDecimal(DECIMAL_ZERO, self.base_asset.name),
                             UnitDecimal(DECIMAL_ZERO, self.quote_asset.name),
@@ -256,7 +259,7 @@ class Broker(object):
         :return: price
         :rtype: Decimal
         """
-        return tick_to_quote_price(tick, self.pool_info.token0.decimal, self.pool_info.token1.decimal,
+        return tick_to_quote_price(int(tick), self.pool_info.token0.decimal, self.pool_info.token1.decimal,
                                    self._is_token0_base)
 
     @float_param_formatter
@@ -277,23 +280,7 @@ class Broker(object):
                         lower_tick: int,
                         upper_tick: int,
                         current_tick=None):
-        """
 
-        add liquidity
-
-        :param token0_amount:
-        :type token0_amount:
-        :param token1_amount:
-        :type token1_amount:
-        :param lower_tick:
-        :type lower_tick:
-        :param upper_tick:
-        :type upper_tick:
-        :param current_tick:
-        :type current_tick:
-        :return:
-        :rtype:
-        """
         if current_tick is None:
             current_tick = int(self._current_tick)  # 记得初始化self.current_tick
         if token0_amount > self._asset0.balance:
@@ -336,7 +323,22 @@ class Broker(object):
                       base_max_amount: Union[Decimal, float],
                       quote_max_amount: Union[Decimal, float],
                       lower_quote_price: Union[Decimal, float],
-                      upper_quote_price: Union[Decimal, float]):
+                      upper_quote_price: Union[Decimal, float]) -> (PositionInfo, Decimal, Decimal):
+        """
+
+        add liquidity, then get a new position
+
+        :param base_max_amount:  inputted base token amount, also the max amount to deposit
+        :type base_max_amount: Union[Decimal, float]
+        :param quote_max_amount: inputted base token amount, also the max amount to deposit
+        :type quote_max_amount: Union[Decimal, float]
+        :param lower_quote_price: lower price base on quote token.
+        :type lower_quote_price: Union[Decimal, float]
+        :param upper_quote_price: upper price base on quote token.
+        :type upper_quote_price: Union[Decimal, float]
+        :return: added position, base token used, quote token used
+        :rtype: (PositionInfo, Decimal, Decimal)
+        """
         token0_amt, token1_amt = self.__convert_pair(base_max_amount, quote_max_amount)
         lower_tick, upper_tick = V3CoreLib.quote_price_pair_to_tick(self._pool_info, lower_quote_price,
                                                                     upper_quote_price)
