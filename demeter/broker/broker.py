@@ -77,18 +77,36 @@ class Broker(object):
 
     @property
     def base_asset(self) -> BrokerAsset:
+        """
+        base asset, defined by pool info. It's the reference of asset0 or asset1
+
+        :return: BrokerAsset
+        :rtype: BrokerAsset
+        """
         return self._base_asset
 
     @property
     def quote_asset(self) -> BrokerAsset:
+        """
+        quote asset, defined by pool info. It's the reference of asset0 or asset1
+
+        :return: BrokerAsset
+        :rtype: BrokerAsset
+        """
         return self._quote_asset
 
     @property
-    def current_data(self) -> PoolStatus:
+    def current_status(self) -> PoolStatus:
+        """
+        current status
+
+        :return:
+        :rtype:
+        """
         return self._current_data
 
-    @current_data.setter
-    def current_data(self, value):
+    @current_status.setter
+    def current_status(self, value):
         self._current_data = value
 
 
@@ -232,7 +250,7 @@ class Broker(object):
 
     def __remove_liquidity(self, position: PositionInfo):
         token0_get, token1_get = V3CoreLib.close_position(self._pool_info, position, self._positions[position],
-                                                          self.current_data.current_tick)
+                                                          self.current_status.current_tick)
         del self._positions[position]
         # collect fee and token
         self._asset0.add(token0_get)
@@ -269,7 +287,7 @@ class Broker(object):
                                                                             token1_amt,
                                                                             lower_tick,
                                                                             upper_tick,
-                                                                            self.current_data.current_tick)
+                                                                            self.current_status.current_tick)
         base_used, quote_used = self.__convert_pair(token0_used, token1_used)
         self.action_buffer.append(AddLiquidityAction(UnitDecimal(self.base_asset.balance, self.base_asset.name),
                                                      UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
@@ -327,7 +345,7 @@ class Broker(object):
             base_token_used
             quote_token_get
         """
-        price = price if price else self.current_data.price
+        price = price if price else self.current_status.price
         from_amount = price * amount
         from_amount_with_fee = from_amount * (1 + self.pool_info.fee_rate)
         fee = from_amount_with_fee - from_amount
@@ -361,7 +379,7 @@ class Broker(object):
         # None 无滑点current 成交，收手续费
         # price 则视为limit order book,，可能部分成交？
         # TODO 写swap的时候, 没感觉有部分成交这回事啊
-        price = price if price else self.current_data.price
+        price = price if price else self.current_status.price
         from_amount_with_fee = amount
         from_amount = from_amount_with_fee * (1 - self.pool_info.fee_rate)
         to_amount = from_amount * price

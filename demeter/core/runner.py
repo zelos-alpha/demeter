@@ -213,12 +213,12 @@ class Runner(object):
                 setattr(row_data, column_name, row[column_name])
             # 执行策略, 以及一些计算
             # 更新price tick
-            self.broker.current_data = PoolStatus(index.to_pydatetime(),
-                                                  row_data.closeTick,
-                                                  row_data.currentLiquidity,
-                                                  row_data.inAmount0,
-                                                  row_data.inAmount1,
-                                                  row_data.price)
+            self.broker.current_status = PoolStatus(index.to_pydatetime(),
+                                                    row_data.closeTick,
+                                                    row_data.currentLiquidity,
+                                                    row_data.inAmount0,
+                                                    row_data.inAmount1,
+                                                    row_data.price)
             self._strategy.next(index.to_pydatetime(), row_data)
             # 更新broker中的统计信息, 比如价格, 手续费
             # 顺便从broker中读取新添加的event
