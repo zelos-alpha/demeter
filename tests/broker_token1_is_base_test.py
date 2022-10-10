@@ -18,8 +18,8 @@ class TestBroker(unittest.TestCase):
         broker = Broker(self.pool)
         tick = -206604
         price = broker.tick_to_price(tick)
-        broker.current_data = PoolStatus(None, tick, Decimal("1107562474636574291"),
-                                         Decimal("58280013108171131649"), Decimal("18714189922"), price)
+        broker.current_status = PoolStatus(None, tick, Decimal("1107562474636574291"),
+                                           Decimal("58280013108171131649"), Decimal("18714189922"), price)
         broker.set_asset(self.eth, 1)
         broker.set_asset(self.usdc, price)
         # https://etherscan.io/address/0x4e68ccd3e89f51c3074ca5072bbac773960dfa36#readContract
@@ -39,16 +39,16 @@ class TestBroker(unittest.TestCase):
         broker = self.get_one_broker()
         print(broker)
         self.assertEqual(1, broker.asset0.balance)
-        self.assertEqual(broker.current_data.price, broker.asset1.balance)
+        self.assertEqual(broker.current_status.price, broker.asset1.balance)
 
     def test_add_Liquidity_by_tick(self):
         broker = self.get_one_broker()
         # 围绕tick对称添加. 应该用光
         (new_position, base_used, quote_used) = broker._Broker__add_liquidity(broker.asset0.balance,
                                                                               broker.asset1.balance,
-                                                                              broker.current_data.current_tick - 100,
-                                                                              broker.current_data.current_tick + 100,
-                                                                              broker.current_data.current_tick)
+                                                                              broker.current_status.current_tick - 100,
+                                                                              broker.current_status.current_tick + 100,
+                                                                              broker.current_status.current_tick)
         TestBroker.print_broker(broker, [new_position, ])
         self.assertEqual(0, float("{:.4f}".format(broker.asset0.balance)))
         self.assertEqual(0, float("{:.4f}".format(broker.asset1.balance)))
@@ -59,8 +59,8 @@ class TestBroker(unittest.TestCase):
         token1_amt = broker.asset1.balance
         (new_position, base_used, quote_used) = broker.add_liquidity(token1_amt,
                                                                      token0_amt,
-                                                                     broker.current_data.price - 100,
-                                                                     broker.current_data.price + 100)
+                                                                     broker.current_status.price - 100,
+                                                                     broker.current_status.price + 100)
         TestBroker.print_broker(broker, [new_position, ])
         broker.remove_liquidity(new_position)
         print("===============================================================================")
@@ -73,20 +73,20 @@ class TestBroker(unittest.TestCase):
         broker = self.get_one_broker()
         # 围绕tick对称添加. 应该用光
         (new_position, base_used, quote_used) = broker._Broker__add_liquidity(Decimal(1),
-                                                                              broker.current_data.price,
-                                                                              broker.current_data.current_tick - 10,
-                                                                              broker.current_data.current_tick + 10,
-                                                                              broker.current_data.current_tick)
+                                                                              broker.current_status.price,
+                                                                              broker.current_status.current_tick - 10,
+                                                                              broker.current_status.current_tick + 10,
+                                                                              broker.current_status.current_tick)
         TestBroker.print_broker(broker, [new_position])
         eth_amount = Decimal("10000000000000000000")
         usdc_amount = Decimal("10000000")
         row = Series(index=["closeTick", "currentLiquidity", "inAmount0", "inAmount1"],
-                     data=[broker.current_data.current_tick, new_position.liquidity * 100,
+                     data=[broker.current_status.current_tick, new_position.liquidity * 100,
                            eth_amount,
                            usdc_amount])
-        price = broker.tick_to_price(broker.current_data.current_tick)
-        broker.current_data = PoolStatus(None, broker.current_data.current_tick, new_position.liquidity * 100,
-                                         eth_amount, usdc_amount, price)
+        price = broker.tick_to_price(broker.current_status.current_tick)
+        broker.current_status = PoolStatus(None, broker.current_status.current_tick, new_position.liquidity * 100,
+                                           eth_amount, usdc_amount, price)
         broker.update_on_bar(row)
         print("=========after a bar======================================================================")
         TestBroker.print_broker(broker, [new_position])
@@ -115,7 +115,7 @@ class TestBroker(unittest.TestCase):
         print("=========after buy======================================================================")
         TestBroker.print_broker(broker)
         self.assertEqual(broker.asset1.balance,
-                         token1_before - broker.current_data.price * Decimal(0.5) * (1 + broker.pool_info.fee_rate))
+                         token1_before - broker.current_status.price * Decimal(0.5) * (1 + broker.pool_info.fee_rate))
         self.assertEqual(broker.asset0.balance, token0_before + Decimal(0.5))
 
     def test_sell(self):
@@ -127,5 +127,5 @@ class TestBroker(unittest.TestCase):
         print("=========after buy======================================================================")
         TestBroker.print_broker(broker)
         self.assertEqual(broker.asset1.balance,
-                         token1_before + broker.current_data.price * Decimal(1) * (1 - broker.pool_info.fee_rate))
+                         token1_before + broker.current_status.price * Decimal(1) * (1 - broker.pool_info.fee_rate))
         self.assertEqual(broker.asset0.balance, token0_before - Decimal(1))
