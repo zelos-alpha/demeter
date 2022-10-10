@@ -5,9 +5,14 @@ from download import ChainType
 from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, BrokerStatus, BuyAction, SellAction, RowData
 import pandas as pd
 
+import  matplotlib.pylab as plt
 
 class AddLpByMa(Strategy):
-    price_width = 100
+    price_width = None
+
+    def __init__(self, price_width=100):
+        super().__init__()
+        self.price_width= price_width
 
     def initialize(self):
         prices = self.data.closeTick.map(lambda x: self.broker.tick_to_price(x))
@@ -33,8 +38,8 @@ class AddLpByMa(Strategy):
         ma_price = row_data.ma5 if row_data.ma5 > 0 else row_data.price
         self.add_liquidity(self.broker.base_asset.balance,
                            self.broker.quote_asset.balance,
-                           ma_price - AddLpByMa.price_width,
-                           ma_price + AddLpByMa.price_width)
+                           ma_price - self.price_width,
+                           ma_price + self.price_width)
 
     def notify_buy(self, action: BuyAction):
         print(action.get_output_str(), action.base_balance_after.number / action.quote_balance_after.number)
@@ -49,12 +54,17 @@ if __name__ == "__main__":
     pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
 
     runner_instance = Runner(pool)
-    runner_instance.strategy = AddLpByMa()
-    runner_instance.set_assets([Asset(usdc, 1835), Asset(eth, 1)])
-    runner_instance.data_path = "../../data"
+    runner_instance.enable_notify=False
+    runner_instance.strategy = AddLpByMa(200)
+    runner_instance.set_assets([Asset(usdc,2000)])
+    runner_instance.data_path = "./samples/data"
     runner_instance.load_data(ChainType.Polygon.name,
                               "0x45dda9cb7c25131df268515131f647d726f50608",
-                              date(2022, 8, 19),
+                              date(2022, 8, 5),
                               date(2022, 8, 20))
     runner_instance.run()
-    runner_instance.output()
+
+    print(runner_instance.final_status.net_value)
+
+    runner_instance.broker.get_status()
+    net_value_ts = [ status.net_value.number for status in runner_instance.bar_status]
