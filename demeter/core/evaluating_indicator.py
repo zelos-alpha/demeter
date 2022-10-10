@@ -1,13 +1,13 @@
 import pandas as pd
 
-from .._typing import BarStatus, EvaluatingIndicator, DECIMAL_ZERO, UnitDecimal, ZelosError
+from .._typing import BrokerStatus, EvaluatingIndicator, DECIMAL_ZERO, UnitDecimal, ZelosError
 from decimal import Decimal
 
 
 class Evaluator(object):
 
-    def __init__(self, init_status: BarStatus, data: pd.DataFrame):
-        self.init_status: BarStatus = init_status
+    def __init__(self, init_status: BrokerStatus, data: pd.DataFrame):
+        self.init_status: BrokerStatus = init_status
         self.init_capital = init_status.base_balance.number + init_status.quote_balance.number * init_status.price.number
         self.end_status = data.iloc[-1]
         self.data = data

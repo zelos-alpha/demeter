@@ -2,17 +2,21 @@ from decimal import Decimal
 from pandas import Series
 
 from .._typing import PositionInfo, ZelosError, AddLiquidityAction, RemoveLiquidityAction, BuyAction, SellAction, \
-    PositionAmount, CollectFeeAction, BarStatus, DECIMAL_ZERO, UnitDecimal
+    CollectFeeAction, BrokerStatus, DECIMAL_ZERO, UnitDecimal
 from ..utils.application import float_param_formatter
 
-from .types import PoolBaseInfo, TokenInfo, BrokerAsset, Position, BarData
+from .types import PoolBaseInfo, TokenInfo, BrokerAsset, Position, PoolStatus
 from .v3_core import V3CoreLib
 from .helper import tick_to_quote_price, quote_price_to_tick
 
 
 class Broker(object):
     """
-    Broker manage your assets. Including asset, positions.
+    Broker manage assets in back testing. Including asset, positions. it also provides operations for positions,
+    such as add/remove liquidity, swap assets.
+
+    :param pool_info: pool information
+    :type pool_info: PoolBaseInfo
     """
 
     def __init__(self, pool_info: PoolBaseInfo):
@@ -28,17 +32,27 @@ class Broker(object):
         self._init_amount1 = DECIMAL_ZERO
         # 状态
         self._positions: dict[PositionInfo:Position] = {}
-        self._current_data = BarData(None, 0, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO)
+        self._current_data = PoolStatus(None, 0, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO)
         self._price_unit = f"{self.base_asset.name}/{self.quote_asset.name}"
         # 临时变量
         self.action_buffer = []
 
     @property
     def positions(self) -> dict[PositionInfo:Position]:
+        """
+        current positions in broker
+        :return: all positions
+        :rtype: dict[PositionInfo:Position]
+        """
         return self._positions
 
     @property
     def pool_info(self) -> PoolBaseInfo:
+        """
+
+        :return:
+        :rtype:
+        """
         return self._pool_info
 
     @property
@@ -54,7 +68,7 @@ class Broker(object):
         return self._quote_asset
 
     @property
-    def current_data(self) -> BarData:
+    def current_data(self) -> PoolStatus:
         return self._current_data
 
     @current_data.setter
@@ -102,38 +116,34 @@ class Broker(object):
         for position_info, position in self._positions.items():
             V3CoreLib.update_fee(self.pool_info, position_info, position, self._current_data)
 
-    def get_init_status(self, init_price: Decimal) -> BarStatus:
+    def get_init_status(self, init_price: Decimal) -> BrokerStatus:
         """
         Get initial status, which will be saved before running any test.
 
         :param init_price: beginning price of testing, usually the price in the first item of data array
-
         :type init_price: Decimal
-
         :return: status
-
-        :rtype: BarStatus
+        :rtype: BrokerStatus
 
         """
         base_init_amount, quote_init_amount = self.__convert_pair(self._init_amount0, self._init_amount1)
         capital = base_init_amount + quote_init_amount * init_price
-        return BarStatus(UnitDecimal(base_init_amount, self.base_asset.name),
-                         UnitDecimal(quote_init_amount, self.quote_asset.name),
-                         UnitDecimal(DECIMAL_ZERO, self.base_asset.name),
-                         UnitDecimal(DECIMAL_ZERO, self.quote_asset.name),
-                         UnitDecimal(DECIMAL_ZERO, self.base_asset.name),
-                         UnitDecimal(DECIMAL_ZERO, self.quote_asset.name),
-                         UnitDecimal(capital, self.base_asset.name),
-                         UnitDecimal(init_price, self._price_unit),
-                         UnitDecimal(Decimal(1), ""),
-                         UnitDecimal(DECIMAL_ZERO, ""))
+        return BrokerStatus(UnitDecimal(base_init_amount, self.base_asset.name),
+                            UnitDecimal(quote_init_amount, self.quote_asset.name),
+                            UnitDecimal(DECIMAL_ZERO, self.base_asset.name),
+                            UnitDecimal(DECIMAL_ZERO, self.quote_asset.name),
+                            UnitDecimal(DECIMAL_ZERO, self.base_asset.name),
+                            UnitDecimal(DECIMAL_ZERO, self.quote_asset.name),
+                            UnitDecimal(capital, self.base_asset.name),
+                            UnitDecimal(init_price, self._price_unit),
+                            UnitDecimal(Decimal(1), ""),
+                            UnitDecimal(DECIMAL_ZERO, ""))
 
-    def get_status(self, price) -> BarStatus:
+    def get_status(self, price) -> BrokerStatus:
         """
         获取当前状态, 包括仓位状态等
 
         :param price: 价格, 用于辅助计算净值. 为了和current_data解耦, 单独传入
-
         :return: BarStatus
         """
         base_asset, quote_asset = self.__convert_pair(self._asset0, self._asset1)
@@ -158,16 +168,16 @@ class Broker(object):
         net_value = capital / (base_init_amount + price * quote_init_amount)
 
         profit_pct = (net_value - 1) * 100
-        return BarStatus(UnitDecimal(base_asset.balance, self.base_asset.name),
-                         UnitDecimal(quote_asset.balance, self.quote_asset.name),
-                         UnitDecimal(base_fee_sum, self.base_asset.name),
-                         UnitDecimal(quote_fee_sum, self.quote_asset.name),
-                         UnitDecimal(base_deposit_amount, self.base_asset.name),
-                         UnitDecimal(quote_deposit_amount, self.quote_asset.name),
-                         UnitDecimal(capital, self.base_asset.name),
-                         UnitDecimal(price, self._price_unit),
-                         UnitDecimal(net_value, ""),
-                         UnitDecimal(profit_pct, ""))
+        return BrokerStatus(UnitDecimal(base_asset.balance, self.base_asset.name),
+                            UnitDecimal(quote_asset.balance, self.quote_asset.name),
+                            UnitDecimal(base_fee_sum, self.base_asset.name),
+                            UnitDecimal(quote_fee_sum, self.quote_asset.name),
+                            UnitDecimal(base_deposit_amount, self.base_asset.name),
+                            UnitDecimal(quote_deposit_amount, self.quote_asset.name),
+                            UnitDecimal(capital, self.base_asset.name),
+                            UnitDecimal(price, self._price_unit),
+                            UnitDecimal(net_value, ""),
+                            UnitDecimal(profit_pct, ""))
 
     def get_amount_in_position(self, position: PositionInfo):
         amount0, amount1 = V3CoreLib.get_token_amounts(self._pool_info, position, self._current_tick)

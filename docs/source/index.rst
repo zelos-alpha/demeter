@@ -11,6 +11,7 @@ Welcome to demeter's documentation!
    :caption: Contents:
 
    quickstart
+   references/types
    references/broker
    references/runner
 
@@ -26,5 +27,6 @@ Indices and tables
 API references
 ====================================
 
+* :doc:`references/types`
 * :doc:`references/broker`
 * :doc:`references/runner`

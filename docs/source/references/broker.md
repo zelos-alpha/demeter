@@ -1,6 +1,13 @@
 # Broker
 
 ```{eval-rst}
-.. automodule:: demeter.broker.broker    
+
+.. autoclass:: demeter.types.PoolBaseInfo    
     :members:
+.. autoclass:: demeter.types.PoolStatus    
+    :undoc-members:
+.. autoclass:: demeter.broker.broker.Broker
+    :members:
+    
+
 ```

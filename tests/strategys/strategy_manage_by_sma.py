@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Union
 import demeter.indicator
 from download import ChainType
-from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, BarStatus, BuyAction, SellAction, RowData
+from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, BrokerStatus, BuyAction, SellAction, RowData
 import pandas as pd
 
 
@@ -14,7 +14,7 @@ class AddLpByMa(Strategy):
         self._add_column("ma5", demeter.indicator.simple_moving_average(prices, 5))
 
     def rebalance(self, price):
-        status: BarStatus = self.broker.get_status(price)
+        status: BrokerStatus = self.broker.get_status(price)
         base_amount = status.capital.number / 2
         quote_amount_diff = base_amount / price - status.quote_balance.number
         if quote_amount_diff > 0:

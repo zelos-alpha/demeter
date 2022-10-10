@@ -1,5 +1,5 @@
 import unittest
-from demeter import Broker, TokenInfo, PoolBaseInfo, BarData
+from demeter import Broker, TokenInfo, PoolBaseInfo, PoolStatus
 from pandas import Series
 from decimal import Decimal
 
@@ -18,8 +18,8 @@ class TestBroker(unittest.TestCase):
         broker = Broker(self.pool)
         tick = -206604
         price = broker.tick_to_price(tick)
-        broker.current_data = BarData(None, tick, Decimal("1107562474636574291"),
-                                      Decimal("58280013108171131649"), Decimal("18714189922"), price)
+        broker.current_data = PoolStatus(None, tick, Decimal("1107562474636574291"),
+                                         Decimal("58280013108171131649"), Decimal("18714189922"), price)
         broker.set_asset(self.eth, 1)
         broker.set_asset(self.usdc, price)
         # https://etherscan.io/address/0x4e68ccd3e89f51c3074ca5072bbac773960dfa36#readContract
@@ -85,8 +85,8 @@ class TestBroker(unittest.TestCase):
                            eth_amount,
                            usdc_amount])
         price = broker.tick_to_price(broker.current_data.current_tick)
-        broker.current_data = BarData(None, broker.current_data.current_tick, new_position.liquidity * 100,
-                                      eth_amount, usdc_amount, price)
+        broker.current_data = PoolStatus(None, broker.current_data.current_tick, new_position.liquidity * 100,
+                                         eth_amount, usdc_amount, price)
         broker.update_on_bar(row)
         print("=========after a bar======================================================================")
         TestBroker.print_broker(broker, [new_position])

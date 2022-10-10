@@ -1,6 +1,6 @@
 from .._typing import PositionInfo
 from .liquitidymath import get_amounts, get_liquidity
-from .types import PoolBaseInfo, Position, BarData
+from .types import PoolBaseInfo, Position, PoolStatus
 from .helper import quote_price_to_tick, from_wei
 from decimal import Decimal
 
@@ -45,7 +45,7 @@ class V3CoreLib(object):
         return lower_tick, upper_tick
 
     @staticmethod
-    def update_fee(pool: PoolBaseInfo, pos: PositionInfo, position: Position, state: BarData):
+    def update_fee(pool: PoolBaseInfo, pos: PositionInfo, position: Position, state: PoolStatus):
         if pos.upper_tick > state.current_tick > pos.lower_tick:  # 滑点大概率不能移动超过大刻度，也就是L是不会变的
             if pos.liquidity >= state.current_liquidity:  # 如果模拟的流动性超过了实际情况. 认为占比是1
                 share = Decimal(1)

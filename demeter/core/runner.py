@@ -1,8 +1,8 @@
 import logging
-from .. import BarData
+from .. import PoolStatus
 from ..data_line import Lines
 from ..broker import Broker, PoolBaseInfo
-from .._typing import BarStatus, BarStatusNames, BaseAction, Asset, ZelosError, TokenInfo, TradeEnum, \
+from .._typing import BrokerStatus, BarStatusNames, BaseAction, Asset, ZelosError, TokenInfo, ActionTypeEnum, \
     EvaluatingIndicator, RowData
 from ..strategy import Strategy
 from datetime import date, timedelta
@@ -39,7 +39,7 @@ class Runner(object):
         self._actions: [BaseAction] = []  # 所有操作(买, 卖, 添加流动性等)
         self.bar_actions: [BaseAction] = []  # 当前bar的所有操作
         self._broker.action_buffer: [BaseAction] = self.bar_actions
-        self.bar_status: [BarStatus] = []  # 迭代的每个bar中, broker的状态(包括余额等)
+        self.bar_status: [BrokerStatus] = []  # 迭代的每个bar中, broker的状态(包括余额等)
         self._data_path: str = DEFAULT_DATA_PATH  # 存放数据的路径
         self._evaluator: Evaluator = None  # 评价策略
 
@@ -53,7 +53,7 @@ class Runner(object):
         self.__backtest_finished = False
 
     @property
-    def final_status(self) -> BarStatus:
+    def final_status(self) -> BrokerStatus:
         """
         Get status after back test finish.
 
@@ -61,7 +61,7 @@ class Runner(object):
 
         :return: Final state of broker
 
-        :rtype: BarStatus
+        :rtype: BrokerStatus
         """
         if self.__backtest_finished:
             return self.bar_status[len(self.bar_status) - 1]
@@ -141,16 +141,16 @@ class Runner(object):
             return
         strategy.notify_on_next(actions)
         for event in actions:
-            match event.trade_type:
-                case TradeEnum.add_liquidity:
+            match event.action_type:
+                case ActionTypeEnum.add_liquidity:
                     strategy.notify_add_liquidity(event)
-                case TradeEnum.remove_liquidity:
+                case ActionTypeEnum.remove_liquidity:
                     strategy.notify_remove_liquidity(event)
-                case TradeEnum.collect_fee:
+                case ActionTypeEnum.collect_fee:
                     strategy.notify_collect_fee(event)
-                case TradeEnum.buy:
+                case ActionTypeEnum.buy:
                     strategy.notify_buy(event)
-                case TradeEnum.sell:
+                case ActionTypeEnum.sell:
                     strategy.notify_sell(event)
                 case _:
                     strategy.notify(event)
@@ -213,12 +213,12 @@ class Runner(object):
                 setattr(row_data, column_name, row[column_name])
             # 执行策略, 以及一些计算
             # 更新price tick
-            self.broker.current_data = BarData(index.to_pydatetime(),
-                                               row_data.closeTick,
-                                               row_data.currentLiquidity,
-                                               row_data.inAmount0,
-                                               row_data.inAmount1,
-                                               row_data.price)
+            self.broker.current_data = PoolStatus(index.to_pydatetime(),
+                                                  row_data.closeTick,
+                                                  row_data.currentLiquidity,
+                                                  row_data.inAmount0,
+                                                  row_data.inAmount1,
+                                                  row_data.price)
             self._strategy.next(index.to_pydatetime(), row_data)
             # 更新broker中的统计信息, 比如价格, 手续费
             # 顺便从broker中读取新添加的event
