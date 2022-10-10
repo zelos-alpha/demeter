@@ -31,7 +31,7 @@ def download_bigquery_pool_event_oneday(chain: ChainType, contract_address: str,
     """
     from google.cloud import bigquery
     client = bigquery.Client()
-    # 不要用block_number作为查询条件, 那个列上没有索引, 不会减少查询量的大小
+    # no index on blocknum for bigquery. Do not use blocknum in where. slow.
     query = f"""SELECT
         block_timestamp,
         block_number,
