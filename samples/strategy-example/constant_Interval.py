@@ -1,23 +1,30 @@
 import demeter as dt
+from demeter import PoolBaseInfo, Runner
 from demeter._typing import TokenInfo, BrokerStatus, Asset
 from datetime import date, datetime
 from download import ChainType
 
 ETH = TokenInfo(name="eth", decimal=18)
 usdc = TokenInfo(name="usdc", decimal=6)
+import  matplotlib.pylab as plt
 
 class ConstantInterval(dt.Strategy):
-    def __init__(self,a=10):
-        P0 = self.data.closeTick.map(lambda x: self.broker.tick_to_price(x))
-        self.rebalance(P0)#rebalance all reserve token#
+    def __init__(self, a=100):
+        super().__init__()
+        self.a = a
+
+    def initialize(self):
+        P0 = self.broker.current_status.price
         print(P0)
+        self.rebalance(P0)#rebalance all reserve token#
         # new_position(self, baseToken, quoteToken, usd_price_a, usd_price_b):
         #what is  base/quote "https://corporatefinanceinstitute.com/resources/knowledge/economics/currency-pair/"
-        self.add_liquidity(P0-a,P0+a)#
+        self.add_liquidity(self.broker.base_asset.balance,
+                           self.broker.quote_asset.balance,
+                           P0 - self.a,
+                           P0 + self.a)
+        super().__init__()
 
-
-    def next(self):
-        pass
 
     def rebalance(self, price):
         status: BrokerStatus = self.broker.get_status(price)
@@ -29,15 +36,25 @@ class ConstantInterval(dt.Strategy):
             self.sell(0 - quote_amount_diff)
 
 
-pool = dt.PoolBaseInfo(token0=usdc, token1 = ETH,fee=.05,base_token=usdc)
-runner = dt.Runner(pool)
-runner.strategy = ConstantInterval()
-runner.set_assets([Asset(usdc, 1000)  , Asset(ETH,1)])
-runner.data_path = "../data"
-runner.load_data(ChainType.Polygon.name,
-                          "0x45dda9cb7c25131df268515131f647d726f50608",
-                          date(2022, 7, 20),
-                          date(2022, 8, 20))
+if __name__ == "__main__":
+    eth = TokenInfo(name="eth", decimal=18)
+    usdc = TokenInfo(name="usdc", decimal=6)
+    pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
 
-runner.run()
-runner.output()
+    runner_instance = Runner(pool)
+    runner_instance.enable_notify = False
+    runner_instance.strategy = ConstantInterval(200)
+    runner_instance.set_assets([Asset(usdc, 2000)])
+    runner_instance.data_path = "../data"
+    runner_instance.load_data(ChainType.Polygon.name,
+                              "0x45dda9cb7c25131df268515131f647d726f50608",
+                              date(2022, 8, 5),
+                              date(2022, 8, 20))
+    runner_instance.run(enable_notify=False)
+
+    print(runner_instance.final_status.net_value)
+
+    runner_instance.broker.get_status(runner_instance.final_status.price.number)
+    net_value_ts = [status.net_value.number for status in runner_instance.bar_status]
+    time_ts =  [status.timestamp for status in runner_instance.bar_status]
+    plt.plot(time_ts,net_value_ts)
