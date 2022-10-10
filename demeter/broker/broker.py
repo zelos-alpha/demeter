@@ -28,8 +28,8 @@ class Broker(object):
         self._asset0 = BrokerAsset(pool_info.token0, DECIMAL_ZERO)
         self._asset1 = BrokerAsset(pool_info.token1, DECIMAL_ZERO)
         base_asset, quote_asset = self.__convert_pair(self._asset0, self._asset1)
-        self._base_asset = base_asset
-        self._quote_asset = quote_asset
+        self._base_asset:BrokerAsset = base_asset
+        self._quote_asset:BrokerAsset = quote_asset
         self._init_amount0 = DECIMAL_ZERO
         self._init_amount1 = DECIMAL_ZERO
         # 状态

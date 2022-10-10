@@ -117,10 +117,11 @@ class Strategy(object):
         self.data[name] = line
 
     def add_liquidity(self,
-                      base_max_amount: Union[Decimal, float],
-                      quote_max_amount: Union[Decimal, float],
+                      upper_quote_price: Union[Decimal, float],
                       lower_quote_price: Union[Decimal, float],
-                      upper_quote_price: Union[Decimal, float]) -> (PositionInfo, Decimal, Decimal):
+                      base_max_amount: Union[Decimal, float] = None,
+                      quote_max_amount: Union[Decimal, float] = None,
+                      ) -> (PositionInfo, Decimal, Decimal):
         """
 
         add liquidity, then get a new position
@@ -136,6 +137,9 @@ class Strategy(object):
         :return: added position, base token used, quote token used
         :rtype: (PositionInfo, Decimal, Decimal)
         """
+        if base_max_amount is None and quote_max_amount is None:  # TODO change comment
+            base_max_amount = self.broker.base_asset.balance
+            quote_max_amount = self.broker.quote_asset.balance
         return self.broker.add_liquidity(base_max_amount, quote_max_amount, lower_quote_price, upper_quote_price)
 
     def remove_liquidity(self, positions: Union[PositionInfo, list]) -> {PositionInfo: (Decimal, Decimal)}:

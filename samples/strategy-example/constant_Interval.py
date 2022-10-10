@@ -15,7 +15,6 @@ class ConstantInterval(dt.Strategy):
 
     def initialize(self):
         P0 = self.broker.pool_status.price
-        print(P0)
         self.rebalance(P0)#rebalance all reserve token#
         # new_position(self, baseToken, quoteToken, usd_price_a, usd_price_b):
         #what is  base/quote "https://corporatefinanceinstitute.com/resources/knowledge/economics/currency-pair/"
@@ -49,7 +48,7 @@ if __name__ == "__main__":
     runner_instance.load_data(ChainType.Polygon.name,
                               "0x45dda9cb7c25131df268515131f647d726f50608",
                               date(2022, 8, 5),
-                              date(2022, 8, 20))
+                              date(2022, 8, 15))
     runner_instance.run(enable_notify=False)
 
     print(runner_instance.final_status.net_value)
@@ -58,3 +57,6 @@ if __name__ == "__main__":
     net_value_ts = [status.net_value.number for status in runner_instance.bar_status]
     time_ts =  [status.timestamp for status in runner_instance.bar_status]
     plt.plot(time_ts,net_value_ts)
+
+    plt.show()
+    print(runner_instance.actions)
