@@ -107,7 +107,7 @@ class TestBroker(unittest.TestCase):
                                            eth_amount,
                                            broker.tick_to_price(broker.current_status.current_tick))
         print("=========after a bar======================================================================")
-        broker.update_on_bar(None)
+        broker.update()
         TestBroker.print_broker(broker, [new_position])
         self.assertTrue(Decimal("0.00005") == broker.position(new_position).uncollected_fee_token0)
         self.assertTrue(Decimal("0.00005") == broker.position(new_position).uncollected_fee_token1)

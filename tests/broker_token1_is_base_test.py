@@ -87,7 +87,7 @@ class TestBroker(unittest.TestCase):
         price = broker.tick_to_price(broker.current_status.current_tick)
         broker.current_status = PoolStatus(None, broker.current_status.current_tick, new_position.liquidity * 100,
                                            eth_amount, usdc_amount, price)
-        broker.update_on_bar(row)
+        broker.update()
         print("=========after a bar======================================================================")
         TestBroker.print_broker(broker, [new_position])
 

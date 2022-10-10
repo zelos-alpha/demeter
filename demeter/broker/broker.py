@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from pandas import Series
 
@@ -8,6 +9,7 @@ from ..utils.application import float_param_formatter
 from .types import PoolBaseInfo, TokenInfo, BrokerAsset, Position, PoolStatus
 from .v3_core import V3CoreLib
 from .helper import tick_to_quote_price, quote_price_to_tick
+from typing import Union
 
 
 class Broker(object):
@@ -56,6 +58,7 @@ class Broker(object):
         :rtype: PoolBaseInfo
         """
         return self._pool_info
+
     @property
     def asset0(self) -> BrokerAsset:
         """
@@ -65,6 +68,7 @@ class Broker(object):
         :rtype: BrokerAsset
         """
         return self._asset0
+
     @property
     def asset1(self) -> BrokerAsset:
         """
@@ -98,35 +102,58 @@ class Broker(object):
     @property
     def current_status(self) -> PoolStatus:
         """
-        current status
+        current pool status. will be writen by runner.
 
-        :return:
-        :rtype:
+        :return: PoolStatus
+        :rtype: PoolStatus
         """
         return self._current_data
 
     @current_status.setter
-    def current_status(self, value):
+    def current_status(self, value: PoolStatus):
+        """
+        current pool status. will be writen by runner.
+
+        Do not update this property unless necessary
+
+        :param value: current pool status
+        :type value: PoolStatus
+        """
         self._current_data = value
 
+    def position(self, position_info: PositionInfo) -> Position:
+        """
+        get position by position information
 
-
-    def position(self, position: PositionInfo) -> Position:
-        return self._positions[position]
+        :param position_info: position information
+        :type position_info: PositionInfo
+        :return: Position
+        :rtype: Position
+        """
+        return self._positions[position_info]
 
     def __convert_pair(self, any0, any1):
         """
-        将token0/1的顺序, 根据is_token0_base调整为baseToken/quoteToken的顺序
-        或者将baseToken/quoteToken的顺序, 调整为token0/1的顺序
-        :param any0:
-        :param any1:
-        :return:
+        convert order of token0/token1 to base_token/quote_token, according to self.is_token0_base.
+
+        Or convert order of base_token/quote_token to token0/token1
+
+        :param any0: token0 or any property of token0, eg. balance...
+        :param any1: token1 or any property of token1, eg. balance...
+        :return: (base,qoute) or (token0,token1)
         """
         return (any0, any1) if self._is_token0_base else (any1, any0)
 
     @float_param_formatter
-    def set_asset(self, token: TokenInfo, amount: Decimal):
+    def set_asset(self, token: TokenInfo, amount: Union[Decimal, float]):
+        """
+        set initial balance for token
 
+        :param token: which token to set
+        :type token: TokenInfo
+        :param amount: balance, eg: 1.2345
+        :type amount: Union[Decimal, float]
+        """
         if not self._pool_info:
             raise ZelosError("set up pool info first")
         if token == self._asset0.token_info:
@@ -138,15 +165,20 @@ class Broker(object):
         else:
             raise ZelosError("unknown token")
 
-    def update_on_bar(self, data_of_bar: Series):
+    def update(self):
+        """
+        re-calculate status
+        """
         self.__update_fee()
 
-    # region read方法
     def __update_fee(self):
-        # 更新手续费
-        # 模型: 仅仅根据提供流动性的多少来分成, 不考虑tick的宽度.
+        """
+        update fee in all positions according to current status
+
+        fee will be calculated by liquidity
+        """
         for position_info, position in self._positions.items():
-            V3CoreLib.update_fee(self.pool_info, position_info, position, self._current_data)
+            V3CoreLib.update_fee(self.pool_info, position_info, position, self.current_status)
 
     def get_init_status(self, init_price: Decimal) -> BrokerStatus:
         """
@@ -171,12 +203,15 @@ class Broker(object):
                             UnitDecimal(Decimal(1), ""),
                             UnitDecimal(DECIMAL_ZERO, ""))
 
-    def get_status(self, price) -> BrokerStatus:
+    def get_status(self, price: Decimal, timestamp: datetime = None) -> BrokerStatus:
         """
-        获取当前状态, 包括仓位状态等
+        get current status, including positions, balances
 
-        :param price: 价格, 用于辅助计算净值. 为了和current_data解耦, 单独传入
-        :return: BarStatus
+        :param timestamp: current timestamp, default is none
+        :type timestamp: datetime
+        :param price: current price, used for calculate position value and net value
+        :type price: Decimal
+        :return: BrokerStatus
         """
         base_asset, quote_asset = self.__convert_pair(self._asset0, self._asset1)
         base_fee_sum = DECIMAL_ZERO
@@ -200,7 +235,8 @@ class Broker(object):
         net_value = capital / (base_init_amount + price * quote_init_amount)
 
         profit_pct = (net_value - 1) * 100
-        return BrokerStatus(UnitDecimal(base_asset.balance, self.base_asset.name),
+        return BrokerStatus(timestamp,
+                            UnitDecimal(base_asset.balance, self.base_asset.name),
                             UnitDecimal(quote_asset.balance, self.quote_asset.name),
                             UnitDecimal(base_fee_sum, self.base_asset.name),
                             UnitDecimal(quote_fee_sum, self.quote_asset.name),
@@ -211,18 +247,28 @@ class Broker(object):
                             UnitDecimal(net_value, ""),
                             UnitDecimal(profit_pct, ""))
 
-    def get_amount_in_position(self, position: PositionInfo):
-        amount0, amount1 = V3CoreLib.get_token_amounts(self._pool_info, position, self._current_tick)
-        return self.__convert_pair(amount0, amount1)
+    def tick_to_price(self, tick: int) -> Decimal:
+        """
+        convert tick to price
 
-    # action to pool
-    @float_param_formatter
-    def tick_to_price(self, tick):
+        :param tick: tick
+        :type tick: int
+        :return: price
+        :rtype: Decimal
+        """
         return tick_to_quote_price(tick, self.pool_info.token0.decimal, self.pool_info.token1.decimal,
                                    self._is_token0_base)
 
     @float_param_formatter
-    def price_to_tick(self, price):
+    def price_to_tick(self, price: Union[Decimal, float]) -> int:
+        """
+        convert price to tick
+
+        :param price: price
+        :type price:  Union[Decimal, float]
+        :return: tick
+        :rtype: int
+        """
         return quote_price_to_tick(price, self.pool_info.token0.decimal, self.pool_info.token1.decimal,
                                    self._is_token0_base)
 
@@ -231,6 +277,23 @@ class Broker(object):
                         lower_tick: int,
                         upper_tick: int,
                         current_tick=None):
+        """
+
+        add liquidity
+
+        :param token0_amount:
+        :type token0_amount:
+        :param token1_amount:
+        :type token1_amount:
+        :param lower_tick:
+        :type lower_tick:
+        :param upper_tick:
+        :type upper_tick:
+        :param current_tick:
+        :type current_tick:
+        :return:
+        :rtype:
+        """
         if current_tick is None:
             current_tick = int(self._current_tick)  # 记得初始化self.current_tick
         if token0_amount > self._asset0.balance:
@@ -257,15 +320,6 @@ class Broker(object):
         self._asset1.add(token1_get)
         return token0_get, token1_get
 
-    # @float_param_formatter
-    # def swap(self, from_asset: BrokerAsset, to_asset: BrokerAsset, from_amount: Decimal, price=None):
-    #     fee = from_amount * self._pool_info.fee_rate
-    #     from_amount_without_fee = from_amount - fee
-    #     to_amount = price * from_amount_without_fee
-    #     from_asset.sub(from_amount)
-    #     to_asset.add(to_amount)
-    #     return fee, from_amount, to_amount
-
     def __collect_fee(self, position: Position):
         token0_fee, token1_fee = position.uncollected_fee_token0, position.uncollected_fee_token1
         position.uncollected_fee_token0 = 0
@@ -278,7 +332,11 @@ class Broker(object):
     # action for strategy
 
     @float_param_formatter
-    def add_liquidity(self, base_max_amount, quote_max_amount, lower_quote_price, upper_quote_price):
+    def add_liquidity(self,
+                      base_max_amount: Union[Decimal, float],
+                      quote_max_amount: Union[Decimal, float],
+                      lower_quote_price: Union[Decimal, float],
+                      upper_quote_price: Union[Decimal, float]):
         token0_amt, token1_amt = self.__convert_pair(base_max_amount, quote_max_amount)
         lower_tick, upper_tick = V3CoreLib.quote_price_pair_to_tick(self._pool_info, lower_quote_price,
                                                                     upper_quote_price)
@@ -335,7 +393,7 @@ class Broker(object):
         return amount_dict
 
     @float_param_formatter
-    def buy(self, amount: Decimal | float, price: Decimal | float = None):
+    def buy(self, amount: Union[Decimal, float], price: Union[Decimal, float] = None):
         """
 
         :param amount:
@@ -366,7 +424,7 @@ class Broker(object):
         return fee, base_amount, quote_amount
 
     @float_param_formatter
-    def sell(self, amount: Decimal | float, price: Decimal | float = None):
+    def sell(self, amount: Union[Decimal, float], price: Union[Decimal, float] = None):
         """
 
         :param amount:
