@@ -128,9 +128,9 @@ class BrokerStatus:
     :type capital: UnitDecimal
     :param price: current price
     :type price: UnitDecimal
-    :param net_value: net value
+    :param net_value: current net value
     :type net_value: UnitDecimal
-    :param profit_pct: total profit rate
+    :param profit_pct: current total profit rate
     :type profit_pct: UnitDecimal
     """
     base_balance: UnitDecimal
@@ -141,8 +141,8 @@ class BrokerStatus:
     quote_in_position: UnitDecimal
     capital: UnitDecimal
     price: UnitDecimal
-    net_value: UnitDecimal  # 账户净值
-    profit_pct: UnitDecimal  # 账户总收益率
+    net_value: UnitDecimal
+    profit_pct: UnitDecimal
 
     def get_output_str(self) -> str:
         """
