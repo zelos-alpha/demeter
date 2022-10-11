@@ -24,7 +24,7 @@ def plot_position_return_decomposition(account_status_list:List[AccountStatus]):
     time_ts = [status.timestamp for status in account_status_list]
     price_ts = [ status.price for status in account_status_list ]
 
-    value_in_account = [ status.capital for status in account_status_list]
+    value_in_account = [status.net_value for status in account_status_list]
     value_in_position =  [ status.base_in_position+status.quote_in_position*status.price for status in account_status_list]
 
     value_ax.plot(time_ts,net_value_ts,'g-',labels="net value")

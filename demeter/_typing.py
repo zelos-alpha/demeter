@@ -106,10 +106,8 @@ BarStatusNames = [
     "uncollect_fee_quote",
     "base_in_position",
     "quote_in_position",
-    "capital",
-    "price",
     "net_value",
-    "profit_pct",
+    "price"
 ]
 
 
@@ -132,14 +130,11 @@ class AccountStatus:
     :type base_in_position: UnitDecimal
     :param quote_in_position: quote token amount deposited in positions, calculated according to current price
     :type quote_in_position: UnitDecimal
-    :param capital: all the capitals for broker, including balance,uncollected fee, deposited
-    :type capital: UnitDecimal
+    :param net_value: all the capitals for broker, including balance,uncollected fee, deposited
+    :type net_value: UnitDecimal
     :param price: current price
     :type price: UnitDecimal
-    :param net_value: current net value
-    :type net_value: UnitDecimal
-    :param profit_pct: current total profit rate
-    :type profit_pct: UnitDecimal
+
     """
     timestamp: datetime
     base_balance: UnitDecimal
@@ -148,10 +143,8 @@ class AccountStatus:
     uncollect_fee_quote: UnitDecimal
     base_in_position: UnitDecimal
     quote_in_position: UnitDecimal
-    capital: UnitDecimal
-    price: UnitDecimal
     net_value: UnitDecimal
-    profit_pct: UnitDecimal
+    price: UnitDecimal
 
     def get_output_str(self) -> str:
         """
@@ -160,12 +153,10 @@ class AccountStatus:
         :rtype: str
         """
         return get_formatted_str({
-            "total capital": f"{self.capital}",
+            "total capital": f"{self.net_value}",
             "balance": f"{self.base_balance},{self.quote_balance}",
             "uncollect fee": f"{self.uncollect_fee_base},{self.uncollect_fee_quote}",
-            "in position amount": f"{self.base_in_position},{self.quote_in_position}",
-            "net value": f"{self.net_value}",
-            "profit pct": f"{self.profit_pct}"
+            "in position amount": f"{self.base_in_position},{self.quote_in_position}"
         })
 
     def to_array(self):
@@ -176,10 +167,8 @@ class AccountStatus:
             self.uncollect_fee_quote,
             self.base_in_position,
             self.quote_in_position,
-            self.capital,
-            self.price,
             self.net_value,
-            self.profit_pct
+            self.price
         ]
 
 

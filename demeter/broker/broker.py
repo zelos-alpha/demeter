@@ -201,9 +201,7 @@ class Broker(object):
                              UnitDecimal(DECIMAL_ZERO, self.base_asset.name),
                              UnitDecimal(DECIMAL_ZERO, self.quote_asset.name),
                              UnitDecimal(capital, self.base_asset.name),
-                             UnitDecimal(init_price, self._price_unit),
-                             UnitDecimal(Decimal(1), ""),
-                             UnitDecimal(DECIMAL_ZERO, ""))
+                             UnitDecimal(init_price, self._price_unit))
 
     def get_account_status(self, price: Decimal = None, timestamp: datetime = None) -> AccountStatus:
         """
@@ -247,9 +245,7 @@ class Broker(object):
                              UnitDecimal(base_deposit_amount, self.base_asset.name),
                              UnitDecimal(quote_deposit_amount, self.quote_asset.name),
                              UnitDecimal(capital, self.base_asset.name),
-                             UnitDecimal(price, self._price_unit),
-                             UnitDecimal(net_value, ""),
-                             UnitDecimal(profit_pct, ""))
+                             UnitDecimal(price, self._price_unit))
 
     def tick_to_price(self, tick: int) -> Decimal:
         """
