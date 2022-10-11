@@ -2,42 +2,23 @@ import demeter as dt
 from datetime import timedelta, date
 from demeter import TokenInfo, PoolBaseInfo, Runner, Asset, AccountStatus, ActionTypeEnum
 from download import ChainType
-
 from strategy_ploter import  plot_position_return_decomposition
 
-class FillUp(dt.Strategy):
-
-    def __init__(self, a=10, b=1, update_interval=timedelta(days=1)):
-        super().__init__()
+class TwoIntervalsAroundtheCurrentPrice(dt.Strategy):
+    def __init__(self,a=10,b=1,update_interval=timedelta(days=1)):
         self.a = a
-        # self.lines.update_timestamps = periodize(update_interval)#生成line 对象 ture/false#TODO
+        self.b = b
 
     def initialize(self):
         a = self.a
+        b = self.b
         P0 = self.broker.pool_status.price
-        self.rebalance(P0)#rebalance all reserve token#
 
-        self.my_a_position =  self.add_liquidity(P0-self.a,P0+self.a)
+        self.my_a_position =  self.add_liquidity(P0-a,P0+a)
         if self.broker.base_asset.balance>0:
-            self.my_b_position = self.add_liquidity(P0-a,P0)
+            self.my_b_position = self.add_liquidity(P0-b,P0)
         else:
-            self.my_b_position = self.add_liquidity(P0,P0+a)
-
-    def next(self,row_data):
-        a = self.a
-        if row_data.timestamp.hour != 0 or row_data.timestamp.minute != 0: #every day. need a tool function to set in the future.
-            return
-        if len(self.broker.positions) > 0:
-            keys = list(self.broker.positions.keys())
-            for k in keys:
-                self.remove_liquidity(k)
-            self.rebalance(row_data.price)
-        current_price = self.broker.pool_status.price
-        self.my_a_position =  self.add_liquidity(current_price-self.a,current_price+self.a)
-        if self.broker.base_asset.balance>0:
-            self.my_b_position = self.add_liquidity(current_price-a,current_price)
-        else:
-            self.my_b_position = self.add_liquidity(current_price,current_price+a)
+            self.my_b_position = self.add_liquidity(P0,P0+b)
 
     def rebalance(self, price):
         status: AccountStatus = self.broker.get_account_status(price)
@@ -48,6 +29,24 @@ class FillUp(dt.Strategy):
         elif quote_amount_diff < 0:
             self.sell(0 - quote_amount_diff)
 
+    def next(self,row_data):
+        a = self.a
+        b = self.b
+        if row_data.timestamp.hour != 0 or row_data.timestamp.minute != 0: #every day. need a tool function to set in the future.
+            return
+
+        if len(self.broker.positions) > 0:
+            keys = list(self.broker.positions.keys())
+            for k in keys:
+                self.remove_liquidity(k)
+            self.rebalance(row_data.price)
+
+        current_price = self.broker.pool_status.price
+        if self.broker.base_asset.balance > 0:
+            self.my_b_position = self.add_liquidity(current_price - self.b, current_price)
+        else:
+            self.my_b_position = self.add_liquidity(current_price, current_price + current_price+b)
+
 
 if __name__ == "__main__":
     eth = TokenInfo(name="eth", decimal=18)
@@ -56,7 +55,7 @@ if __name__ == "__main__":
 
     runner_instance = Runner(pool)
     runner_instance.enable_notify = False
-    runner_instance.strategy = FillUp(200)
+    runner_instance.strategy = TwoIntervalsAroundtheCurrentPrice(400,200)
     runner_instance.set_assets([Asset(usdc, 2000)])
 
     runner_instance.data_path = "../data"
@@ -68,4 +67,3 @@ if __name__ == "__main__":
     print(runner_instance.final_status.net_value)
 
     plot_position_return_decomposition(runner_instance.account_status_list)
-
