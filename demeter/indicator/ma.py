@@ -7,12 +7,31 @@ from decimal import Decimal
 
 
 class TimeUnitEnum(Enum):
+    """
+    time unit for moving average,
+
+    * minute
+    * hour
+    * day
+    """
     minute = 1
     hour = 60
     day = 60 * 24
 
 
 def simple_moving_average(data: pd.Series, n=5, unit=TimeUnitEnum.hour) -> pd.Series:
+    """
+    calculate simple moving average
+
+    :param data: data
+    :type data: Series
+    :param n: window width, should set along with unit, eg: 5 hour, 2 minute
+    :type n: int
+    :param unit: unit of n, can be minute,hour,day
+    :type unit: TimeUnitEnum
+    :return: simple moving average data
+    :rtype: Series
+    """
     if data.size < 2:
         raise ZelosError("not enough data for simple_moving_average")
     timespan: Timedelta = data.index[1] - data.index[0]

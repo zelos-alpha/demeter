@@ -15,6 +15,8 @@ Welcome to demeter's documentation!
    references/strategy
    references/broker
    references/runner
+   references/indicator
+   references/data_line
 
 
 Indices and tables
