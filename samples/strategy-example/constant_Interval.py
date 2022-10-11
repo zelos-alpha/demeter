@@ -4,6 +4,7 @@ from demeter._typing import TokenInfo, AccountStatus, Asset
 from datetime import date, datetime
 from download import ChainType
 
+from strategy_ploter import  plot_position_return_decomposition
 ETH = TokenInfo(name="eth", decimal=18)
 usdc = TokenInfo(name="usdc", decimal=6)
 import  matplotlib.pylab as plt
@@ -18,10 +19,9 @@ class ConstantInterval(dt.Strategy):
         self.rebalance(P0)#rebalance all reserve token#
         # new_position(self, baseToken, quoteToken, usd_price_a, usd_price_b):
         #what is  base/quote "https://corporatefinanceinstitute.com/resources/knowledge/economics/currency-pair/"
-        self.add_liquidity(self.broker.base_asset.balance,
-                           self.broker.quote_asset.balance,
-                           P0 - self.a,
+        self.add_liquidity(P0 - self.a,
                            P0 + self.a)
+        print("eth_value",self.broker.quote_asset.balance)
         super().__init__()
 
 
@@ -50,13 +50,7 @@ if __name__ == "__main__":
                               date(2022, 8, 5),
                               date(2022, 8, 15))
     runner_instance.run(enable_notify=False)
-
     print(runner_instance.final_status.net_value)
 
-    runner_instance.broker.get_account_status(runner_instance.final_status.price)
-    net_value_ts = [status.net_value for status in runner_instance.account_status_list]
-    time_ts =  [status.timestamp for status in runner_instance.account_status_list]
-    plt.plot(time_ts,net_value_ts)
+    plot_position_return_decomposition(runner_instance.account_status_list)
 
-    plt.show()
-    print(runner_instance.actions)
