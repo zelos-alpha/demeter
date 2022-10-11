@@ -23,6 +23,7 @@ Now you can download data.
 3. then choose path you keep google authority file (.json),
 4. choose the path to keep downloaded files. press enter to keep default setting (../data), then config finish.
 5. run "download pool_contract_address start_date end_date" to start download. this may take a while. you can monitor the progress by process bar.
+6. start next download, or input "exit"
 
 After download, data will be processed, they will be resampled to 1 minute. and empty minute will be filled. after process, columns will be
 
