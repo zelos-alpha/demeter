@@ -153,10 +153,10 @@ class AccountStatus:
         :rtype: str
         """
         return get_formatted_str({
-            "total capital": f"{self.net_value}",
-            "balance": f"{self.base_balance},{self.quote_balance}",
-            "uncollect fee": f"{self.uncollect_fee_base},{self.uncollect_fee_quote}",
-            "in position amount": f"{self.base_in_position},{self.quote_in_position}"
+            "total capital": f"{str(self.net_value)}",
+            "balance": f"{str(self.base_balance)},{str(self.quote_balance)}",
+            "uncollect fee": f"{str(self.uncollect_fee_base)},{str(self.uncollect_fee_quote)}",
+            "in position amount": f"{str(self.base_in_position)},{str(self.quote_in_position)}"
         })
 
     def to_array(self):
@@ -275,10 +275,10 @@ class AddLiquidityAction(BaseAction):
         """
         return f"""\033[1;31m{"Add liquidity":<20}\033[0m""" + \
                get_formatted_str({
-                   "max amount": f"{self.base_amount_max},{self.quote_amount_max}",
-                   "price": f"{self.lower_quote_price},{self.upper_quote_price}",
+                   "max amount": f"{str(self.base_amount_max)},{str(self.quote_amount_max)}",
+                   "price": f"{str(self.lower_quote_price)},{str(self.upper_quote_price)}",
                    "position": self.position,
-                   "balance": f"{self.base_balance_after}(-{self.base_amount_actual}), {self.quote_balance_after}(-{self.quote_amount_actual})"
+                   "balance": f"{str(self.base_balance_after)}(-{str(self.base_amount_actual)}), {str(self.quote_balance_after)}(-{str(self.quote_amount_actual)})"
                })
 
 
@@ -309,7 +309,7 @@ class CollectFeeAction(BaseAction):
         return f"""\033[1;33m{"Collect fee":<20}\033[0m""" + \
                get_formatted_str({
                    "position": self.position,
-                   "balance": f"{self.base_balance_after}(+{self.base_amount}), {self.quote_balance_after}(+{self.quote_amount})"
+                   "balance": f"{str(self.base_balance_after)}(+{str(self.base_amount)}), {str(self.quote_balance_after)}(+{str(self.quote_amount)})"
                })
 
 
@@ -340,7 +340,7 @@ class RemoveLiquidityAction(BaseAction):
         return f"""\033[1;32m{"Remove liquidity":<20}\033[0m""" + \
                get_formatted_str({
                    "position": self.position,
-                   "balance": f"{self.base_balance_after}(+{self.base_amount}), {self.quote_balance_after}(+{self.quote_amount})"
+                   "balance": f"{str(self.base_balance_after)}(+{str(self.base_amount)}), {str(self.quote_balance_after)}(+{str(self.quote_amount)})"
                })
 
 
@@ -376,9 +376,9 @@ class BuyAction(BaseAction):
         """
         return f"""\033[1;36m{"Buy":<20}\033[0m""" + \
                get_formatted_str({
-                   "price": self.price,
-                   "fee": self.fee,
-                   "balance": f"{self.base_balance_after}(-{self.base_change}), {self.quote_balance_after}(+{self.quote_change})"
+                   "price": str(self.price),
+                   "fee": str(self.fee),
+                   "balance": f"{str(self.base_balance_after)}(-{str(self.base_change)}), {str(self.quote_balance_after)}(+{str(self.quote_change)})"
                })
 
 
@@ -409,9 +409,9 @@ class SellAction(BaseAction):
     def get_output_str(self):
         return f"""\033[1;37m{"Sell":<20}\033[0m""" + \
                get_formatted_str({
-                   "price": self.price,
-                   "fee": self.fee,
-                   "balance": f"{self.base_balance_after}(+{self.base_change}), {self.quote_balance_after}(-{self.quote_change})"
+                   "price": str(self.price),
+                   "fee": str(self.fee),
+                   "balance": f"{str(self.base_balance_after)}(+{str(self.base_change)}), {str(self.quote_balance_after)}(-{str(self.quote_change)})"
                })
 
 
@@ -437,8 +437,8 @@ class EvaluatingIndicator:
         :rtype: str
         """
         return get_formatted_str({
-            "annualized_returns": self.annualized_returns,
-            "benchmark_returns": self.benchmark_returns,
+            "annualized_returns": str(self.annualized_returns),
+            "benchmark_returns": str(self.benchmark_returns),
         })
 
 
