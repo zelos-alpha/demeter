@@ -67,11 +67,4 @@ runner_instance.load_data(ChainType.Polygon.name,
 runner_instance.run(enable_notify=False)
 print(runner_instance.final_status.net_value)
 
-net_value_ts = [status.net_value.number for status in runner_instance.account_status_list]
-time_ts = [status.timestamp for status in runner_instance.account_status_list]
-prices= [status.price.number for status in runner_instance.account_status_list]
-p0= prices[0]
-prices = [price/p0 for price in  prices]
-plt.plot(time_ts, net_value_ts)
-plt.plot(time_ts,prices)
-plt.show()
+

@@ -6,7 +6,8 @@ from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, AccountSta
 import pandas as pd
 
 import matplotlib.pylab as plt
-from strategy_ploter import plotter
+from strategy_ploter import plotter, plot_position_return_decomposition
+
 
 class AddLpByMa(Strategy):
     price_width = None
@@ -65,4 +66,4 @@ if __name__ == "__main__":
 
     runner_instance.broker.get_account_status(runner_instance.final_status.price.number)
 
-    plotter(runner_instance.account_status_list)
+    plot_position_return_decomposition(runner_instance.account_status_list)
