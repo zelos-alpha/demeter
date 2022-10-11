@@ -117,8 +117,8 @@ class Strategy(object):
         self.data[name] = line
 
     def add_liquidity(self,
-                      upper_quote_price: Union[Decimal, float],
                       lower_quote_price: Union[Decimal, float],
+                      upper_quote_price: Union[Decimal, float],
                       base_max_amount: Union[Decimal, float] = None,
                       quote_max_amount: Union[Decimal, float] = None,
                       ) -> (PositionInfo, Decimal, Decimal):
