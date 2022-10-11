@@ -46,8 +46,10 @@ class V3CoreLib(object):
 
     @staticmethod
     def update_fee(pool: PoolBaseInfo, pos: PositionInfo, position: Position, state: PoolStatus):
-        if pos.upper_tick > state.current_tick > pos.lower_tick:  # 滑点大概率不能移动超过大刻度，也就是L是不会变的
-            if pos.liquidity >= state.current_liquidity:  # 如果模拟的流动性超过了实际情况. 认为占比是1
+        # in most cases, tick will not cross to next one, which means L will not change.
+        if pos.upper_tick > state.current_tick > pos.lower_tick:
+            # if the simulating liquidity is above the actual liquidity, we will consider share=1
+            if pos.liquidity >= state.current_liquidity:
                 share = Decimal(1)
             else:
                 share = pos.liquidity / state.current_liquidity

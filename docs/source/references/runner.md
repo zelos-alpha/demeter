@@ -1,6 +1,6 @@
 # Runner
 
 ```{eval-rst}
-.. automodule:: demeter.core.runner    
+.. autoclass:: demeter.core.runner.Runner
     :members:
 ```

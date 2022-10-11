@@ -10,9 +10,6 @@ from .evaluating_indicator import Evaluator
 import pandas as pd
 from decimal import Decimal
 
-"""
-11111111111111111111111111111111111111111
-"""
 DEFAULT_DATA_PATH = "./data"
 
 
@@ -22,24 +19,25 @@ def decimal_from_value(value):
 
 class Runner(object):
     """
-    Core component of a back test
+    Core component of a back test. Manage the resources in a test, including broker/strategy/data/indicator,
+
+    :param pool_info: pool information
+    :type pool_info: PoolBaseInfo
+
     """
 
     def __init__(self, pool_info: PoolBaseInfo):
-        """
-        Create a new Runner
-
-        :param pool_info: pool information
-
-        :type pool_info: PoolBaseInfo
-
-        """
         self._broker: Broker = Broker(pool_info)
-        self._data: Lines = None  # 数据
-        self._strategy: Strategy = Strategy()  # 策略
-        self._actions: [BaseAction] = []  # 所有操作(买, 卖, 添加流动性等)
-        self.bar_actions: [BaseAction] = []  # 当前bar的所有操作
+        # data
+        self._data: Lines = None
+        # strategy
+        self._strategy: Strategy = Strategy()
+        # all the actions during the test(buy/sell/add liquidity)
+        self._actions: [BaseAction] = []
+        # actions in current bar
+        self.bar_actions: [BaseAction] = []
         self._broker.action_buffer: [BaseAction] = self.bar_actions
+
         self.bar_status: [BrokerStatus] = []  # 迭代的每个bar中, broker的状态(包括余额等)
         self._data_path: str = DEFAULT_DATA_PATH  # 存放数据的路径
         self._evaluator: Evaluator = None  # 评价策略

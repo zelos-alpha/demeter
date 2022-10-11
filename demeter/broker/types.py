@@ -49,7 +49,7 @@ class PoolBaseInfo(object):
                "base token: {})".format(self.token0.name if self.is_token0_base else self.token1.name)
 
 
-class BrokerAsset(object):  # 类型使用decimal.Decimal防止出现python float精度问题
+class BrokerAsset(object):
     """
     Wallet of broker, manage balance of an asset.
     It will prevent excess usage on asset.
@@ -88,9 +88,8 @@ class BrokerAsset(object):  # 类型使用decimal.Decimal防止出现python floa
 
         if base == Decimal(0):  # amount and balance is both 0
             return self
-        # 如果扣减金额和余额相差, 小于0.01%, 扣减所有余额
-        # 这是因为, core所计算出的扣减金额. 实际上有一些误差. 在一定范围内可以接受这个误差
-        # 具体来说, 在"花光余额"的场景下. 会造成余额不足的问题
+        # if difference between amount and balance is below 0.01%, will deduct all the balance
+        # That's because, the amount calculated by v3_core, has some acceptable error.
         if abs((self.balance - amount) / base) < 0.00001:
             self.balance = Decimal(0)
         elif self.balance - amount < Decimal(0):

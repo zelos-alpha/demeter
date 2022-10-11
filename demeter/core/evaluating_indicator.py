@@ -5,7 +5,9 @@ from decimal import Decimal
 
 
 class Evaluator(object):
-
+    """
+    calculate evaluator indicator for strategy.
+    """
     def __init__(self, init_status: BrokerStatus, data: pd.DataFrame):
         self.init_status: BrokerStatus = init_status
         self.init_capital = init_status.base_balance.number + init_status.quote_balance.number * init_status.price.number
@@ -23,13 +25,13 @@ class Evaluator(object):
         return self._evaluating_indicator
 
     def get_annualized_returns(self):
-        """年化收益率"""
+        """Annualized return rate"""
         return (self.end_status.capital.number / self.init_capital) ** Decimal(365 / self.time_span_in_day) - 1
 
     def get_benchmark_returns(self):
         """
-        基准收益率
-        算法: 资产调仓成1:1的比例. 持有到最后.
+        Annualized benchmark return rate
+        algorithm: swap token balance to 1:1, and hold those position to the end.
         :return:
         """
         base_amount, quote_amount = self.__get_benchmark_asset()

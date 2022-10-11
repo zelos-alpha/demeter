@@ -2,9 +2,6 @@ from decimal import Decimal
 import math
 
 
-# doc完成下，稍后我补充testcase
-
-
 def _x96_to_decimal(number: int):
     return Decimal(number) / 2 ** 96
 

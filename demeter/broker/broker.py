@@ -1,6 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from pandas import Series
 
 from .._typing import PositionInfo, ZelosError, AddLiquidityAction, RemoveLiquidityAction, BuyAction, SellAction, \
     CollectFeeAction, BrokerStatus, DECIMAL_ZERO, UnitDecimal
