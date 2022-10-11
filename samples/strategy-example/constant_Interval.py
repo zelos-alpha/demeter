@@ -54,8 +54,8 @@ if __name__ == "__main__":
     print(runner_instance.final_status.net_value)
 
     runner_instance.broker.get_broker_status(runner_instance.final_status.price.number)
-    net_value_ts = [status.net_value.number for status in runner_instance.bar_status]
-    time_ts =  [status.timestamp for status in runner_instance.bar_status]
+    net_value_ts = [status.net_value.number for status in runner_instance.broker_status_list]
+    time_ts =  [status.timestamp for status in runner_instance.broker_status_list]
     plt.plot(time_ts,net_value_ts)
 
     plt.show()

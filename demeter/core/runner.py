@@ -37,10 +37,12 @@ class Runner(object):
         # actions in current bar
         self.bar_actions: [BaseAction] = []
         self._broker.action_buffer: [BaseAction] = self.bar_actions
-
-        self.bar_status: [BrokerStatus] = []  # 迭代的每个bar中, broker的状态(包括余额等)
-        self._data_path: str = DEFAULT_DATA_PATH  # 存放数据的路径
-        self._evaluator: Evaluator = None  # 评价策略
+        # broker status in every bar
+        self.broker_status_list: [BrokerStatus] = []
+        # path to save data
+        self._data_path: str = DEFAULT_DATA_PATH
+        # evaluating indicator calculator
+        self._evaluator: Evaluator = None
 
         # logging
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -61,14 +63,14 @@ class Runner(object):
         :rtype: BrokerStatus
         """
         if self.__backtest_finished:
-            return self.bar_status[len(self.bar_status) - 1]
+            return self.broker_status_list[len(self.broker_status_list) - 1]
         else:
             raise ZelosError("please run strategy first")
 
     def reset(self):
         self._actions = []
         self._evaluator = None
-        self.bar_status = []
+        self.broker_status_list = []
         self.__backtest_finished = False
         self.data.reset_cursor()
 
@@ -220,7 +222,7 @@ class Runner(object):
             if first:
                 init_price = row_data.price
                 first = False
-            self.bar_status.append(self._broker.get_broker_status(row_data.price, index.to_pydatetime()))
+            self.broker_status_list.append(self._broker.get_broker_status(row_data.price, index.to_pydatetime()))
 
             # 通知
             # 汇报在这次迭代发生了哪些操作
@@ -239,7 +241,7 @@ class Runner(object):
         self.logger.info("main loop finished, start calculate evaluating indicator...")
         bar_status_df = pd.DataFrame(columns=BarStatusNames,
                                      index=self.data.index,
-                                     data=map(lambda d: d.to_array(), self.bar_status))
+                                     data=map(lambda d: d.to_array(), self.broker_status_list))
         # 评价指标计算
         self.logger.info("run evaluating indicator")
         self._evaluator = Evaluator(self._broker.get_init_broker_status(init_price, self.data.index[0].to_pydatetime()),
