@@ -23,7 +23,7 @@ class WithSMA(Strategy):
             tick = self.broker.price_to_tick(row_data.price)
             price_high = self.broker.tick_to_price(tick - 1000)
             price_low = self.broker.tick_to_price(tick + 1000)
-            self.add_liquidity(price_high, price_low, self.broker.base_asset.balance,
+            self.add_liquidity(price_low, price_high, self.broker.base_asset.balance,
                                self.broker.quote_asset.balance)
 
 
@@ -79,5 +79,5 @@ class TestRunner(unittest.TestCase):
         runner.run()
         runner.output()
         status: AccountStatus = runner.final_status
-        self.assertEqual(status.uncollect_fee_base.number.quantize(Decimal('1.0000')), Decimal("0.025"))
-        self.assertEqual(status.uncollect_fee_quote.number.quantize(Decimal('1.0000000')), Decimal("0.0000250"))
+        self.assertEqual(status.uncollect_fee_base.quantize(Decimal('1.0000')), Decimal("0.025"))
+        self.assertEqual(status.uncollect_fee_quote.quantize(Decimal('1.0000000')), Decimal("0.0000250"))

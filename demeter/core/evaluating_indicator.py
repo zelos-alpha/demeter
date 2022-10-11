@@ -10,7 +10,7 @@ class Evaluator(object):
     """
     def __init__(self, init_status: AccountStatus, data: pd.DataFrame):
         self.init_status: AccountStatus = init_status
-        self.init_capital = init_status.base_balance.number + init_status.quote_balance.number * init_status.price.number
+        self.init_capital = init_status.base_balance + init_status.quote_balance * init_status.price
         self.end_status = data.iloc[-1]
         self.data = data
         if len(data) < 2:
@@ -26,7 +26,7 @@ class Evaluator(object):
 
     def get_annualized_returns(self):
         """Annualized return rate"""
-        return (self.end_status.capital.number / self.init_capital) ** Decimal(365 / self.time_span_in_day) - 1
+        return (self.end_status.capital / self.init_capital) ** Decimal(365 / self.time_span_in_day) - 1
 
     def get_benchmark_returns(self):
         """
@@ -35,12 +35,12 @@ class Evaluator(object):
         :return:
         """
         base_amount, quote_amount = self.__get_benchmark_asset()
-        final_benchmark_capital = base_amount + quote_amount * self.end_status.price.number
+        final_benchmark_capital = base_amount + quote_amount * self.end_status.price
         return (final_benchmark_capital / self.init_capital) ** Decimal(365 / self.time_span_in_day) - 1
 
     def __get_benchmark_asset(self):
         base_amount = self.init_capital / 2
-        quote_amount = (self.init_capital - base_amount) / self.init_status.price.number
+        quote_amount = (self.init_capital - base_amount) / self.init_status.price
         return base_amount, quote_amount
 
     @property

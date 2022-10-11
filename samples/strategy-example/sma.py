@@ -22,8 +22,8 @@ class AddLpByMa(Strategy):
 
     def rebalance(self, price):
         status: AccountStatus = self.broker.get_account_status(price)
-        base_amount = status.capital.number / 2
-        quote_amount_diff = base_amount / price - status.quote_balance.number
+        base_amount = status.capital / 2
+        quote_amount_diff = base_amount / price - status.quote_balance
         if quote_amount_diff > 0:
             self.buy(quote_amount_diff)
         elif quote_amount_diff < 0:
@@ -42,10 +42,10 @@ class AddLpByMa(Strategy):
                            ma_price + self.price_width)
 
     def notify_buy(self, action: BuyAction):
-        print(action.get_output_str(), action.base_balance_after.number / action.quote_balance_after.number)
+        print(action.get_output_str(), action.base_balance_after / action.quote_balance_after)
 
     def notify_sell(self, action: SellAction):
-        print(action.get_output_str(), action.base_balance_after.number / action.quote_balance_after.number)
+        print(action.get_output_str(), action.base_balance_after / action.quote_balance_after)
 
 
 if __name__ == "__main__":
@@ -64,6 +64,6 @@ if __name__ == "__main__":
     runner_instance.run(enable_notify=False)
     print(runner_instance.final_status.net_value)
 
-    runner_instance.broker.get_account_status(runner_instance.final_status.price.number)
+    runner_instance.broker.get_account_status(runner_instance.final_status.price)
 
     plot_position_return_decomposition(runner_instance.account_status_list)

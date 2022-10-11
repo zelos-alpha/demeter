@@ -9,9 +9,12 @@ from .utils.application import get_formatted_str
 DECIMAL_ZERO = Decimal(0)
 
 
-class UnitDecimal:
+class UnitDecimal(Decimal):
     """
-    Decimal with unit, such a 1 eth
+    Decimal with unit, such a 1 eth.
+
+    It's inherit from Decimal, but considering performance issues, calculate function is not override,
+    so if you do calculate on this object, return type will be Decimal
 
     :param number: number to keep
     :type number: Decimal
@@ -20,15 +23,18 @@ class UnitDecimal:
     :param output_format: output format, follow the document here: https://python-reference.readthedocs.io/en/latest/docs/functions/format.html
     :type output_format: str
     """
+    __integral = Decimal(1)
     default_output_format = ".8g"
 
-    def __init__(self, number: Decimal, unit: str, output_format: str = None):
-        self.number: Decimal = number
-        self.unit: str = unit
-        self.output_format: str = output_format if output_format is not None else UnitDecimal.default_output_format
+    def __new__(cls, value, unit: str, output_format=None):
+        obj = Decimal.__new__(cls, value)
+        obj.unit = unit
+        obj.output_format: str = output_format if output_format is not None else UnitDecimal.default_output_format
+        return obj
 
     def __str__(self):
-        return "{:{}}{}".format(self.number, self.output_format, self.unit)
+        dec = self.quantize(self.__integral) if self == self.to_integral() else self.normalize()
+        return "{:{}}{}".format(dec, self.output_format, self.unit)
 
 
 class TokenInfo(NamedTuple):
@@ -135,7 +141,7 @@ class AccountStatus:
     :param profit_pct: current total profit rate
     :type profit_pct: UnitDecimal
     """
-    timestamp:datetime
+    timestamp: datetime
     base_balance: UnitDecimal
     quote_balance: UnitDecimal
     uncollect_fee_base: UnitDecimal

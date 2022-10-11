@@ -27,8 +27,8 @@ class ConstantInterval(dt.Strategy):
 
     def rebalance(self, price):
         status: AccountStatus = self.broker.get_account_status(price)
-        base_amount = status.capital.number / 2
-        quote_amount_diff = base_amount / price - status.quote_balance.number
+        base_amount = status.capital / 2
+        quote_amount_diff = base_amount / price - status.quote_balance
         if quote_amount_diff > 0:
             self.buy(quote_amount_diff)
         elif quote_amount_diff < 0:
@@ -53,8 +53,8 @@ if __name__ == "__main__":
 
     print(runner_instance.final_status.net_value)
 
-    runner_instance.broker.get_account_status(runner_instance.final_status.price.number)
-    net_value_ts = [status.net_value.number for status in runner_instance.account_status_list]
+    runner_instance.broker.get_account_status(runner_instance.final_status.price)
+    net_value_ts = [status.net_value for status in runner_instance.account_status_list]
     time_ts =  [status.timestamp for status in runner_instance.account_status_list]
     plt.plot(time_ts,net_value_ts)
 

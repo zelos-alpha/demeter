@@ -43,8 +43,8 @@ class FillUp(dt.Strategy):
 
     def rebalance(self, price):
         status: AccountStatus = self.broker.get_account_status(price)
-        base_amount = status.capital.number / 2
-        quote_amount_diff = base_amount / price - status.quote_balance.number
+        base_amount = status.capital / 2
+        quote_amount_diff = base_amount / price - status.quote_balance
         if quote_amount_diff > 0:
             self.buy(quote_amount_diff)
         elif quote_amount_diff < 0:
