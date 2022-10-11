@@ -18,7 +18,7 @@ class IntervalAroundtheCurrentPriceDemo(zs.Strategy):
         P0 = self.data._price[0]
         # new_position(self, baseToken, quoteToken, usd_price_a, usd_price_b):
         #what is  base/quote "https://corporatefinanceinstitute.com/resources/knowledge/economics/currency-pair/"
-        self.my_position =  self.add_liquidity(P0-a,P0+a)#尽可能。所以可以不用其他参数
+        self.my_position =  self.add_liquidity(lower_quote_price=P0-a,upper_quote_price= P0+a)#尽可能。所以可以不用其他参数
         self.lines.update_timestamps = periodize(update_interval)#生成line 对象 ture/false#TODO
 
     def next(self):
