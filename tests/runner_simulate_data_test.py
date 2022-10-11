@@ -23,7 +23,7 @@ class WithSMA(Strategy):
             tick = self.broker.price_to_tick(row_data.price)
             price_high = self.broker.tick_to_price(tick - 1000)
             price_low = self.broker.tick_to_price(tick + 1000)
-            self.add_liquidity(price_low, price_high, self.broker.base_asset.balance,
+            self.add_liquidity(price_high, price_low, self.broker.base_asset.balance,
                                self.broker.quote_asset.balance)
 
 

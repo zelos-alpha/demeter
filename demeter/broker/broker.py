@@ -284,6 +284,8 @@ class Broker(object):
 
         if current_tick is None:
             current_tick = int(self._current_tick)  # 记得初始化self.current_tick
+        if lower_tick > upper_tick:
+            raise ZelosError("lower tick should be less than upper tick")
         if token0_amount > self._asset0.balance:
             raise ZelosError("Insufficient token {} amount".format(self._asset0.name))
         if token1_amount > self._asset1.balance:

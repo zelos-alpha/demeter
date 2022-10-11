@@ -16,7 +16,7 @@ class EmptyStrategy(Strategy):
 
 
 class BuyOnSecond(Strategy):
-    def next(self, time, row_data):
+    def next(self, row_data):
         if row_data.row_id == 2:
             self.buy(0.5)
 
@@ -25,7 +25,7 @@ class WithSMA(Strategy):
     def initialize(self):
         self._add_column("ma5", demeter.indicator.simple_moving_average(self.data.closeTick, 5))
 
-    def next(self, time, row_data: Lines):
+    def next(self, row_data: Lines):
         pass
 
 
