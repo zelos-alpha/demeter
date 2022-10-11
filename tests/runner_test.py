@@ -2,10 +2,8 @@ import unittest
 from datetime import date
 
 import demeter.indicator
-from download import ChainType
-from demeter import Broker, TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, Lines
-import pandas as pd
-from decimal import Decimal
+from demeter.download import ChainType
+from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, Lines
 
 eth = TokenInfo(name="eth", decimal=18)
 usdc = TokenInfo(name="usdc", decimal=6)

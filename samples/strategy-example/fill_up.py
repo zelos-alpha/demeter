@@ -1,10 +1,9 @@
 import demeter as dt
 from datetime import timedelta, date
 
-from demeter import TokenInfo, PoolBaseInfo, Runner, Asset, AccountStatus, ActionTypeEnum
-import matplotlib.pylab as plt
+from demeter import TokenInfo, PoolBaseInfo, Runner, Asset, AccountStatus
 
-from download import ChainType
+from demeter.download import ChainType
 
 
 class FillUp(dt.Strategy):

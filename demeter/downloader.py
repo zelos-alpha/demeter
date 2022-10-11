@@ -1,9 +1,10 @@
 import cmd
-from download import ChainType, DataSource, downloader
+from download import ChainType, DataSource
+from download import downloader
 import os
 from datetime import datetime
 
-DEFAULT_SAVE_PATH = "./data"
+DEFAULT_SAVE_PATH = "../data"
 
 
 class DownloadParam(object):
@@ -33,7 +34,7 @@ class DownloadParam(object):
 
 
 class Downloader(cmd.Cmd):
-    intro = 'Welcome to the demeter data downloader.  Type help or ? to list commands. or just start with "config"\n'
+    intro = 'Welcome to the demeter data downloader.  Type help or ? to list commands. or \033[1;34mjust start with "config"\033[0m\n'
     prompt = '(demeter) '
 
     def __init__(self, *args, **kwargs):
@@ -76,7 +77,8 @@ class Downloader(cmd.Cmd):
 
         print("config compete. your config is:")
         print(self.param.get_formatted())
-        print('Now use "download" to start. commend: download pool_contract_address start_date end_date')
+        # \033[1;34m{k:<10}:\033[0m
+        print('Now use "\033[1;34mdownload\033[0m" to start. commend: \033[1;34mdownload\033[0m \033[1;35mpool_contract_address\033[0m \033[1;32mstart_date\033[0m \033[1;31mend_date\033[0m   ')
         self.has_config = True
 
     def do_download(self, arg):

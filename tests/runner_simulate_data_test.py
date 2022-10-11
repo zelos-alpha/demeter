@@ -1,10 +1,7 @@
 import unittest
-from datetime import date
 import numpy as np
-import demeter.indicator
 from demeter.broker.v3_core import V3CoreLib
-from download import ChainType
-from demeter import Broker, TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, Lines, AccountStatus
+from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, Lines, AccountStatus
 import pandas as pd
 from decimal import Decimal
 

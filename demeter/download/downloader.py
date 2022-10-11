@@ -1,8 +1,6 @@
 from datetime import date, timedelta
 import os
 
-import pandas
-
 from . import ChainType, DataSource, source_bigquery
 from tqdm import tqdm  # 进度条
 

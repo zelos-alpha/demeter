@@ -1,12 +1,11 @@
-from datetime import date, datetime
+from datetime import date
 from typing import Union
 import demeter.indicator
-from download import ChainType
+from demeter.download import ChainType
 from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, AccountStatus, BuyAction, SellAction, RowData
 import pandas as pd
 
-import matplotlib.pylab as plt
-from strategy_ploter import plotter, plot_position_return_decomposition
+from strategy_ploter import plot_position_return_decomposition
 
 
 class AddLpByMa(Strategy):

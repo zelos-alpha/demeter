@@ -1,8 +1,8 @@
 import demeter as dt
 from demeter import PoolBaseInfo, Runner
 from demeter._typing import TokenInfo, AccountStatus, Asset
-from datetime import date, datetime
-from download import ChainType
+from datetime import date
+from demeter.download import ChainType
 
 ETH = TokenInfo(name="eth", decimal=18)
 usdc = TokenInfo(name="usdc", decimal=6)

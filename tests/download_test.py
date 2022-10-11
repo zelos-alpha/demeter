@@ -1,9 +1,9 @@
 import datetime
 import unittest
 from datetime import date, datetime
-from download import downloader, ChainType, DataSource, source_bigquery, utils
+from demeter.download import ChainType
+from demeter.download import downloader, source_bigquery
 import pandas
-import numpy as np
 
 
 class TestDict(unittest.TestCase):
