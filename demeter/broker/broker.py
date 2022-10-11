@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from .._typing import PositionInfo, ZelosError, AddLiquidityAction, RemoveLiquidityAction, BuyAction, SellAction, \
-    CollectFeeAction, BrokerStatus, DECIMAL_ZERO, UnitDecimal
+    CollectFeeAction, AccountStatus, DECIMAL_ZERO, UnitDecimal
 from ..utils.application import float_param_formatter
 
 from .types import PoolBaseInfo, TokenInfo, BrokerAsset, Position, PoolStatus
@@ -27,8 +27,8 @@ class Broker(object):
         self._asset0 = BrokerAsset(pool_info.token0, DECIMAL_ZERO)
         self._asset1 = BrokerAsset(pool_info.token1, DECIMAL_ZERO)
         base_asset, quote_asset = self.__convert_pair(self._asset0, self._asset1)
-        self._base_asset:BrokerAsset = base_asset
-        self._quote_asset:BrokerAsset = quote_asset
+        self._base_asset: BrokerAsset = base_asset
+        self._quote_asset: BrokerAsset = quote_asset
         self._init_amount0 = DECIMAL_ZERO
         self._init_amount1 = DECIMAL_ZERO
         # 状态
@@ -179,7 +179,7 @@ class Broker(object):
         for position_info, position in self._positions.items():
             V3CoreLib.update_fee(self.pool_info, position_info, position, self.pool_status)
 
-    def get_init_broker_status(self, init_price: Decimal, timestamp: datetime = None) -> BrokerStatus:
+    def get_init_account_status(self, init_price: Decimal, timestamp: datetime = None) -> AccountStatus:
         """
         Get initial status, which will be saved before running any test.
 
@@ -188,24 +188,24 @@ class Broker(object):
         :param init_price: beginning price of testing, usually the price in the first item of data array
         :type init_price: Decimal
         :return: status
-        :rtype: BrokerStatus
+        :rtype: AccountStatus
 
         """
         base_init_amount, quote_init_amount = self.__convert_pair(self._init_amount0, self._init_amount1)
         capital = base_init_amount + quote_init_amount * init_price
-        return BrokerStatus(timestamp,
-                            UnitDecimal(base_init_amount, self.base_asset.name),
-                            UnitDecimal(quote_init_amount, self.quote_asset.name),
-                            UnitDecimal(DECIMAL_ZERO, self.base_asset.name),
-                            UnitDecimal(DECIMAL_ZERO, self.quote_asset.name),
-                            UnitDecimal(DECIMAL_ZERO, self.base_asset.name),
-                            UnitDecimal(DECIMAL_ZERO, self.quote_asset.name),
-                            UnitDecimal(capital, self.base_asset.name),
-                            UnitDecimal(init_price, self._price_unit),
-                            UnitDecimal(Decimal(1), ""),
-                            UnitDecimal(DECIMAL_ZERO, ""))
+        return AccountStatus(timestamp,
+                             UnitDecimal(base_init_amount, self.base_asset.name),
+                             UnitDecimal(quote_init_amount, self.quote_asset.name),
+                             UnitDecimal(DECIMAL_ZERO, self.base_asset.name),
+                             UnitDecimal(DECIMAL_ZERO, self.quote_asset.name),
+                             UnitDecimal(DECIMAL_ZERO, self.base_asset.name),
+                             UnitDecimal(DECIMAL_ZERO, self.quote_asset.name),
+                             UnitDecimal(capital, self.base_asset.name),
+                             UnitDecimal(init_price, self._price_unit),
+                             UnitDecimal(Decimal(1), ""),
+                             UnitDecimal(DECIMAL_ZERO, ""))
 
-    def get_broker_status(self, price: Decimal = None, timestamp: datetime = None) -> BrokerStatus:
+    def get_account_status(self, price: Decimal = None, timestamp: datetime = None) -> AccountStatus:
         """
         get current status, including positions, balances
 
@@ -239,17 +239,17 @@ class Broker(object):
         net_value = capital / (base_init_amount + price * quote_init_amount)
 
         profit_pct = (net_value - 1) * 100
-        return BrokerStatus(timestamp,
-                            UnitDecimal(base_asset.balance, self.base_asset.name),
-                            UnitDecimal(quote_asset.balance, self.quote_asset.name),
-                            UnitDecimal(base_fee_sum, self.base_asset.name),
-                            UnitDecimal(quote_fee_sum, self.quote_asset.name),
-                            UnitDecimal(base_deposit_amount, self.base_asset.name),
-                            UnitDecimal(quote_deposit_amount, self.quote_asset.name),
-                            UnitDecimal(capital, self.base_asset.name),
-                            UnitDecimal(price, self._price_unit),
-                            UnitDecimal(net_value, ""),
-                            UnitDecimal(profit_pct, ""))
+        return AccountStatus(timestamp,
+                             UnitDecimal(base_asset.balance, self.base_asset.name),
+                             UnitDecimal(quote_asset.balance, self.quote_asset.name),
+                             UnitDecimal(base_fee_sum, self.base_asset.name),
+                             UnitDecimal(quote_fee_sum, self.quote_asset.name),
+                             UnitDecimal(base_deposit_amount, self.base_asset.name),
+                             UnitDecimal(quote_deposit_amount, self.quote_asset.name),
+                             UnitDecimal(capital, self.base_asset.name),
+                             UnitDecimal(price, self._price_unit),
+                             UnitDecimal(net_value, ""),
+                             UnitDecimal(profit_pct, ""))
 
     def tick_to_price(self, tick: int) -> Decimal:
         """
@@ -321,25 +321,28 @@ class Broker(object):
 
     @float_param_formatter
     def add_liquidity(self,
-                      base_max_amount: Union[Decimal, float],
-                      quote_max_amount: Union[Decimal, float],
                       lower_quote_price: Union[Decimal, float],
-                      upper_quote_price: Union[Decimal, float]) -> (PositionInfo, Decimal, Decimal):
+                      upper_quote_price: Union[Decimal, float],
+                      base_max_amount: Union[Decimal, float] = None,
+                      quote_max_amount: Union[Decimal, float] = None) -> (PositionInfo, Decimal, Decimal):
         """
 
         add liquidity, then get a new position
 
-        :param base_max_amount:  inputted base token amount, also the max amount to deposit
-        :type base_max_amount: Union[Decimal, float]
-        :param quote_max_amount: inputted base token amount, also the max amount to deposit
-        :type quote_max_amount: Union[Decimal, float]
         :param lower_quote_price: lower price base on quote token.
         :type lower_quote_price: Union[Decimal, float]
         :param upper_quote_price: upper price base on quote token.
         :type upper_quote_price: Union[Decimal, float]
+                :param base_max_amount:  inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
+        :type base_max_amount: Union[Decimal, float]
+        :param quote_max_amount: inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
+        :type quote_max_amount: Union[Decimal, float]
         :return: added position, base token used, quote token used
         :rtype: (PositionInfo, Decimal, Decimal)
         """
+        base_max_amount = self.base_asset.balance if base_max_amount is None else base_max_amount
+        quote_max_amount = self.quote_asset.balance if quote_max_amount is None else quote_max_amount
+
         token0_amt, token1_amt = self.__convert_pair(base_max_amount, quote_max_amount)
         lower_tick, upper_tick = V3CoreLib.quote_price_pair_to_tick(self._pool_info, lower_quote_price,
                                                                     upper_quote_price)

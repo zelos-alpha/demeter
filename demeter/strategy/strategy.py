@@ -126,21 +126,19 @@ class Strategy(object):
 
         add liquidity, then get a new position
 
-        :param base_max_amount:  inputted base token amount, also the max amount to deposit
-        :type base_max_amount: Union[Decimal, float]
-        :param quote_max_amount: inputted base token amount, also the max amount to deposit
-        :type quote_max_amount: Union[Decimal, float]
         :param lower_quote_price: lower price base on quote token.
         :type lower_quote_price: Union[Decimal, float]
         :param upper_quote_price: upper price base on quote token.
         :type upper_quote_price: Union[Decimal, float]
+        :param base_max_amount:  inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
+        :type base_max_amount: Union[Decimal, float]
+        :param quote_max_amount: inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
+        :type quote_max_amount: Union[Decimal, float]
         :return: added position, base token used, quote token used
         :rtype: (PositionInfo, Decimal, Decimal)
         """
-        if base_max_amount is None and quote_max_amount is None:  # TODO change comment
-            base_max_amount = self.broker.base_asset.balance
-            quote_max_amount = self.broker.quote_asset.balance
-        return self.broker.add_liquidity(base_max_amount, quote_max_amount, lower_quote_price, upper_quote_price)
+
+        return self.broker.add_liquidity(lower_quote_price, upper_quote_price, base_max_amount, quote_max_amount)
 
     def remove_liquidity(self, positions: Union[PositionInfo, list]) -> {PositionInfo: (Decimal, Decimal)}:
         """

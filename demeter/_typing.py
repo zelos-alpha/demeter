@@ -108,7 +108,7 @@ BarStatusNames = [
 
 
 @dataclass
-class BrokerStatus:
+class AccountStatus:
     """
     current status of broker
 

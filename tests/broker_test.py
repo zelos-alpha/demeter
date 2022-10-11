@@ -45,10 +45,10 @@ class TestBroker(unittest.TestCase):
 
     def test_add_Liquidity(self):
         broker = self.get_one_broker()
-        (new_position, base_used, quote_used) = broker.add_liquidity(broker.asset0.balance,
-                                                                     broker.asset1.balance,
-                                                                     broker.pool_status.price - 100,
-                                                                     broker.pool_status.price + 100)
+        (new_position, base_used, quote_used) = broker.add_liquidity(broker.pool_status.price - 100,
+                                                                     broker.pool_status.price + 100,
+                                                                     broker.asset0.balance,
+                                                                     broker.asset1.balance)
         TestBroker.print_broker(broker, [new_position, ])
 
     def test_add_Liquidity_by_tick(self):
@@ -78,10 +78,10 @@ class TestBroker(unittest.TestCase):
         broker = self.get_one_broker()
         token0_amt = broker.asset0.balance
         token1_amt = broker.asset1.balance
-        (new_position, base_used, quote_used) = broker.add_liquidity(token0_amt,
-                                                                     token1_amt,
-                                                                     broker.pool_status.price - 100,
-                                                                     broker.pool_status.price + 100)
+        (new_position, base_used, quote_used) = broker.add_liquidity(broker.pool_status.price - 100,
+                                                                     broker.pool_status.price + 100,
+                                                                     token0_amt,
+                                                                     token1_amt)
         TestBroker.print_broker(broker, [new_position, ])
         broker.remove_liquidity(new_position)
         print("===============================================================================")

@@ -4,7 +4,7 @@ import numpy as np
 import demeter.indicator
 from demeter.broker.v3_core import V3CoreLib
 from download import ChainType
-from demeter import Broker, TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, Lines, BrokerStatus
+from demeter import Broker, TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, Lines, AccountStatus
 import pandas as pd
 from decimal import Decimal
 
@@ -18,14 +18,13 @@ pd.set_option('display.width', 5000)
 
 class WithSMA(Strategy):
 
-    def next(self, time, row_data: Lines):
+    def next(self, row_data: Lines):
         if row_data.row_id == 0:
             tick = self.broker.price_to_tick(row_data.price)
             price_high = self.broker.tick_to_price(tick - 1000)
             price_low = self.broker.tick_to_price(tick + 1000)
-            self.add_liquidity(self.broker.base_asset.balance,
-                               self.broker.quote_asset.balance,
-                               price_low, price_high)
+            self.add_liquidity(price_low, price_high, self.broker.base_asset.balance,
+                               self.broker.quote_asset.balance)
 
 
 class TestRunner(unittest.TestCase):
@@ -79,6 +78,6 @@ class TestRunner(unittest.TestCase):
 
         runner.run()
         runner.output()
-        status: BrokerStatus = runner.final_status
+        status: AccountStatus = runner.final_status
         self.assertEqual(status.uncollect_fee_base.number.quantize(Decimal('1.0000')), Decimal("0.025"))
         self.assertEqual(status.uncollect_fee_quote.number.quantize(Decimal('1.0000000')), Decimal("0.0000250"))

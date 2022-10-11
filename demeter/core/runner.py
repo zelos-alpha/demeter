@@ -2,7 +2,7 @@ import logging
 from .. import PoolStatus
 from ..data_line import Lines
 from ..broker import Broker, PoolBaseInfo
-from .._typing import BrokerStatus, BarStatusNames, BaseAction, Asset, ZelosError, TokenInfo, ActionTypeEnum, \
+from .._typing import AccountStatus, BarStatusNames, BaseAction, Asset, ZelosError, TokenInfo, ActionTypeEnum, \
     EvaluatingIndicator, RowData
 from ..strategy import Strategy
 from datetime import date, timedelta
@@ -38,7 +38,7 @@ class Runner(object):
         self.bar_actions: [BaseAction] = []
         self._broker.action_buffer: [BaseAction] = self.bar_actions
         # broker status in every bar
-        self.broker_status_list: [BrokerStatus] = []
+        self.account_status_list: [AccountStatus] = []
         # path to save data
         self._data_path: str = DEFAULT_DATA_PATH
         # evaluating indicator calculator
@@ -52,7 +52,7 @@ class Runner(object):
         self.__backtest_finished = False
 
     @property
-    def final_status(self) -> BrokerStatus:
+    def final_status(self) -> AccountStatus:
         """
         Get status after back test finish.
 
@@ -60,17 +60,17 @@ class Runner(object):
 
         :return: Final state of broker
 
-        :rtype: BrokerStatus
+        :rtype: AccountStatus
         """
         if self.__backtest_finished:
-            return self.broker_status_list[len(self.broker_status_list) - 1]
+            return self.account_status_list[len(self.account_status_list) - 1]
         else:
             raise ZelosError("please run strategy first")
 
     def reset(self):
         self._actions = []
         self._evaluator = None
-        self.broker_status_list = []
+        self.account_status_list = []
         self.__backtest_finished = False
         self.data.reset_cursor()
 
@@ -222,7 +222,7 @@ class Runner(object):
             if first:
                 init_price = row_data.price
                 first = False
-            self.broker_status_list.append(self._broker.get_broker_status(row_data.price, index.to_pydatetime()))
+            self.account_status_list.append(self._broker.get_account_status(row_data.price, index.to_pydatetime()))
 
             # 通知
             # 汇报在这次迭代发生了哪些操作
@@ -241,10 +241,10 @@ class Runner(object):
         self.logger.info("main loop finished, start calculate evaluating indicator...")
         bar_status_df = pd.DataFrame(columns=BarStatusNames,
                                      index=self.data.index,
-                                     data=map(lambda d: d.to_array(), self.broker_status_list))
+                                     data=map(lambda d: d.to_array(), self.account_status_list))
         # 评价指标计算
         self.logger.info("run evaluating indicator")
-        self._evaluator = Evaluator(self._broker.get_init_broker_status(init_price, self.data.index[0].to_pydatetime()),
+        self._evaluator = Evaluator(self._broker.get_init_account_status(init_price, self.data.index[0].to_pydatetime()),
                                     bar_status_df)
         self._evaluator.run()
         self._strategy.finalize()
@@ -255,7 +255,7 @@ class Runner(object):
         if self.__backtest_finished:
             # 最终状态
             print("Final status")
-            print(self.broker.get_broker_status(self.data.tail(1).price[0]).get_output_str())
+            print(self.broker.get_account_status(self.data.tail(1).price[0]).get_output_str())
             # 评价指标
             print("Evaluating indicator")
             print(self._evaluator.evaluating_indicator.get_output_str())

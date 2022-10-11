@@ -9,7 +9,7 @@ basic types for demeter, located in demeter._typing
 .. autoclass:: demeter._typing.Asset
 .. autoclass:: demeter._typing.ActionTypeEnum
 .. autoclass:: demeter._typing.PositionInfo
-.. autoclass:: demeter._typing.BrokerStatus
+.. autoclass:: demeter._typing.AccountStatus
 .. autoclass:: demeter._typing.RowData
 .. autoclass:: demeter._typing.BaseAction
 .. autoclass:: demeter._typing.AddLiquidityAction

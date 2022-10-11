@@ -1,7 +1,7 @@
 import demeter as dt
 from datetime import timedelta, date
 
-from demeter import TokenInfo, PoolBaseInfo, Runner, Asset, BrokerStatus, ActionTypeEnum
+from demeter import TokenInfo, PoolBaseInfo, Runner, Asset, AccountStatus, ActionTypeEnum
 import matplotlib.pylab as plt
 
 from download import ChainType
@@ -42,7 +42,7 @@ class FillUp(dt.Strategy):
             self.my_b_position = self.add_liquidity(current_price,current_price+a)
 
     def rebalance(self, price):
-        status: BrokerStatus = self.broker.get_broker_status(price)
+        status: AccountStatus = self.broker.get_account_status(price)
         base_amount = status.capital.number / 2
         quote_amount_diff = base_amount / price - status.quote_balance.number
         if quote_amount_diff > 0:
@@ -67,9 +67,9 @@ runner_instance.load_data(ChainType.Polygon.name,
 runner_instance.run(enable_notify=False)
 print(runner_instance.final_status.net_value)
 
-net_value_ts = [status.net_value.number for status in runner_instance.broker_status_list]
-time_ts = [status.timestamp for status in runner_instance.broker_status_list]
-prices= [status.price.number for status in runner_instance.broker_status_list]
+net_value_ts = [status.net_value.number for status in runner_instance.account_status_list]
+time_ts = [status.timestamp for status in runner_instance.account_status_list]
+prices= [status.price.number for status in runner_instance.account_status_list]
 p0= prices[0]
 prices = [price/p0 for price in  prices]
 plt.plot(time_ts, net_value_ts)

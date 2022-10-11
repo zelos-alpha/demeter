@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Union
 import demeter.indicator
 from download import ChainType
-from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, BrokerStatus, BuyAction, SellAction, RowData
+from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, AccountStatus, BuyAction, SellAction, RowData
 import pandas as pd
 
 import matplotlib.pylab as plt
@@ -20,7 +20,7 @@ class AddLpByMa(Strategy):
         self._add_column("ma5", demeter.indicator.simple_moving_average(prices, 5))
 
     def rebalance(self, price):
-        status: BrokerStatus = self.broker.get_broker_status(price)
+        status: AccountStatus = self.broker.get_account_status(price)
         base_amount = status.capital.number / 2
         quote_amount_diff = base_amount / price - status.quote_balance.number
         if quote_amount_diff > 0:
@@ -37,10 +37,10 @@ class AddLpByMa(Strategy):
                 self.remove_liquidity(k)
             self.rebalance(row_data.price)
         ma_price = row_data.ma5 if row_data.ma5 > 0 else row_data.price
-        self.add_liquidity(self.broker.base_asset.balance,
-                           self.broker.quote_asset.balance,
-                           ma_price - self.price_width,
-                           ma_price + self.price_width)
+        self.add_liquidity(ma_price - self.price_width,
+                           ma_price + self.price_width,
+                           self.broker.base_asset.balance,
+                           self.broker.quote_asset.balance)
 
     def notify_buy(self, action: BuyAction):
         print(action.get_output_str(), action.base_balance_after.number / action.quote_balance_after.number)
@@ -63,10 +63,10 @@ if __name__ == "__main__":
                               "0x45dda9cb7c25131df268515131f647d726f50608",
                               date(2022, 8, 5),
                               date(2022, 8, 20))
-    runner_instance.run(enable_notify=False)
+    runner_instance.run(enable_notify=True)
     print(runner_instance.final_status.net_value)
 
-    runner_instance.broker.get_broker_status(runner_instance.final_status.price.number)
-    net_value_ts = [status.net_value.number for status in runner_instance.broker_status_list]
-    time_ts = [status.timestamp for status in runner_instance.broker_status_list]
+    runner_instance.broker.get_account_status(runner_instance.final_status.price.number)
+    net_value_ts = [status.net_value.number for status in runner_instance.account_status_list]
+    time_ts = [status.timestamp for status in runner_instance.account_status_list]
     plt.plot(time_ts, net_value_ts)

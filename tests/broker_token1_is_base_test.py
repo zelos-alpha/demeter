@@ -57,10 +57,10 @@ class TestBroker(unittest.TestCase):
         broker = self.get_one_broker()
         token0_amt = broker.asset0.balance
         token1_amt = broker.asset1.balance
-        (new_position, base_used, quote_used) = broker.add_liquidity(token1_amt,
-                                                                     token0_amt,
-                                                                     broker.pool_status.price - 100,
-                                                                     broker.pool_status.price + 100)
+        (new_position, base_used, quote_used) = broker.add_liquidity(broker.pool_status.price - 100,
+                                                                     broker.pool_status.price + 100,
+                                                                     token1_amt,
+                                                                     token0_amt, )
         TestBroker.print_broker(broker, [new_position, ])
         broker.remove_liquidity(new_position)
         print("===============================================================================")
