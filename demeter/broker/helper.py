@@ -21,7 +21,7 @@ def sqrt_price_to_tick(sqrt_priceX96: int) -> int:
     return pool_price_to_tick(decimal_price)
 
 
-def pool_price_to_tick(price_decimal: Decimal):  # 是v3 pool 的转换，如无充分理解，不使用
+def pool_price_to_tick(price_decimal: Decimal):
     return int(math.log(price_decimal, math.sqrt(1.0001)))
 
 

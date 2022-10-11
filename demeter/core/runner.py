@@ -39,7 +39,7 @@ class Runner(object):
         self._broker.action_buffer: [BaseAction] = self.bar_actions
         # broker status in every bar
         self.account_status_list: [AccountStatus] = []
-        # path to save data
+        # path of source data, which is saved by downloader
         self._data_path: str = DEFAULT_DATA_PATH
         # evaluating indicator calculator
         self._evaluator: Evaluator = None
@@ -59,7 +59,6 @@ class Runner(object):
         If test has not run, an error will be raised.
 
         :return: Final state of broker
-
         :rtype: AccountStatus
         """
         if self.__backtest_finished:
@@ -68,6 +67,11 @@ class Runner(object):
             raise ZelosError("please run strategy first")
 
     def reset(self):
+        """
+
+        reset all the status variables
+
+        """
         self._actions = []
         self._evaluator = None
         self.account_status_list = []
@@ -75,57 +79,142 @@ class Runner(object):
         self.data.reset_cursor()
 
     @property
-    def data_path(self):
+    def data_path(self) -> str:
+        """
+        path of source data, which is saved by downloader
+        """
         return self._data_path
 
     @data_path.setter
-    def data_path(self, value):
+    def data_path(self, value: str):
+        """
+        path of source data, which is saved by downloader
+
+        :param value: path
+        :type value: str
+
+        """
         self._data_path = value
 
     @property
-    def actions(self):
+    def actions(self) -> [BaseAction]:
+        """
+        all the actions during the test(buy/sell/add liquidity)
+
+        :return: action list
+        :rtype: [BaseAction]
+        """
         return self._actions
 
     @property
     def evaluating_indicator(self) -> EvaluatingIndicator:
+        """
+        evaluating indicator result
+
+        :return:  evaluating indicator
+        :rtype: EvaluatingIndicator
+        """
         return self._evaluator.evaluating_indicator if self._evaluator is not None else None
 
     @property
-    def broker(self):
+    def broker(self) -> Broker:
+        """
+        Broker manage assets in back testing. Including asset, positions. it also provides operations for positions,
+
+        :return: Broker
+        :rtype: Broker
+        """
         return self._broker
 
     @property
-    def data(self):
+    def data(self) -> Lines:
+        """
+        data
+
+        :return:
+        :rtype: Lines
+        """
         return self._data
 
     @data.setter
-    def data(self, value):
+    def data(self, value: Lines):
+        """
+        set data which saved by downloader. data source should contain the following column, and indexed with timestamp
+
+        * netAmount0,
+        * netAmount1,
+        * closeTick,
+        * openTick,
+        * lowestTick,
+        * highestTick,
+        * inAmount0,
+        * inAmount1,
+        * currentLiquidity
+
+        :param value: data
+        :type value: Lines
+        """
         self._data = value
 
     @property
-    def strategy(self):
+    def strategy(self) -> Strategy:
+        """
+        strategy,
+
+        :return: strategy
+        :rtype: Strategy
+        """
         return self._strategy
 
     @strategy.setter
     def strategy(self, value):
+        """
+        set strategy
+        :param value: strategy
+        :type value: Strategy
+        """
         self._strategy = value
 
     @property
-    def number_format(self):
+    def number_format(self) -> str:
+        """
+        number format for console output, eg: ".8g", ".5f"
+
+        :return: number format
+        :rtype: str
+        """
         return self._number_format
 
     @number_format.setter
-    def number_format(self, value):
+    def number_format(self, value: str):
+        """
+        number format for console output, eg: ".8g", ".5f", follow the document here: https://python-reference.readthedocs.io/en/latest/docs/functions/format.html
+
+        :param value: number format,
+        :type value:str
+        """
         self._number_format = value
 
     def set_assets(self, assets=[Asset]):
+        """
+        set initial balance for token
+
+        :param assets: assets to set.
+        :type assets: [Asset]
+        """
         for asset in assets:
             self._broker.set_asset(asset.token, asset.amount)
 
-    def process_volumne(self, amount0, asset: TokenInfo):
-        return Decimal(amount0) / 10 ** asset.decimal
+    def notify(self, strategy: Strategy, actions: [BaseAction]):
+        """
 
-    def notify(self, strategy: Strategy, actions: list[BaseAction]):  # 默认参数, 使用不可变对象
+        notify user when new action happens.
+
+        :param strategy: Strategy
+        :type strategy: Strategy
+        :param actions:  action list
+        :type actions: [BaseAction]
+        """
         if len(actions) < 1:
             return
         strategy.notify_on_next(actions)
@@ -145,6 +234,23 @@ class Runner(object):
                     strategy.notify(event)
 
     def load_data(self, chain: str, contract_addr: str, start_date: date, end_date: date):
+        """
+
+        load data, and preprocess. preprocess actions including:
+
+        * fill empty data
+        * calculate statistic column
+        * set timestamp as index
+
+        :param chain: chain name
+        :type chain: str
+        :param contract_addr: pool contract address
+        :type contract_addr: str
+        :param start_date: start test date
+        :type start_date: date
+        :param end_date: end test date
+        :type end_date: date
+        """
         self.logger.info("start load files...")
         df = pd.DataFrame()
         day = start_date
@@ -171,7 +277,21 @@ class Runner(object):
         self.data = df
         self.logger.info("data has benn prepared")
 
-    def add_statistic_column(self, df):
+    def add_statistic_column(self, df: Lines):
+        """
+        add statistic column to data, new columns including:
+
+        * open: open price
+        * price: close price (current price)
+        * low: lowest price
+        * high: height price
+        * volume0: swap volume for token 0
+        * volume1: swap volume for token 1
+
+        :param df: original data
+        :type df: Lines
+
+        """
         # 增加统计列
         df["open"] = df["openTick"].map(lambda x: self.broker.tick_to_price(x))
         df["price"] = df["closeTick"].map(lambda x: self.broker.tick_to_price(x))
@@ -183,6 +303,23 @@ class Runner(object):
         df["volume1"] = df["inAmount1"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token1.decimal)
 
     def run(self, enable_notify=True):
+        """
+        start back test, the whole process including:
+
+        * reset runner
+        * initialize strategy (set object to strategy, then run strategy.initialize())
+        * process each bar in data
+            * prepare data in each row
+            * run strategy.next()
+            * calculate fee earned
+            * get latest account status
+            * notify actions
+        * run evaluator indicator
+        * run strategy.finalize()
+
+        :param enable_notify: notify when new action happens
+        :type enable_notify: bool
+        """
         self.reset()
         if self._data is None:
             return
@@ -236,22 +373,25 @@ class Runner(object):
                 if enable_notify:
                     self.notify(self.strategy, current_event_list)
 
-            # 准备处理下一条
+            # process next
             self._data.move_cursor_to_next()
         self.logger.info("main loop finished, start calculate evaluating indicator...")
         bar_status_df = pd.DataFrame(columns=BarStatusNames,
                                      index=self.data.index,
                                      data=map(lambda d: d.to_array(), self.account_status_list))
-        # 评价指标计算
         self.logger.info("run evaluating indicator")
-        self._evaluator = Evaluator(self._broker.get_init_account_status(init_price, self.data.index[0].to_pydatetime()),
-                                    bar_status_df)
+        self._evaluator = Evaluator(
+            self._broker.get_init_account_status(init_price, self.data.index[0].to_pydatetime()),
+            bar_status_df)
         self._evaluator.run()
         self._strategy.finalize()
         self.logger.info("back testing finish")
         self.__backtest_finished = True
 
     def output(self):
+        """
+        output back test result to console
+        """
         if self.__backtest_finished:
             # 最终状态
             print("Final status")
@@ -263,6 +403,9 @@ class Runner(object):
             raise ZelosError("please run strategy first")
 
     def init_strategy(self):
+        """
+        initialize strategy, set property to strategy. and run strategy.initialize()
+        """
         if not isinstance(self._strategy, Strategy):
             raise ZelosError("strategy must be inherit from Strategy")
         # 策略可以直接调用相关的对象
