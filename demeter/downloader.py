@@ -1,8 +1,7 @@
 import cmd
-from .download import ChainType, DataSource
-from .download import downloader
 import os
 from datetime import datetime
+from .download import ChainType, DataSource, downloader
 
 DEFAULT_SAVE_PATH = "./data"
 
@@ -78,7 +77,8 @@ class Downloader(cmd.Cmd):
         print("config compete. your config is:")
         print(self.param.get_formatted())
         # \033[1;34m{k:<10}:\033[0m
-        print('Now use "\033[1;34mdownload\033[0m" to start. commend: \033[1;34mdownload\033[0m \033[1;35mpool_contract_address\033[0m \033[1;32mstart_date\033[0m \033[1;31mend_date\033[0m   ')
+        print(
+            'Now use "\033[1;34mdownload\033[0m" to start. commend: \033[1;34mdownload\033[0m \033[1;35mpool_contract_address\033[0m \033[1;32mstart_date\033[0m \033[1;31mend_date\033[0m   ')
         self.has_config = True
 
     def do_download(self, arg):

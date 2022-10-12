@@ -429,9 +429,6 @@ class Broker(object):
         from_amount_with_fee = from_amount * (1 + self.pool_info.fee_rate)
         fee = from_amount_with_fee - from_amount
         from_asset, to_asset = self.__convert_pair(self._asset0, self._asset1)
-        # if 0 is token base: buy => token 0 -> token 1
-        # None 无滑点current 成交，收手续费
-        # price 则视为limit order book,，可能部分成交？
         from_asset.sub(from_amount_with_fee)
         to_asset.add(amount)
         base_amount, quote_amount = self.__convert_pair(from_amount, amount)
@@ -456,9 +453,6 @@ class Broker(object):
         :return: fee, base token amount got, quote token amount spend
         :rtype: (Decimal, Decimal, Decimal)
         """
-        # None 无滑点current 成交，收手续费
-        # price 则视为limit order book,，可能部分成交？
-        # TODO 写swap的时候, 没感觉有部分成交这回事啊
         price = price if price else self.pool_status.price
         from_amount_with_fee = amount
         from_amount = from_amount_with_fee * (1 - self.pool_info.fee_rate)

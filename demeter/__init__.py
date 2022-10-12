@@ -5,4 +5,4 @@ from .broker import Broker, tick_to_quote_price, PoolBaseInfo, PoolStatus, Broke
 from .core import Runner
 from .strategy import Strategy
 from .indicator import simple_moving_average, TimeUnitEnum
-from .downloader import ChainType, DataSource
+from .download import ChainType, DataSource
