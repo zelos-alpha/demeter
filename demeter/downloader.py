@@ -1,6 +1,6 @@
 import cmd
-from download import ChainType, DataSource
-from download import downloader
+from .download import ChainType, DataSource
+from .download import downloader
 import os
 from datetime import datetime
 

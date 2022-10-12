@@ -93,7 +93,8 @@ class BrokerAsset(object):
         if abs((self.balance - amount) / base) < 0.00001:
             self.balance = Decimal(0)
         elif self.balance - amount < Decimal(0):
-            raise ZelosError("insufficient balance")
+            raise ZelosError(
+                f"insufficient balance, balance is {self.balance}{self.name}, but sub amount is {amount}{self.name}")
         else:
             self.balance -= amount
         return self
@@ -107,6 +108,7 @@ class Position(object):
     """
     variables for position
     """
+
     def __init__(self):
         self.uncollected_fee_token0: Decimal = Decimal(0)
         self.uncollected_fee_token1: Decimal = Decimal(0)
