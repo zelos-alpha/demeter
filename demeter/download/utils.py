@@ -32,7 +32,10 @@ class DataUtil(object):
     def fill_missing(data_list: list) -> list:
         if len(data_list) < 1:
             return data_list
-        # 取数据中的第一分钟，而不是0点，因此如果三点才有数据， 处理后的数据就是从3点开始的.
+        # take the first minute in data. instead of 0:00:00
+        # so here will be a problem, if the first data is 0:03:00, the first 2 minutes will be blank
+        # that's because there is no previous data to follow
+        # those empty rows will be filled in loading stage
         index_minute = data_list[0].timestamp
         new_list = []
         data_list_index = 0
@@ -46,7 +49,7 @@ class DataUtil(object):
                 item = MarketData()
                 item.timestamp = index_minute
             prev_data = new_list[len(new_list) - 1] if len(new_list) - 1 >= 0 else None
-            # 当刚开始迭代的时候， 一开始的数据不全， 没法通过前面的数据补全当前数据， 所以就抛弃这个数据.
+            # if no previous(this might happen in the first minutes) data, this row will be discarded
             if item.fill_missing_field(prev_data):
                 new_list.append(item)
             index_minute = index_minute + timedelta(minutes=1)

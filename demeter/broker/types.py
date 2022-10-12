@@ -24,7 +24,7 @@ class PoolBaseInfo(object):
         self.token1 = token1
         self.is_token0_base = (base_token == token0)
         self.base_token = base_token
-        fee = str(fee)  # 防止精度问题
+        fee = str(fee)  # keep precision
         match fee:
             case "0.05":
                 self.tickSpacing = 10

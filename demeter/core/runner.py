@@ -268,7 +268,7 @@ class Runner(object):
         df["timestamp"] = pd.to_datetime(df["timestamp"])
         df.set_index("timestamp", inplace=True)
 
-        # 填充空白数据(每天的头几分钟可能空白)
+        # fill empty row (first minutes in a day, might be blank)
         full_indexes = pd.date_range(start=df.index[0], end=df.index[df.index.size - 1], freq="1min")
         df = df.reindex(full_indexes)
         df = Lines.from_dataframe(df)
@@ -292,7 +292,7 @@ class Runner(object):
         :type df: Lines
 
         """
-        # 增加统计列
+        # add statistic column
         df["open"] = df["openTick"].map(lambda x: self.broker.tick_to_price(x))
         df["price"] = df["closeTick"].map(lambda x: self.broker.tick_to_price(x))
         high_name, low_name = ("lowestTick", "highestTick") if self.broker.pool_info.is_token0_base \
@@ -344,8 +344,8 @@ class Runner(object):
             row_id += 1
             for column_name in row.index:
                 setattr(row_data, column_name, row[column_name])
-            # 执行策略, 以及一些计算
-            # 更新price tick
+            # execute strategy, and some calculate
+            # update price tick
             self._broker.pool_status = PoolStatus(index.to_pydatetime(),
                                                   row_data.closeTick,
                                                   row_data.currentLiquidity,
@@ -353,21 +353,20 @@ class Runner(object):
                                                   row_data.inAmount1,
                                                   row_data.price)
             self._strategy.next(row_data)
-            # 更新broker中的统计信息, 比如价格, 手续费
-            # 顺便从broker中读取新添加的event
+            # update broker status, eg: re-calculate fee
+            # and read the latest status from broker
             self._broker.update()
             if first:
                 init_price = row_data.price
                 first = False
             self.account_status_list.append(self._broker.get_account_status(row_data.price, index.to_pydatetime()))
 
-            # 通知
-            # 汇报在这次迭代发生了哪些操作
+            # collect actions in this loop
             current_event_list = self.bar_actions.copy()
             for event in current_event_list:
                 event.timestamp = index
             self.bar_actions.clear()
-
+            # notify
             if current_event_list and len(current_event_list) > 0:
                 self._actions.extend(current_event_list)
                 if enable_notify:
@@ -393,10 +392,8 @@ class Runner(object):
         output back test result to console
         """
         if self.__backtest_finished:
-            # 最终状态
             print("Final status")
             print(self.broker.get_account_status(self.data.tail(1).price[0]).get_output_str())
-            # 评价指标
             print("Evaluating indicator")
             print(self._evaluator.evaluating_indicator.get_output_str())
         else:
@@ -408,11 +405,9 @@ class Runner(object):
         """
         if not isinstance(self._strategy, Strategy):
             raise ZelosError("strategy must be inherit from Strategy")
-        # 策略可以直接调用相关的对象
         self._strategy.broker = self._broker
         self._strategy.data = self._data
 
-        # 执行策略的初始化
         self._strategy.initialize()
 
     def __str__(self):

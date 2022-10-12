@@ -22,7 +22,7 @@ class Broker(object):
 
     def __init__(self, pool_info: PoolBaseInfo):
         self._pool_info = pool_info
-        # 初始化资金
+        # init balance
         self._is_token0_base = pool_info.is_token0_base
         self._asset0 = BrokerAsset(pool_info.token0, DECIMAL_ZERO)
         self._asset1 = BrokerAsset(pool_info.token1, DECIMAL_ZERO)
@@ -31,11 +31,11 @@ class Broker(object):
         self._quote_asset: BrokerAsset = quote_asset
         self._init_amount0 = DECIMAL_ZERO
         self._init_amount1 = DECIMAL_ZERO
-        # 状态
+        # status
         self._positions: dict[PositionInfo:Position] = {}
         self._pool_status = PoolStatus(None, 0, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO)
         self._price_unit = f"{self.base_asset.name}/{self.quote_asset.name}"
-        # 临时变量
+        # internal temporary variable
         self.action_buffer = []
 
     @property
@@ -279,7 +279,7 @@ class Broker(object):
                         current_tick=None):
 
         if current_tick is None:
-            current_tick = int(self._current_tick)  # 记得初始化self.current_tick
+            current_tick = int(self._current_tick)  # self.current_tick must be initialed
         if lower_tick > upper_tick:
             raise ZelosError("lower tick should be less than upper tick")
         if token0_amount > self._asset0.balance:
@@ -310,7 +310,7 @@ class Broker(object):
         token0_fee, token1_fee = position.uncollected_fee_token0, position.uncollected_fee_token1
         position.uncollected_fee_token0 = 0
         position.uncollected_fee_token1 = 0
-        # 手续费金额添加到现在的余额中
+        # add un_collect fee to current balance
         self._asset0.add(token0_fee)
         self._asset1.add(token1_fee)
         return token0_fee, token1_fee
@@ -477,12 +477,3 @@ class Broker(object):
                                              UnitDecimal(quote_amount, self.quote_asset.name)))
 
         return fee, base_amount, quote_amount
-
-    # 这里定义了哪些函数会暴露给策略对象
-    expose_methods = {
-        "add_liquidity": add_liquidity,
-        "remove_liquidity": remove_liquidity,
-        "buy": buy,
-        "sell": sell,
-        "collect_fee": collect_fee
-    }

@@ -334,7 +334,7 @@ class Lines(pd.DataFrame, Cursorable):
                 param = get_fillna_param(line_type, method, value)
                 current_method = param["method"]
                 current_value = param["value"]
-                # tick相关的, 填补空缺都用close tick, 如果没有close tick, 默认用之前的.
+                # all tick related field will be filled with close_tick.
                 if line_type in [LineTypeEnum.openTick, LineTypeEnum.highestTick,
                                  LineTypeEnum.lowestTick] and LineTypeEnum.closeTick.name in new_df.columns:
                     current_method = None

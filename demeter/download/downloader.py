@@ -2,7 +2,7 @@ from datetime import date, timedelta
 import os
 
 from . import ChainType, DataSource, source_bigquery
-from tqdm import tqdm  # 进度条
+from tqdm import tqdm  # process bar
 
 
 def download_by_day(chain: ChainType, pool_address: str, start: date, end: date, data_source=DataSource.BigQuery,
@@ -20,7 +20,7 @@ def download_by_day(chain: ChainType, pool_address: str, start: date, end: date,
     :return:
     """
     pool_address = pool_address.lower()
-    end = end + timedelta(days=1)  # 使得下载区间为左闭右闭
+    end = end + timedelta(days=1)  # make date range is [a,b], instead of [a,b)
     if start > end:
         raise RuntimeError("start date should earlier than end date")
     date_array = split_date_range_to_array(start, end)

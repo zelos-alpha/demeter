@@ -2,13 +2,13 @@
 
 ```{eval-rst}
 
-.. autoclass:: demeter.types.PoolBaseInfo    
+.. autoclass:: demeter.broker.types.PoolBaseInfo    
     :members:
-.. autoclass:: demeter.types.PoolStatus    
+.. autoclass:: demeter.broker.types.PoolStatus    
     :undoc-members:
-.. autoclass:: demeter.types.BrokerAsset    
+.. autoclass:: demeter.broker.types.BrokerAsset    
     :undoc-members:
-.. autoclass:: demeter.types.Position    
+.. autoclass:: demeter.broker.types.Position    
     :undoc-members:
 .. autoclass:: demeter.broker.broker.Broker
     :members:
