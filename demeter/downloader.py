@@ -33,12 +33,14 @@ class DownloadParam(object):
 
 
 class Downloader(cmd.Cmd):
-    intro = 'Welcome to the demeter data downloader.  Type help or ? to list commands. or \033[1;34mjust start with "config"\033[0m\n'
+    intro = 'Welcome to the demeter data downloader.  Type help or ? to list commands. ' \
+            'or \033[1;34mjust start with "config"\033[0m\n'
     prompt = '(demeter) '
 
     def __init__(self, *args, **kwargs):
         self.param = DownloadParam()
         self.has_config = False
+        self.param.save_path = DEFAULT_SAVE_PATH
         super().__init__(*args, **kwargs)
 
     def do_show_param(self, _):
@@ -46,40 +48,47 @@ class Downloader(cmd.Cmd):
         print(self.param.get_formatted())
 
     def do_config(self, _):
-        """config your download"""
-        print(f"Which chain you wanna choose: ")
-        [print(f"({ct.value}){ct.name}") for ct in ChainType]
-        chose_chain = int(input("input number: "))
-        self.param.chain = ChainType(chose_chain)
+        try:
+            """config your download"""
+            print(f"Which chain you wanna choose({self.param.chain.name}): ")
+            [print(f"({ct.value}){ct.name}") for ct in ChainType]
+            chose_chain = input("input number: ")
+            if "" != chose_chain:
+                self.param.chain = ChainType(int(chose_chain))
 
-        print("Which data_source you wanna choose: ")
-        [print(f"({ds.value}){ds.name}") for ds in DataSource]
-        chose_ds = int(input("input number: "))
-        self.param.source = DataSource(chose_ds)
+            print(f"Which data_source you wanna choose({self.param.source.name}): ")
+            [print(f"({ds.value}){ds.name}") for ds in DataSource]
+            chose_ds = input("input number: ")
+            if "" != chose_ds:
+                self.param.source = DataSource(int(chose_ds))
 
-        if chose_ds == DataSource.BigQuery.value:
-            print("GOOGLE_APPLICATION_CREDENTIALS file path")
-            while True:
-                auth_file = input("input google auth file path: ")
-                if auth_file == "exit":
-                    break
-                if os.path.exists(auth_file):
-                    self.param.auth_file = auth_file
-                    break
-                else:
-                    print("file not found, try again, or input exit")
+            if self.param.source == DataSource.BigQuery:
+                print(f"GOOGLE_APPLICATION_CREDENTIALS file path({self.param.auth_file})")
+                while True:
+                    auth_file = input("input google auth file path: ")
+                    if auth_file == "exit":
+                        break
+                    elif auth_file == "":
+                        break
+                    if os.path.exists(auth_file):
+                        self.param.auth_file = auth_file
+                        break
+                    else:
+                        print("file not found, try again, or input exit")
 
-        print("where would you like to keep files: ")
-        path = input(f"input path (Default path: {DEFAULT_SAVE_PATH}, press enter to keep default): ")
-        if "" != path:
-            self.param.save_path = path
+            print("where would you like to keep files: ")
+            path = input(f"input path (Default path: {self.param.save_path}, press enter to keep default): ")
+            if "" != path:
+                self.param.save_path = path
 
-        print("config compete. your config is:")
-        print(self.param.get_formatted())
-        # \033[1;34m{k:<10}:\033[0m
-        print(
-            'Now use "\033[1;34mdownload\033[0m" to start. commend: \033[1;34mdownload\033[0m \033[1;35mpool_contract_address\033[0m \033[1;32mstart_date\033[0m \033[1;31mend_date\033[0m   ')
-        self.has_config = True
+            print("config compete. your config is:")
+            print(self.param.get_formatted())
+            # \033[1;34m{k:<10}:\033[0m
+            print('Now use "\033[1;34mdownload\033[0m" to start. commend: \033[1;34mdownload\033[0m '
+                  '\033[1;35mpool_contract_address\033[0m \033[1;32mstart_date\033[0m \033[1;31mend_date\033[0m   ')
+            self.has_config = True
+        except Exception as e:
+            print(e)
 
     def do_download(self, arg):
         """start download, usage: download pool_contract_address start_date end_date"""
