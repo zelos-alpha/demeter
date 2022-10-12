@@ -18,10 +18,10 @@ We provide a console tool to download data from bigQuery. Before download data, 
 
 Now you can download data.
 
-1. run "python demeter/downloader.py", you will enter a prompt (demeter)
+1. run "python -m demeter.downloader", you will enter a prompt (demeter)
 2. input command "config", then follow the wizard, input environment variable. including chain, datasource
 3. then choose path you keep google authority file (.json),
-4. choose the path to keep downloaded files. press enter to keep default setting (../data), then config finish.
+4. choose the path to keep downloaded files. press enter to keep default setting (./data), then config finish.
 5. run "download pool_contract_address start_date end_date" to start download. this may take a while. you can monitor the progress by process bar.
 6. start next download, or input "exit"
 

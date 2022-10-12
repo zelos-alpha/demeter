@@ -4,7 +4,7 @@ from .download import downloader
 import os
 from datetime import datetime
 
-DEFAULT_SAVE_PATH = "../data"
+DEFAULT_SAVE_PATH = "./data"
 
 
 class DownloadParam(object):
