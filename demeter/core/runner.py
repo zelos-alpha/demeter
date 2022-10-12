@@ -5,10 +5,11 @@ from ..broker import Broker, PoolBaseInfo
 from .._typing import AccountStatus, BarStatusNames, BaseAction, Asset, ZelosError, TokenInfo, ActionTypeEnum, \
     EvaluatingIndicator, RowData
 from ..strategy import Strategy
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from .evaluating_indicator import Evaluator
 import pandas as pd
 from decimal import Decimal
+from tqdm import tqdm  # process bar
 
 DEFAULT_DATA_PATH = "./data"
 
@@ -36,7 +37,7 @@ class Runner(object):
         self._actions: [BaseAction] = []
         # actions in current bar
         self.bar_actions: [BaseAction] = []
-        self._broker.action_buffer: [BaseAction] = self.bar_actions
+        self._broker.action_buffer = self.bar_actions
         # broker status in every bar
         self.account_status_list: [AccountStatus] = []
         # path of source data, which is saved by downloader
@@ -217,21 +218,24 @@ class Runner(object):
         """
         if len(actions) < 1:
             return
-        strategy.notify_on_next(actions)
-        for event in actions:
-            match event.action_type:
+        last_time = datetime(1970, 1, 1)
+        for action in actions:
+            if last_time != action.timestamp:
+                print(f"\033[7;34m{action.timestamp} \033[0m")
+                last_time = action.timestamp
+            match action.action_type:
                 case ActionTypeEnum.add_liquidity:
-                    strategy.notify_add_liquidity(event)
+                    strategy.notify_add_liquidity(action)
                 case ActionTypeEnum.remove_liquidity:
-                    strategy.notify_remove_liquidity(event)
+                    strategy.notify_remove_liquidity(action)
                 case ActionTypeEnum.collect_fee:
-                    strategy.notify_collect_fee(event)
+                    strategy.notify_collect_fee(action)
                 case ActionTypeEnum.buy:
-                    strategy.notify_buy(event)
+                    strategy.notify_buy(action)
                 case ActionTypeEnum.sell:
-                    strategy.notify_sell(event)
+                    strategy.notify_sell(action)
                 case _:
-                    strategy.notify(event)
+                    strategy.notify(action)
 
     def load_data(self, chain: str, contract_addr: str, start_date: date, end_date: date):
         """
@@ -337,43 +341,46 @@ class Runner(object):
         row_id = 0
         first = True
         self.logger.info("start main loop...")
-        for index, row in self._data.iterrows():
-            row_data = RowData()
-            setattr(row_data, "timestamp", index.to_pydatetime())
-            setattr(row_data, "row_id", row_id)
-            row_id += 1
-            for column_name in row.index:
-                setattr(row_data, column_name, row[column_name])
-            # execute strategy, and some calculate
-            # update price tick
-            self._broker.pool_status = PoolStatus(index.to_pydatetime(),
-                                                  row_data.closeTick,
-                                                  row_data.currentLiquidity,
-                                                  row_data.inAmount0,
-                                                  row_data.inAmount1,
-                                                  row_data.price)
-            self._strategy.next(row_data)
-            # update broker status, eg: re-calculate fee
-            # and read the latest status from broker
-            self._broker.update()
-            if first:
-                init_price = row_data.price
-                first = False
-            self.account_status_list.append(self._broker.get_account_status(row_data.price, index.to_pydatetime()))
+        with tqdm(total=len(self._data.index)) as pbar:
+            for index, row in self._data.iterrows():
+                row_data = RowData()
+                setattr(row_data, "timestamp", index.to_pydatetime())
+                setattr(row_data, "row_id", row_id)
+                row_id += 1
+                for column_name in row.index:
+                    setattr(row_data, column_name, row[column_name])
+                # execute strategy, and some calculate
+                # update price tick
+                self._broker.pool_status = PoolStatus(index.to_pydatetime(),
+                                                      row_data.closeTick,
+                                                      row_data.currentLiquidity,
+                                                      row_data.inAmount0,
+                                                      row_data.inAmount1,
+                                                      row_data.price)
+                self._strategy.next(row_data)
+                # update broker status, eg: re-calculate fee
+                # and read the latest status from broker
+                self._broker.update()
+                if first:
+                    init_price = row_data.price
+                    first = False
+                self.account_status_list.append(self._broker.get_account_status(row_data.price, index.to_pydatetime()))
 
-            # collect actions in this loop
-            current_event_list = self.bar_actions.copy()
-            for event in current_event_list:
-                event.timestamp = index
-            self.bar_actions.clear()
-            # notify
-            if current_event_list and len(current_event_list) > 0:
-                self._actions.extend(current_event_list)
-                if enable_notify:
-                    self.notify(self.strategy, current_event_list)
+                # collect actions in this loop
+                current_event_list = self.bar_actions.copy()
+                for event in current_event_list:
+                    event.timestamp = index
+                self.bar_actions.clear()
+                if current_event_list and len(current_event_list) > 0:
+                    self._actions.extend(current_event_list)
 
-            # process next
-            self._data.move_cursor_to_next()
+                # process next
+                self._data.move_cursor_to_next()
+                pbar.update()
+        # notify
+        if enable_notify and len(self._actions) > 0:
+            self.logger.info("start notify all the actions")
+            self.notify(self.strategy, self._actions)
         self.logger.info("main loop finished, start calculate evaluating indicator...")
         bar_status_df = pd.DataFrame(columns=BarStatusNames,
                                      index=self.data.index,

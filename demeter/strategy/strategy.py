@@ -40,17 +40,6 @@ class Strategy(object):
         """
         pass
 
-    def notify_on_next(self, actions: [BaseAction]):
-        """
-        notify if current loop generate some action
-
-        :param actions:
-        :type actions:
-        :return:
-        :rtype:
-        """
-        print(f"\033[7;34m{actions[0].timestamp} \033[0m {len(actions)} actions")
-
     def notify(self, action: BaseAction):
         """
         notify if non-basic action happens
