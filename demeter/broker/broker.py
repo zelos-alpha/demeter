@@ -272,14 +272,14 @@ class Broker(object):
         return quote_price_to_tick(price, self.pool_info.token0.decimal, self.pool_info.token1.decimal,
                                    self._is_token0_base)
 
-    def __add_liquidity(self, token0_amount: Decimal,
-                        token1_amount: Decimal,
-                        lower_tick: int,
-                        upper_tick: int,
-                        current_tick=None):
+    def _add_liquidity_by_tick(self, token0_amount: Decimal,
+                               token1_amount: Decimal,
+                               lower_tick: int,
+                               upper_tick: int,
+                               current_tick=None):
 
         if current_tick is None:
-            current_tick = int(self._current_tick)  # self.current_tick must be initialed
+            current_tick = int(self.pool_status.current_tick)  # self.current_tick must be initialed
         if lower_tick > upper_tick:
             raise ZelosError("lower tick should be less than upper tick")
         if token0_amount > self._asset0.balance:
@@ -345,11 +345,11 @@ class Broker(object):
         lower_tick, upper_tick = V3CoreLib.quote_price_pair_to_tick(self._pool_info, lower_quote_price,
                                                                     upper_quote_price)
         lower_tick, upper_tick = self.__convert_pair(upper_tick, lower_tick)
-        (created_position, token0_used, token1_used) = self.__add_liquidity(token0_amt,
-                                                                            token1_amt,
-                                                                            lower_tick,
-                                                                            upper_tick,
-                                                                            self.pool_status.current_tick)
+        (created_position, token0_used, token1_used) = self._add_liquidity_by_tick(token0_amt,
+                                                                                   token1_amt,
+                                                                                   lower_tick,
+                                                                                   upper_tick,
+                                                                                   self.pool_status.current_tick)
         base_used, quote_used = self.__convert_pair(token0_used, token1_used)
         self.action_buffer.append(AddLiquidityAction(UnitDecimal(self.base_asset.balance, self.base_asset.name),
                                                      UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
