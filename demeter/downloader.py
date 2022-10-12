@@ -1,6 +1,6 @@
 import cmd
-from download import ChainType, DataSource
-from download import downloader
+from .download import ChainType, DataSource
+from .download import downloader
 import os
 from datetime import datetime
 
@@ -103,7 +103,9 @@ class Downloader(cmd.Cmd):
         print("download complete, check your files in " + self.param.save_path)
 
     def do_exit(self, _):
-        """退出"""
+        """
+        exit app
+        """
         exit(0)
 
 

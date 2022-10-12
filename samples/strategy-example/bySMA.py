@@ -1,8 +1,8 @@
 from datetime import date, datetime
 from typing import Union
 import demeter.indicator
-from download import ChainType
-from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, AccountStatus, BuyAction, SellAction, RowData
+from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, AccountStatus, BuyAction, SellAction, RowData, \
+    ChainType
 import pandas as pd
 from strategy_ploter import plotter, plot_position_return_decomposition
 

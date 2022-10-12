@@ -16,14 +16,12 @@ class LinesTest(unittest.TestCase):
 
     def test_column_name(self):
         index = pd.date_range('2022-9-6 8:5:0', periods=3, freq='T')
-        # 原生方式: 字典
         series0 = Line(range(3), index=index, line_type=LineTypeEnum.inAmount0)
         df = Lines(data={"s0": series0}, index=index)
         self.assertEqual(df.iloc[:, 0].name, "s0")
-        # 内置类型的数组
-        series0 = Line(range(3), index=index, line_type=LineTypeEnum.inAmount0)  # 内置类型的数组
-        series1 = Line(range(3), index=index, name="hello")  # 指定了名字
-        series2 = Line(range(3), index=index)  # 没有指定名字
+        series0 = Line(range(3), index=index, line_type=LineTypeEnum.inAmount0)  # predefined type
+        series1 = Line(range(3), index=index, name="hello")  # with name
+        series2 = Line(range(3), index=index)  # without name
         df = Lines(data=[series0, series1, series2], index=index)
         self.assertEqual(df.iloc[:, 0].name, "inAmount0")
         self.assertEqual(df.iloc[:, 1].name, "hello")
@@ -104,10 +102,12 @@ class LinesTest(unittest.TestCase):
     # ===========lines again=========================
     def test_lines_resample(self):
         index = pd.date_range('2022-9-6 8:0:0', periods=6, freq='T')
-        series0 = Line(range(6), index=index, line_type=LineTypeEnum.highestTick)  # 内置类型
-        series1 = Line(range(6), index=index, line_type=LineTypeEnum.inAmount0)  # 内置类型
-        series2 = Line(range(6), index=index, name="s2", line_type=LineTypeEnum.other)  # 不是内置类型, 定义了重采样
-        series3 = Line(range(6), index=index, name="s3", line_type=LineTypeEnum.other)  # 没有定义, 使用默认的重采样方式
+        series0 = Line(range(6), index=index, line_type=LineTypeEnum.highestTick)  # predefined type
+        series1 = Line(range(6), index=index, line_type=LineTypeEnum.inAmount0)  # predefined type
+        series2 = Line(range(6), index=index, name="s2",
+                       line_type=LineTypeEnum.other)  # not predefined type, but defined resample
+        series3 = Line(range(6), index=index, name="s3",
+                       line_type=LineTypeEnum.other)  # not predefined type, use default resample
         df = Lines(data=[series0, series1, series2, series3], index=index)
         df = df.resample_by_type("3T", agg={"s2": "sum"})
         print(df)
@@ -122,21 +122,20 @@ class LinesTest(unittest.TestCase):
 
     def test_lines_resample_return(self):
         index = pd.date_range('2022-9-6 8:0:0', periods=6, freq='T')
-        series0 = Line(range(6), index=index, line_type=LineTypeEnum.highestTick)  # 内置类型
+        series0 = Line(range(6), index=index, line_type=LineTypeEnum.highestTick)  # predefined type
         df = Lines(data=series0, index=index)
         df = df.resample_by_type("3T")
         print(df)
-        # 返回值应该还是Lines类型
         df.move_cursor_to_next()
 
     def test_lines_fillna(self):
         index = pd.date_range('2022-9-6 8:0:0', periods=6, freq='T')
         array = [1, 2, float("nan"), 4, 5, 6]
-        seriesC = Line([1, 8, float("nan"), 4, 5, 6], index=index, line_type=LineTypeEnum.closeTick)  # 内置类型
-        series0 = Line(array, index=index, line_type=LineTypeEnum.highestTick)  # 内置类型
-        series1 = Line(array, index=index, line_type=LineTypeEnum.inAmount0)  # 内置类型
-        series2 = Line(array, index=index, name="s2")  # 不是内置类型, 定义了重采样
-        series3 = Line(array, index=index, name="s3")  # 没有定义, 使用默认的重采样方式
+        seriesC = Line([1, 8, float("nan"), 4, 5, 6], index=index, line_type=LineTypeEnum.closeTick)  # predefined type
+        series0 = Line(array, index=index, line_type=LineTypeEnum.highestTick)  # predefined type
+        series1 = Line(array, index=index, line_type=LineTypeEnum.inAmount0)  # predefined type
+        series2 = Line(array, index=index, name="s2")  # not predefined type, but defined resample
+        series3 = Line(array, index=index, name="s3")  # not predefined type, use default resample
         df = Lines(data=[series0, series1, series2, series3, seriesC], index=index)
         new_df = df.fillna(0)
         print(new_df)
@@ -148,7 +147,7 @@ class LinesTest(unittest.TestCase):
 
     def test_lines_fillna_return(self):
         index = pd.date_range('2022-9-6 8:0:0', periods=6, freq='T')
-        seriesC = Line([1, 8, float("nan"), 4, 5, 6], index=index, line_type=LineTypeEnum.closeTick)  # 内置类型
+        seriesC = Line([1, 8, float("nan"), 4, 5, 6], index=index, line_type=LineTypeEnum.closeTick)  # predefined type
         df = Lines(data=[seriesC], index=index)
         new_df = df.fillna()
         print(type(new_df))

@@ -1,5 +1,4 @@
 from enum import Enum
-from datetime import datetime
 
 
 class DataSource(Enum):
@@ -64,7 +63,7 @@ class MarketData(object):
 
     def fill_missing_field(self, prev_data) -> bool:
         """
-        根据前一条数据, 填充缺失的字段
+        fill missing field with previous data
         :param prev_data:
         :return: data is available or not
         """
