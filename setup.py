@@ -7,10 +7,11 @@ setup(
     ],
     name='demeter',
     version='0.1.0',
-    # packages=find_packages(include=["demeter"], exclude=["test", "sample"]),
-    packages=["demeter"],
-    url='',
-    license='',
+    packages=find_packages(include=["demeter"], exclude=["tests", "samples"]),
+    # packages=["demeter"],
+    # package_dir={'demeter': './demeter'},
+    url='https://zelos-demeter.readthedocs.io',
+    license='MIT',
     author='zelos team',
     author_email='liang.hou@antalpha.com',
     description='better back testing tool for uniswap v3',
@@ -25,13 +26,13 @@ setup(
     #     '': ['*.txt'],
     #     'bandwidth_reporter': ['*.txt']
     # },
-    exclude_package_data={
-        'data': ['*.*'],
-        'auth': ['*.json'],
-        'tests': ['*.*'],
-        'samples': ['*.*'],
-        'demeter.egg-info': ['*.*'],
-    }
+    # exclude_package_data={
+    #     'data': ['*.*'],
+    #     'auth': ['*.json'],
+    #     'tests': ['*.*'],
+    #     'samples': ['*.*'],
+    #     'demeter.egg-info': ['*.*'],
+    # }
 )
 
 # python setup.py sdist upload -r private
