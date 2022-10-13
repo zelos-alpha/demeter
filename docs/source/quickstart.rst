@@ -1,4 +1,4 @@
-Quick start
+Getting Started
 ====================================
 
 test head2

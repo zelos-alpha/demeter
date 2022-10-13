@@ -25,7 +25,7 @@ Now you can download data.
 5. run "download pool_contract_address start_date end_date" to start download. this may take a while. you can monitor the progress by process bar.
 6. start next download, or input "exit"
 
-After download, data will be processed, they will be resampled to 1 minute. and empty minute will be filled. after process, columns will be
+After download, data will be resampled to 1 minute. and empty minute will be filled. after process, columns will be
 
 * timestamp,
 * netAmount0,

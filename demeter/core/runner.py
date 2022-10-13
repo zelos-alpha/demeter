@@ -341,7 +341,7 @@ class Runner(object):
         row_id = 0
         first = True
         self.logger.info("start main loop...")
-        with tqdm(total=len(self._data.index)) as pbar:
+        with tqdm(total=len(self._data.index), ncols=150) as pbar:
             for index, row in self._data.iterrows():
                 row_data = RowData()
                 setattr(row_data, "timestamp", index.to_pydatetime())
