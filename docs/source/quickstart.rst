@@ -32,11 +32,15 @@ Core concept
 
 As we follow the style of backtrader. Demeter inherits some core concepts from backtrader.
 
+.. _Lines:
+
 Lines
 ----------------------------------------
 
 Data Feeds, Indicators and Strategies are considered as :doc:`Line <references/data_line>`, which is inherit from pandas.Series,
 and their collection is :doc:`Lines <references/data_line>`, which is inherit from pandas.DataFrame.
+
+
 
 A line is a succession of points that when joined together form this line. Data collected by downloader will have the following set of points per minute:
 
@@ -82,4 +86,133 @@ This will help access current row and rows around.
 
 Basic sample
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Let's start with a simple example.
+
+.. code-block:: python
+
+    eth = TokenInfo(name="eth", decimal=18) # 1
+    usdc = TokenInfo(name="usdc", decimal=6)
+    pool = PoolBaseInfo(usdc, eth, 0.05, usdc) # 2
+    runner = Runner(pool) # 3
+    runner.set_assets([Asset(usdc, 1000), Asset(eth, 1)]) #4
+    runner.data_path = "../data" # 5
+    runner.load_data(ChainType.Polygon.name, # 6
+                     "0x45dda9cb7c25131df268515131f647d726f50608",
+                     date(2022, 8, 15),
+                     date(2022, 8, 20))
+    runner.run() #7
+    runner.output() #8
+
+1 First you should register tokens, We take pool 0x45dda9cb7c25131df268515131f647d726f50608 on polygon(usdc-weth) as example.
+so we assign two variables *eth*, *usdc*.
+
+2 Then setup tool, the parameter should be consistent with pool contract. note, the last parameter is base token.
+That means which token will be considered as base token.
+eg: to a token pair of USDT/BTC, if you want price unit to be like 10000 usdt/btc, you should set usdt as base token,
+otherwise if price unit is 0.00001 btc/usdt, you should set btc as base token
+
+3 Now create a runner, and set pool info as parameter
+
+4 set up initial asset to runner. Now you have 1000usdc and 1eth to simulate.
+
+5 set up data folder path, the path should have the chain status files formerly download
+
+6 load data by data.
+
+7 run test
+
+8 print final status, including balance, positions
+
+After run the test, The output is
+
+.. code-block::
+
+    2022-10-13 18:11:57,985 - INFO - init strategy...
+    2022-10-13 18:11:57,990 - INFO - start main loop...
+    100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5/5 [00:00<00:00, 363.45it/s]
+    2022-10-13 18:11:58,030 - INFO - main loop finished, start calculate evaluating indicator...
+    2022-10-13 18:11:58,035 - INFO - run evaluating indicator
+    2022-10-13 18:11:58,038 - INFO - back testing finish
+    Final status
+    total capital: 2000.0020usdc                  balance   : 1000usdc,1eth                  uncollect fee: 0usdc,0eth                     in position amount: 0usdc,0eth
+    Evaluating indicator
+    annualized_returns: 0                              benchmark_returns: 0
+
+
+Add a strategy
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Not write a strategy
+
+.. code-block:: python
+
+      class MyFirstStrategy(Strategy):
+        def next(self, row_data: Union[RowData, pd.Series]):
+            if row_data.price > 1500:
+                self.buy(0.1, row_data.price)
+
+
+      runner.strategy = MyFirstStrategy()
+
+Write a strategy is simple. you just have to inherit from :doc:`strategy <references/strategy>` class, and set it to runner.
+When back testing is running, if price is above 0.1 eth/usdc (Remember we have set usdc as base token, so price and buy/sell action is all based on eth),
+broker will buy 0.1eth
+
+In strategy, you can make trade action including add_liquidity, remove_liquidity, collect_fee, buy, sell. you can check :doc:`strategy <references/strategy>` api reference
+
+Strategy also provide initialize and finalize function, which will run before and after the test.
+
+If you chose notify (by setting runner.run(enable_notify=True)), all the trade action will be printed.
+
+how to access data in strategy
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+suppose we only have five rows of data, and in closeTick column, data is [0,1,2,3,4], you can access data in various ways.
+
+.. code-block:: python
+
+    class MyFirstStrategy(Strategy):
+        def next(self, row_data: Union[RowData, pd.Series]): #
+            if row_data.row_id == 2: # current row index, from 0 to len(runner.data), this means do something on the third loop.
+                # access current row, method is provided by demeter
+                row_data.closeTick == 2 # current row data
+                self.data.get_by_cursor(0).closeTick == 2
+
+                # access current row, method is provided by pandas
+                self.data.closeTick[0] == 0
+                self.data.loc[row_data.timestamp].closeTick == 2
+                self.data["closeTick"].iloc[0] == 0
+
+                # access previous or after row
+                self.data.get_by_cursor(-2).closeTick == 0
+                self.data.get_by_cursor(2).closeTick == 4
+                self.data.loc[row_data.timestamp - timedelta(minutes=2)].closeTick == 0
+                self.data.loc[row_data.timestamp + timedelta(minutes=2)].closeTick == 4
+
+row_data is row of in current loop. its type is pandas.Series, and its properity is listed in :ref:`Lines`
+
+
+Add a indicator
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Demeter has preset some indicator, to help analysis the data.
+
+.. code-block:: python
+
+   from demeter import simple_moving_average, TimeUnitEnum
+
+   # before runner.run()
+   runner.data["ma5"] = simple_moving_average(runner.data.price, 5, unit=TimeUnitEnum.hour)
+
+this example shows how to add simple moving average indicator with 5 hour window. they can be access in strategy
+
+.. code-block:: python
+
+    class MyFirstStrategy(Strategy):
+        def next(self, row_data: Union[RowData, pd.Series]):
+            if row_data.ma5 > 1500: # access by row_data
+                self.buy(100, row_data.price)
+            if self.data.get_by_cursor(0).ma5 > 1500 # access by index
+                self.buy(100, row_data.price)
 

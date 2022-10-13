@@ -39,7 +39,7 @@ After account is prepared, you can start download process.
 .. note:: pool_contract_address: for example, to usdc and eth pool in polygon, the address is `0x45dDa9cb7c25131DF268515131f647d726f50608 <https://polygonscan.com/address/0x45dda9cb7c25131df268515131f647d726f50608>`_
 
 
-Data will be kept in the folder you choose. with csv format. Data will be resampled, so each row is 1 minute. if current minute has no data. they will be auto filled according to previous minute.
+Data will be kept in the folder you choose, one day for per file. with csv format. Data will be resampled, so each row is 1 minute. if current minute has no data. they will be auto filled according to previous minute.
 
 columns including:
 
