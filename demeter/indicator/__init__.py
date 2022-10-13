@@ -1,1 +1,1 @@
-from .ma import simple_moving_average, TimeUnitEnum
+from .ma import simple_moving_average

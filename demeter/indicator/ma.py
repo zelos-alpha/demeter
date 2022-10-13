@@ -1,22 +1,9 @@
 from pandas import Timedelta
 
-from .._typing import ZelosError, DECIMAL_ZERO
+from .._typing import ZelosError, DECIMAL_ZERO, TimeUnitEnum
 import pandas as pd
 from enum import Enum
 from decimal import Decimal
-
-
-class TimeUnitEnum(Enum):
-    """
-    time unit for moving average,
-
-    * minute
-    * hour
-    * day
-    """
-    minute = 1
-    hour = 60
-    day = 60 * 24
 
 
 def simple_moving_average(data: pd.Series, n=5, unit=TimeUnitEnum.hour) -> pd.Series:

@@ -9,6 +9,19 @@ from .utils.application import get_formatted_str
 DECIMAL_ZERO = Decimal(0)
 
 
+class TimeUnitEnum(Enum):
+    """
+    time unit for moving average,
+
+    * minute
+    * hour
+    * day
+    """
+    minute = 1
+    hour = 60
+    day = 60 * 24
+
+
 class UnitDecimal(Decimal):
     """
     Decimal with unit, such a 1 eth.

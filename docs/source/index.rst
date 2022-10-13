@@ -21,7 +21,7 @@ Design rationale
 data
 ------------------------------------------------------
 Evm's event is better than graphQL.
-Event approach is  cheaper and easier to use than subgraph approach.
+Event approach is cheaper and easier to use than subgraph approach.
 It is found that official subgraph had some bugs in some corner cases.
 
 We provide a bigquery downloader to produce daily pool csv files. Data downloading is an independent step for backtesting .You can download and clean it on you your ownself.
@@ -49,7 +49,6 @@ We plan to improve metrics in recent.
 how to use
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 try quickstart in our :doc:`quickstart`
-
 
 license
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

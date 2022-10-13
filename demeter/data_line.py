@@ -2,7 +2,7 @@ import pandas as pd
 from pandas import _typing as pd_typing
 from enum import Enum
 
-from ._typing import ZelosError
+from ._typing import ZelosError, TimeUnitEnum
 
 DEFAULT_AGG_METHOD = "first"
 
@@ -109,6 +109,21 @@ class Cursorable(object):
         reset cursor to zero
         """
         self.cursor = 0
+
+    def get_by_cursor(self, i):
+        """
+         access row by cursor
+
+         :param i: index
+         :type i: int
+         :return: selected row, in form of pd.Series
+         """
+        real_index = self.cursor + i
+
+        if real_index < 0 or real_index >= self.index.size:
+            raise IndexError("index out of range")
+        return self.iloc[real_index]
+
 
 
 class Line(pd.Series, Cursorable):
@@ -222,18 +237,6 @@ class Line(pd.Series, Cursorable):
         line.cursor = row_index
         setattr(line, "line_type", line_type)
         return line
-
-    def get_by_cursor(self, i: int):
-        """
-        access row by cursor
-
-        :param i: index
-        :type i: int
-        """
-        real_index = self.cursor + i
-        if real_index < 0 or real_index >= self.index.size:
-            raise IndexError("index out of range")
-        return self.iloc[real_index]
 
 
 class Lines(pd.DataFrame, Cursorable):
@@ -403,20 +406,6 @@ class Lines(pd.DataFrame, Cursorable):
             return Line.from_series(self.iloc[:, index], self.cursor)
         elif name:
             return Line.from_series(self[name], self.cursor)
-
-    def get_by_cursor(self, i) -> pd.Series:
-        """
-         access row by cursor
-
-         :param i: index
-         :type i: int
-         :return: selected row, in form of pd.Series
-         :rtype: pd.Series
-         """
-        real_index = self.cursor + i
-        if real_index < 0 or real_index >= self.index.size:
-            raise IndexError("index out of range")
-        return self.iloc[real_index]
 
     @staticmethod
     def from_dataframe(df: pd.DataFrame) -> "Lines":

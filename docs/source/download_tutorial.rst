@@ -1,7 +1,7 @@
 Download tutorial
 ====================================
 
-Demeter run back testing based on uniswap v3 liquidity pool events log.
+Demeter run back testing based on event logs of uniswap v3 pool contract.
 Specifically, when you provide liquidity during test process, demeter will calculate fee earned based on actual on chain data.
 So before use demeter, status of specific pool have be prepared. A downloader is provided to collect and process those data.
 
