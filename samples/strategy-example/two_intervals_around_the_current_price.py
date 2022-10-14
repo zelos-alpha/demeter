@@ -1,7 +1,6 @@
 import demeter as dt
 from datetime import timedelta, date
-from demeter import TokenInfo, PoolBaseInfo, Runner, Asset, AccountStatus, ActionTypeEnum
-from download import ChainType
+from demeter import TokenInfo, PoolBaseInfo, Runner, Asset, AccountStatus, ChainType
 from strategy_ploter import  plot_position_return_decomposition
 
 class TwoIntervalsAroundtheCurrentPrice(dt.Strategy):

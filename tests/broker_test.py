@@ -54,7 +54,7 @@ class TestBroker(unittest.TestCase):
     def test_add_Liquidity_by_tick(self):
         broker = self.get_one_broker()
         # should use all the balance
-        (new_position, base_used, quote_used) = broker._Broker__add_liquidity(broker.pool_status.price / 2,
+        (new_position, base_used, quote_used) = broker._add_liquidity_by_tick(broker.pool_status.price / 2,
                                                                               Decimal(0.5),
                                                                               broker.pool_status.current_tick - 100,
                                                                               broker.pool_status.current_tick + 100,
@@ -65,7 +65,7 @@ class TestBroker(unittest.TestCase):
     def test_add_Liquidity_use_all_balance(self):
         broker = self.get_one_broker()
         # should use all the balance
-        (new_position, base_used, quote_used) = broker._Broker__add_liquidity(broker.pool_status.price,
+        (new_position, base_used, quote_used) = broker._add_liquidity_by_tick(broker.pool_status.price,
                                                                               Decimal(1),
                                                                               broker.pool_status.current_tick - 100,
                                                                               broker.pool_status.current_tick + 100,
@@ -93,7 +93,7 @@ class TestBroker(unittest.TestCase):
     def test_collect_fee(self):
         broker = self.get_one_broker()
         # should use all the balance
-        (new_position, base_used, quote_used) = broker._Broker__add_liquidity(broker.pool_status.price,
+        (new_position, base_used, quote_used) = broker._add_liquidity_by_tick(broker.pool_status.price,
                                                                               Decimal(1),
                                                                               broker.pool_status.current_tick - 10,
                                                                               broker.pool_status.current_tick + 10,

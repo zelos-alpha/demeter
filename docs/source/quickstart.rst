@@ -174,21 +174,27 @@ suppose we only have five rows of data, and in closeTick column, data is [0,1,2,
 
     class MyFirstStrategy(Strategy):
         def next(self, row_data: Union[RowData, pd.Series]): #
-            if row_data.row_id == 2: # current row index, from 0 to len(runner.data), this means do something on the third loop.
-                # access current row, method is provided by demeter
-                row_data.closeTick == 2 # current row data
-                self.data.get_by_cursor(0).closeTick == 2
+            # access current row
+            print(row_data.closeTick)
+            print(self.data.get_by_cursor(0).closeTick)
+            print(self.data.loc[row_data.timestamp].closeTick)
 
-                # access current row, method is provided by pandas
-                self.data.closeTick[0] == 0
-                self.data.loc[row_data.timestamp].closeTick == 2
-                self.data["closeTick"].iloc[0] == 0
+            # access the row by data index
+            print(self.data.closeTick[0])  # first row
+            print(self.data["closeTick"].iloc[0])  # first row
+            print(self.data.closeTick[row_data.row_id])  # current row
 
-                # access previous or after row
-                self.data.get_by_cursor(-2).closeTick == 0
-                self.data.get_by_cursor(2).closeTick == 4
-                self.data.loc[row_data.timestamp - timedelta(minutes=2)].closeTick == 0
-                self.data.loc[row_data.timestamp + timedelta(minutes=2)].closeTick == 4
+            # access previous or after row
+            print(self.data.get_by_cursor(-2).closeTick)  # previous 2 rows
+            print(self.data.get_by_cursor(2).closeTick)  # after 2 rows
+            print(self.data.loc[row_data.timestamp - timedelta(hours=1)].closeTick)  # data of an hour ago
+            print(self.data.loc[row_data.timestamp + timedelta(days=1)].closeTick)  # data of an day later
+
+            print(self.broker.asset0.balance, self.broker.asset1.balance)  # show balance in asset 0,1
+            print(self.broker.base_asset.balance, self.broker.quote_asset.balance)  # show balance in base quote
+            print(self.broker.get_account_status())  # get current capital status,
+            for position_info, position in self.broker.positions.items():
+                print(position_info, position)  # show all position
 
 row_data is row of in current loop. its type is pandas.Series, and its properity is listed in :ref:`Lines`
 

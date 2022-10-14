@@ -44,7 +44,7 @@ class TestBroker(unittest.TestCase):
     def test_add_Liquidity_by_tick(self):
         broker = self.get_one_broker()
         # add liquidity with same tick range, should use all the balance
-        (new_position, base_used, quote_used) = broker._Broker__add_liquidity(broker.asset0.balance,
+        (new_position, base_used, quote_used) = broker._add_liquidity_by_tick(broker.asset0.balance,
                                                                               broker.asset1.balance,
                                                                               broker.pool_status.current_tick - 100,
                                                                               broker.pool_status.current_tick + 100,
@@ -71,7 +71,7 @@ class TestBroker(unittest.TestCase):
 
     def test_collect_fee(self):
         broker = self.get_one_broker()
-        (new_position, base_used, quote_used) = broker._Broker__add_liquidity(Decimal(1),
+        (new_position, base_used, quote_used) = broker._add_liquidity_by_tick(Decimal(1),
                                                                               broker.pool_status.price,
                                                                               broker.pool_status.current_tick - 10,
                                                                               broker.pool_status.current_tick + 10,

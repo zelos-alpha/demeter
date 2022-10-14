@@ -207,10 +207,10 @@ class Broker(object):
         """
         get current status, including positions, balances
 
-        :param timestamp: current timestamp, default is none
-        :type timestamp: datetime
         :param price: current price, used for calculate position value and net value, if set to None, will use price in current status
         :type price: Decimal
+        :param timestamp: current timestamp, default is none
+        :type timestamp: datetime
         :return: BrokerStatus
         """
         if price is None:
