@@ -17,3 +17,5 @@ setup(
 )
 
 # rm -rf ./demeter.egg-info/ && python setup.py sdist upload -r private
+# python setup.py sdist
+# twine upload -r pypi dist/*
