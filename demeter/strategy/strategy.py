@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Union
 
 from demeter import PositionInfo, BaseAction, AddLiquidityAction, SellAction, BuyAction, CollectFeeAction, \
-    RemoveLiquidityAction, RowData, Line, Lines, Broker
+    RemoveLiquidityAction, RowData, Line, Lines, Broker, Trigger
 import pandas as pd
 
 
@@ -16,6 +16,7 @@ class Strategy(object):
         self.broker: Broker = None
         self.data: Lines = None
         self.number_format = ".8g"
+        self.triggers: [Trigger] = []
 
     def initialize(self):
         """

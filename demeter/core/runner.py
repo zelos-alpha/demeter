@@ -358,6 +358,10 @@ class Runner(object):
                                                       row_data.inAmount1,
                                                       row_data.price)
                 self._strategy.next(row_data)
+                if self._strategy.triggers:
+                    for trigger in self._strategy.triggers:
+                        if trigger.when(row_data):
+                            trigger.do(row_data)
                 # update broker status, eg: re-calculate fee
                 # and read the latest status from broker
                 self._broker.update()
