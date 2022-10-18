@@ -69,9 +69,10 @@ def check_time_delta(delta: timedelta):
 
 
 class PeriodTrigger(Trigger):
-    def __init__(self, time_delta: timedelta, do=None):
+    def __init__(self, time_delta: timedelta, do=None, trigger_immediately=False):
         self._next_match = None
         self._delta = time_delta
+        self._trigger_immediately = trigger_immediately
         check_time_delta(time_delta)
         super().__init__(do)
 
@@ -81,7 +82,7 @@ class PeriodTrigger(Trigger):
     def when(self, row_data: RowData) -> bool:
         if self._next_match is None:
             self._next_match = row_data.timestamp + self._delta
-            return False
+            return self._trigger_immediately
 
         if self._next_match == row_data.timestamp:
             self._next_match = self._next_match + self._delta
@@ -91,9 +92,11 @@ class PeriodTrigger(Trigger):
 
 
 class PeriodsTrigger(Trigger):
-    def __init__(self, time_delta: [timedelta], do=None):
+    def __init__(self, time_delta: [timedelta], do=None, trigger_immediately=False):
         self._next_matches = [None for _ in time_delta]
         self._deltas = time_delta
+        self._trigger_immediately = trigger_immediately
+
         for td in time_delta:
             check_time_delta(td)
         super().__init__(do)
@@ -104,7 +107,7 @@ class PeriodsTrigger(Trigger):
     def when(self, row_data: RowData) -> bool:
         if self._next_matches[0] is None:
             self._next_matches = [row_data.timestamp + d for d in self._delta]
-            return False
+            return self._trigger_immediately
 
         for i in range(len(self._deltas)):
             if self._next_matches[i] == row_data.timestamp:

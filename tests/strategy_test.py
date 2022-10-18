@@ -9,7 +9,7 @@ class TestStrategy(Strategy):
 
     def initialize(self):
         self.triggers.append(AtTimeTrigger(datetime(2022, 8, 19, 0, 30), self.sell_1))
-        self.triggers.append(PeriodTrigger(timedelta(hours=1), self.adjust_position))
+        self.triggers.append(PeriodTrigger(timedelta(hours=1), self.adjust_position, trigger_immediately=True))
 
     def sell_1(self, row_data: RowData):
         self.sell(0.01)

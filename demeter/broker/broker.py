@@ -487,6 +487,6 @@ class Broker(object):
     def remove_all_liquidity(self):
         if len(self.positions) < 1:
             return
-        keys = list(self.broker.positions.keys())
+        keys = list(self.positions.keys())
         for position_key in keys:
             self.remove_liquidity(position_key)
