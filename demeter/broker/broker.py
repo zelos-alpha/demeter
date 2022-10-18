@@ -471,3 +471,22 @@ class Broker(object):
                                              UnitDecimal(quote_amount, self.quote_asset.name)))
 
         return fee, base_amount, quote_amount
+
+    def divide_balance_equally(self, price: Decimal = None):
+        if price is None:
+            price = self._pool_status.price
+
+        total_capital = self.base_asset.balance + self.quote_asset.balance * price
+        target_base_amount = total_capital / 2
+        quote_amount_diff = target_base_amount / price - self.quote_asset.balance
+        if quote_amount_diff > 0:
+            self.buy(quote_amount_diff)
+        elif quote_amount_diff < 0:
+            self.sell(0 - quote_amount_diff)
+
+    def remove_all_liquidity(self):
+        if len(self.positions) < 1:
+            return
+        keys = list(self.broker.positions.keys())
+        for position_key in keys:
+            self.remove_liquidity(position_key)

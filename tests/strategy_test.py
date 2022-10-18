@@ -1,32 +1,22 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Union
 from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, AccountStatus, BuyAction, SellAction, RowData, \
-    ChainType
+    ChainType, Trigger, AtTimesTrigger, AtTimeTrigger, PeriodTrigger
 import pandas as pd
 
 
 class TestStrategy(Strategy):
 
     def initialize(self):
-        pass
+        self.triggers.append(AtTimeTrigger(datetime(2022, 8, 19, 0, 30), self.sell_1))
+        self.triggers.append(PeriodTrigger(timedelta(hours=1), self.adjust_position))
 
-    def rebalance(self, price):
-        status: AccountStatus = self.broker.get_account_status(price)
-        base_amount = status.net_value / 2
-        quote_amount_diff = base_amount / price - status.quote_balance
-        if quote_amount_diff > 0:
-            self.buy(quote_amount_diff)
-        elif quote_amount_diff < 0:
-            self.sell(0 - quote_amount_diff)
+    def sell_1(self, row_data: RowData):
+        self.sell(0.01)
 
-    def next(self, row_data: Union[RowData, pd.Series]):
-        if row_data.timestamp.minute != 0:
-            return
-        if len(self.broker.positions) > 0:
-            keys = list(self.broker.positions.keys())
-            for k in keys:
-                self.remove_liquidity(k)
-            self.rebalance(row_data.price)
+    def adjust_position(self, row_data: Union[RowData, pd.Series]):
+        self.broker.remove_all_liquidity()
+        self.broker.divide_balance_equally(row_data.price)
         self.add_liquidity(self.broker.pool_status.price - 100,
                            self.broker.pool_status.price + 100)
 

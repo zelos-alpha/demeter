@@ -3,8 +3,8 @@ from ._typing import UnitDecimal, TokenInfo, Asset, ActionTypeEnum, PositionInfo
     AddLiquidityAction, CollectFeeAction, RemoveLiquidityAction, BuyAction, SellAction, EvaluatingIndicator, ZelosError, \
     TimeUnitEnum
 from .broker import Broker, tick_to_quote_price, PoolBaseInfo, PoolStatus, BrokerAsset, Position
-from .core import Runner, Trigger, TimeRangesTrigger, TimeRangeTrigger, TimeRange, PeriodTrigger, PeriodsTrigger, \
+from .core import Runner
+from .strategy import Strategy, Trigger, TimeRangesTrigger, TimeRangeTrigger, TimeRange, PeriodTrigger, PeriodsTrigger, \
     AtTimesTrigger, AtTimeTrigger
-from .strategy import Strategy
 from .indicator import simple_moving_average
 from .download import ChainType, DataSource
