@@ -8,7 +8,7 @@ with following features:
 2. better abstraction and well-organised
 3. tested
 
-Feel free to make an issue or pr to help this respiratory.
+Feel free to make an issue or pr to help this repository.
 
 
 ## Design rationale 
