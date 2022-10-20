@@ -1,14 +1,13 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Union
 
+from .helper import tick_to_quote_price, quote_price_to_tick
+from .types import PoolBaseInfo, TokenInfo, BrokerAsset, Position, PoolStatus
+from .v3_core import V3CoreLib
 from .._typing import PositionInfo, ZelosError, AddLiquidityAction, RemoveLiquidityAction, BuyAction, SellAction, \
     CollectFeeAction, AccountStatus, DECIMAL_ZERO, UnitDecimal
 from ..utils.application import float_param_formatter
-
-from .types import PoolBaseInfo, TokenInfo, BrokerAsset, Position, PoolStatus
-from .v3_core import V3CoreLib
-from .helper import tick_to_quote_price, quote_price_to_tick
-from typing import Union
 
 
 class Broker(object):
@@ -472,7 +471,7 @@ class Broker(object):
 
         return fee, base_amount, quote_amount
 
-    def divide_balance_equally(self, price: Decimal = None):
+    def even_rebalance(self, price: Decimal = None):
         if price is None:
             price = self._pool_status.price
 

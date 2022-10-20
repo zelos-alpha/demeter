@@ -1,5 +1,5 @@
-from decimal import Decimal
 import math
+from decimal import Decimal
 
 
 def _x96_to_decimal(number: int):

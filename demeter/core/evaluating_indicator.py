@@ -1,7 +1,8 @@
+from decimal import Decimal
+
 import pandas as pd
 
 from .._typing import AccountStatus, EvaluatingIndicator, DECIMAL_ZERO, UnitDecimal, ZelosError
-from decimal import Decimal
 
 
 class Evaluator(object):

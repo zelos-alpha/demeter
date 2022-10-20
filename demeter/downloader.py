@@ -1,6 +1,7 @@
 import cmd
 import os
 from datetime import datetime
+
 from .download import ChainType, DataSource, downloader
 
 DEFAULT_SAVE_PATH = "./data"

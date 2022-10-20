@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from typing import NamedTuple
-from datetime import datetime
+
 from .._typing import TokenInfo, ZelosError
 
 

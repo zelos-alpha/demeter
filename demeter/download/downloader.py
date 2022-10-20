@@ -1,8 +1,9 @@
-from datetime import date, timedelta
 import os
+from datetime import date, timedelta
+
+from tqdm import tqdm  # process bar
 
 from . import ChainType, DataSource, source_bigquery
-from tqdm import tqdm  # process bar
 
 
 def download_by_day(chain: ChainType, pool_address: str, start: date, end: date, data_source=DataSource.BigQuery,

@@ -1,12 +1,13 @@
 from decimal import Decimal
 from typing import Union
 
+import pandas as pd
+
+from .trigger import Trigger
 from .._typing import PositionInfo, BaseAction, AddLiquidityAction, SellAction, BuyAction, CollectFeeAction, \
     RemoveLiquidityAction, RowData
-from .trigger import Trigger
 from ..broker import Broker
 from ..data_line import Lines, Line
-import pandas as pd
 
 
 class Strategy(object):
