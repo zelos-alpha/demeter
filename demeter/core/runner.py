@@ -1,15 +1,17 @@
 import logging
-from .. import PoolStatus
-from ..data_line import Lines
-from ..broker import Broker, PoolBaseInfo
-from .._typing import AccountStatus, BarStatusNames, BaseAction, Asset, ZelosError, TokenInfo, ActionTypeEnum, \
-    EvaluatingIndicator, RowData
-from ..strategy import Strategy
 from datetime import date, timedelta, datetime
-from .evaluating_indicator import Evaluator
-import pandas as pd
 from decimal import Decimal
+
+import pandas as pd
 from tqdm import tqdm  # process bar
+
+from .evaluating_indicator import Evaluator
+from .. import PoolStatus
+from .._typing import AccountStatus, BarStatusNames, BaseAction, Asset, ZelosError, ActionTypeEnum, \
+    EvaluatingIndicator, RowData
+from ..broker import Broker, PoolBaseInfo
+from ..data_line import Lines
+from ..strategy import Strategy
 
 DEFAULT_DATA_PATH = "./data"
 

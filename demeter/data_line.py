@@ -1,8 +1,9 @@
-import pandas as pd
-from pandas import _typing as pd_typing
 from enum import Enum
 
-from ._typing import ZelosError, TimeUnitEnum
+import pandas as pd
+from pandas import _typing as pd_typing
+
+from ._typing import ZelosError
 
 DEFAULT_AGG_METHOD = "first"
 

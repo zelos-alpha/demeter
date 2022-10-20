@@ -1,8 +1,10 @@
 from datetime import date, datetime, timedelta
 from typing import Union
-from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, AccountStatus, BuyAction, SellAction, RowData, \
-    ChainType, Trigger, AtTimesTrigger, AtTimeTrigger, PeriodTrigger
+
 import pandas as pd
+
+from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, RowData, \
+    ChainType, AtTimeTrigger, PeriodTrigger
 
 
 class TestStrategy(Strategy):
@@ -11,12 +13,15 @@ class TestStrategy(Strategy):
         self.triggers.append(AtTimeTrigger(datetime(2022, 8, 19, 0, 30), self.sell_1))
         self.triggers.append(PeriodTrigger(timedelta(hours=1), self.adjust_position, trigger_immediately=True))
 
+    def next(self, row_data: Union[RowData, pd.Series]):
+        pass
+
     def sell_1(self, row_data: RowData):
         self.sell(0.01)
 
     def adjust_position(self, row_data: Union[RowData, pd.Series]):
         self.broker.remove_all_liquidity()
-        self.broker.divide_balance_equally(row_data.price)
+        self.broker.even_rebalance(row_data.price)
         self.add_liquidity(self.broker.pool_status.price - 100,
                            self.broker.pool_status.price + 100)
 

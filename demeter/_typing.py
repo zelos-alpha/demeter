@@ -1,8 +1,8 @@
+from dataclasses import dataclass, field
+from datetime import datetime
+from decimal import Decimal
 from enum import Enum
 from typing import NamedTuple
-from decimal import Decimal
-from datetime import datetime
-from dataclasses import dataclass, field
 
 from .utils.application import get_formatted_str
 
