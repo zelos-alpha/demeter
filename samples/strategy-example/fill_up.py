@@ -7,11 +7,9 @@ from strategy_ploter import plot_position_return_decomposition
 
 class FillUp(dt.Strategy):
 
-    def __init__(self, a=10, b=1, update_interval=timedelta(days=1)):
+    def __init__(self, a=10):
         super().__init__()
         self.a = a
-        # self.lines.update_timestamps = periodize(update_interval)#生成line 对象 ture/false#TODO
-
     def initialize(self):
         a = self.a
         P0 = self.broker.pool_status.price

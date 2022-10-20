@@ -1,14 +1,14 @@
 # Readme
 
 ## Introduction 
-This respiratory is an uniswap v3 backtest framework for LP provider.It is
+This repository is an uniswap v3 backtest framework for LP provider.It is
 inspired by [gammaStrategy](https://github.com/GammaStrategies/active-strategy-framework) and backtrader.
 with following features:
 1. backtrader style
 2. better abstraction and well-organised
 3. tested
 
-Feel free to make an issue or pr to help this respiratory.
+Feel free to make an issue or pr to help this repository.
 
 
 ## Design rationale 
