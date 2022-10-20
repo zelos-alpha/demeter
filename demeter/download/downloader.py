@@ -3,7 +3,8 @@ from datetime import date, timedelta
 
 from tqdm import tqdm  # process bar
 
-from . import ChainType, DataSource, source_bigquery
+from ._typing import ChainType, DataSource
+import source_bigquery
 
 
 def download_by_day(chain: ChainType, pool_address: str, start: date, end: date, data_source=DataSource.BigQuery,

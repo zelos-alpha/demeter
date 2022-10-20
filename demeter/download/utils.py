@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from . import MarketData
+from ._typing import MarketData
 
 
 class TextUtil(object):
@@ -30,7 +30,7 @@ class HexUtil(object):
 class DataUtil(object):
 
     @staticmethod
-    def fill_missing(data_list: list) -> list:
+    def fill_missing(data_list: [MarketData]) -> list:
         if len(data_list) < 1:
             return data_list
         # take the first minute in data. instead of 0:00:00

@@ -4,7 +4,7 @@ from datetime import date
 import pandas
 from pandas import Timestamp
 
-from . import ChainType, MarketData, OnchainTxType, MarketDataNames
+from ._typing import ChainType, MarketData, OnchainTxType, MarketDataNames
 from .swap_contract import Constant, handle_event
 from .utils import TextUtil, TimeUtil, DataUtil
 
@@ -48,7 +48,7 @@ def download_bigquery_pool_event_oneday(chain: ChainType, contract_address: str,
             OR topics[SAFE_OFFSET(0)] = '{Constant.SWAP_KECCAK}')
             AND DATE(block_timestamp) >=  DATE("{one_date}")
             AND DATE(block_timestamp) <=  DATE("{one_date}")
-            AND address = "{contract_address}"  order by block_number asc"""
+            AND address = "{contract_address}"  order by block_number asc,log_index asc"""
     # print(query);
     query_job = client.query(query)  # Make an API request.
     result = query_job.to_dataframe(create_bqstorage_client=False)
@@ -90,6 +90,8 @@ def sample_data_to_one_minute(current_time, minute_rows) -> MarketData:
             case OnchainTxType.MINT:
                 pass
             case OnchainTxType.BURN:
+                pass
+            case OnchainTxType.COLLECT:
                 pass
             case OnchainTxType.SWAP:
                 data.netAmount0 += amount0
