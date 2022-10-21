@@ -110,9 +110,9 @@ class Position(object):
     variables for position
     """
 
-    def __init__(self):
-        self.uncollected_fee_token0: Decimal = Decimal(0)
-        self.uncollected_fee_token1: Decimal = Decimal(0)
+    pending_amount0: Decimal
+    pending_amount1: Decimal
+    liquidity: int
 
 
 class PoolStatus(NamedTuple):

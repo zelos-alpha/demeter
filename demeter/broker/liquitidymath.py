@@ -17,7 +17,6 @@ Created on Mon Jun 14 18:53:09 2021
 '''get_amounts function'''
 
 
-
 # Use 'get_amounts' function to calculate amounts as a function of liquitidy and price range
 def get_amount0(sqrtA: Decimal, sqrtB: Decimal, liquidity: Decimal, decimals: int) -> Decimal:
     if sqrtA > sqrtB:
@@ -33,7 +32,7 @@ def get_amount1(sqrtA: Decimal, sqrtB: Decimal, liquidity: Decimal, decimals: in
     return Decimal(amount1)
 
 
-def get_amounts(tick: int, tickA: int, tickB: int, liquidity: Decimal, decimal0: int, decimal1: int) -> \
+def get_amounts(tick: int, tickA: int, tickB: int, liquidity: int, decimal0: int, decimal1: int) -> \
         (Decimal, Decimal):
     sqrt = Decimal(1.0001 ** (tick / 2) * (2 ** 96))
     sqrtA = Decimal(1.0001 ** (tickA / 2) * (2 ** 96))

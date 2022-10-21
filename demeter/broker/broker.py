@@ -37,6 +37,10 @@ class Broker(object):
         # internal temporary variable
         self.action_buffer = []
 
+    def __str__(self):
+        return f"Pool: {self.pool_info}, position count: {len(self.positions)}, " \
+               f"balance: {self.base_asset.balance}{self.base_asset.name},{self.quote_asset.balance}{self.quote_asset.name}"
+
     @property
     def positions(self) -> dict[PositionInfo:Position]:
         """
@@ -220,8 +224,8 @@ class Broker(object):
         tick = quote_price_to_tick(price, self.asset0.decimal, self.asset1.decimal, self._is_token0_base)
         deposit_amount0 = deposit_amount1 = Decimal(0)
         for position_info, position in self._positions.items():
-            base_fee, quote_fee = self.__convert_pair(position.uncollected_fee_token0,
-                                                      position.uncollected_fee_token1)
+            base_fee, quote_fee = self.__convert_pair(position.pending_amount0,
+                                                      position.pending_amount1)
             base_fee_sum += base_fee
             quote_fee_sum += quote_fee
             amount0, amount1 = V3CoreLib.get_token_amounts(self._pool_info, position_info, tick)
@@ -281,37 +285,44 @@ class Broker(object):
             current_tick = int(self.pool_status.current_tick)  # self.current_tick must be initialed
         if lower_tick > upper_tick:
             raise ZelosError("lower tick should be less than upper tick")
-        if token0_amount > self._asset0.balance:
-            raise ZelosError("Insufficient token {} amount".format(self._asset0.name))
-        if token1_amount > self._asset1.balance:
-            raise ZelosError("Insufficient token {} amount".format(self._asset1.name))
-        token0_used, token1_used, position_info = V3CoreLib.new_position(self._pool_info,
-                                                                         token0_amount,
-                                                                         token1_amount,
-                                                                         lower_tick,
-                                                                         upper_tick,
-                                                                         current_tick)
-        self._positions[position_info] = Position()
+
+        token0_used, token1_used, liquidity, position_info = V3CoreLib.new_position(self._pool_info,
+                                                                                    token0_amount,
+                                                                                    token1_amount,
+                                                                                    lower_tick,
+                                                                                    upper_tick,
+                                                                                    current_tick)
+        if position_info in self._positions:
+            self._positions[position_info].liquidity += liquidity
+        else:
+            self._positions[position_info] = Position(DECIMAL_ZERO, DECIMAL_ZERO, liquidity)
         self._asset0.sub(token0_used)
         self._asset1.sub(token1_used)
-        return position_info, token0_used, token1_used
+        return position_info, token0_used, token1_used, liquidity
 
-    def __remove_liquidity(self, position: PositionInfo):
-        token0_get, token1_get = V3CoreLib.close_position(self._pool_info, position, self._positions[position],
+    def __remove_liquidity(self, position: PositionInfo, liquidity: int = None):
+        delta_liquidity = liquidity if liquidity and liquidity < self.positions[position].liquidity \
+            else self.positions[position].liquidity
+        token0_get, token1_get = V3CoreLib.close_position(self._pool_info, position, delta_liquidity,
                                                           self.pool_status.current_tick)
-        del self._positions[position]
-        # collect fee and token
-        self._asset0.add(token0_get)
-        self._asset1.add(token1_get)
-        return token0_get, token1_get
 
-    def __collect_fee(self, position: Position):
-        token0_fee, token1_fee = position.uncollected_fee_token0, position.uncollected_fee_token1
-        position.uncollected_fee_token0 = 0
-        position.uncollected_fee_token1 = 0
+        self._positions[position].liquidity = self.positions[position].liquidity - delta_liquidity
+        self._positions[position].pending_amount0 += token0_get
+        self._positions[position].pending_amount1 += token1_get
+
+        return token0_get, token1_get, delta_liquidity
+
+    def __collect_fee(self, position: Position, max_collect_amount0: Decimal = None,
+                      max_collect_amount1: Decimal = None):
+        token0_fee = max_collect_amount0 if max_collect_amount0 is not None and max_collect_amount0 < position.pending_amount0 else position.pending_amount0
+        token1_fee = max_collect_amount1 if max_collect_amount1 is not None and max_collect_amount1 < position.pending_amount1 else position.pending_amount1
+
+        position.pending_amount0 -= token0_fee
+        position.pending_amount1 -= token1_fee
         # add un_collect fee to current balance
         self._asset0.add(token0_fee)
         self._asset1.add(token1_fee)
+
         return token0_fee, token1_fee
 
     # action for strategy
@@ -330,7 +341,7 @@ class Broker(object):
         :type lower_quote_price: Union[Decimal, float]
         :param upper_quote_price: upper price base on quote token.
         :type upper_quote_price: Union[Decimal, float]
-                :param base_max_amount:  inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
+        :param base_max_amount:  inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
         :type base_max_amount: Union[Decimal, float]
         :param quote_max_amount: inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
         :type quote_max_amount: Union[Decimal, float]
@@ -344,11 +355,11 @@ class Broker(object):
         lower_tick, upper_tick = V3CoreLib.quote_price_pair_to_tick(self._pool_info, lower_quote_price,
                                                                     upper_quote_price)
         lower_tick, upper_tick = self.__convert_pair(upper_tick, lower_tick)
-        (created_position, token0_used, token1_used) = self._add_liquidity_by_tick(token0_amt,
-                                                                                   token1_amt,
-                                                                                   lower_tick,
-                                                                                   upper_tick,
-                                                                                   self.pool_status.current_tick)
+        (created_position, token0_used, token1_used, liquidity) = self._add_liquidity_by_tick(token0_amt,
+                                                                                              token1_amt,
+                                                                                              lower_tick,
+                                                                                              upper_tick,
+                                                                                              self.pool_status.current_tick)
         base_used, quote_used = self.__convert_pair(token0_used, token1_used)
         self.action_buffer.append(AddLiquidityAction(UnitDecimal(self.base_asset.balance, self.base_asset.name),
                                                      UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
@@ -358,11 +369,14 @@ class Broker(object):
                                                      UnitDecimal(upper_quote_price, self._price_unit),
                                                      UnitDecimal(base_used, self.base_asset.name),
                                                      UnitDecimal(quote_used, self.quote_asset.name),
-                                                     created_position))
-        return created_position, base_used, quote_used
+                                                     created_position,
+                                                     int(liquidity)))
+        return created_position, base_used, quote_used, liquidity
 
-    def remove_liquidity(self, positions: Union[PositionInfo, list]) -> {PositionInfo: (Decimal, Decimal)}:
+    def remove_liquidity(self, position: PositionInfo, liquidity: Decimal = None, collect: bool = True) -> (
+            Decimal, Decimal):
         """
+        TODO update
         remove liquidity from pool, position will be deleted
 
         :param positions: position info, as an object or an array
@@ -370,37 +384,41 @@ class Broker(object):
         :return: a dict, key is position info, value is (base_got,quote_get), base_got is base token amount collected from position
         :rtype: {PositionInfo: (Decimal,Decimal)}
         """
-        amount_dict = dict()
-        position_list = positions if type(positions) is list else [positions, ]
-        for position in position_list:
-            token0_get, token1_get = self.__remove_liquidity(position)
-            base_get, quote_get = self.__convert_pair(token0_get, token1_get)
-            amount_dict[position] = (base_get, quote_get)
-            self.action_buffer.append(
-                RemoveLiquidityAction(
-                    UnitDecimal(self.base_asset.balance, self.base_asset.name),
-                    UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
-                    position,
-                    UnitDecimal(base_get, self.base_asset.name),
-                    UnitDecimal(quote_get, self.quote_asset.name)
-                ))
-        return amount_dict
+        token0_get, token1_get, delta_liquidity = self.__remove_liquidity(position, liquidity)
 
-    def collect_fee(self, positions: [PositionInfo]) -> {PositionInfo: tuple}:
+        base_get, quote_get = self.__convert_pair(token0_get, token1_get)
+        self.action_buffer.append(
+            RemoveLiquidityAction(
+                UnitDecimal(self.base_asset.balance, self.base_asset.name),
+                UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
+                position,
+                UnitDecimal(base_get, self.base_asset.name),
+                UnitDecimal(quote_get, self.quote_asset.name),
+                delta_liquidity,
+                self.positions[position].liquidity
+            ))
+        if collect:
+            return self.collect_fee(position)
+        else:
+            return base_get, quote_get
+
+    def collect_fee(self,
+                    position: PositionInfo,
+                    max_collect_amount0: Decimal = None,
+                    max_collect_amount1: Decimal = None) -> (Decimal, Decimal):
         """
         collect fee from positions
-
+        TODO update
         :param positions: position info, as an object or an array
         :type positions: [PositionInfo]
         :return: a dict, key is position info, value is (base_got,quote_get), base_got is base token fee collected from position
         :rtype: {Position: tuple(base_got,quote_get)}
         """
-        amount_dict = dict()
-        position_list = positions if type(positions) is list else [positions, ]
-        for position in position_list:
-            token0_get, token1_get = self.__collect_fee(self._positions[position])
-            base_get, quote_get = self.__convert_pair(token0_get, token1_get)
-            amount_dict[position] = (base_get, quote_get)
+
+        token0_get, token1_get = self.__collect_fee(self._positions[position])
+
+        base_get, quote_get = self.__convert_pair(token0_get, token1_get)
+        if self._positions[position]:
             self.action_buffer.append(
                 CollectFeeAction(
                     UnitDecimal(self.base_asset.balance, self.base_asset.name),
@@ -409,7 +427,11 @@ class Broker(object):
                     UnitDecimal(base_get, self.base_asset.name),
                     UnitDecimal(quote_get, self.quote_asset.name)
                 ))
-        return amount_dict
+        if self._positions[position].pending_amount0 == Decimal(0) \
+                and self._positions[position].pending_amount1 == Decimal(0) \
+                and self._positions[position].liquidity == 0:
+            del self.positions[position]
+        return base_get, quote_get
 
     @float_param_formatter
     def buy(self, amount: Union[Decimal, float], price: Union[Decimal, float] = None) -> (Decimal, Decimal, Decimal):

@@ -101,15 +101,13 @@ class PositionInfo(NamedTuple):
     :type lower_tick: int
     :param upper_tick: upper tick
     :type upper_tick: int
-    :param liquidity: liquidity in position
-    :type liquidity: Decimal
+
     """
     lower_tick: int
     upper_tick: int
-    liquidity: Decimal
 
     def __str__(self):
-        return f"""tick:{self.lower_tick},{self.upper_tick}, liquidity:{format(self.liquidity, '.0f')}"""
+        return f"""tick:{self.lower_tick},{self.upper_tick}"""
 
 
 BarStatusNames = [
@@ -270,6 +268,8 @@ class AddLiquidityAction(BaseAction):
     :type quote_amount_actual: UnitDecimal
     :param position: generated position
     :type position: PositionInfo
+    :param liquidity: liquidity added
+    :type liquidity: int
     """
     base_amount_max: UnitDecimal
     quote_amount_max: UnitDecimal
@@ -278,6 +278,7 @@ class AddLiquidityAction(BaseAction):
     base_amount_actual: UnitDecimal
     quote_amount_actual: UnitDecimal
     position: PositionInfo
+    liquidity: int
     action_type = ActionTypeEnum.add_liquidity
 
     def get_output_str(self) -> str:
@@ -291,6 +292,7 @@ class AddLiquidityAction(BaseAction):
                    "max amount": f"{str(self.base_amount_max)},{str(self.quote_amount_max)}",
                    "price": f"{str(self.lower_quote_price)},{str(self.upper_quote_price)}",
                    "position": self.position,
+                   "liquidity": self.liquidity,
                    "balance": f"{str(self.base_balance_after)}(-{str(self.base_amount_actual)}), {str(self.quote_balance_after)}(-{str(self.quote_amount_actual)})"
                })
 
@@ -329,6 +331,7 @@ class CollectFeeAction(BaseAction):
 @dataclass
 class RemoveLiquidityAction(BaseAction):
     """
+    TODO: update
     remove position
 
     :param position: position to operate
@@ -342,7 +345,10 @@ class RemoveLiquidityAction(BaseAction):
     position: PositionInfo
     base_amount: UnitDecimal
     quote_amount: UnitDecimal
+    removed_liquidity: int
+    remain_liquidity: int
     action_type = ActionTypeEnum.remove_liquidity
+
 
     def get_output_str(self) -> str:
         """
@@ -353,7 +359,9 @@ class RemoveLiquidityAction(BaseAction):
         return f"""\033[1;32m{"Remove liquidity":<20}\033[0m""" + \
                get_formatted_str({
                    "position": self.position,
-                   "balance": f"{str(self.base_balance_after)}(+{str(self.base_amount)}), {str(self.quote_balance_after)}(+{str(self.quote_amount)})"
+                   "balance": f"{str(self.base_balance_after)}(+{str(self.base_amount)}), {str(self.quote_balance_after)}(+{str(self.quote_amount)})",
+                   "removed liquidity": self.removed_liquidity,
+                   "remain liquidity": self.remain_liquidity
                })
 
 
