@@ -8,12 +8,12 @@ from datetime import datetime, date
 class ActualStrategy(Strategy):
     def next(self, row_data):
         if row_data.timestamp == datetime(2022, 6, 6, 11, 5):
-            p, lower, upper = self.broker._add_liquidity_by_tick(Decimal("315.218605"),
-                                                                 Decimal("0.135641006407938685"),
-                                                                 200670,
-                                                                 200930,
-                                                                 200786)
-            print(p)
+            p, lower, upper, l = self.broker._add_liquidity_by_tick(Decimal("315.218605"),
+                                                                    Decimal("0.135641006407938685"),
+                                                                    200670,
+                                                                    200930,
+                                                                    200786)
+            print(p, l)
 
 
 if __name__ == "__main__":

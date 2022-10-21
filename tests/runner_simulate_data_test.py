@@ -61,18 +61,18 @@ class TestRunner(unittest.TestCase):
         runner.strategy = WithSMA()
         runner.set_assets([Asset(usdc, 1000), Asset(eth, 1)])
         tick = runner.broker.price_to_tick(1000)
-        token0_used, token1_used, position_info = V3CoreLib.new_position(self.pool,
-                                                                         Decimal(100000),
-                                                                         Decimal(100),
-                                                                         tick - 1000,
-                                                                         tick + 1000,
-                                                                         tick)
-        print(token0_used, token1_used, position_info)
+        token0_used, token1_used, liquidity, position_info = V3CoreLib.new_position(self.pool,
+                                                                                    Decimal(100000),
+                                                                                    Decimal(100),
+                                                                                    tick - 1000,
+                                                                                    tick + 1000,
+                                                                                    tick)
+        print(token0_used, token1_used, position_info, liquidity)
         runner.data = get_clean_data(runner,
                                      tick,
                                      1000 * 10 ** usdc.decimal,
                                      1 * 10 ** eth.decimal,
-                                     int(position_info.liquidity))
+                                     liquidity)
 
         runner.run()
         runner.output()

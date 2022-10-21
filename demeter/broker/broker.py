@@ -228,7 +228,7 @@ class Broker(object):
                                                       position.pending_amount1)
             base_fee_sum += base_fee
             quote_fee_sum += quote_fee
-            amount0, amount1 = V3CoreLib.get_token_amounts(self._pool_info, position_info, tick)
+            amount0, amount1 = V3CoreLib.get_token_amounts(self._pool_info, position_info, tick, position.liquidity)
             deposit_amount0 += amount0
             deposit_amount1 += amount1
 

@@ -349,7 +349,6 @@ class RemoveLiquidityAction(BaseAction):
     remain_liquidity: int
     action_type = ActionTypeEnum.remove_liquidity
 
-
     def get_output_str(self) -> str:
         """
         get colored and formatted string to output in console
@@ -359,7 +358,8 @@ class RemoveLiquidityAction(BaseAction):
         return f"""\033[1;32m{"Remove liquidity":<20}\033[0m""" + \
                get_formatted_str({
                    "position": self.position,
-                   "balance": f"{str(self.base_balance_after)}(+{str(self.base_amount)}), {str(self.quote_balance_after)}(+{str(self.quote_amount)})",
+                   "balance": f"{str(self.base_balance_after)}(+0), {str(self.quote_balance_after)}(+0)",
+                   "token_got": f"{str(self.base_amount)},{str(self.quote_amount)}",
                    "removed liquidity": self.removed_liquidity,
                    "remain liquidity": self.remain_liquidity
                })
