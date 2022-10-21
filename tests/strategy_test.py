@@ -10,20 +10,21 @@ from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, RowData, \
 class TestStrategy(Strategy):
 
     def initialize(self):
-        self.triggers.append(AtTimeTrigger(datetime(2022, 8, 19, 0, 30), self.sell_1))
-        self.triggers.append(PeriodTrigger(timedelta(hours=1), self.adjust_position, trigger_immediately=True))
+        self.triggers.append(AtTimeTrigger(datetime(2022, 8, 19, 0, 30), self.sell_1, amount=0.01))
+        self.triggers.append(
+            PeriodTrigger(timedelta(hours=1), self.adjust_position, trigger_immediately=True, price_range=100))
 
     def next(self, row_data: Union[RowData, pd.Series]):
         pass
 
-    def sell_1(self, row_data: RowData):
-        self.sell(0.01)
+    def sell_1(self, row_data: RowData, **kwargs):
+        self.sell(kwargs["amount"])
 
-    def adjust_position(self, row_data: Union[RowData, pd.Series]):
+    def adjust_position(self, row_data: Union[RowData, pd.Series], **kwargs):
         self.broker.remove_all_liquidity()
         self.broker.even_rebalance(row_data.price)
-        self.add_liquidity(self.broker.pool_status.price - 100,
-                           self.broker.pool_status.price + 100)
+        self.add_liquidity(self.broker.pool_status.price - kwargs["price_range"],
+                           self.broker.pool_status.price + kwargs["price_range"])
 
 
 if __name__ == "__main__":

@@ -5,32 +5,33 @@ from demeter._typing import RowData, ZelosError
 
 
 class Trigger:
-    def __init__(self, do=None):
+    def __init__(self, do, **kwargs):
         self._do = do if do is not None else self.do_nothing
+        self.kwargs = kwargs
 
     def when(self, row_data: RowData) -> bool:
         return False
 
-    def do_nothing(self, row_data: RowData):
+    def do_nothing(self, row_data: RowData, **kwargs):
         pass
 
     def do(self, row_data: RowData):
-        return self._do(row_data)
+        return self._do(row_data, **self.kwargs)
 
 
 class AtTimeTrigger(Trigger):
-    def __init__(self, time: datetime, do=None):
+    def __init__(self, time: datetime, do, **kwargs):
         self._time = time
-        super().__init__(do)
+        super().__init__(do, **kwargs)
 
     def when(self, row_data: RowData) -> bool:
         return row_data.timestamp == self._time
 
 
 class AtTimesTrigger(Trigger):
-    def __init__(self, time: [datetime], do=None):
+    def __init__(self, time: [datetime], do, **kwargs):
         self._time = time
-        super().__init__(do)
+        super().__init__(do, **kwargs)
 
     def when(self, row_data: RowData) -> bool:
         return self._time in row_data.timestamp
@@ -43,18 +44,18 @@ class TimeRange:
 
 
 class TimeRangeTrigger(Trigger):
-    def __init__(self, time_range: TimeRange, do=None):
+    def __init__(self, time_range: TimeRange, do, **kwargs):
         self._time_range = time_range
-        super().__init__(do)
+        super().__init__(do, **kwargs)
 
     def when(self, row_data: RowData) -> bool:
         return self._time_range.start <= row_data.timestamp < self._time_range.end
 
 
 class TimeRangesTrigger(Trigger):
-    def __init__(self, time_range: [TimeRange], do=None):
+    def __init__(self, time_range: [TimeRange], do, **kwargs):
         self._time_range: [TimeRange] = time_range
-        super().__init__(do)
+        super().__init__(do, **kwargs)
 
     def when(self, row_data: RowData) -> bool:
         for r in self._time_range:
@@ -69,12 +70,12 @@ def check_time_delta(delta: timedelta):
 
 
 class PeriodTrigger(Trigger):
-    def __init__(self, time_delta: timedelta, do=None, trigger_immediately=False):
+    def __init__(self, time_delta: timedelta, do, trigger_immediately=False, **kwargs):
         self._next_match = None
         self._delta = time_delta
         self._trigger_immediately = trigger_immediately
         check_time_delta(time_delta)
-        super().__init__(do)
+        super().__init__(do, **kwargs)
 
     def reset(self):
         self._next_match = None
@@ -92,14 +93,14 @@ class PeriodTrigger(Trigger):
 
 
 class PeriodsTrigger(Trigger):
-    def __init__(self, time_delta: [timedelta], do=None, trigger_immediately=False):
+    def __init__(self, time_delta: [timedelta], do, trigger_immediately=False, **kwargs):
         self._next_matches = [None for _ in time_delta]
         self._deltas = time_delta
         self._trigger_immediately = trigger_immediately
 
         for td in time_delta:
             check_time_delta(td)
-        super().__init__(do)
+        super().__init__(do, **kwargs)
 
     def reset(self):
         self._next_matches = [None for _ in self._delta]
