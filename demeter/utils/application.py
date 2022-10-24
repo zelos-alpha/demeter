@@ -4,7 +4,7 @@ OUTPUT_WIDTH = 30
 
 
 def object_to_decimal(num):
-    return Decimal(str(num)) if (isinstance(num, float) or isinstance(num, int)) else num
+    return Decimal(str(num)) if (isinstance(num, float) or type(num) == int) else num
 
 
 def float_param_formatter(func):

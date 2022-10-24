@@ -157,6 +157,7 @@ class AccountStatus:
     net_value: UnitDecimal
     price: UnitDecimal
 
+
     def get_output_str(self) -> str:
         """
         get colored and formatted string to output in console

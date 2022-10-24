@@ -4,6 +4,10 @@ from datetime import datetime, timedelta
 from demeter._typing import RowData, ZelosError
 
 
+def to_minute(time: datetime) -> datetime:
+    return datetime(time.year, time.month, time.day, time.hour, time.minute)
+
+
 class Trigger:
     def __init__(self, do, *args, **kwargs):
         self._do = do if do is not None else self.do_nothing
@@ -22,7 +26,7 @@ class Trigger:
 
 class AtTimeTrigger(Trigger):
     def __init__(self, time: datetime, do, *args, **kwargs):
-        self._time = time
+        self._time = to_minute(time)
         super().__init__(do, *args, **kwargs)
 
     def when(self, row_data: RowData) -> bool:
@@ -31,7 +35,7 @@ class AtTimeTrigger(Trigger):
 
 class AtTimesTrigger(Trigger):
     def __init__(self, time: [datetime], do, *args, **kwargs):
-        self._time = time
+        self._time = [to_minute(t) for t in time]
         super().__init__(do, *args, **kwargs)
 
     def when(self, row_data: RowData) -> bool:
@@ -46,7 +50,7 @@ class TimeRange:
 
 class TimeRangeTrigger(Trigger):
     def __init__(self, time_range: TimeRange, do, *args, **kwargs):
-        self._time_range = time_range
+        self._time_range = TimeRange(to_minute(time_range.start), to_minute(time_range.end))
         super().__init__(do, *args, **kwargs)
 
     def when(self, row_data: RowData) -> bool:
@@ -55,7 +59,7 @@ class TimeRangeTrigger(Trigger):
 
 class TimeRangesTrigger(Trigger):
     def __init__(self, time_range: [TimeRange], do, *args, **kwargs):
-        self._time_range: [TimeRange] = time_range
+        self._time_range: [TimeRange] = [TimeRange(to_minute(t.start), to_minute(t.end)) for t in time_range]
         super().__init__(do, *args, **kwargs)
 
     def when(self, row_data: RowData) -> bool:

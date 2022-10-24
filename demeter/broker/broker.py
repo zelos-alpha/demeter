@@ -373,6 +373,7 @@ class Broker(object):
                                                      int(liquidity)))
         return created_position, base_used, quote_used, liquidity
 
+    @float_param_formatter
     def remove_liquidity(self, position: PositionInfo, liquidity: Decimal = None, collect: bool = True) -> (
             Decimal, Decimal):
         """
@@ -384,6 +385,8 @@ class Broker(object):
         :return: a dict, key is position info, value is (base_got,quote_get), base_got is base token amount collected from position
         :rtype: {PositionInfo: (Decimal,Decimal)}
         """
+        if liquidity and liquidity < 0:
+            raise ZelosError("liquidity should large than 0")
         token0_get, token1_get, delta_liquidity = self.__remove_liquidity(position, liquidity)
 
         base_get, quote_get = self.__convert_pair(token0_get, token1_get)
@@ -402,6 +405,7 @@ class Broker(object):
         else:
             return base_get, quote_get
 
+    @float_param_formatter
     def collect_fee(self,
                     position: PositionInfo,
                     max_collect_amount0: Decimal = None,
@@ -414,7 +418,9 @@ class Broker(object):
         :return: a dict, key is position info, value is (base_got,quote_get), base_got is base token fee collected from position
         :rtype: {Position: tuple(base_got,quote_get)}
         """
-
+        if (max_collect_amount0 and max_collect_amount0 < 0) or \
+                (max_collect_amount1 and max_collect_amount1 < 0):
+            raise ZelosError("collect amount should large than 0")
         token0_get, token1_get = self.__collect_fee(self._positions[position])
 
         base_get, quote_get = self.__convert_pair(token0_get, token1_get)
