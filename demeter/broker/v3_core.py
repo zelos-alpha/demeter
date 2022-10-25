@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from .helper import quote_price_to_tick, from_wei
-from .liquitidymath import get_amounts, get_liquidity
+from .liquitidymath import get_amounts, getLiquidity
 from .types import PoolBaseInfo, Position, PoolStatus
 from .._typing import PositionInfo
 
@@ -10,23 +10,23 @@ class V3CoreLib(object):
     @staticmethod
     def new_position(pool: PoolBaseInfo,
                      token0_amount: Decimal, token1_amount: Decimal,
-                     lower_tick: int, upper_tick: int, current_tick=None):
-        position_liq = get_liquidity(current_tick, lower_tick, upper_tick,
-                                     token0_amount, token1_amount,
-                                     pool.token0.decimal, pool.token1.decimal)
-        token0_in_position, token1_in_position = get_amounts(current_tick, lower_tick, upper_tick,
+                     lower_tick: int, upper_tick: int, sqrt_price_x96: int):
+        position_liq = getLiquidity(sqrt_price_x96, lower_tick, upper_tick,
+                                    token0_amount, token1_amount,
+                                    pool.token0.decimal, pool.token1.decimal)
+        token0_in_position, token1_in_position = get_amounts(sqrt_price_x96, lower_tick, upper_tick,
                                                              position_liq, pool.token0.decimal, pool.token1.decimal)
         new_position_entity = PositionInfo(lower_tick=lower_tick,
                                            upper_tick=upper_tick)
         return token0_in_position, token1_in_position, int(position_liq), new_position_entity
 
     @staticmethod
-    def close_position(pool: PoolBaseInfo, position_info: PositionInfo, liquidity, current_tick):
-        return V3CoreLib.get_token_amounts(pool, position_info, current_tick, liquidity)
+    def close_position(pool: PoolBaseInfo, position_info: PositionInfo, liquidity, sqrt_price_x96):
+        return V3CoreLib.get_token_amounts(pool, position_info, sqrt_price_x96, liquidity)
 
     @staticmethod
-    def get_token_amounts(pool: PoolBaseInfo, pos: PositionInfo, current_tick, liquidity) -> (Decimal, Decimal):
-        amount0, amount1 = get_amounts(current_tick,
+    def get_token_amounts(pool: PoolBaseInfo, pos: PositionInfo, sqrt_price_x96, liquidity) -> (Decimal, Decimal):
+        amount0, amount1 = get_amounts(sqrt_price_x96,
                                        pos.lower_tick,
                                        pos.upper_tick,
                                        liquidity,

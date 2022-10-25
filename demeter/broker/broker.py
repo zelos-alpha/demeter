@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Union
 
 from .helper import tick_to_quote_price, quote_price_to_tick
+from .liquitidymath import getSqrtRatioAtTick
 from .types import PoolBaseInfo, TokenInfo, BrokerAsset, Position, PoolStatus
 from .v3_core import V3CoreLib
 from .._typing import PositionInfo, ZelosError, AddLiquidityAction, RemoveLiquidityAction, BuyAction, SellAction, \
@@ -279,10 +280,14 @@ class Broker(object):
                                token1_amount: Decimal,
                                lower_tick: int,
                                upper_tick: int,
-                               current_tick=None):
+                               sqrt_price_x96: int = -1):
+        lower_tick = int(lower_tick)
+        upper_tick = int(upper_tick)
+        sqrt_price_x96 = int(sqrt_price_x96)
 
-        if current_tick is None:
-            current_tick = int(self.pool_status.current_tick)  # self.current_tick must be initialed
+        if sqrt_price_x96 == -1:
+            # self.current_tick must be initialed
+            sqrt_price_x96 = getSqrtRatioAtTick(int(self.pool_status.current_tick))
         if lower_tick > upper_tick:
             raise ZelosError("lower tick should be less than upper tick")
 
@@ -291,7 +296,7 @@ class Broker(object):
                                                                                     token1_amount,
                                                                                     lower_tick,
                                                                                     upper_tick,
-                                                                                    current_tick)
+                                                                                    sqrt_price_x96)
         if position_info in self._positions:
             self._positions[position_info].liquidity += liquidity
         else:
@@ -300,11 +305,12 @@ class Broker(object):
         self._asset1.sub(token1_used)
         return position_info, token0_used, token1_used, liquidity
 
-    def __remove_liquidity(self, position: PositionInfo, liquidity: int = None, current_tick: int = None):
-        current_tick = current_tick if current_tick is not None else self.pool_status.current_tick
+    def __remove_liquidity(self, position: PositionInfo, liquidity: int = None, sqrt_price_x96: int = -1):
+        sqrt_price_x96 = int(sqrt_price_x96) if sqrt_price_x96 != -1 else getSqrtRatioAtTick(
+            self.pool_status.current_tick)
         delta_liquidity = liquidity if liquidity and liquidity < self.positions[position].liquidity \
             else self.positions[position].liquidity
-        token0_get, token1_get = V3CoreLib.close_position(self._pool_info, position, delta_liquidity, current_tick)
+        token0_get, token1_get = V3CoreLib.close_position(self._pool_info, position, delta_liquidity, sqrt_price_x96)
 
         self._positions[position].liquidity = self.positions[position].liquidity - delta_liquidity
         self._positions[position].pending_amount0 += token0_get
@@ -358,8 +364,7 @@ class Broker(object):
         (created_position, token0_used, token1_used, liquidity) = self._add_liquidity_by_tick(token0_amt,
                                                                                               token1_amt,
                                                                                               lower_tick,
-                                                                                              upper_tick,
-                                                                                              self.pool_status.current_tick)
+                                                                                              upper_tick)
         base_used, quote_used = self.__convert_pair(token0_used, token1_used)
         self.action_buffer.append(AddLiquidityAction(UnitDecimal(self.base_asset.balance, self.base_asset.name),
                                                      UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
@@ -377,16 +382,15 @@ class Broker(object):
                               upper_tick: int,
                               base_max_amount: Union[Decimal, float] = None,
                               quote_max_amount: Union[Decimal, float] = None,
-                              current_tick=None):
+                              sqrt_price_x96: int = -1):
         base_max_amount = self.base_asset.balance if base_max_amount is None else base_max_amount
         quote_max_amount = self.quote_asset.balance if quote_max_amount is None else quote_max_amount
         token0_amt, token1_amt = self.__convert_pair(base_max_amount, quote_max_amount)
-        current_tick = current_tick if current_tick is not None else self.pool_status.current_tick
         (created_position, token0_used, token1_used, liquidity) = self._add_liquidity_by_tick(token0_amt,
                                                                                               token1_amt,
                                                                                               lower_tick,
                                                                                               upper_tick,
-                                                                                              current_tick)
+                                                                                              sqrt_price_x96)
         base_used, quote_used = self.__convert_pair(token0_used, token1_used)
         self.action_buffer.append(AddLiquidityAction(UnitDecimal(self.base_asset.balance, self.base_asset.name),
                                                      UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
@@ -402,7 +406,7 @@ class Broker(object):
 
     @float_param_formatter
     def remove_liquidity(self, position: PositionInfo, liquidity: Decimal = None, collect: bool = True,
-                         current_tick: int = None) -> (Decimal, Decimal):
+                         sqrt_price_x96: int = -1) -> (Decimal, Decimal):
         """
         TODO update
         remove liquidity from pool, position will be deleted
@@ -414,8 +418,7 @@ class Broker(object):
         """
         if liquidity and liquidity < 0:
             raise ZelosError("liquidity should large than 0")
-        current_tick = int(current_tick)
-        token0_get, token1_get, delta_liquidity = self.__remove_liquidity(position, liquidity, current_tick)
+        token0_get, token1_get, delta_liquidity = self.__remove_liquidity(position, liquidity, sqrt_price_x96)
 
         base_get, quote_get = self.__convert_pair(token0_get, token1_get)
         self.action_buffer.append(

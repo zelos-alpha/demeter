@@ -18,27 +18,27 @@ Created on Mon Jun 14 18:53:09 2021
 
 
 # Use 'get_amounts' function to calculate amounts as a function of liquitidy and price range
-def get_amount0(sqrtA: Decimal, sqrtB: Decimal, liquidity: Decimal, decimals: int) -> Decimal:
+def get_amount0(sqrtA: int, sqrtB: int, liquidity: int, decimals: int) -> Decimal:
     if sqrtA > sqrtB:
         (sqrtA, sqrtB) = (sqrtB, sqrtA)
-    amount0 = ((liquidity * 2 ** 96 * (sqrtB - sqrtA) / sqrtB / sqrtA) / 10 ** decimals)
+    amount0 = (Decimal(liquidity * 2 ** 96 * (sqrtB - sqrtA)) / sqrtB / sqrtA) / 10 ** decimals
     return amount0
 
 
-def get_amount1(sqrtA: Decimal, sqrtB: Decimal, liquidity: Decimal, decimals: int) -> Decimal:
+def get_amount1(sqrtA: int, sqrtB: int, liquidity: int, decimals: int) -> Decimal:
     if sqrtA > sqrtB:
         (sqrtA, sqrtB) = (sqrtB, sqrtA)
-    amount1 = liquidity * (sqrtB - sqrtA) / 2 ** 96 / 10 ** decimals
-    return Decimal(amount1)
+    amount1 = Decimal(liquidity * (sqrtB - sqrtA)) / 2 ** 96 / 10 ** decimals
+    return amount1
 
 
 def get_sqrt(tick):
     return Decimal(1.0001 ** (tick / 2) * (2 ** 96))
 
 
-def get_amounts(tick: int, tickA: int, tickB: int, liquidity: int, decimal0: int, decimal1: int) -> \
+def get_amounts(sqrt_price_x96: int, tickA: int, tickB: int, liquidity: int, decimal0: int, decimal1: int) -> \
         (Decimal, Decimal):
-    sqrt = getSqrtRatioAtTick(tick)
+    sqrt = sqrt_price_x96
     sqrtA = getSqrtRatioAtTick(tickA)
     sqrtB = getSqrtRatioAtTick(tickB)
 
@@ -140,10 +140,10 @@ def to_wei(amount, decimals) -> int:
     return int(amount * 10 ** decimals)
 
 
-def getLiquidity(tick: int, tickA: int, tickB: int,
+def getLiquidity(sqrt_price_x96: int, tickA: int, tickB: int,
                  amount0: Decimal, amount1: Decimal,
                  decimal0: int, decimal1: int) -> Decimal:
-    sqrt = getSqrtRatioAtTick(tick)
+    sqrt = sqrt_price_x96
     sqrtA = getSqrtRatioAtTick(tickA)
     sqrtB = getSqrtRatioAtTick(tickB)
 

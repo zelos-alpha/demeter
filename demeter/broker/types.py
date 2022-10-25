@@ -85,7 +85,7 @@ class BrokerAsset(object):
         :return:
         :rtype:
         """
-        base = self.balance if self.balance != Decimal(0) else amount
+        base = self.balance if self.balance != Decimal(0) else Decimal(amount)
 
         if base == Decimal(0):  # amount and balance is both 0
             return self

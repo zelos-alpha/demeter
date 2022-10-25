@@ -1,5 +1,6 @@
 import math
 from decimal import Decimal
+from .liquitidymath import getSqrtRatioAtTick
 
 
 def _x96_to_decimal(number: int):
@@ -25,12 +26,8 @@ def pool_price_to_tick(price_decimal: Decimal):
     return int(math.log(price_decimal, math.sqrt(1.0001)))
 
 
-def tick_to_sqrt_price_x96(ticker) -> int:
-    return int(decimal_to_x96(Decimal((Decimal.sqrt(Decimal(1.0001))) ** ticker)))
-
-
 def tick_to_quote_price(tick: int, token_0_decimal, token_1_decimal, is_token0_base: bool):
-    sqrt_price = tick_to_sqrt_price_x96(tick)
+    sqrt_price = getSqrtRatioAtTick(tick)
     decimal_price = _x96_to_decimal(sqrt_price) ** 2
     pool_price = decimal_price * Decimal(10 ** (token_0_decimal - token_1_decimal))
     return Decimal(1 / pool_price) if is_token0_base else pool_price

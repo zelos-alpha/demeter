@@ -1,8 +1,7 @@
 import unittest
+from decimal import Decimal
+
 from demeter import Broker, TokenInfo, PoolBaseInfo, PoolStatus
-from pandas import Series
-from decimal import Decimal, ROUND_DOWN
-import math
 
 
 class TestBroker(unittest.TestCase):
@@ -58,8 +57,7 @@ class TestBroker(unittest.TestCase):
             broker._add_liquidity_by_tick(broker.pool_status.price / 2,
                                           Decimal(0.5),
                                           broker.pool_status.current_tick - 100,
-                                          broker.pool_status.current_tick + 100,
-                                          broker.pool_status.current_tick)
+                                          broker.pool_status.current_tick + 100)
         TestBroker.print_broker(broker, [new_position, ])
         self.assertEqual(0.5, round(broker.asset1.balance, 4))
 
@@ -70,16 +68,14 @@ class TestBroker(unittest.TestCase):
             broker._add_liquidity_by_tick(broker.pool_status.price / 2,
                                           Decimal(0.5),
                                           broker.pool_status.current_tick - 100,
-                                          broker.pool_status.current_tick + 100,
-                                          broker.pool_status.current_tick)
+                                          broker.pool_status.current_tick + 100)
         TestBroker.print_broker(broker, [new_position1, ])
         self.assertEqual(0.5, round(broker.asset1.balance, 4))
         (new_position2, base_used2, quote_used2, liquidity2) = \
             broker._add_liquidity_by_tick(broker.pool_status.price / 2,
                                           Decimal(0.5),
                                           broker.pool_status.current_tick - 100,
-                                          broker.pool_status.current_tick + 100,
-                                          broker.pool_status.current_tick)
+                                          broker.pool_status.current_tick + 100)
         TestBroker.print_broker(broker, [new_position2, ])
         self.assertEqual(base_used1, base_used2)
         self.assertEqual(quote_used1, quote_used2)
@@ -93,8 +89,7 @@ class TestBroker(unittest.TestCase):
         (new_position, base_used, quote_used, liquidity) = broker._add_liquidity_by_tick(broker.pool_status.price,
                                                                                          Decimal(1),
                                                                                          broker.pool_status.current_tick - 100,
-                                                                                         broker.pool_status.current_tick + 100,
-                                                                                         broker.pool_status.current_tick)
+                                                                                         broker.pool_status.current_tick + 100)
         TestBroker.print_broker(broker, [new_position, ])
         self.assertEqual(0, broker.asset0.balance.quantize(Decimal('.0000001')))
         self.assertEqual(0, broker.asset1.balance.quantize(Decimal('.0000001')))
@@ -103,16 +98,17 @@ class TestBroker(unittest.TestCase):
         broker = self.get_one_broker()
         token0_amt = broker.asset0.balance
         token1_amt = broker.asset1.balance
-        (new_position, base_used, quote_used, liquidity) = broker.add_liquidity(broker.pool_status.price - 100,
-                                                                                broker.pool_status.price + 100,
-                                                                                token0_amt,
-                                                                                token1_amt)
+        (new_position, base_used, quote_used, liquidity) = broker.add_liquidity_by_tick(
+            broker.pool_status.current_tick - 100,
+            broker.pool_status.current_tick + 100,
+            token0_amt,
+            token1_amt)
         TestBroker.print_broker(broker, [new_position, ])
         broker.remove_liquidity(new_position)
         print("===============================================================================")
         TestBroker.print_broker(broker)
-        self.assertEqual(token0_amt.quantize(Decimal('.0000001')), broker.asset0.balance.quantize(Decimal('.0000001')))
-        self.assertEqual(token1_amt.quantize(Decimal('.0000001')), broker.asset1.balance.quantize(Decimal('.0000001')))
+        self.assertEqual(token0_amt.quantize(Decimal('.000001')), broker.asset0.balance.quantize(Decimal('.000001')))
+        self.assertEqual(token1_amt.quantize(Decimal('.000001')), broker.asset1.balance.quantize(Decimal('.000001')))
         self.assertEqual(len(broker.positions), 0)
 
     def test_collect_fee(self):
@@ -121,8 +117,7 @@ class TestBroker(unittest.TestCase):
         (new_position, base_used, quote_used, liquidity) = broker._add_liquidity_by_tick(broker.pool_status.price,
                                                                                          Decimal(1),
                                                                                          broker.pool_status.current_tick - 10,
-                                                                                         broker.pool_status.current_tick + 10,
-                                                                                         broker.pool_status.current_tick)
+                                                                                         broker.pool_status.current_tick + 10)
         TestBroker.print_broker(broker, [new_position])
         eth_amount = Decimal("10000000000000000000")
         usdc_amount = Decimal("10000000")
