@@ -8,9 +8,9 @@ from .._typing import PositionInfo
 
 class V3CoreLib(object):
     @staticmethod
-    def new_position(pool: PoolBaseInfo, token0_amount: Decimal, token1_amount: Decimal, lower_tick: int,
-                     upper_tick: int,
-                     current_tick=None):
+    def new_position(pool: PoolBaseInfo,
+                     token0_amount: Decimal, token1_amount: Decimal,
+                     lower_tick: int, upper_tick: int, current_tick=None):
         position_liq = get_liquidity(current_tick, lower_tick, upper_tick,
                                      token0_amount, token1_amount,
                                      pool.token0.decimal, pool.token1.decimal)

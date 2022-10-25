@@ -257,7 +257,7 @@ class Runner(object):
         :param end_date: end test date
         :type end_date: date
         """
-        self.logger.info("start load files...")
+        self.logger.info(f"start load files from {start_date} to {end_date}...")
         df = pd.DataFrame()
         day = start_date
         while day <= end_date:
