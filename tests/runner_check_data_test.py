@@ -1,18 +1,19 @@
+from datetime import datetime, date
 from decimal import Decimal
 
-from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, Lines, ChainType
-from datetime import datetime, date
+from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, ChainType
+from demeter.broker.liquitidymath import getSqrtRatioAtTick
 
 
 # https://polygonscan.com/tx/0x288f2e2d123ffa2b041cce53962c064c134a14bb2be1793b2e5b0c518f4eb00f
 class ActualStrategy(Strategy):
     def next(self, row_data):
         if row_data.timestamp == datetime(2022, 6, 6, 11, 5):
-            p, lower, upper, l = self.broker._add_liquidity_by_tick(Decimal("315.218605"),
-                                                                    Decimal("0.135641006407938685"),
-                                                                    200670,
-                                                                    200930,
-                                                                    200786)
+            p, lower, upper, l = self.broker.add_liquidity_by_tick(200670,
+                                                                   200930,
+                                                                   Decimal("315.218605"),
+                                                                   Decimal("0.135641006407938685"),
+                                                                   getSqrtRatioAtTick(200786))
             print(p, l)
 
 

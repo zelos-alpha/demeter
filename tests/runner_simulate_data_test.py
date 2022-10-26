@@ -1,9 +1,12 @@
 import unittest
-import numpy as np
-from demeter.broker.v3_core import V3CoreLib
-from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, Lines, AccountStatus
-import pandas as pd
 from decimal import Decimal
+
+import numpy as np
+import pandas as pd
+
+from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, Lines, AccountStatus
+from demeter.broker.liquitidymath import getSqrtRatioAtTick
+from demeter.broker.v3_core import V3CoreLib
 
 eth = TokenInfo(name="eth", decimal=18)
 usdc = TokenInfo(name="usdc", decimal=6)
@@ -61,12 +64,13 @@ class TestRunner(unittest.TestCase):
         runner.strategy = WithSMA()
         runner.set_assets([Asset(usdc, 1000), Asset(eth, 1)])
         tick = runner.broker.price_to_tick(1000)
-        token0_used, token1_used, liquidity, position_info = V3CoreLib.new_position(self.pool,
-                                                                                    Decimal(100000),
-                                                                                    Decimal(100),
-                                                                                    tick - 1000,
-                                                                                    tick + 1000,
-                                                                                    tick)
+        token0_used, token1_used, liquidity, position_info = \
+            V3CoreLib.new_position(self.pool,
+                                   Decimal(100000),
+                                   Decimal(100),
+                                   tick - 1000,
+                                   tick + 1000,
+                                   getSqrtRatioAtTick(tick))
         print(token0_used, token1_used, position_info, liquidity)
         runner.data = get_clean_data(runner,
                                      tick,
@@ -75,7 +79,7 @@ class TestRunner(unittest.TestCase):
                                      liquidity)
 
         runner.run()
-        runner.output()
+        # runner.output()
         status: AccountStatus = runner.final_status
         self.assertEqual(status.uncollect_fee_base.quantize(Decimal('1.0000')), Decimal("0.025"))
         self.assertEqual(status.uncollect_fee_quote.quantize(Decimal('1.0000000')), Decimal("0.0000250"))

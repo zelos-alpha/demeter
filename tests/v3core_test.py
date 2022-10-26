@@ -21,7 +21,7 @@ class V3CoreTest(unittest.TestCase):
                                                                                Decimal(0.733658189325188910),
                                                                                193420,
                                                                                193460,
-                                                                               193453)
+                                                                               1257384995536224536278388621443072)
         print(token0_used, token1_used, position)
         self.assertTrue(assert_equal_with_error(token0_used, Decimal(521.459929)))
         self.assertTrue(assert_equal_with_error(token1_used, Decimal(0.733658189325188900)))
@@ -34,7 +34,7 @@ class V3CoreTest(unittest.TestCase):
                                                                                Decimal(0.42729421540077245),
                                                                                202960,
                                                                                204070,
-                                                                               203673)
+                                                                               2095880080440004692038636567265280)
         print(token0_used, token1_used, position)
         self.assertTrue(assert_equal_with_error(token0_used, Decimal(342.361229)))
         self.assertTrue(assert_equal_with_error(token1_used, Decimal(0.427294215400771602)))
@@ -47,7 +47,7 @@ class V3CoreTest(unittest.TestCase):
                                                                                Decimal(0.02722552310238334),
                                                                                203960,
                                                                                204090,
-                                                                               204012)
+                                                                               2131675114632770577480861800726528)
         print(token0_used, token1_used, position)
 
         # for x in range(203960,204090):

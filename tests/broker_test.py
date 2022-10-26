@@ -11,6 +11,10 @@ class TestBroker(unittest.TestCase):
         self.pool = PoolBaseInfo(self.usdc, self.eth, 0.05, self.usdc)
         super(TestBroker, self).__init__(*args, **kwargs)
 
+    def test_price(self):
+        broker = self.get_one_broker()
+        print(broker.tick_to_price(206600))
+
     def get_one_broker(self):
         broker = Broker(self.pool)
         tick = 206603
