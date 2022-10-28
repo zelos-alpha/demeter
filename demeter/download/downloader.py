@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from tqdm import tqdm  # process bar
 
 from ._typing import ChainType, DataSource
-import source_bigquery
+from .source_bigquery import download_bigquery_pool_event_oneday, process_raw_data
 
 
 def download_by_day(chain: ChainType, pool_address: str, start: date, end: date, data_source=DataSource.BigQuery,
@@ -33,12 +33,12 @@ def download_by_day(chain: ChainType, pool_address: str, start: date, end: date,
         if skip_exist and os.path.exists(save_path + "//" + file_name):
             continue
         if data_source == DataSource.BigQuery:
-            raw_day_data = source_bigquery.download_bigquery_pool_event_oneday(chain, pool_address, day)
+            raw_day_data = download_bigquery_pool_event_oneday(chain, pool_address, day)
             if save_raw_file:
                 raw_day_data.to_csv(f"{save_path}//raw_{chain.name}-{pool_address}-{date_str}.csv",
                                     header=True,
                                     index=False)
-            processed_day_data = source_bigquery.process_raw_data(raw_day_data)
+            processed_day_data = process_raw_data(raw_day_data)
         else:
             raise RuntimeError("Data source {} is not supported".format(data_source))
         # save processed

@@ -1,6 +1,8 @@
-import cmd
 import os
+import sys
 from datetime import datetime
+
+import toml
 
 from .download import ChainType, DataSource, downloader
 
@@ -13,7 +15,7 @@ class DownloadParam(object):
         self.source = DataSource.BigQuery
         self.pool_address = ""
         self.start = ""
-        self.end = ""
+        self.end = datetime.now().strftime("%Y-%m-%d")
         self.auth_file = ""
         self.save_path = DEFAULT_SAVE_PATH
 
@@ -33,91 +35,86 @@ class DownloadParam(object):
                f"save_path={self.save_path}"
 
 
-class Downloader(cmd.Cmd):
-    intro = 'Welcome to the demeter data downloader.  Type help or ? to list commands. ' \
-            'or \033[1;34mjust start with "config"\033[0m\n'
-    prompt = '(demeter) '
+def get_enum_by_name(me, name):
+    for e in me:
+        if e.name.lower() == name.lower():
+            return e
+    raise RuntimeError(f"cannot found {name} in {me}, allow value is " + str([x.name for x in me]))
 
-    def __init__(self, *args, **kwargs):
-        self.param = DownloadParam()
-        self.has_config = False
-        self.param.save_path = DEFAULT_SAVE_PATH
-        super().__init__(*args, **kwargs)
 
-    def do_show_param(self, _):
-        """show download parameter"""
-        print(self.param.get_formatted())
+class Downloader:
 
-    def do_config(self, _):
-        try:
-            """config your download"""
-            print(f"Which chain you wanna choose({self.param.chain.name}): ")
-            [print(f"({ct.value}){ct.name}") for ct in ChainType]
-            chose_chain = input("input number: ")
-            if "" != chose_chain:
-                self.param.chain = ChainType(int(chose_chain))
+    def __init__(self, config):
+        self.config: DownloadParam = self.convert_config(config)
 
-            print(f"Which data_source you wanna choose({self.param.source.name}): ")
-            [print(f"({ds.value}){ds.name}") for ds in DataSource]
-            chose_ds = input("input number: ")
-            if "" != chose_ds:
-                self.param.source = DataSource(int(chose_ds))
+    @staticmethod
+    def convert_config(config: dict):
+        param = DownloadParam()
+        if "chain" in config:
+            param.chain = get_enum_by_name(ChainType, config["chain"])
+        if "source" in config:
+            param.source = get_enum_by_name(DataSource, config["source"])
+        if param.source == DataSource.BigQuery:
+            if "auth_file" in config:
+                param.auth_file = config["auth_file"]
+                if not os.path.exists(param.auth_file):
+                    raise RuntimeError("google auth file not found")
 
-            if self.param.source == DataSource.BigQuery:
-                print(f"GOOGLE_APPLICATION_CREDENTIALS file path({self.param.auth_file})")
-                while True:
-                    auth_file = input("input google auth file path: ")
-                    if auth_file == "exit":
-                        break
-                    elif auth_file == "":
-                        break
-                    if os.path.exists(auth_file):
-                        self.param.auth_file = auth_file
-                        break
-                    else:
-                        print("file not found, try again, or input exit")
+            else:
+                raise RuntimeError("you must set google auth file")
+        if "save_path" in config:
+            param.save_path = config["save_path"]
+        if not os.path.exists(param.save_path):
+            raise RuntimeError(f"path {param.save_path} not exist")
+        if "pool_address" in config:
+            param.pool_address = config["pool_address"]
+        else:
+            raise RuntimeError("you must set pool contract address")
+        if "start" in config:
+            param.start = config["start"]
+        else:
+            raise RuntimeError("you must set start date, eg: 2022-10-1")
+        if "end" in config:
+            param.end = config["end"]
 
-            print("where would you like to keep files: ")
-            path = input(f"input path (Default path: {self.param.save_path}, press enter to keep default): ")
-            if "" != path:
-                self.param.save_path = path
+        return param
 
-            print("config compete. your config is:")
-            print(self.param.get_formatted())
-            # \033[1;34m{k:<10}:\033[0m
-            print('Now use "\033[1;34mdownload\033[0m" to start. commend: \033[1;34mdownload\033[0m '
-                  '\033[1;35mpool_contract_address\033[0m \033[1;32mstart_date\033[0m \033[1;31mend_date\033[0m   ')
-            self.has_config = True
-        except Exception as e:
-            print(e)
-
-    def do_download(self, arg):
-        """start download, usage: download pool_contract_address start_date end_date"""
-        args = arg.split(" ")
-        if len(args) < 3:
-            print("usage: download pool_contract_address start_date end_date, try again")
-            return
-        pool_contract_address, start_date, end_date = args[0], args[1], args[2]
-        if not self.has_config:
-            print("run config commend first")
-            return
-        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = self.param.auth_file
-        downloader.download_by_day(self.param.chain,
-                                   pool_contract_address,
+    def do_download(self):
+        start_date = datetime.strptime(self.config.start, "%Y-%m-%d").date()
+        end_date = datetime.strptime(self.config.end, "%Y-%m-%d").date()
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = self.config.auth_file
+        downloader.download_by_day(self.config.chain,
+                                   self.config.pool_address,
                                    start_date,
                                    end_date,
-                                   self.param.source,
-                                   self.param.save_path)
-        print("download complete, check your files in " + self.param.save_path)
-
-    def do_exit(self, _):
-        """
-        exit app
-        """
-        exit(0)
+                                   self.config.source,
+                                   self.config.save_path)
+        print("download complete, check your files in " + self.config.save_path)
 
 
 if __name__ == '__main__':
-    Downloader().cmdloop()
+    if len(sys.argv) == 1:
+        print("please set a config file. in toml format. 'python -m demeter.downloader config.toml'. config file demo: ")
+        print("======================")
+        print("""
+        chain = "polygon"
+        source = "BigQuery"
+        pool_address = "0x45dda9cb7c25131df268515131f647d726f50608"
+        start = "2022-9-19"
+        end = "2022-9-20"
+        auth_file = "../auth/airy-sight-000000-dddb5ce41c48.json"
+        save_path = "../data"
+        """)
+        print("======================")
+        exit(1)
+    if not os.path.exists(sys.argv[1]):
+        print("config file not found, use")
+        exit(1)
+    config_file = toml.load(sys.argv[1])
+    try:
+        downloaderCls = Downloader(config_file)
+    except RuntimeError as e:
+        print(e)
+        exit(1)
+    print(downloaderCls.config)
+    downloaderCls.do_download()

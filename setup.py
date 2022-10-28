@@ -1,12 +1,13 @@
-from setuptools import setup, find_packages
 from pathlib import Path
+
+from setuptools import setup, find_packages
 
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='zelos-demeter',
-    version='0.1.1',
+    version='0.1.2',
     packages=find_packages(exclude=["tests", "tests.*", "samples", "samples.*"]),
     url='https://zelos-demeter.readthedocs.io',
     license='MIT',
@@ -19,7 +20,8 @@ setup(
     install_requires=["pandas>=1.4.4",
                       "tqdm>=4.64.1",
                       "google-cloud-bigquery>=3.3.5",
-                      "db-dtypes>=1.0.4"],
+                      "db-dtypes>=1.0.4",
+                      "toml>=0.10.2"],
 )
 
 # rm -rf ./demeter.egg-info/ && python setup.py sdist upload -r private
