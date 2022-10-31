@@ -29,12 +29,19 @@ In BigQuery, you can query chain data with correct id and table name. the query 
 
 After account is prepared, you can start download process.
 
-1. Run `python -m demeter.downloader`, you will see a prompt `(demeter)`
-2. Input command `config`, then follow the wizard, choose which chain to download, and which data source to use. If input nothing and press enter, will keep default value.
-3. Then choose path of google authority file (.json), It was previously downloaded via the document official-document-site_
-4. Choose the path to keep downloaded files. input a folder path or press enter to keep default setting (./data). Then config will be finished.
-5. Run `download pool_contract_address start_date end_date` to start download. this may take a while. you can monitor the progress by process bar.
-6. Run `download pool_contract_address start_date end_date` to start next download, or input "exit" to quit downloader
+1. Prepare a config file, in toml format. here is an example:
+
+.. code-block:: toml
+
+    chain = "polygon"  # chain name, such as ethereum, polygon, default if Ethereum
+    source = "BigQuery" # download from, we only support bigquery now,
+    pool_address = "0x45dda9cb7c25131df268515131f647d726f50608" # pool contract address
+    start = "2022-9-19" # download start date
+    end = "2022-9-20" # download end date, this date will be included, default value is today
+    auth_file = "../auth/airy-sight-361003-d14b5ce41c48.json" # BigQuery auth file. if source is BigQuery, this field must be set.
+    save_path = "../data" # where to kept downloaded file. default value is "data"
+
+2. start download by python -m zelos-demeter.downloader config.toml
 
 .. note:: pool_contract_address: for example, to usdc and eth pool in polygon, the address is `0x45dDa9cb7c25131DF268515131f647d726f50608 <https://polygonscan.com/address/0x45dda9cb7c25131df268515131f647d726f50608>`_
 

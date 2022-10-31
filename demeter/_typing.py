@@ -46,6 +46,12 @@ class UnitDecimal(Decimal):
         return obj
 
     def to_str(self):
+        """
+        get formatted string of this decimal. format is defined in self.output_format and unit will be append.
+
+        :return: formatted string
+        :rtype: str
+        """
         dec = self.quantize(self.__integral) if self == self.to_integral() else self.normalize()
         return "{:{}} {}".format(dec, self.output_format, self.unit)
 
@@ -133,10 +139,10 @@ class AccountStatus:
     :type base_balance: UnitDecimal
     :param quote_balance: balance of quote token
     :type quote_balance: UnitDecimal
-    :param uncollect_fee_base: base token uncollect fee in all the positions.
-    :type uncollect_fee_base: UnitDecimal
-    :param uncollect_fee_quote: quote token uncollect fee in all the positions.
-    :type uncollect_fee_quote: UnitDecimal
+    :param base_uncollected: base token uncollect fee in all the positions.
+    :type base_uncollected: UnitDecimal
+    :param quote_uncollected: quote token uncollect fee in all the positions.
+    :type quote_uncollected: UnitDecimal
     :param base_in_position: base token amount deposited in positions, calculated according to current price
     :type base_in_position: UnitDecimal
     :param quote_in_position: quote token amount deposited in positions, calculated according to current price
@@ -150,8 +156,8 @@ class AccountStatus:
     timestamp: datetime
     base_balance: UnitDecimal
     quote_balance: UnitDecimal
-    uncollect_fee_base: UnitDecimal
-    uncollect_fee_quote: UnitDecimal
+    base_uncollected: UnitDecimal
+    quote_uncollected: UnitDecimal
     base_in_position: UnitDecimal
     quote_in_position: UnitDecimal
     net_value: UnitDecimal
@@ -166,7 +172,7 @@ class AccountStatus:
         return get_formatted_str({
             "total capital": f"{self.net_value.to_str()}",
             "balance": f"{self.base_balance.to_str()},{self.quote_balance.to_str()}",
-            "uncollect fee": f"{self.uncollect_fee_base.to_str()},{self.uncollect_fee_quote.to_str()}",
+            "uncollect fee": f"{self.base_uncollected.to_str()},{self.quote_uncollected.to_str()}",
             "in position amount": f"{self.base_in_position.to_str()},{self.quote_in_position.to_str()}"
         })
 
@@ -174,8 +180,8 @@ class AccountStatus:
         return [
             self.base_balance,
             self.quote_balance,
-            self.uncollect_fee_base,
-            self.uncollect_fee_quote,
+            self.base_uncollected,
+            self.quote_uncollected,
             self.base_in_position,
             self.quote_in_position,
             self.net_value,
@@ -340,6 +346,10 @@ class RemoveLiquidityAction(BaseAction):
     :type base_amount: UnitDecimal
     :param quote_amount: quote token amount collected
     :type quote_amount: UnitDecimal
+    :param removed_liquidity: liquidity number has removed
+    :type removed_liquidity: int
+    :param remain_liquidity: liquidity number left in position
+    :type remain_liquidity: int
 
     """
     position: PositionInfo

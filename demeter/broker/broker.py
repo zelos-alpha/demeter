@@ -383,6 +383,23 @@ class Broker(object):
                               base_max_amount: Union[Decimal, float] = None,
                               quote_max_amount: Union[Decimal, float] = None,
                               sqrt_price_x96: int = -1):
+        """
+
+        add liquidity, you need to set tick instead of price.
+
+        :param lower_tick: lower tick
+        :type lower_tick: int
+        :param upper_tick: upper tick
+        :type upper_tick: int
+        :param base_max_amount:  inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
+        :type base_max_amount: Union[Decimal, float]
+        :param quote_max_amount: inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
+        :type quote_max_amount: Union[Decimal, float]
+        :param sqrt_price_x96: precise price.  if set to none, it will be calculated from current price.
+        :type sqrt_price_x96: int
+        :return: added position, base token used, quote token used
+        :rtype: (PositionInfo, Decimal, Decimal)
+        """
         base_max_amount = self.base_asset.balance if base_max_amount is None else base_max_amount
         quote_max_amount = self.quote_asset.balance if quote_max_amount is None else quote_max_amount
         token0_amt, token1_amt = self.__convert_pair(base_max_amount, quote_max_amount)
@@ -405,16 +422,23 @@ class Broker(object):
         return created_position, base_used, quote_used, liquidity
 
     @float_param_formatter
-    def remove_liquidity(self, position: PositionInfo, liquidity: Decimal = None, collect: bool = True,
+    def remove_liquidity(self, position: PositionInfo, liquidity: int = None, collect: bool = True,
                          sqrt_price_x96: int = -1) -> (Decimal, Decimal):
         """
-        TODO update
-        remove liquidity from pool, position will be deleted
+        remove liquidity from pool, liquidity will be reduced to 0,
+        instead of send tokens to broker, tokens will be transferred to fee property in position.
+        position will be not deleted, until fees and tokens are collected.
 
-        :param positions: position info, as an object or an array
-        :type positions: [PositionInfo]
-        :return: a dict, key is position info, value is (base_got,quote_get), base_got is base token amount collected from position
-        :rtype: {PositionInfo: (Decimal,Decimal)}
+        :param position: position to remove.
+        :type position: PositionInfo
+        :param liquidity: liquidity amount to remove, if set to None, all the liquidity will be removed
+        :type liquidity: int
+        :param collect: collect or not, if collect, will call collect function. and tokens will be sent to broker. if not token will be kept in fee property of postion
+        :type collect: bool
+        :param sqrt_price_x96: precise price.  if set to none, it will be calculated from current price.
+        :type sqrt_price_x96: int
+        :return: (base_got,quote_get), base and quote token amounts collected from position
+        :rtype:  (Decimal,Decimal)
         """
         if liquidity and liquidity < 0:
             raise ZelosError("liquidity should large than 0")
@@ -442,12 +466,17 @@ class Broker(object):
                     max_collect_amount0: Decimal = None,
                     max_collect_amount1: Decimal = None) -> (Decimal, Decimal):
         """
-        collect fee from positions
-        TODO update
-        :param positions: position info, as an object or an array
-        :type positions: [PositionInfo]
-        :return: a dict, key is position info, value is (base_got,quote_get), base_got is base token fee collected from position
-        :rtype: {Position: tuple(base_got,quote_get)}
+        collect fee and token from positions,
+        if the amount and liquidity is zero, this position will be deleted.
+
+        :param position: position to collect
+        :type position: PositionInfo
+        :param max_collect_amount0: max token0 amount to collect, eg: 1.2345 usdc, if set to None, all the amount will be collect
+        :type max_collect_amount0: Decimal
+        :param max_collect_amount1: max token0 amount to collect, if set to None, all the amount will be collect
+        :type max_collect_amount1: Decimal
+        :return: (base_got,quote_get), base and quote token amounts collected from position
+        :rtype:  (Decimal,Decimal)
         """
         if (max_collect_amount0 and max_collect_amount0 < 0) or \
                 (max_collect_amount1 and max_collect_amount1 < 0):
@@ -530,7 +559,15 @@ class Broker(object):
 
         return fee, base_amount, quote_amount
 
-    def even_rebalance(self, price: Decimal = None):
+    def even_rebalance(self, price: Decimal = None) -> (Decimal, Decimal, Decimal):
+        """
+        Divide assets equally between two tokens.
+
+        :param price: price of quote token. eg: 1234 eth/usdc
+        :type price: Decimal
+        :return: fee, base token amount spend, quote token amount got
+        :rtype: (Decimal, Decimal, Decimal)
+        """
         if price is None:
             price = self._pool_status.price
 
@@ -538,11 +575,14 @@ class Broker(object):
         target_base_amount = total_capital / 2
         quote_amount_diff = target_base_amount / price - self.quote_asset.balance
         if quote_amount_diff > 0:
-            self.buy(quote_amount_diff)
+            return self.buy(quote_amount_diff)
         elif quote_amount_diff < 0:
-            self.sell(0 - quote_amount_diff)
+            return self.sell(0 - quote_amount_diff)
 
     def remove_all_liquidity(self):
+        """
+        remove all the positions kept in broker.
+        """
         if len(self.positions) < 1:
             return
         keys = list(self.positions.keys())

@@ -81,5 +81,5 @@ class TestRunner(unittest.TestCase):
         runner.run()
         # runner.output()
         status: AccountStatus = runner.final_status
-        self.assertEqual(status.uncollect_fee_base.quantize(Decimal('1.0000')), Decimal("0.025"))
-        self.assertEqual(status.uncollect_fee_quote.quantize(Decimal('1.0000000')), Decimal("0.0000250"))
+        self.assertEqual(status.base_uncollected.quantize(Decimal('1.0000')), Decimal("0.025"))
+        self.assertEqual(status.quote_uncollected.quantize(Decimal('1.0000000')), Decimal("0.0000250"))

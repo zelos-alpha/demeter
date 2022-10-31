@@ -6,7 +6,7 @@ import toml
 
 from .download import ChainType, DataSource, downloader
 
-DEFAULT_SAVE_PATH = "./data"
+DEFAULT_SAVE_PATH = "data"
 
 
 class DownloadParam(object):
@@ -50,9 +50,9 @@ class Downloader:
     @staticmethod
     def convert_config(config: dict):
         param = DownloadParam()
-        if "chain" in config:
+        if "chain" in config and config["chain"] != "":
             param.chain = get_enum_by_name(ChainType, config["chain"])
-        if "source" in config:
+        if "source" in config and config["source"] != "":
             param.source = get_enum_by_name(DataSource, config["source"])
         if param.source == DataSource.BigQuery:
             if "auth_file" in config:
@@ -62,7 +62,7 @@ class Downloader:
 
             else:
                 raise RuntimeError("you must set google auth file")
-        if "save_path" in config:
+        if "save_path" in config and config["save_path"] != "":
             param.save_path = config["save_path"]
         if not os.path.exists(param.save_path):
             raise RuntimeError(f"path {param.save_path} not exist")
@@ -74,7 +74,7 @@ class Downloader:
             param.start = config["start"]
         else:
             raise RuntimeError("you must set start date, eg: 2022-10-1")
-        if "end" in config:
+        if "end" in config and config["end"] != "":
             param.end = config["end"]
 
         return param
@@ -94,7 +94,8 @@ class Downloader:
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        print("please set a config file. in toml format. 'python -m demeter.downloader config.toml'. config file demo: ")
+        print(
+            "please set a config file. in toml format. 'python -m demeter.downloader config.toml'. config file demo: ")
         print("======================")
         print("""
         chain = "polygon"
