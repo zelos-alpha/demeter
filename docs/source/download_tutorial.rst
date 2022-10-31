@@ -41,7 +41,11 @@ After account is prepared, you can start download process.
     auth_file = "../auth/airy-sight-361003-d14b5ce41c48.json" # BigQuery auth file. if source is BigQuery, this field must be set.
     save_path = "../data" # where to kept downloaded file. default value is "data"
 
-2. start download by python -m zelos-demeter.downloader config.toml
+2. start download by
+
+.. code-block:: sh
+
+  python -m zelos-demeter.downloader config.toml
 
 .. note:: pool_contract_address: for example, to usdc and eth pool in polygon, the address is `0x45dDa9cb7c25131DF268515131f647d726f50608 <https://polygonscan.com/address/0x45dda9cb7c25131df268515131f647d726f50608>`_
 

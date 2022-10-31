@@ -119,8 +119,8 @@ class PositionInfo(NamedTuple):
 BarStatusNames = [
     "base_balance",
     "quote_balance",
-    "uncollect_fee_base",
-    "uncollect_fee_quote",
+    "base_uncollected",
+    "quote_uncollected",
     "base_in_position",
     "quote_in_position",
     "net_value",
