@@ -1,6 +1,6 @@
 import demeter as dt
 from datetime import timedelta, date
-from demeter import TokenInfo, PoolBaseInfo, Runner, Asset, AccountStatus, ChainType
+from demeter import TokenInfo, PoolBaseInfo, Actuator, Asset, AccountStatus, ChainType
 from strategy_ploter import  plot_position_return_decomposition
 
 class TwoIntervalsAroundtheCurrentPrice(dt.Strategy):
@@ -52,17 +52,17 @@ if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)
     pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
 
-    runner_instance = Runner(pool)
-    runner_instance.enable_notify = False
-    runner_instance.strategy = TwoIntervalsAroundtheCurrentPrice(400,200)
-    runner_instance.set_assets([Asset(usdc, 2000)])
+    actuator_instance = Actuator(pool)
+    actuator_instance.enable_notify = False
+    actuator_instance.strategy = TwoIntervalsAroundtheCurrentPrice(400, 200)
+    actuator_instance.set_assets([Asset(usdc, 2000)])
 
-    runner_instance.data_path = "../data"
-    runner_instance.load_data(ChainType.Polygon.name,
+    actuator_instance.data_path = "../data"
+    actuator_instance.load_data(ChainType.Polygon.name,
                               "0x45dda9cb7c25131df268515131f647d726f50608",
-                              date(2022, 8, 5),
-                              date(2022, 8, 20))
-    runner_instance.run(enable_notify=False)
-    print(runner_instance.final_status.net_value)
+                                date(2022, 8, 5),
+                                date(2022, 8, 20))
+    actuator_instance.run(enable_notify=False)
+    print(actuator_instance.final_status.net_value)
 
-    plot_position_return_decomposition(runner_instance.account_status_list)
+    plot_position_return_decomposition(actuator_instance.account_status_list)

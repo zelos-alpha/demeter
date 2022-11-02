@@ -1,7 +1,7 @@
 from datetime import datetime, date
 from decimal import Decimal
 
-from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, ChainType
+from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, ChainType
 from demeter.broker.liquitidymath import getSqrtRatioAtTick
 
 
@@ -22,15 +22,15 @@ if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)
     pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
 
-    runner = Runner(pool)
-    runner.strategy = ActualStrategy()
-    runner.set_assets([Asset(usdc, Decimal("315.218605")), Asset(eth, Decimal("0.135641006407938685"))])
-    runner.data_path = "../data"
-    runner.load_data(ChainType.Polygon.name,
+    actuator = Actuator(pool)
+    actuator.strategy = ActualStrategy()
+    actuator.set_assets([Asset(usdc, Decimal("315.218605")), Asset(eth, Decimal("0.135641006407938685"))])
+    actuator.data_path = "../data"
+    actuator.load_data(ChainType.Polygon.name,
                      "0x45dda9cb7c25131df268515131f647d726f50608",
-                     date(2022, 6, 6),
-                     date(2022, 10, 11))
-    runner.run()
-    runner.output()
-    # for status: AccountStatus in runner.account_status_list:
+                       date(2022, 6, 6),
+                       date(2022, 10, 11))
+    actuator.run()
+    actuator.output()
+    # for status: AccountStatus in actuator.account_status_list:
     #     print(status)

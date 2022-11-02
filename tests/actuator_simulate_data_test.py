@@ -4,7 +4,7 @@ from decimal import Decimal
 import numpy as np
 import pandas as pd
 
-from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, Lines, AccountStatus
+from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, Lines, AccountStatus
 from demeter.broker.liquitidymath import getSqrtRatioAtTick
 from demeter.broker.v3_core import V3CoreLib
 
@@ -27,7 +27,7 @@ class WithSMA(Strategy):
                                self.broker.quote_asset.balance)
 
 
-def get_clean_data(runner: Runner, tick, amount0=0, amount1=0, total_l=0):
+def get_clean_data(actuator: Actuator, tick, amount0=0, amount1=0, total_l=0):
     DATA_SIZE = 5
     index = pd.date_range('2022-10-8 8:0:0', periods=DATA_SIZE, freq='T')
     netAmount0 = pd.Series(data=np.full(DATA_SIZE, 0), index=index)
@@ -49,21 +49,21 @@ def get_clean_data(runner: Runner, tick, amount0=0, amount1=0, total_l=0):
     df["inAmount0"] = inAmount0
     df["inAmount1"] = inAmount1
     df["currentLiquidity"] = currentLiquidity
-    runner.add_statistic_column(df)
+    actuator.add_statistic_column(df)
     lines = Lines.from_dataframe(df)
     return lines
 
 
-class TestRunner(unittest.TestCase):
+class TestActuator(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         self.pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
-        super(TestRunner, self).__init__(*args, **kwargs)
+        super(TestActuator, self).__init__(*args, **kwargs)
 
     def test_load_clean_data(self):
-        runner = Runner(self.pool)
-        runner.strategy = WithSMA()
-        runner.set_assets([Asset(usdc, 1000), Asset(eth, 1)])
-        tick = runner.broker.price_to_tick(1000)
+        actuator = Actuator(self.pool)
+        actuator.strategy = WithSMA()
+        actuator.set_assets([Asset(usdc, 1000), Asset(eth, 1)])
+        tick = actuator.broker.price_to_tick(1000)
         token0_used, token1_used, liquidity, position_info = \
             V3CoreLib.new_position(self.pool,
                                    Decimal(100000),
@@ -72,14 +72,14 @@ class TestRunner(unittest.TestCase):
                                    tick + 1000,
                                    getSqrtRatioAtTick(tick))
         print(token0_used, token1_used, position_info, liquidity)
-        runner.data = get_clean_data(runner,
+        actuator.data = get_clean_data(actuator,
                                      tick,
                                      1000 * 10 ** usdc.decimal,
                                      1 * 10 ** eth.decimal,
                                      liquidity)
 
-        runner.run()
-        # runner.output()
-        status: AccountStatus = runner.final_status
+        actuator.run()
+        # actuator.output()
+        status: AccountStatus = actuator.final_status
         self.assertEqual(status.base_uncollected.quantize(Decimal('1.0000')), Decimal("0.025"))
         self.assertEqual(status.quote_uncollected.quantize(Decimal('1.0000000')), Decimal("0.0000250"))

@@ -1,5 +1,5 @@
 import demeter as dt
-from demeter import PoolBaseInfo, Runner
+from demeter import PoolBaseInfo, Actuator
 from demeter._typing import TokenInfo, AccountStatus, Asset
 from datetime import date
 from demeter.download import ChainType
@@ -40,17 +40,17 @@ if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)
     pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
 
-    runner_instance = Runner(pool)
-    runner_instance.enable_notify = False
-    runner_instance.strategy = ConstantInterval(200)
-    runner_instance.set_assets([Asset(usdc, 2000)])
-    runner_instance.data_path = "../data"
-    runner_instance.load_data(ChainType.Polygon.name,
+    actuator_instance = Actuator(pool)
+    actuator_instance.enable_notify = False
+    actuator_instance.strategy = ConstantInterval(200)
+    actuator_instance.set_assets([Asset(usdc, 2000)])
+    actuator_instance.data_path = "../data"
+    actuator_instance.load_data(ChainType.Polygon.name,
                               "0x45dda9cb7c25131df268515131f647d726f50608",
-                              date(2022, 8, 5),
-                              date(2022, 8, 15))
-    runner_instance.run(enable_notify=False)
-    print(runner_instance.final_status.net_value)
+                                date(2022, 8, 5),
+                                date(2022, 8, 15))
+    actuator_instance.run(enable_notify=False)
+    print(actuator_instance.final_status.net_value)
 
-    plot_position_return_decomposition(runner_instance.account_status_list)
+    plot_position_return_decomposition(actuator_instance.account_status_list)
 

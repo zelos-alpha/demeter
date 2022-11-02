@@ -94,15 +94,15 @@ Let's start with a simple example.
     eth = TokenInfo(name="eth", decimal=18) # 1
     usdc = TokenInfo(name="usdc", decimal=6)
     pool = PoolBaseInfo(usdc, eth, 0.05, usdc) # 2
-    runner = Runner(pool) # 3
-    runner.set_assets([Asset(usdc, 1000), Asset(eth, 1)]) #4
-    runner.data_path = "../data" # 5
-    runner.load_data(ChainType.Polygon.name, # 6
+    actuator = Actuator(pool) # 3
+    actuator.set_assets([Asset(usdc, 1000), Asset(eth, 1)]) #4
+    actuator.data_path = "../data" # 5
+    actuator.load_data(ChainType.Polygon.name, # 6
                      "0x45dda9cb7c25131df268515131f647d726f50608",
                      date(2022, 8, 15),
                      date(2022, 8, 20))
-    runner.run() #7
-    runner.output() #8
+    actuator.run() #7
+    actuator.output() #8
 
 1 First you should register tokens, We take pool 0x45dda9cb7c25131df268515131f647d726f50608 on polygon(usdc-weth) as example.
 so we assign two variables *eth*, *usdc*.
@@ -112,9 +112,9 @@ That means which token will be considered as base token.
 eg: to a token pair of USDT/BTC, if you want price unit to be like 10000 usdt/btc, you should set usdt as base token,
 otherwise if price unit is 0.00001 btc/usdt, you should set btc as base token
 
-3 Now create a runner, and set pool info as parameter
+3 Now create a actuator, and set pool info as parameter
 
-4 set up initial asset to runner. Now you have 1000usdc and 1eth to simulate.
+4 set up initial asset to actuator. Now you have 1000usdc and 1eth to simulate.
 
 5 set up data folder path, the path should have the chain status files formerly download
 
@@ -153,9 +153,9 @@ Not write a strategy
                 self.buy(0.1, row_data.price)
 
 
-      runner.strategy = MyFirstStrategy()
+      actuator.strategy = MyFirstStrategy()
 
-Write a strategy is simple. you just have to inherit from :doc:`strategy <references/strategy>` class, and set it to runner.
+Write a strategy is simple. you just have to inherit from :doc:`strategy <references/strategy>` class, and set it to actuator.
 When back testing is running, if price is above 0.1 eth/usdc (Remember we have set usdc as base token, so price and buy/sell action is all based on eth),
 broker will buy 0.1eth
 
@@ -163,7 +163,7 @@ In strategy, you can make trade action including add_liquidity, remove_liquidity
 
 Strategy also provide initialize and finalize function, which will run before and after the test.
 
-If you chose notify (by setting runner.run(enable_notify=True)), all the trade action will be printed.
+If you chose notify (by setting actuator.run(enable_notify=True)), all the trade action will be printed.
 
 how to access data in strategy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -208,8 +208,8 @@ Demeter has preset some indicator, to help analysis the data.
 
    from demeter import simple_moving_average, TimeUnitEnum
 
-   # before runner.run()
-   runner.data["ma5"] = simple_moving_average(runner.data.price, 5, unit=TimeUnitEnum.hour)
+   # before actuator.run()
+   actuator.data["ma5"] = simple_moving_average(actuator.data.price, 5, unit=TimeUnitEnum.hour)
 
 this example shows how to add simple moving average indicator with 5 hour window. they can be access in strategy
 

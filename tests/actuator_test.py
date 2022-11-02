@@ -3,7 +3,7 @@ from datetime import date
 
 import demeter.indicator
 from demeter.download import ChainType
-from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, Lines
+from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, Lines
 
 eth = TokenInfo(name="eth", decimal=18)
 usdc = TokenInfo(name="usdc", decimal=6)
@@ -27,53 +27,53 @@ class WithSMA(Strategy):
         pass
 
 
-class TestRunner(unittest.TestCase):
+class TestActuator(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         self.pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
-        super(TestRunner, self).__init__(*args, **kwargs)
+        super(TestActuator, self).__init__(*args, **kwargs)
 
     def test_new(self):
-        runner = Runner(self.pool)
-        print(runner)
+        actuator = Actuator(self.pool)
+        print(actuator)
 
-    def get_one_runner(self) -> Runner:
-        runner = Runner(self.pool)
-        runner.strategy = EmptyStrategy()
-        runner.set_assets([Asset(usdc, 1067), Asset(eth, 1)])
-        runner.data_path = "../data"
-        runner.load_data(ChainType.Polygon.name,
+    def get_one_actuator(self) -> Actuator:
+        actuator = Actuator(self.pool)
+        actuator.strategy = EmptyStrategy()
+        actuator.set_assets([Asset(usdc, 1067), Asset(eth, 1)])
+        actuator.data_path = "../data"
+        actuator.load_data(ChainType.Polygon.name,
                          "0x45dda9cb7c25131df268515131f647d726f50608",
                          date(2022, 7, 1),
                          date(2022, 7, 1))
-        return runner
+        return actuator
 
     def test_simple_run(self):
-        runner = self.get_one_runner()
-        print(runner.data.head(5))
-        print(runner)
+        actuator = self.get_one_actuator()
+        print(actuator.data.head(5))
+        print(actuator)
 
     def test_lines(self):
         print(Lines())
 
     def test_run_empty_strategy(self):
-        runner = self.get_one_runner()
-        runner.run()
+        actuator = self.get_one_actuator()
+        actuator.run()
 
     def test_run_buy_on_second(self):
-        runner = self.get_one_runner()
-        runner.strategy = BuyOnSecond()
-        runner.run()
-        self.assertEqual(len(runner.actions), 1)
+        actuator = self.get_one_actuator()
+        actuator.strategy = BuyOnSecond()
+        actuator.run()
+        self.assertEqual(len(actuator.actions), 1)
 
     def test_run_empty_with_indicator(self):
-        runner = self.get_one_runner()
-        runner.strategy = WithSMA()
-        runner.run()
+        actuator = self.get_one_actuator()
+        actuator.strategy = WithSMA()
+        actuator.run()
 
     def test_load_missing_data(self):
-        runner = Runner(self.pool)
-        runner.data_path = "../data"
-        runner.load_data(ChainType.Polygon.name,
+        actuator = Actuator(self.pool)
+        actuator.data_path = "../data"
+        actuator.load_data(ChainType.Polygon.name,
                          "0x45dda9cb7c25131df268515131f647d726f50608",
                          date(2022, 7, 23),
                          date(2022, 7, 24))

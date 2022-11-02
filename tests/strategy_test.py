@@ -3,7 +3,7 @@ from typing import Union
 
 import pandas as pd
 
-from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, RowData, \
+from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, RowData, \
     ChainType, AtTimeTrigger, PeriodTrigger
 
 
@@ -38,13 +38,13 @@ if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)
     pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
 
-    runner_instance = Runner(pool)
-    runner_instance.strategy = TestStrategy()
-    runner_instance.set_assets([Asset(usdc, 5000), Asset(eth, 3)])
-    runner_instance.data_path = "../data"
-    runner_instance.load_data(ChainType.Polygon.name,
+    actuator_instance = Actuator(pool)
+    actuator_instance.strategy = TestStrategy()
+    actuator_instance.set_assets([Asset(usdc, 5000), Asset(eth, 3)])
+    actuator_instance.data_path = "../data"
+    actuator_instance.load_data(ChainType.Polygon.name,
                               "0x45dda9cb7c25131df268515131f647d726f50608",
-                              date(2022, 8, 19),
-                              date(2022, 8, 19))
-    runner_instance.run()
-    runner_instance.output()
+                                date(2022, 8, 19),
+                                date(2022, 8, 19))
+    actuator_instance.run()
+    actuator_instance.output()

@@ -8,6 +8,6 @@ References
    references/types
    references/strategy
    references/broker
-   references/runner
+   references/actuator
    references/indicator
    references/data_line

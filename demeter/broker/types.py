@@ -117,7 +117,7 @@ class Position(object):
 
 class PoolStatus(NamedTuple):
     """
-    current status of a pool, runners can notify current status to broker by filling this entity
+    current status of a pool, actuators can notify current status to broker by filling this entity
     """
     timestamp: datetime
     current_tick: int

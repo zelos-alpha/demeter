@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Union
 import demeter.indicator
-from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, AccountStatus, BuyAction, SellAction, RowData, \
+from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, AccountStatus, BuyAction, SellAction, RowData, \
     ChainType
 import pandas as pd
 from strategy_ploter import plotter, plot_position_return_decomposition
@@ -51,17 +51,17 @@ if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)
     pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
 
-    runner_instance = Runner(pool)
-    runner_instance.strategy = AddLpByMa(200)
-    runner_instance.set_assets([Asset(usdc, 2000)])
-    runner_instance.data_path = "../data"
-    runner_instance.load_data(ChainType.Polygon.name,
+    actuator_instance = Actuator(pool)
+    actuator_instance.strategy = AddLpByMa(200)
+    actuator_instance.set_assets([Asset(usdc, 2000)])
+    actuator_instance.data_path = "../data"
+    actuator_instance.load_data(ChainType.Polygon.name,
                               "0x45dda9cb7c25131df268515131f647d726f50608",
-                              date(2022, 8, 5),
-                              date(2022, 8, 20))
-    runner_instance.run(enable_notify=False)
-    print(runner_instance.final_status.net_value)
+                                date(2022, 8, 5),
+                                date(2022, 8, 20))
+    actuator_instance.run(enable_notify=False)
+    print(actuator_instance.final_status.net_value)
 
-    runner_instance.broker.get_account_status(runner_instance.final_status.price)
+    actuator_instance.broker.get_account_status(actuator_instance.final_status.price)
 
-    plot_position_return_decomposition(runner_instance.account_status_list)
+    plot_position_return_decomposition(actuator_instance.account_status_list)

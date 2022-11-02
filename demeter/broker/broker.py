@@ -105,7 +105,7 @@ class Broker(object):
     @property
     def pool_status(self) -> PoolStatus:
         """
-        current pool status. will be writen by runner.
+        current pool status. will be writen by actuator.
 
         :return: PoolStatus
         :rtype: PoolStatus
@@ -115,7 +115,7 @@ class Broker(object):
     @pool_status.setter
     def pool_status(self, value: PoolStatus):
         """
-        current pool status. will be writen by runner.
+        current pool status. will be writen by actuator.
 
         Do not update this property unless necessary
 

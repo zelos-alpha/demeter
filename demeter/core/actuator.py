@@ -20,7 +20,7 @@ def decimal_from_value(value):
     return Decimal(value)
 
 
-class Runner(object):
+class Actuator(object):
     """
     Core component of a back test. Manage the resources in a test, including broker/strategy/data/indicator,
 
@@ -312,7 +312,7 @@ class Runner(object):
         """
         start back test, the whole process including:
 
-        * reset runner
+        * reset actuator
         * initialize strategy (set object to strategy, then run strategy.initialize())
         * process each bar in data
             * prepare data in each row

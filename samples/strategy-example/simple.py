@@ -2,7 +2,7 @@ import unittest
 from typing import Union
 from datetime import timedelta, date
 
-from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, RowData, simple_moving_average, ChainType, \
+from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, RowData, simple_moving_average, ChainType, \
     TimeUnitEnum
 import pandas as pd
 
@@ -44,16 +44,16 @@ if __name__ == "__main__":
 
     pool = PoolBaseInfo(usdc, eth, 0.05, usdc)  # declare pool
 
-    runner = Runner(pool)  # declare runner
-    runner.strategy = MyFirstStrategy()  # set strategy to runner
-    runner.set_assets([Asset(usdc, 10000), Asset(eth, 10)])  # set primary balances
+    actuator = Actuator(pool)  # declare actuator
+    actuator.strategy = MyFirstStrategy()  # set strategy to actuator
+    actuator.set_assets([Asset(usdc, 10000), Asset(eth, 10)])  # set primary balances
 
-    runner.data_path = "../data"  # set data path
-    runner.load_data(ChainType.Polygon.name,  # load data
+    actuator.data_path = "../data"  # set data path
+    actuator.load_data(ChainType.Polygon.name,  # load data
                      "0x45dda9cb7c25131df268515131f647d726f50608",
-                     date(2022, 8, 20),
-                     date(2022, 8, 20))
-    runner.data["ma5"] = simple_moving_average(runner.data.price, 5, unit=TimeUnitEnum.hour)  # add indicator
+                       date(2022, 8, 20),
+                       date(2022, 8, 20))
+    actuator.data["ma5"] = simple_moving_average(actuator.data.price, 5, unit=TimeUnitEnum.hour)  # add indicator
 
-    runner.run()  # run test
-    runner.output()  # print final status
+    actuator.run()  # run test
+    actuator.output()  # print final status

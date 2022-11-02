@@ -1,9 +1,9 @@
 import unittest
 from typing import Union
 from datetime import timedelta
-from demeter import TokenInfo, PoolBaseInfo, Runner, Strategy, Asset, RowData
+from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, RowData
 import pandas as pd
-from .runner_simulate_data_test import get_clean_data
+from .actuator_simulate_data_test import get_clean_data
 from .common import assert_equal
 
 eth = TokenInfo(name="eth", decimal=18)
@@ -34,21 +34,21 @@ class WithSMA(Strategy):
             assert_equal(self.data.loc[row_data.timestamp + timedelta(minutes=2)].closeTick, 4)
 
 
-class TestRunner(unittest.TestCase):
+class TestActuator(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         self.pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
-        super(TestRunner, self).__init__(*args, **kwargs)
+        super(TestActuator, self).__init__(*args, **kwargs)
 
     def test_load_clean_data(self):
-        runner = Runner(self.pool)
-        runner.strategy = WithSMA()
-        runner.set_assets([Asset(usdc, 1000), Asset(eth, 1)])
-        tick = runner.broker.price_to_tick(1000)  # 207243
-        runner.data = get_clean_data(runner,
+        actuator = Actuator(self.pool)
+        actuator.strategy = WithSMA()
+        actuator.set_assets([Asset(usdc, 1000), Asset(eth, 1)])
+        tick = actuator.broker.price_to_tick(1000)  # 207243
+        actuator.data = get_clean_data(actuator,
                                      tick,
                                      1000 * 10 ** usdc.decimal,
                                      1 * 10 ** eth.decimal,
                                      "10000000000000000")
-        runner.data["closeTick"] = pd.Series(data=range(5), index=runner.data.index)
-        runner.run()
-        runner.output()
+        actuator.data["closeTick"] = pd.Series(data=range(5), index=actuator.data.index)
+        actuator.run()
+        actuator.output()
