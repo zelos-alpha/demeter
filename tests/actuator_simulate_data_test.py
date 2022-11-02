@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, Lines, AccountStatus
-from demeter.broker.liquitidymath import getSqrtRatioAtTick
+from demeter.broker.liquitidymath import get_sqrt_ratio_at_tick
 from demeter.broker.v3_core import V3CoreLib
 
 eth = TokenInfo(name="eth", decimal=18)
@@ -70,7 +70,7 @@ class TestActuator(unittest.TestCase):
                                    Decimal(100),
                                    tick - 1000,
                                    tick + 1000,
-                                   getSqrtRatioAtTick(tick))
+                                   get_sqrt_ratio_at_tick(tick))
         print(token0_used, token1_used, position_info, liquidity)
         actuator.data = get_clean_data(actuator,
                                      tick,

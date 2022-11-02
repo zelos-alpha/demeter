@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from .helper import quote_price_to_tick, from_wei
-from .liquitidymath import get_amounts, getLiquidity
+from .liquitidymath import get_amounts, get_liquidity
 from .types import PoolBaseInfo, Position, PoolStatus
 from .._typing import PositionInfo
 
@@ -11,9 +11,9 @@ class V3CoreLib(object):
     def new_position(pool: PoolBaseInfo,
                      token0_amount: Decimal, token1_amount: Decimal,
                      lower_tick: int, upper_tick: int, sqrt_price_x96: int):
-        position_liq = getLiquidity(sqrt_price_x96, lower_tick, upper_tick,
-                                    token0_amount, token1_amount,
-                                    pool.token0.decimal, pool.token1.decimal)
+        position_liq = get_liquidity(sqrt_price_x96, lower_tick, upper_tick,
+                                     token0_amount, token1_amount,
+                                     pool.token0.decimal, pool.token1.decimal)
         token0_in_position, token1_in_position = get_amounts(sqrt_price_x96, lower_tick, upper_tick,
                                                              position_liq, pool.token0.decimal, pool.token1.decimal)
         new_position_entity = PositionInfo(lower_tick=lower_tick,

@@ -2,7 +2,7 @@ from datetime import datetime, date
 from decimal import Decimal
 
 from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, ChainType
-from demeter.broker.liquitidymath import getSqrtRatioAtTick
+from demeter.broker.liquitidymath import get_sqrt_ratio_at_tick
 
 
 # https://polygonscan.com/tx/0x288f2e2d123ffa2b041cce53962c064c134a14bb2be1793b2e5b0c518f4eb00f
@@ -13,7 +13,7 @@ class ActualStrategy(Strategy):
                                                                    200930,
                                                                    Decimal("315.218605"),
                                                                    Decimal("0.135641006407938685"),
-                                                                   getSqrtRatioAtTick(200786))
+                                                                   get_sqrt_ratio_at_tick(200786))
             print(p, l)
 
 
