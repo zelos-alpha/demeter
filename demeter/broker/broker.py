@@ -236,13 +236,14 @@ class Broker(object):
         base_fee_sum = DECIMAL_ZERO
         quote_fee_sum = DECIMAL_ZERO
         tick = quote_price_to_tick(price, self.asset0.decimal, self.asset1.decimal, self._is_token0_base)
+        sqrt_price_x96=get_sqrt_ratio_at_tick(tick)
         deposit_amount0 = deposit_amount1 = Decimal(0)
         for position_info, position in self._positions.items():
             base_fee, quote_fee = Broker.convert_pair(position.pending_amount0,
                                                       position.pending_amount1)
             base_fee_sum += base_fee
             quote_fee_sum += quote_fee
-            amount0, amount1 = V3CoreLib.get_token_amounts(self._pools, position_info, tick, position.liquidity)
+            amount0, amount1 = V3CoreLib.get_token_amounts(self._pools, position_info, sqrt_price_x96, position.liquidity)
             deposit_amount0 += amount0
             deposit_amount1 += amount1
 
