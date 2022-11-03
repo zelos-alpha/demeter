@@ -287,7 +287,7 @@ class Broker(object):
 
         if sqrt_price_x96 == -1:
             # self.current_tick must be initialed
-            sqrt_price_x96 = getSqrtRatioAtTick(int(self.pool_status.current_tick))
+            sqrt_price_x96 = getSqrtRatioAtTick(self.pool_status.current_tick)
         if lower_tick > upper_tick:
             raise ZelosError("lower tick should be less than upper tick")
 
@@ -306,8 +306,8 @@ class Broker(object):
         return position_info, token0_used, token1_used, liquidity
 
     def __remove_liquidity(self, position: PositionInfo, liquidity: int = None, sqrt_price_x96: int = -1):
-        sqrt_price_x96 = int(sqrt_price_x96) if sqrt_price_x96 != -1 else getSqrtRatioAtTick(
-            self.pool_status.current_tick)
+        sqrt_price_x96 = int(sqrt_price_x96) if sqrt_price_x96 != -1 else \
+            getSqrtRatioAtTick(self.pool_status.current_tick)
         delta_liquidity = liquidity if liquidity and liquidity < self.positions[position].liquidity \
             else self.positions[position].liquidity
         token0_get, token1_get = V3CoreLib.close_position(self._pool_info, position, delta_liquidity, sqrt_price_x96)
