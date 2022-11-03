@@ -2,8 +2,8 @@ from decimal import Decimal
 
 from .helper import quote_price_to_tick, from_wei
 from .liquitidymath import get_amounts, get_liquidity
-from .types import PoolBaseInfo, Position, PoolStatus
-from .._typing import PositionInfo
+from .types import Position, PoolStatus
+from .._typing import PoolBaseInfo, PositionInfo
 
 
 class V3CoreLib(object):

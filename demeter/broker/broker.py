@@ -1,3 +1,5 @@
+import collections.abc
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from typing import Union
@@ -6,9 +8,39 @@ from .helper import tick_to_quote_price, quote_price_to_tick
 from .liquitidymath import get_sqrt_ratio_at_tick
 from .types import PoolBaseInfo, TokenInfo, BrokerAsset, Position, PoolStatus
 from .v3_core import V3CoreLib
-from .._typing import PositionInfo, ZelosError, AddLiquidityAction, RemoveLiquidityAction, BuyAction, SellAction, \
+from .._typing import PositionInfo, DemeterError, AddLiquidityAction, RemoveLiquidityAction, BuyAction, SellAction, \
     CollectFeeAction, AccountStatus, DECIMAL_ZERO, UnitDecimal
 from ..utils.application import float_param_formatter
+
+
+@dataclass
+class AssetPair:
+    base: BrokerAsset
+    quote: BrokerAsset
+
+
+class PositionContainer:
+    def __init__(self, pools: [PoolBaseInfo]):
+        self.positions: {PoolBaseInfo, dict[PositionInfo:Position]} = {}
+        for pool in pools:
+            self.positions[pool] = {}
+
+    def get(self, pool: PoolBaseInfo, position: PositionInfo):
+        return self.positions[pool][position]
+
+    def set(self, pool: PoolBaseInfo, position: PositionInfo, value: Position):
+        self.positions[pool][position] = value
+
+    def get_by_pool(self, pool: PoolBaseInfo):
+        return self.positions[pool]
+
+    def __str__(self):
+        value = "PositionContainer: \n"
+        for index, pool in enumerate(self.positions):
+            value += "pool {}, {}: (".format(index, pool)
+            for pos_index, position in enumerate(self.positions[pool]):
+                value += "{}: {}".format(position, self.positions[pool][position])
+            value += ")\n"
 
 
 class Broker(object):
@@ -20,30 +52,54 @@ class Broker(object):
     :type pool_info: PoolBaseInfo
     """
 
-    def __init__(self, pool_info: PoolBaseInfo):
-        self._pool_info = pool_info
+    def __init__(self, pool_info: [PoolBaseInfo]):
+        if not isinstance(pool_info, collections.abc):
+            pool_info = [pool_info]
+        self._pools: [PoolBaseInfo] = pool_info
+        self._default_pool = self._pools[0]
+        self._base_token = None
+        tokens = []
+        for pool in self._pools:
+            tokens.append(pool.token0)
+            tokens.append(pool.token1)
+            base_token = pool.token0 if pool.is_token0_base else pool.token1
+            if self._base_token is None:
+                self._base_token = base_token
+            else:
+                if self._base_token != base_token:
+                    raise DemeterError("base token should be the same")
         # init balance
-        self._is_token0_base = pool_info.is_token0_base
-        self._asset0 = BrokerAsset(pool_info.token0, DECIMAL_ZERO)
-        self._asset1 = BrokerAsset(pool_info.token1, DECIMAL_ZERO)
-        base_asset, quote_asset = self.__convert_pair(self._asset0, self._asset1)
-        self._base_asset: BrokerAsset = base_asset
-        self._quote_asset: BrokerAsset = quote_asset
-        self._init_amount0 = DECIMAL_ZERO
-        self._init_amount1 = DECIMAL_ZERO
+        tokens = list(set(tokens))
+        self._assets: dict[TokenInfo, BrokerAsset] = {}
+        for token in tokens:
+            self._assets[token] = BrokerAsset(token, DECIMAL_ZERO)
+        self._pool_assets = {}
+        for pool in self._pools:
+            base_asset, quote_asset = Broker.convert_pair(self._assets[pool.token0], self._assets[pool.token1])
+            self._pool_assets[pool] = AssetPair(base_asset, quote_asset)
+
         # status
-        self._positions: dict[PositionInfo:Position] = {}
-        self._pool_status = PoolStatus(None, 0, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO)
-        self._price_unit = f"{self.base_asset.name}/{self.quote_asset.name}"
+        self._positions: PositionContainer = PositionContainer(self._pools)
+        self._pool_status: dict[PoolBaseInfo, PoolStatus] = {}
+        for pool in self._pools:
+            self._pool_status[pool] = PoolStatus(None, 0, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO,
+                                                 f"{self._pool_assets[pool].base.name}/{self._pool_assets[pool].quote.name}")
         # internal temporary variable
         self.action_buffer = []
 
     def __str__(self):
-        return f"Pool: {self.pool_info}, position count: {len(self.positions)}, " \
-               f"balance: {self.base_asset.balance}{self.base_asset.name},{self.quote_asset.balance}{self.quote_asset.name}"
+        info = "Broker:\n\tPools: "
+        for index, pool in enumerate(self.pools):
+            info += "{}: {}\t".format(index, pool)
+        info += "\n"
+        info += str(self.positions)
+        info += "\nAssets:"
+        for index, asset in enumerate(self._assets):
+            info += "{}:{} ".format(asset.name, self._assets[asset].balance)
+        return info
 
     @property
-    def positions(self) -> dict[PositionInfo:Position]:
+    def positions(self) -> PositionContainer:
         """
         current positions in broker
 
@@ -53,67 +109,53 @@ class Broker(object):
         return self._positions
 
     @property
-    def pool_info(self) -> PoolBaseInfo:
+    def pools(self) -> [PoolBaseInfo]:
         """
         Get pool info.
 
         :return: pool info
-        :rtype: PoolBaseInfo
+        :rtype: [PoolBaseInfo]
         """
-        return self._pool_info
+        return self._pools
 
-    @property
-    def asset0(self) -> BrokerAsset:
+    def get_asset(self, token: TokenInfo) -> BrokerAsset:
         """
         get asset 0 info, including balance
 
         :return: BrokerAsset
         :rtype: BrokerAsset
         """
-        return self._asset0
+        return self._assets[token]
 
-    @property
-    def asset1(self) -> BrokerAsset:
-        """
-        get asset 1 info, including balance
-
-        :return: BrokerAsset
-        :rtype: BrokerAsset
-        """
-        return self._asset1
-
-    @property
-    def base_asset(self) -> BrokerAsset:
+    def get_base_asset(self, pool) -> BrokerAsset:
         """
         base asset, defined by pool info. It's the reference of asset0 or asset1
 
         :return: BrokerAsset
         :rtype: BrokerAsset
         """
-        return self._base_asset
+        return self._pool_assets[pool].base
 
-    @property
-    def quote_asset(self) -> BrokerAsset:
+    def get_quote_asset(self, pool) -> BrokerAsset:
         """
         quote asset, defined by pool info. It's the reference of asset0 or asset1
 
         :return: BrokerAsset
         :rtype: BrokerAsset
         """
-        return self._quote_asset
+        return self._pool_assets[pool].quote
 
     @property
-    def pool_status(self) -> PoolStatus:
+    def get_pool_status(self, pool) -> PoolStatus:
         """
         current pool status. will be writen by actuator.
 
         :return: PoolStatus
         :rtype: PoolStatus
         """
-        return self._pool_status
+        return self._pool_status[pool]
 
-    @pool_status.setter
-    def pool_status(self, value: PoolStatus):
+    def set_pool_status(self, pool, value: PoolStatus):
         """
         current pool status. will be writen by actuator.
 
@@ -122,9 +164,9 @@ class Broker(object):
         :param value: current pool status
         :type value: PoolStatus
         """
-        self._pool_status = value
+        self._pool_status[pool] = value
 
-    def position(self, position_info: PositionInfo) -> Position:
+    def get_position(self, pool: PoolBaseInfo, position_info: PositionInfo) -> Position:
         """
         get position by position information
 
@@ -133,9 +175,10 @@ class Broker(object):
         :return: Position
         :rtype: Position
         """
-        return self._positions[position_info]
+        return self._positions.get(pool, position_info)
 
-    def __convert_pair(self, any0, any1):
+    @staticmethod
+    def convert_pair(pool: PoolBaseInfo, any0, any1):
         """
         convert order of token0/token1 to base_token/quote_token, according to self.is_token0_base.
 
@@ -145,7 +188,7 @@ class Broker(object):
         :param any1: token1 or any property of token1, eg. balance...
         :return: (base,qoute) or (token0,token1)
         """
-        return (any0, any1) if self._is_token0_base else (any1, any0)
+        return (any0, any1) if pool.is_token0_base else (any1, any0)
 
     @float_param_formatter
     def set_asset(self, token: TokenInfo, amount: Union[Decimal, float]):
@@ -157,16 +200,9 @@ class Broker(object):
         :param amount: balance, eg: 1.2345
         :type amount: Union[Decimal, float]
         """
-        if not self._pool_info:
-            raise ZelosError("set up pool info first")
-        if token == self._asset0.token_info:
-            self._asset0.balance = amount
-            self._init_amount0 = amount
-        elif token == self._asset1.token_info:
-            self._asset1.balance = amount
-            self._init_amount1 = amount
-        else:
-            raise ZelosError("unknown token")
+        if token not in self._assets:
+            raise DemeterError("unknown token")
+        self._assets[token].balance = amount
 
     def update(self):
         """
@@ -180,32 +216,9 @@ class Broker(object):
 
         fee will be calculated by liquidity
         """
-        for position_info, position in self._positions.items():
-            V3CoreLib.update_fee(self.pool_info, position_info, position, self.pool_status)
-
-    def get_init_account_status(self, init_price: Decimal, timestamp: datetime = None) -> AccountStatus:
-        """
-        Get initial status, which will be saved before running any test.
-
-        :param timestamp: timestamp
-        :type timestamp: datetime
-        :param init_price: beginning price of testing, usually the price in the first item of data array
-        :type init_price: Decimal
-        :return: status
-        :rtype: AccountStatus
-
-        """
-        base_init_amount, quote_init_amount = self.__convert_pair(self._init_amount0, self._init_amount1)
-        capital = base_init_amount + quote_init_amount * init_price
-        return AccountStatus(timestamp,
-                             UnitDecimal(base_init_amount, self.base_asset.name),
-                             UnitDecimal(quote_init_amount, self.quote_asset.name),
-                             UnitDecimal(DECIMAL_ZERO, self.base_asset.name),
-                             UnitDecimal(DECIMAL_ZERO, self.quote_asset.name),
-                             UnitDecimal(DECIMAL_ZERO, self.base_asset.name),
-                             UnitDecimal(DECIMAL_ZERO, self.quote_asset.name),
-                             UnitDecimal(capital, self.base_asset.name),
-                             UnitDecimal(init_price, self._price_unit))
+        for pool in self.pools:
+            for position_info, position in self._positions.positions[pool]:
+                V3CoreLib.update_fee(pool, position_info, position, self._pool_status[pool])
 
     def get_account_status(self, price: Decimal = None, timestamp: datetime = None) -> AccountStatus:
         """
@@ -219,24 +232,24 @@ class Broker(object):
         """
         if price is None:
             price = self.pool_status.price
-        base_asset, quote_asset = self.__convert_pair(self._asset0, self._asset1)
+        base_asset, quote_asset = Broker.convert_pair(pool, self._asset0, self._asset1)
         base_fee_sum = DECIMAL_ZERO
         quote_fee_sum = DECIMAL_ZERO
         tick = quote_price_to_tick(price, self.asset0.decimal, self.asset1.decimal, self._is_token0_base)
         deposit_amount0 = deposit_amount1 = Decimal(0)
         for position_info, position in self._positions.items():
-            base_fee, quote_fee = self.__convert_pair(position.pending_amount0,
+            base_fee, quote_fee = Broker.convert_pair(position.pending_amount0,
                                                       position.pending_amount1)
             base_fee_sum += base_fee
             quote_fee_sum += quote_fee
-            amount0, amount1 = V3CoreLib.get_token_amounts(self._pool_info, position_info, tick, position.liquidity)
+            amount0, amount1 = V3CoreLib.get_token_amounts(self._pools, position_info, tick, position.liquidity)
             deposit_amount0 += amount0
             deposit_amount1 += amount1
 
-        base_deposit_amount, quote_deposit_amount = self.__convert_pair(deposit_amount0, deposit_amount1)
+        base_deposit_amount, quote_deposit_amount = Broker.convert_pair(deposit_amount0, deposit_amount1)
         capital = (base_asset.balance + base_fee_sum + base_deposit_amount) + \
                   (quote_asset.balance + quote_fee_sum + quote_deposit_amount) * price
-        base_init_amount, quote_init_amount = self.__convert_pair(self._init_amount0, self._init_amount1)
+        base_init_amount, quote_init_amount = Broker.convert_pair(self._init_amount0, self._init_amount1)
 
         net_value = capital / (base_init_amount + price * quote_init_amount)
 
@@ -260,7 +273,7 @@ class Broker(object):
         :return: price
         :rtype: Decimal
         """
-        return tick_to_quote_price(int(tick), self.pool_info.token0.decimal, self.pool_info.token1.decimal,
+        return tick_to_quote_price(int(tick), self.pools.token0.decimal, self.pools.token1.decimal,
                                    self._is_token0_base)
 
     @float_param_formatter
@@ -273,36 +286,37 @@ class Broker(object):
         :return: tick
         :rtype: int
         """
-        return quote_price_to_tick(price, self.pool_info.token0.decimal, self.pool_info.token1.decimal,
+        return quote_price_to_tick(price, self.pools.token0.decimal, self.pools.token1.decimal,
                                    self._is_token0_base)
 
     def _add_liquidity_by_tick(self, token0_amount: Decimal,
                                token1_amount: Decimal,
                                lower_tick: int,
                                upper_tick: int,
-                               sqrt_price_x96: int = -1):
+                               sqrt_price_x96: int = -1,
+                               pool: PoolBaseInfo = None):
         lower_tick = int(lower_tick)
         upper_tick = int(upper_tick)
         sqrt_price_x96 = int(sqrt_price_x96)
 
         if sqrt_price_x96 == -1:
             # self.current_tick must be initialed
-            sqrt_price_x96 = get_sqrt_ratio_at_tick(int(self.pool_status.current_tick))
+            sqrt_price_x96 = get_sqrt_ratio_at_tick(self.pool_status.current_tick)
         if lower_tick > upper_tick:
-            raise ZelosError("lower tick should be less than upper tick")
+            raise DemeterError("lower tick should be less than upper tick")
 
-        token0_used, token1_used, liquidity, position_info = V3CoreLib.new_position(self._pool_info,
+        token0_used, token1_used, liquidity, position_info = V3CoreLib.new_position(pool,
                                                                                     token0_amount,
                                                                                     token1_amount,
                                                                                     lower_tick,
                                                                                     upper_tick,
                                                                                     sqrt_price_x96)
-        if position_info in self._positions:
+        if position_info in self._positions.get_by_pool(pool):
             self._positions[position_info].liquidity += liquidity
         else:
             self._positions[position_info] = Position(DECIMAL_ZERO, DECIMAL_ZERO, liquidity)
-        self._asset0.sub(token0_used)
-        self._asset1.sub(token1_used)
+        self._assets[pool.token0].sub(token0_used)
+        self._assets[pool.token1].sub(token1_used)
         return position_info, token0_used, token1_used, liquidity
 
     def __remove_liquidity(self, position: PositionInfo, liquidity: int = None, sqrt_price_x96: int = -1):
@@ -310,7 +324,7 @@ class Broker(object):
             self.pool_status.current_tick)
         delta_liquidity = liquidity if liquidity and liquidity < self.positions[position].liquidity \
             else self.positions[position].liquidity
-        token0_get, token1_get = V3CoreLib.close_position(self._pool_info, position, delta_liquidity, sqrt_price_x96)
+        token0_get, token1_get = V3CoreLib.close_position(self._pools, position, delta_liquidity, sqrt_price_x96)
 
         self._positions[position].liquidity = self.positions[position].liquidity - delta_liquidity
         self._positions[position].pending_amount0 += token0_get
@@ -338,7 +352,8 @@ class Broker(object):
                       lower_quote_price: Union[Decimal, float],
                       upper_quote_price: Union[Decimal, float],
                       base_max_amount: Union[Decimal, float] = None,
-                      quote_max_amount: Union[Decimal, float] = None) -> (PositionInfo, Decimal, Decimal):
+                      quote_max_amount: Union[Decimal, float] = None,
+                      pool: PoolBaseInfo = None) -> (PositionInfo, Decimal, Decimal):
         """
 
         add liquidity, then get a new position
@@ -354,19 +369,23 @@ class Broker(object):
         :return: added position, base token used, quote token used
         :rtype: (PositionInfo, Decimal, Decimal)
         """
-        base_max_amount = self.base_asset.balance if base_max_amount is None else base_max_amount
-        quote_max_amount = self.quote_asset.balance if quote_max_amount is None else quote_max_amount
+        if not pool:
+            pool = self._default_pool
+        base_max_amount = self._pool_assets[pool].base.balance if base_max_amount is None else base_max_amount
+        quote_max_amount = self._pool_assets[pool].quote.balance if quote_max_amount is None else quote_max_amount
 
-        token0_amt, token1_amt = self.__convert_pair(base_max_amount, quote_max_amount)
-        lower_tick, upper_tick = V3CoreLib.quote_price_pair_to_tick(self._pool_info, lower_quote_price,
+        token0_amt, token1_amt = Broker.convert_pair(pool, base_max_amount, quote_max_amount)
+        lower_tick, upper_tick = V3CoreLib.quote_price_pair_to_tick(self._pools, lower_quote_price,
                                                                     upper_quote_price)
-        lower_tick, upper_tick = self.__convert_pair(upper_tick, lower_tick)
+        lower_tick, upper_tick = Broker.convert_pair(pool.upper_tick, lower_tick)
         (created_position, token0_used, token1_used, liquidity) = self._add_liquidity_by_tick(token0_amt,
                                                                                               token1_amt,
                                                                                               lower_tick,
-                                                                                              upper_tick)
-        base_used, quote_used = self.__convert_pair(token0_used, token1_used)
-        self.action_buffer.append(AddLiquidityAction(UnitDecimal(self.base_asset.balance, self.base_asset.name),
+                                                                                              upper_tick,
+                                                                                              pool)
+        base_used, quote_used = self.convert_pair(token0_used, token1_used)
+        self.action_buffer.append(AddLiquidityAction(pool,
+                                                     UnitDecimal(self.base_asset.balance, self.base_asset.name),
                                                      UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
                                                      UnitDecimal(base_max_amount, self.base_asset.name),
                                                      UnitDecimal(quote_max_amount, self.quote_asset.name),
@@ -382,7 +401,8 @@ class Broker(object):
                               upper_tick: int,
                               base_max_amount: Union[Decimal, float] = None,
                               quote_max_amount: Union[Decimal, float] = None,
-                              sqrt_price_x96: int = -1):
+                              sqrt_price_x96: int = -1,
+                              pool: PoolBaseInfo = None):
         """
 
         add liquidity, you need to set tick instead of price.
@@ -400,16 +420,20 @@ class Broker(object):
         :return: added position, base token used, quote token used
         :rtype: (PositionInfo, Decimal, Decimal)
         """
-        base_max_amount = self.base_asset.balance if base_max_amount is None else base_max_amount
-        quote_max_amount = self.quote_asset.balance if quote_max_amount is None else quote_max_amount
-        token0_amt, token1_amt = self.__convert_pair(base_max_amount, quote_max_amount)
+        if not pool:
+            pool = self._default_pool
+        base_max_amount = self._pool_assets[pool].base.balance if base_max_amount is None else base_max_amount
+        quote_max_amount = self._pool_assets[pool].quote.balance if quote_max_amount is None else quote_max_amount
+        token0_amt, token1_amt = Broker.convert_pair(pool, base_max_amount, quote_max_amount)
         (created_position, token0_used, token1_used, liquidity) = self._add_liquidity_by_tick(token0_amt,
                                                                                               token1_amt,
                                                                                               lower_tick,
                                                                                               upper_tick,
-                                                                                              sqrt_price_x96)
-        base_used, quote_used = self.__convert_pair(token0_used, token1_used)
-        self.action_buffer.append(AddLiquidityAction(UnitDecimal(self.base_asset.balance, self.base_asset.name),
+                                                                                              sqrt_price_x96,
+                                                                                              pool)
+        base_used, quote_used = Broker.convert_pair(token0_used, token1_used)
+        self.action_buffer.append(AddLiquidityAction(pool,
+                                                     UnitDecimal(self.base_asset.balance, self.base_asset.name),
                                                      UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
                                                      UnitDecimal(base_max_amount, self.base_asset.name),
                                                      UnitDecimal(quote_max_amount, self.quote_asset.name),
@@ -441,10 +465,10 @@ class Broker(object):
         :rtype:  (Decimal,Decimal)
         """
         if liquidity and liquidity < 0:
-            raise ZelosError("liquidity should large than 0")
+            raise DemeterError("liquidity should large than 0")
         token0_get, token1_get, delta_liquidity = self.__remove_liquidity(position, liquidity, sqrt_price_x96)
 
-        base_get, quote_get = self.__convert_pair(token0_get, token1_get)
+        base_get, quote_get = Broker.convert_pair(token0_get, token1_get)
         self.action_buffer.append(
             RemoveLiquidityAction(
                 UnitDecimal(self.base_asset.balance, self.base_asset.name),
@@ -480,10 +504,10 @@ class Broker(object):
         """
         if (max_collect_amount0 and max_collect_amount0 < 0) or \
                 (max_collect_amount1 and max_collect_amount1 < 0):
-            raise ZelosError("collect amount should large than 0")
+            raise DemeterError("collect amount should large than 0")
         token0_get, token1_get = self.__collect_fee(self._positions[position])
 
-        base_get, quote_get = self.__convert_pair(token0_get, token1_get)
+        base_get, quote_get = Broker.convert_pair(token0_get, token1_get)
         if self._positions[position]:
             self.action_buffer.append(
                 CollectFeeAction(
@@ -513,12 +537,12 @@ class Broker(object):
         """
         price = price if price else self.pool_status.price
         from_amount = price * amount
-        from_amount_with_fee = from_amount * (1 + self.pool_info.fee_rate)
+        from_amount_with_fee = from_amount * (1 + self.pools.fee_rate)
         fee = from_amount_with_fee - from_amount
-        from_asset, to_asset = self.__convert_pair(self._asset0, self._asset1)
+        from_asset, to_asset = Broker.convert_pair(self._asset0, self._asset1)
         from_asset.sub(from_amount_with_fee)
         to_asset.add(amount)
-        base_amount, quote_amount = self.__convert_pair(from_amount, amount)
+        base_amount, quote_amount = Broker.convert_pair(from_amount, amount)
         self.action_buffer.append(BuyAction(UnitDecimal(self.base_asset.balance, self.base_asset.name),
                                             UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
                                             UnitDecimal(amount, self.quote_asset.name),
@@ -542,13 +566,13 @@ class Broker(object):
         """
         price = price if price else self.pool_status.price
         from_amount_with_fee = amount
-        from_amount = from_amount_with_fee * (1 - self.pool_info.fee_rate)
+        from_amount = from_amount_with_fee * (1 - self.pools.fee_rate)
         to_amount = from_amount * price
         fee = from_amount_with_fee - from_amount
-        to_asset, from_asset = self.__convert_pair(self._asset0, self._asset1)
+        to_asset, from_asset = Broker.convert_pair(self._asset0, self._asset1)
         from_asset.sub(from_amount_with_fee)
         to_asset.add(to_amount)
-        base_amount, quote_amount = self.__convert_pair(to_amount, from_amount)
+        base_amount, quote_amount = Broker.convert_pair(to_amount, from_amount)
         self.action_buffer.append(SellAction(UnitDecimal(self.base_asset.balance, self.base_asset.name),
                                              UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
                                              UnitDecimal(amount, self.quote_asset.name),

@@ -69,6 +69,50 @@ class TokenInfo(NamedTuple):
     decimal: int
 
 
+class PoolBaseInfo(object):
+    """
+    pool information, corresponding with definition in pool contract.
+
+    :param token0: First token in  pool contract.
+    :type token0:  TokenInfo
+    :param token1: Second token in  pool contract.
+    :type token1: TokenInfo
+    :param fee: fee rate of this pool, should be among [0.05, 0.3, 1]
+    :type fee: float
+    :param base_token: which token will be considered as base token. eg: to a token pair of USDT/BTC, if you want price unit to be like 10000 usdt/btc, you should set usdt as base token, otherwise if price unit is 0.00001 btc/usdt, you should set btc as base token
+    :type base_token: TokenInfo
+    """
+
+    def __init__(self, token0: TokenInfo, token1: TokenInfo, fee: float, base_token):
+        self.token0 = token0
+        self.token1 = token1
+        self.is_token0_base = (base_token == token0)
+        self.base_token = base_token
+        fee = str(fee)  # keep precision
+        match fee:
+            case "0.05":
+                self.tickSpacing = 10
+            case "0.3":
+                self.tickSpacing = 60
+            case "1":
+                self.tickSpacing = 200
+            case _:
+                raise DemeterError("fee should be 0.05 or 0.3 or 1")
+        self.fee = Decimal(fee) * Decimal(10000)
+        self.fee_rate = Decimal(fee) / Decimal(100)
+
+    def __str__(self):
+        """
+        get string
+        :return:
+        :rtype:
+        """
+        return "PoolBaseInfo(Token0: {},".format(self.token0) + \
+               "Token1: {},".format(self.token1) + \
+               "fee: {},".format(self.fee_rate * Decimal(100)) + \
+               "base token: {})".format(self.token0.name if self.is_token0_base else self.token1.name)
+
+
 class Asset(NamedTuple):
     """
     asset info of a token
@@ -277,6 +321,7 @@ class AddLiquidityAction(BaseAction):
     :param liquidity: liquidity added
     :type liquidity: int
     """
+    pool: PoolBaseInfo
     base_amount_max: UnitDecimal
     quote_amount_max: UnitDecimal
     lower_quote_price: UnitDecimal
@@ -473,5 +518,5 @@ class EvaluatingIndicator:
         })
 
 
-class ZelosError(RuntimeError):
+class DemeterError(RuntimeError):
     pass

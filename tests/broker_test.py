@@ -156,7 +156,7 @@ class TestBroker(unittest.TestCase):
         print("=========after buy======================================================================")
         TestBroker.print_broker(broker)
         self.assertEqual(broker.asset0.balance,
-                         token0_before - broker.pool_status.price * Decimal(0.5) * (1 + broker.pool_info.fee_rate))
+                         token0_before - broker.pool_status.price * Decimal(0.5) * (1 + broker.pools.fee_rate))
         self.assertEqual(broker.asset1.balance, token1_before + Decimal(0.5))
 
     def test_sell(self):
@@ -168,5 +168,5 @@ class TestBroker(unittest.TestCase):
         print("=========after buy======================================================================")
         TestBroker.print_broker(broker)
         self.assertEqual(broker.asset0.balance,
-                         token0_before + broker.pool_status.price * Decimal(1) * (1 - broker.pool_info.fee_rate))
+                         token0_before + broker.pool_status.price * Decimal(1) * (1 - broker.pools.fee_rate))
         self.assertEqual(broker.asset1.balance, token1_before - Decimal(1))

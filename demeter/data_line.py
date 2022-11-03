@@ -3,7 +3,7 @@ from enum import Enum
 import pandas as pd
 from pandas import _typing as pd_typing
 
-from ._typing import ZelosError
+from ._typing import DemeterError
 
 DEFAULT_AGG_METHOD = "first"
 
@@ -151,7 +151,7 @@ class Line(pd.Series, Cursorable):
     ):
 
         if not isinstance(index, pd.core.indexes.datetimes.DatetimeIndex):
-            raise ZelosError("index must be datetime")
+            raise DemeterError("index must be datetime")
         super().__init__(data, index, dtype, name, copy, fastpath)
         self.line_type = line_type
         Cursorable.__init__(self)
@@ -261,7 +261,7 @@ class Lines(pd.DataFrame, Cursorable):
             copy: bool | None = None,
     ):
         if (index is not None) and (not isinstance(index, pd.core.indexes.datetimes.DatetimeIndex)):
-            raise ZelosError("index must be datetime")
+            raise DemeterError("index must be datetime")
         # add line by type
         line_data = dict()
         if data is not None:
@@ -299,7 +299,7 @@ class Lines(pd.DataFrame, Cursorable):
 
         """
         if not isinstance(column.index, pd.core.indexes.datetimes.DatetimeIndex):
-            raise ZelosError("index must be datetime")
+            raise DemeterError("index must be datetime")
         if self.data.columns.size == 0:
             self.data.index = column.index
         self.data[name] = column
@@ -402,7 +402,7 @@ class Lines(pd.DataFrame, Cursorable):
         :rtype: Line
         """
         if not index and not name:
-            raise ZelosError("must use index or name")
+            raise DemeterError("must use index or name")
         if index:
             return Line.from_series(self.iloc[:, index], self.cursor)
         elif name:

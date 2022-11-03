@@ -1,6 +1,6 @@
 from pandas import Timedelta
 
-from .._typing import ZelosError, DECIMAL_ZERO, TimeUnitEnum
+from .._typing import DemeterError, DECIMAL_ZERO, TimeUnitEnum
 import pandas as pd
 from enum import Enum
 from decimal import Decimal
@@ -20,16 +20,16 @@ def simple_moving_average(data: pd.Series, n=5, unit=TimeUnitEnum.hour) -> pd.Se
     :rtype: Series
     """
     if data.size < 2:
-        raise ZelosError("not enough data for simple_moving_average")
+        raise DemeterError("not enough data for simple_moving_average")
     timespan: Timedelta = data.index[1] - data.index[0]
     if timespan.seconds % 60 != 0:
-        return ZelosError("no seconds is allowed")
+        return DemeterError("no seconds is allowed")
     span_in_minute = timespan.total_seconds() / 60
     if unit.value % span_in_minute != 0:
-        raise ZelosError(f"ma span is {n}{unit.name}, but data span is {span_in_minute}minute, cannot divide exactly")
+        raise DemeterError(f"ma span is {n}{unit.name}, but data span is {span_in_minute}minute, cannot divide exactly")
     real_n = n * int(unit.value / span_in_minute)
     if data.size < real_n:
-        raise ZelosError("not enough data for simple_moving_average")
+        raise DemeterError("not enough data for simple_moving_average")
 
     sum = Decimal(0)
 
