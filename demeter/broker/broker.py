@@ -234,22 +234,18 @@ class Broker(object):
             deposit_amount1 += amount1
 
         base_deposit_amount, quote_deposit_amount = self.__convert_pair(deposit_amount0, deposit_amount1)
-        capital = (base_asset.balance + base_fee_sum + base_deposit_amount) + \
-                  (quote_asset.balance + quote_fee_sum + quote_deposit_amount) * price
-        base_init_amount, quote_init_amount = self.__convert_pair(self._init_amount0, self._init_amount1)
+        net_value = (base_asset.balance + base_fee_sum + base_deposit_amount) + \
+                    (quote_asset.balance + quote_fee_sum + quote_deposit_amount) * price
 
-        net_value = capital / (base_init_amount + price * quote_init_amount)
-
-        profit_pct = (net_value - 1) * 100
-        return AccountStatus(timestamp,
-                             UnitDecimal(base_asset.balance, self.base_asset.name),
-                             UnitDecimal(quote_asset.balance, self.quote_asset.name),
-                             UnitDecimal(base_fee_sum, self.base_asset.name),
-                             UnitDecimal(quote_fee_sum, self.quote_asset.name),
-                             UnitDecimal(base_deposit_amount, self.base_asset.name),
-                             UnitDecimal(quote_deposit_amount, self.quote_asset.name),
-                             UnitDecimal(capital, self.base_asset.name),
-                             UnitDecimal(price, self._price_unit))
+        return AccountStatus(timestamp=timestamp,
+                             base_balance=UnitDecimal(base_asset.balance, self.base_asset.name),
+                             quote_balance=UnitDecimal(quote_asset.balance, self.quote_asset.name),
+                             base_uncollected=UnitDecimal(base_fee_sum, self.base_asset.name),
+                             quote_uncollected=UnitDecimal(quote_fee_sum, self.quote_asset.name),
+                             base_in_position=UnitDecimal(base_deposit_amount, self.base_asset.name),
+                             quote_in_position=UnitDecimal(quote_deposit_amount, self.quote_asset.name),
+                             net_value=UnitDecimal(net_value, self.base_asset.name),
+                             price=UnitDecimal(price, self._price_unit))
 
     def tick_to_price(self, tick: int) -> Decimal:
         """
@@ -366,16 +362,17 @@ class Broker(object):
                                                                                               lower_tick,
                                                                                               upper_tick)
         base_used, quote_used = self.__convert_pair(token0_used, token1_used)
-        self.action_buffer.append(AddLiquidityAction(UnitDecimal(self.base_asset.balance, self.base_asset.name),
-                                                     UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
-                                                     UnitDecimal(base_max_amount, self.base_asset.name),
-                                                     UnitDecimal(quote_max_amount, self.quote_asset.name),
-                                                     UnitDecimal(lower_quote_price, self._price_unit),
-                                                     UnitDecimal(upper_quote_price, self._price_unit),
-                                                     UnitDecimal(base_used, self.base_asset.name),
-                                                     UnitDecimal(quote_used, self.quote_asset.name),
-                                                     created_position,
-                                                     int(liquidity)))
+        self.action_buffer.append(
+            AddLiquidityAction(base_balance_after=UnitDecimal(self.base_asset.balance, self.base_asset.name),
+                               quote_balance_after=UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
+                               base_amount_max=UnitDecimal(base_max_amount, self.base_asset.name),
+                               quote_amount_max=UnitDecimal(quote_max_amount, self.quote_asset.name),
+                               lower_quote_price=UnitDecimal(lower_quote_price, self._price_unit),
+                               upper_quote_price=UnitDecimal(upper_quote_price, self._price_unit),
+                               base_amount_actual=UnitDecimal(base_used, self.base_asset.name),
+                               quote_amount_actual=UnitDecimal(quote_used, self.quote_asset.name),
+                               position=created_position,
+                               liquidity=int(liquidity)))
         return created_position, base_used, quote_used, liquidity
 
     def add_liquidity_by_tick(self, lower_tick: int,
@@ -409,16 +406,17 @@ class Broker(object):
                                                                                               upper_tick,
                                                                                               sqrt_price_x96)
         base_used, quote_used = self.__convert_pair(token0_used, token1_used)
-        self.action_buffer.append(AddLiquidityAction(UnitDecimal(self.base_asset.balance, self.base_asset.name),
-                                                     UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
-                                                     UnitDecimal(base_max_amount, self.base_asset.name),
-                                                     UnitDecimal(quote_max_amount, self.quote_asset.name),
-                                                     UnitDecimal(self.tick_to_price(lower_tick), self._price_unit),
-                                                     UnitDecimal(self.tick_to_price(upper_tick), self._price_unit),
-                                                     UnitDecimal(base_used, self.base_asset.name),
-                                                     UnitDecimal(quote_used, self.quote_asset.name),
-                                                     created_position,
-                                                     int(liquidity)))
+        self.action_buffer.append(
+            AddLiquidityAction(base_balance_after=UnitDecimal(self.base_asset.balance, self.base_asset.name),
+                               quote_balance_after=UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
+                               base_amount_max=UnitDecimal(base_max_amount, self.base_asset.name),
+                               quote_amount_max=UnitDecimal(quote_max_amount, self.quote_asset.name),
+                               lower_quote_price=UnitDecimal(self.tick_to_price(lower_tick), self._price_unit),
+                               upper_quote_price=UnitDecimal(self.tick_to_price(upper_tick), self._price_unit),
+                               base_amount_actual=UnitDecimal(base_used, self.base_asset.name),
+                               quote_amount_actual=UnitDecimal(quote_used, self.quote_asset.name),
+                               position=created_position,
+                               liquidity=int(liquidity)))
         return created_position, base_used, quote_used, liquidity
 
     @float_param_formatter
@@ -447,13 +445,13 @@ class Broker(object):
         base_get, quote_get = self.__convert_pair(token0_get, token1_get)
         self.action_buffer.append(
             RemoveLiquidityAction(
-                UnitDecimal(self.base_asset.balance, self.base_asset.name),
-                UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
-                position,
-                UnitDecimal(base_get, self.base_asset.name),
-                UnitDecimal(quote_get, self.quote_asset.name),
-                delta_liquidity,
-                self.positions[position].liquidity
+                base_balance_after=UnitDecimal(self.base_asset.balance, self.base_asset.name),
+                quote_balance_after=UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
+                position=position,
+                base_amount=UnitDecimal(base_get, self.base_asset.name),
+                quote_amount=UnitDecimal(quote_get, self.quote_asset.name),
+                removed_liquidity=delta_liquidity,
+                remain_liquidity=self.positions[position].liquidity
             ))
         if collect:
             return self.collect_fee(position)
@@ -487,11 +485,11 @@ class Broker(object):
         if self._positions[position]:
             self.action_buffer.append(
                 CollectFeeAction(
-                    UnitDecimal(self.base_asset.balance, self.base_asset.name),
-                    UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
-                    position,
-                    UnitDecimal(base_get, self.base_asset.name),
-                    UnitDecimal(quote_get, self.quote_asset.name)
+                    base_balance_after=UnitDecimal(self.base_asset.balance, self.base_asset.name),
+                    quote_balance_after=UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
+                    position=position,
+                    base_amount=UnitDecimal(base_get, self.base_asset.name),
+                    quote_amount=UnitDecimal(quote_get, self.quote_asset.name)
                 ))
         if self._positions[position].pending_amount0 == Decimal(0) \
                 and self._positions[position].pending_amount1 == Decimal(0) \
@@ -519,13 +517,14 @@ class Broker(object):
         from_asset.sub(from_amount_with_fee)
         to_asset.add(amount)
         base_amount, quote_amount = self.__convert_pair(from_amount, amount)
-        self.action_buffer.append(BuyAction(UnitDecimal(self.base_asset.balance, self.base_asset.name),
-                                            UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
-                                            UnitDecimal(amount, self.quote_asset.name),
-                                            UnitDecimal(price, self._price_unit),
-                                            UnitDecimal(fee, self.base_asset.name),
-                                            UnitDecimal(base_amount, self.base_asset.name),
-                                            UnitDecimal(quote_amount, self.quote_asset.name)))
+        self.action_buffer.append(
+            BuyAction(base_balance_after=UnitDecimal(self.base_asset.balance, self.base_asset.name),
+                      quote_balance_after=UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
+                      amount=UnitDecimal(amount, self.quote_asset.name),
+                      price=UnitDecimal(price, self._price_unit),
+                      fee=UnitDecimal(fee, self.base_asset.name),
+                      base_change=UnitDecimal(base_amount, self.base_asset.name),
+                      quote_change=UnitDecimal(quote_amount, self.quote_asset.name)))
         return fee, base_amount, quote_amount
 
     @float_param_formatter
@@ -549,13 +548,14 @@ class Broker(object):
         from_asset.sub(from_amount_with_fee)
         to_asset.add(to_amount)
         base_amount, quote_amount = self.__convert_pair(to_amount, from_amount)
-        self.action_buffer.append(SellAction(UnitDecimal(self.base_asset.balance, self.base_asset.name),
-                                             UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
-                                             UnitDecimal(amount, self.quote_asset.name),
-                                             UnitDecimal(price, self._price_unit),
-                                             UnitDecimal(fee, self.quote_asset.name),
-                                             UnitDecimal(base_amount, self.base_asset.name),
-                                             UnitDecimal(quote_amount, self.quote_asset.name)))
+        self.action_buffer.append(
+            SellAction(base_balance_after=UnitDecimal(self.base_asset.balance, self.base_asset.name),
+                       quote_balance_after=UnitDecimal(self.quote_asset.balance, self.quote_asset.name),
+                       amount=UnitDecimal(amount, self.quote_asset.name),
+                       price=UnitDecimal(price, self._price_unit),
+                       fee=UnitDecimal(fee, self.quote_asset.name),
+                       base_change=UnitDecimal(base_amount, self.base_asset.name),
+                       quote_change=UnitDecimal(quote_amount, self.quote_asset.name)))
 
         return fee, base_amount, quote_amount
 
