@@ -33,7 +33,7 @@ class Actuator(object):
 
         self._broker: Broker = Broker(pool_info)
         # data
-        self._data: Lines = None
+        self._data: dict[PoolBaseInfo:Lines] = {}
         # strategy
         self._strategy: Strategy = Strategy()
         # all the actions during the test(buy/sell/add liquidity)
@@ -56,6 +56,10 @@ class Actuator(object):
         self.__backtest_finished = False
 
     @property
+    def initial_status(self) -> AccountStatus:
+        return None
+
+    @property
     def final_status(self) -> AccountStatus:
         """
         Get status after back test finish.
@@ -72,15 +76,14 @@ class Actuator(object):
 
     def reset(self):
         """
-
         reset all the status variables
-
         """
         self._actions = []
         self._evaluator = None
         self.account_status_list = []
         self.__backtest_finished = False
-        self.data.reset_cursor()
+        for k, v in self._data:
+            v.reset_cursor()
 
     @property
     def data_path(self) -> str:
@@ -131,7 +134,7 @@ class Actuator(object):
         return self._broker
 
     @property
-    def data(self) -> Lines:
+    def data(self, pool: PoolBaseInfo) -> dict[PoolBaseInfo: Lines]:
         """
         data
 
@@ -139,26 +142,6 @@ class Actuator(object):
         :rtype: Lines
         """
         return self._data
-
-    @data.setter
-    def data(self, value: Lines):
-        """
-        set data which saved by downloader. data source should contain the following column, and indexed with timestamp
-
-        * netAmount0,
-        * netAmount1,
-        * closeTick,
-        * openTick,
-        * lowestTick,
-        * highestTick,
-        * inAmount0,
-        * inAmount1,
-        * currentLiquidity
-
-        :param value: data
-        :type value: Lines
-        """
-        self._data = value
 
     @property
     def strategy(self) -> Strategy:
@@ -240,7 +223,7 @@ class Actuator(object):
                 case _:
                     strategy.notify(action)
 
-    def load_data(self, chain: str, contract_addr: str, start_date: date, end_date: date):
+    def load_data(self, pool, chain: str, contract_addr: str, start_date: date, end_date: date):
         """
 
         load data, and preprocess. preprocess actions including:
@@ -281,7 +264,7 @@ class Actuator(object):
         df = Lines.from_dataframe(df)
         df = df.fillna()
         self.add_statistic_column(df)
-        self.data = df
+        self.data[pool] = df
         self.logger.info("data has benn prepared")
 
     def add_statistic_column(self, df: Lines):
@@ -327,39 +310,46 @@ class Actuator(object):
         :param enable_notify: notify when new action happens
         :type enable_notify: bool
         """
-        self.reset()
-        if self._data is None:
+        if len(self._data) == 0:
             return
+        missing_data_pool = filter(lambda p: p not in self._data, self._broker.pools)
+        if len(missing_data_pool) > 0:
+            raise DemeterError("pool {} do not have data".format(missing_data_pool))
+        self.check_data_range()
+        self.reset()
+
         self.logger.info("init strategy...")
-        first_data = self._data.iloc[0]
-        self._broker.pool_status = PoolStatus(self._data.index[0].to_pydatetime(),
-                                              int(first_data.closeTick),
-                                              first_data.currentLiquidity,
-                                              first_data.inAmount0,
-                                              first_data.inAmount1,
-                                              first_data.price)
+        for pool in self.broker.pools:
+            first_data = self._data[pool].iloc[0]
+            self._broker.pool_status[pool] = PoolStatus(self._data[pool].index[0].to_pydatetime(),
+                                                        int(first_data.closeTick),
+                                                        first_data.currentLiquidity,
+                                                        first_data.inAmount0,
+                                                        first_data.inAmount1,
+                                                        first_data.price)
         self.init_strategy()
         if not isinstance(self._data, Lines):
             raise DemeterError("Data must be instance of Lines")
-        row_id = 0
         first = True
         self.logger.info("start main loop...")
         with tqdm(total=len(self._data.index), ncols=150) as pbar:
-            for index, row in self._data.iterrows():
-                row_data = RowData()
-                setattr(row_data, "timestamp", index.to_pydatetime())
-                setattr(row_data, "row_id", row_id)
-                row_id += 1
-                for column_name in row.index:
-                    setattr(row_data, column_name, row[column_name])
-                # execute strategy, and some calculate
-                # update price tick
-                self._broker.pool_status = PoolStatus(index.to_pydatetime(),
-                                                      int(row_data.closeTick),
-                                                      row_data.currentLiquidity,
-                                                      row_data.inAmount0,
-                                                      row_data.inAmount1,
-                                                      row_data.price)
+            for row_id in range(len(self._data[self.broker.default_pool].index)):
+                timestamp = self._data[self.broker.default_pool].index[row_id]
+                row_data = {p: RowData() for p in self.broker.pools}
+                for pool in self.broker.pools:
+                    row = self._data[pool].iloc[row_id]
+                    setattr(row_data[pool], "timestamp", timestamp.to_pydatetime())
+                    setattr(row_data[pool], "row_id", row_id)
+                    for column_name in row.index:
+                        setattr(row_data[pool], column_name, row[column_name])
+                    # execute strategy, and some calculate
+                    # update price tick
+                    self._broker.pool_status = PoolStatus(timestamp.to_pydatetime(),
+                                                          int(row_data[pool].closeTick),
+                                                          row_data[pool].currentLiquidity,
+                                                          row_data[pool].inAmount0,
+                                                          row_data[pool].inAmount1,
+                                                          row_data[pool].price)
                 self._strategy.next(row_data)
                 if self._strategy.triggers:
                     for trigger in self._strategy.triggers:
@@ -369,14 +359,15 @@ class Actuator(object):
                 # and read the latest status from broker
                 self._broker.update()
                 if first:
-                    init_price = row_data.price
+                    init_price = row_data.price # todo: update
                     first = False
-                self.account_status_list.append(self._broker.get_account_status(row_data.price, index.to_pydatetime()))
+                self.account_status_list.append(
+                    self._broker.get_account_status(row_data.price, timestamp.to_pydatetime())) # todo: update
 
                 # collect actions in this loop
                 current_event_list = self.bar_actions.copy()
                 for event in current_event_list:
-                    event.timestamp = index
+                    event.timestamp = timestamp
                 self.bar_actions.clear()
                 if current_event_list and len(current_event_list) > 0:
                     self._actions.extend(current_event_list)
@@ -400,6 +391,21 @@ class Actuator(object):
         self._strategy.finalize()
         self.logger.info("back testing finish")
         self.__backtest_finished = True
+
+    def check_data_range(self):
+        first = True
+        last_index = None
+        last_len = 0
+        for pool, pool_data in self._data:
+            if not first:
+                # start timestamp and length should be equal to each other
+                if last_index != pool_data.index[0]:
+                    raise DemeterError("first timestamp of {} is not same".format(pool))
+                if last_len != len(pool_data.index):
+                    raise DemeterError("data length of {} is not same".format(pool))
+            last_index = pool_data.index[0]
+            last_len = len(pool_data)
+            first = False
 
     def output(self):
         """

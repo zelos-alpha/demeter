@@ -1,7 +1,7 @@
-from ._typing import UnitDecimal, TokenInfo, Asset, ActionTypeEnum, PositionInfo, AccountStatus, RowData, BaseAction, \
+from ._typing import UnitDecimal, TokenInfo, Asset, ActionTypeEnum, Position, AccountStatus, RowData, BaseAction, \
     AddLiquidityAction, CollectFeeAction, RemoveLiquidityAction, BuyAction, SellAction, EvaluatingIndicator, DemeterError, \
     TimeUnitEnum, PoolBaseInfo
-from .broker import Broker, tick_to_quote_price, PoolStatus, BrokerAsset, Position
+from .broker import Broker, tick_to_quote_price, PoolStatus, BrokerAsset, PositionVariable
 from .core import Actuator
 from .data_line import LineTypeEnum, Cursorable, Line, Lines
 from .download import ChainType, DataSource

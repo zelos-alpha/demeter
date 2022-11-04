@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import NamedTuple
 
-from .._typing import TokenInfo, DemeterError
+from .._typing import TokenInfo, DemeterError, PoolBaseInfo, Position
 
 
 class BrokerAsset(object):
@@ -61,7 +61,7 @@ class BrokerAsset(object):
 
 
 @dataclass
-class Position(object):
+class PositionVariable(object):
     """
     variables for position
     """
@@ -81,4 +81,36 @@ class PoolStatus(NamedTuple):
     in_amount0: Decimal
     in_amount1: Decimal
     price: Decimal
-    price_unit: str
+
+
+class PositionContainer:
+    def __init__(self, pools: [PoolBaseInfo]):
+        self.__positions: {PoolBaseInfo, dict[Position:PositionVariable]} = {}
+        for pool in pools:
+            self.__positions[pool] = {}
+
+    def get(self, pool: PoolBaseInfo, position: Position):
+        return self.__positions[pool][position]
+
+    def set(self, pool: PoolBaseInfo, position: Position, value: PositionVariable):
+        self.__positions[pool][position] = value
+
+    def get_by_pool(self, pool: PoolBaseInfo):
+        return self.__positions[pool]
+
+    def remove(self, pool: PoolBaseInfo, position: Position):
+        del self.__positions[pool][position]
+
+    def is_empty(self):
+        pos_sum = 0
+        for pool_pos, item in self.__positions:
+            pos_sum += len(item)
+        return pos_sum == 0
+
+    def __str__(self):
+        value = "PositionContainer: \n"
+        for index, pool in enumerate(self.__positions):
+            value += "pool {}, {}: (".format(index, pool)
+            for pos_index, position in enumerate(self.__positions[pool]):
+                value += "{}: {}".format(position, self.__positions[pool][position])
+            value += ")\n"

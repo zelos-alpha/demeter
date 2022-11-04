@@ -4,8 +4,8 @@ from typing import Union
 import pandas as pd
 
 from .trigger import Trigger
-from .._typing import PositionInfo, BaseAction, AddLiquidityAction, SellAction, BuyAction, CollectFeeAction, \
-    RemoveLiquidityAction, RowData
+from .._typing import Position, BaseAction, AddLiquidityAction, SellAction, BuyAction, CollectFeeAction, \
+    RemoveLiquidityAction, RowData, PoolBaseInfo
 from ..broker import Broker
 from ..data_line import Lines, Line
 
@@ -114,7 +114,7 @@ class Strategy(object):
                       upper_quote_price: Union[Decimal, float],
                       base_max_amount: Union[Decimal, float] = None,
                       quote_max_amount: Union[Decimal, float] = None,
-                      ) -> (PositionInfo, Decimal, Decimal):
+                      ) -> (Position, Decimal, Decimal):
         """
 
         add liquidity, then get a new position
@@ -128,12 +128,12 @@ class Strategy(object):
         :param quote_max_amount: inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
         :type quote_max_amount: Union[Decimal, float]
         :return: added position, base token used, quote token used
-        :rtype: (PositionInfo, Decimal, Decimal)
+        :rtype: (Position, Decimal, Decimal)
         """
 
         return self.broker.add_liquidity(lower_quote_price, upper_quote_price, base_max_amount, quote_max_amount)
 
-    def remove_liquidity(self, positions: Union[PositionInfo, list]) -> {PositionInfo: (Decimal, Decimal)}:
+    def remove_liquidity(self, positions: Union[Position, list]) -> {Position: (Decimal, Decimal)}:
         """
         remove liquidity from pool, position will be deleted
 
@@ -144,7 +144,7 @@ class Strategy(object):
         """
         return self.broker.remove_liquidity(positions)
 
-    def collect_fee(self, positions: [PositionInfo]) -> {PositionInfo: tuple}:
+    def collect_fee(self, positions: [Position]) -> {Position: tuple}:
         """
         collect fee from positions
 
@@ -180,3 +180,25 @@ class Strategy(object):
         :rtype: (Decimal, Decimal, Decimal)
         """
         return self.broker.sell(amount, price)
+
+    def even_rebalance(self, price: Decimal = None, pool: PoolBaseInfo = None) -> (Decimal, Decimal, Decimal):
+        """
+        Divide assets equally between two tokens.
+
+        :param price: price of quote token. eg: 1234 eth/usdc
+        :type price: Decimal
+        :return: fee, base token amount spend, quote token amount got
+        :rtype: (Decimal, Decimal, Decimal)
+        """
+        pool = pool if pool else self.broker._default_pool
+
+        if price is None:
+            price = self._pool_status[pool].price
+
+        total_capital = self.base_asset.balance + self.quote_asset.balance * price
+        target_base_amount = total_capital / 2
+        quote_amount_diff = target_base_amount / price - self.quote_asset.balance
+        if quote_amount_diff > 0:
+            return self.buy(quote_amount_diff)
+        elif quote_amount_diff < 0:
+            return self.sell(0 - quote_amount_diff)

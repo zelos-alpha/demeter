@@ -88,6 +88,8 @@ class PoolBaseInfo(object):
         self.token1 = token1
         self.is_token0_base = (base_token == token0)
         self.base_token = base_token
+        base, quote = token0, token1 if self.is_token0_base else token1, token0
+        self.price_unit = f"{base.name}/{quote.name}"
         fee = str(fee)  # keep precision
         match fee:
             case "0.05":
@@ -143,7 +145,7 @@ class ActionTypeEnum(Enum):
     collect_fee = 5
 
 
-class PositionInfo(NamedTuple):
+class Position(NamedTuple):
     """
     position information, including tick range and liquidity. It's the immute properties of a position
 
@@ -198,14 +200,11 @@ class AccountStatus:
 
     """
     timestamp: datetime
-    base_balance: UnitDecimal
-    quote_balance: UnitDecimal
-    base_uncollected: UnitDecimal
-    quote_uncollected: UnitDecimal
-    base_in_position: UnitDecimal
-    quote_in_position: UnitDecimal
     net_value: UnitDecimal
-    price: UnitDecimal
+    balance: dict[TokenInfo, UnitDecimal]
+    price: dict[TokenInfo, UnitDecimal]
+    uncollected: dict[PoolBaseInfo, dict[Position, dict[TokenInfo, UnitDecimal]]]
+    in_position: dict[PoolBaseInfo, dict[Position, dict[TokenInfo, UnitDecimal]]]
 
     def get_output_str(self) -> str:
         """
@@ -317,7 +316,7 @@ class AddLiquidityAction(BaseAction):
     :param quote_amount_actual: actual used quote token
     :type quote_amount_actual: UnitDecimal
     :param position: generated position
-    :type position: PositionInfo
+    :type position: Position
     :param liquidity: liquidity added
     :type liquidity: int
     """
@@ -328,7 +327,7 @@ class AddLiquidityAction(BaseAction):
     upper_quote_price: UnitDecimal
     base_amount_actual: UnitDecimal
     quote_amount_actual: UnitDecimal
-    position: PositionInfo
+    position: Position
     liquidity: int
     action_type = ActionTypeEnum.add_liquidity
 
@@ -340,11 +339,13 @@ class AddLiquidityAction(BaseAction):
         """
         return f"""\033[1;31m{"Add liquidity":<20}\033[0m""" + \
                get_formatted_str({
+                   "pool": f"{self.pool}",
                    "max amount": f"{self.base_amount_max.to_str()},{self.quote_amount_max.to_str()}",
                    "price": f"{self.lower_quote_price.to_str()},{self.upper_quote_price.to_str()}",
                    "position": self.position,
                    "liquidity": self.liquidity,
-                   "balance": f"{self.base_balance_after.to_str()}(-{self.base_amount_actual.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_amount_actual.to_str()})"
+                   "balance": f"{self.base_balance_after.to_str()}(-{self.base_amount_actual.to_str()}), "
+                              f"{self.quote_balance_after.to_str()}(-{self.quote_amount_actual.to_str()})"
                })
 
 
@@ -354,14 +355,15 @@ class CollectFeeAction(BaseAction):
     collect fee
 
     :param position: position to operate
-    :type position: PositionInfo
+    :type position: Position
     :param base_amount: fee collected in base token
     :type base_amount: UnitDecimal
     :param quote_amount: fee collected in quote token
     :type quote_amount: UnitDecimal
 
     """
-    position: PositionInfo
+    pool: PoolBaseInfo
+    position: Position
     base_amount: UnitDecimal
     quote_amount: UnitDecimal
     action_type = ActionTypeEnum.collect_fee
@@ -374,6 +376,7 @@ class CollectFeeAction(BaseAction):
         """
         return f"""\033[1;33m{"Collect fee":<20}\033[0m""" + \
                get_formatted_str({
+                   "pool": f"{self.pool}",
                    "position": self.position,
                    "balance": f"{self.base_balance_after.to_str()}(+{self.base_amount.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_amount.to_str()})"
                })
@@ -382,11 +385,12 @@ class CollectFeeAction(BaseAction):
 @dataclass
 class RemoveLiquidityAction(BaseAction):
     """
-    TODO: update
     remove position
 
+    :param pool: pool
+    :type pool: PoolBaseInfo
     :param position: position to operate
-    :type position: PositionInfo
+    :type position: Position
     :param base_amount: base token amount collected
     :type base_amount: UnitDecimal
     :param quote_amount: quote token amount collected
@@ -397,7 +401,8 @@ class RemoveLiquidityAction(BaseAction):
     :type remain_liquidity: int
 
     """
-    position: PositionInfo
+    pool: PoolBaseInfo
+    position: Position
     base_amount: UnitDecimal
     quote_amount: UnitDecimal
     removed_liquidity: int
@@ -412,6 +417,7 @@ class RemoveLiquidityAction(BaseAction):
         """
         return f"""\033[1;32m{"Remove liquidity":<20}\033[0m""" + \
                get_formatted_str({
+                   "pool": f"{self.pool}",
                    "position": self.position,
                    "balance": f"{self.base_balance_after.to_str()}(+0), {self.quote_balance_after.to_str()}(+0)",
                    "token_got": f"{self.base_amount.to_str()},{self.quote_amount.to_str()}",
@@ -432,11 +438,12 @@ class BuyAction(BaseAction):
     :param fee: fee paid (in base token)
     :type fee: UnitDecimal
     :param base_change: base token amount changed
-    :type base_change: PositionInfo
+    :type base_change: Position
     :param quote_change: quote token amount changed
     :type quote_change: UnitDecimal
 
     """
+    pool: PoolBaseInfo
     amount: UnitDecimal
     price: UnitDecimal
     fee: UnitDecimal
@@ -452,6 +459,7 @@ class BuyAction(BaseAction):
         """
         return f"""\033[1;36m{"Buy":<20}\033[0m""" + \
                get_formatted_str({
+                   "pool": f"{self.pool}",
                    "price": self.price.to_str(),
                    "fee": self.fee.to_str(),
                    "balance": f"{self.base_balance_after.to_str()}(-{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_change.to_str()})"
@@ -470,11 +478,12 @@ class SellAction(BaseAction):
     :param fee: fee paid (in quote token)
     :type fee: UnitDecimal
     :param base_change: base token amount changed
-    :type base_change: PositionInfo
+    :type base_change: Position
     :param quote_change: quote token amount changed
     :type quote_change: UnitDecimal
 
     """
+    pool: PoolBaseInfo
     amount: UnitDecimal
     price: UnitDecimal
     fee: UnitDecimal
@@ -485,6 +494,7 @@ class SellAction(BaseAction):
     def get_output_str(self):
         return f"""\033[1;37m{"Sell":<20}\033[0m""" + \
                get_formatted_str({
+                   "pool": f"{self.pool}",
                    "price": self.price.to_str(),
                    "fee": self.fee.to_str(),
                    "balance": f"{self.base_balance_after.to_str()}(+{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_change.to_str()})"

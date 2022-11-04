@@ -31,7 +31,7 @@ class TestBroker(unittest.TestCase):
             for p in positions:
                 print("=====begin print position=====")
                 print(p)
-                print(broker.positions[p])
+                print(broker.__positions[p])
                 print("=====end======")
         print("broker:", broker)
 
