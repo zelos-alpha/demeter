@@ -165,6 +165,7 @@ def get_liquidity(sqrt_price_x96: int, tickA: int, tickB: int,
 
 
 def get_sqrt_ratio_at_tick(tick: int) -> int:
+    tick = int(tick)
     abs_tick = tick if tick >= 0 else -tick
     assert abs_tick <= 887272
 
