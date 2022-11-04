@@ -105,7 +105,7 @@ class Broker(object):
     @property
     def pool_status(self) -> PoolStatus:
         """
-        current pool status. will be writen by actuator.
+        current pool status. will be writen by runner.
 
         :return: PoolStatus
         :rtype: PoolStatus
@@ -115,7 +115,7 @@ class Broker(object):
     @pool_status.setter
     def pool_status(self, value: PoolStatus):
         """
-        current pool status. will be writen by actuator.
+        current pool status. will be writen by runner.
 
         Do not update this property unless necessary
 
@@ -287,7 +287,7 @@ class Broker(object):
 
         if sqrt_price_x96 == -1:
             # self.current_tick must be initialed
-            sqrt_price_x96 = get_sqrt_ratio_at_tick(int(self.pool_status.current_tick))
+            sqrt_price_x96 = get_sqrt_ratio_at_tick(self.pool_status.current_tick)
         if lower_tick > upper_tick:
             raise ZelosError("lower tick should be less than upper tick")
 

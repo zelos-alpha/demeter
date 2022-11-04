@@ -332,7 +332,7 @@ class Actuator(object):
         self.logger.info("init strategy...")
         first_data = self._data.iloc[0]
         self._broker.pool_status = PoolStatus(self._data.index[0].to_pydatetime(),
-                                              first_data.closeTick,
+                                              int(first_data.closeTick),
                                               first_data.currentLiquidity,
                                               first_data.inAmount0,
                                               first_data.inAmount1,
@@ -354,7 +354,7 @@ class Actuator(object):
                 # execute strategy, and some calculate
                 # update price tick
                 self._broker.pool_status = PoolStatus(index.to_pydatetime(),
-                                                      row_data.closeTick,
+                                                      int(row_data.closeTick),
                                                       row_data.currentLiquidity,
                                                       row_data.inAmount0,
                                                       row_data.inAmount1,
