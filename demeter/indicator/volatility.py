@@ -21,13 +21,12 @@ def actual_volatility(data: pd.Series,
 
     note:
     1. the first window_size * 2 - 1 data will be NAN
-    2. volatility is based on time window. not monthly or annually
 
     :param data: data to process
     :type data: Series
     :param window: window width
     :type window: timedelta
-    :param timeunit: time unit for volatility
+    :param timeunit: time unit for volatility, default is one day
     :type timeunit: timedelta
     """
     real_n = get_real_n(data, window)

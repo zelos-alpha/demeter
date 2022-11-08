@@ -7,12 +7,12 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='zelos-demeter',
-    version='0.1.5',
+    version='0.1.6',
     packages=find_packages(exclude=["tests", "tests.*", "samples", "samples.*"]),
     url='https://zelos-demeter.readthedocs.io',
     license='MIT',
-    author='zelos team',
-    author_email='liang.hou@antalpha.com',
+    author='zelos research',
+    author_email='zelos@antalpha.com',
     description='better back testing tool for uniswap v3',
     long_description=long_description,
     long_description_content_type='text/markdown',

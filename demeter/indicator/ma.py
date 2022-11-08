@@ -18,7 +18,7 @@ def simple_moving_average(data: pd.Series | pd.DataFrame,
                           method: str = "single",
                           ) -> pd.Series:
     """
-    calculate simple moving average, this function will help you get window size from time and unit
+    calculate simple moving average, Note: window is based on time span
 
     docs for other params, see https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.rolling.html
 
