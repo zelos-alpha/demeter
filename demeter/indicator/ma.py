@@ -1,14 +1,12 @@
 import numpy as np
 import pandas as pd
 from pandas._typing import TimedeltaConvertibleTypes, Axis
-
+from datetime import timedelta
 from .common import get_real_n
-from .._typing import TimeUnitEnum
 
 
 def simple_moving_average(data: pd.Series | pd.DataFrame,
-                          n=5,
-                          unit=TimeUnitEnum.hour,
+                          window: timedelta = timedelta(hours=5),
                           min_periods: int | None = None,
                           center: bool = False,
                           win_type: str | None = None,
@@ -24,16 +22,14 @@ def simple_moving_average(data: pd.Series | pd.DataFrame,
 
     :param data: data
     :type data: Series
-    :param n: window width, should set along with unit, eg: 5 hour, 2 minute
-    :type n: int
-    :param unit: unit of n, can be minute,hour,day
-    :type unit: TimeUnitEnum
+    :param window: window width
+    :type window: timedelta
     :return: simple moving average data
     :rtype: Series
 
     """
 
-    return data.rolling(window=get_real_n(data, n, unit),
+    return data.rolling(window=get_real_n(data, window),
                         min_periods=min_periods,
                         center=center,
                         win_type=win_type,

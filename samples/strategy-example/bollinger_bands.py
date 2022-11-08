@@ -1,18 +1,30 @@
 import math
 from datetime import date, timedelta
-from decimal import Decimal
 
-from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, ChainType, PeriodTrigger, TimeUnitEnum, \
-    actual_volatility, simple_moving_average
+from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, ChainType, PeriodTrigger, actual_volatility, \
+    simple_moving_average
 
-c = 2000
+c = 2
 
 
 class AddByVolatility(Strategy):
+    """
+    We will provide liquidity inside the Bollinger Bands.
+    These bands are made up of a lower band BOLL = pa − c · v
+    and an upper band BOLU = pa + c · v.
+    The liquidity position will be [pa − v · c, pa + v · c].
 
+    * pa is simple moving average
+    * c is a constant value, =2
+    * v is volatility
+
+    we will adjust liquidity every 4 hours, by remove all the liquidity, then even split all the capital into two assets,
+    and provide liquidity by the rules above.
+
+    """
     def initialize(self):
-        self._add_column("sma_1_day", simple_moving_average(self.data.price, 1, TimeUnitEnum.day))
-        self._add_column("volatility", actual_volatility(self.data.price, 1, TimeUnitEnum.day))
+        self._add_column("sma_1_day", simple_moving_average(self.data.price, timedelta(days=1)))
+        self._add_column("volatility", actual_volatility(self.data.price, timedelta(days=1), timedelta(days=1)))
         self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=4),
                                            trigger_immediately=True,
                                            do=self.work))
@@ -24,7 +36,7 @@ class AddByVolatility(Strategy):
             self.broker.even_rebalance(row_data.price)
         if math.isnan(row_data.volatility):
             return
-        limit = c * row_data.volatility
+        limit = c * float(row_data.price) * row_data.volatility
         self.add_liquidity(row_data.sma_1_day - limit,
                            row_data.sma_1_day + limit)
 

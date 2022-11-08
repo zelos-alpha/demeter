@@ -1,7 +1,7 @@
 import math
 import time
 import unittest
-
+from datetime import timedelta
 import numpy as np
 import pandas as pd
 
@@ -12,7 +12,7 @@ class TestIndicator(unittest.TestCase):
     def test_sma_minute(self):
         index = pd.date_range('2022-9-6 0:0:0', periods=10, freq='T')
         series = pd.Series(range(10), index=index)
-        series_ma = simple_moving_average(series, 5, unit=TimeUnitEnum.minute)
+        series_ma = simple_moving_average(series, timedelta(minutes=5))
         df = pd.DataFrame(index=index, data={"d1": series, "d2": series_ma})
         print(df)
         self.assertTrue(math.isnan(series_ma.iloc[0]))
@@ -35,7 +35,7 @@ class TestIndicator(unittest.TestCase):
         minutes = 840
         index = pd.date_range('2022-9-6 8:0:0', periods=minutes, freq='T')
         series = pd.Series(range(minutes), index=index)
-        series_ma = simple_moving_average(series, 5, unit=TimeUnitEnum.hour)
+        series_ma = simple_moving_average(series, timedelta(hours=5))
         df = pd.DataFrame(index=index, data={"d1": series, "d2": series_ma})
         print(df.iloc[60 * 5 - 5:].head(15))
         self.assertEqual(np.mean(range(300)), series_ma.iloc[299])
@@ -46,14 +46,14 @@ class TestIndicator(unittest.TestCase):
         index = pd.date_range('2022-9-6 0:0:0', periods=length, freq='T')
         series = pd.Series(range(length), index=index)
         t1 = time.time()
-        series_ma = simple_moving_average(series, 5, unit=TimeUnitEnum.minute)
+        series_ma = simple_moving_average(series, timedelta(minutes=5))
         t2 = time.time()
         print(t2 - t1, "s")
 
     def test_actual_volatility(self):
         index = pd.date_range('2022-9-6 0:0:0', periods=10, freq='T')
         series = pd.Series(data=[1, 1, 1, 1, 1, math.e, 1, 1, 1, 1], index=index)
-        series_v = actual_volatility(series, 2, TimeUnitEnum.minute)
+        series_v = actual_volatility(series, timedelta(minutes=2))
         df = pd.DataFrame(index=index, data={"d1": series, "d2": series_v})
         print(df)
         self.assertTrue(math.isnan(series_v.iloc[0]))
@@ -61,8 +61,8 @@ class TestIndicator(unittest.TestCase):
         self.assertTrue(math.isnan(series_v.iloc[2]))
         self.assertEqual(series_v.iloc[3], 0.000000)
         self.assertEqual(series_v.iloc[4], 0.000000)
-        self.assertEqual(series_v.iloc[5], 0.7071067811865476)
-        self.assertEqual(series_v.iloc[6], 0.7071067811865476)
-        self.assertEqual(series_v.iloc[7], 0.7071067811865476)
-        self.assertEqual(series_v.iloc[8], 0.7071067811865476)
+        self.assertEqual(series_v.iloc[5], 18.97366596101028)
+        self.assertEqual(series_v.iloc[6], 18.97366596101028)
+        self.assertEqual(series_v.iloc[7], 18.97366596101028)
+        self.assertEqual(series_v.iloc[8], 18.97366596101028)
         self.assertEqual(series_v.iloc[9], 0.000000)

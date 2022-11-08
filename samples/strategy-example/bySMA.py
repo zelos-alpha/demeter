@@ -6,6 +6,17 @@ from strategy_ploter import plot_position_return_decomposition
 
 
 class AddLpByMa(Strategy):
+    """
+    We will provide liquidity according simple moving average,
+    The liquidity position will be [pa − price_width, pa + price_width].
+
+    * pa is simple moving average
+    * price_width is a constant value, default value is 100
+
+    we will adjust liquidity every hours, by remove all the liquidity, then even split all the capital into two assets,
+    and provide liquidity by the rules above.
+
+    """
     price_width = None
 
     def __init__(self, price_width=100):
@@ -13,7 +24,7 @@ class AddLpByMa(Strategy):
         self.price_width = price_width
 
     def initialize(self):
-        self._add_column("ma5", demeter.indicator.simple_moving_average(self.data.price, 5))
+        self._add_column("ma5", demeter.indicator.simple_moving_average(self.data.price, timedelta(hours=5)))
         self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=1),
                                            trigger_immediately=True,
                                            do=self.work))

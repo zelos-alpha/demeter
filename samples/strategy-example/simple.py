@@ -53,7 +53,7 @@ if __name__ == "__main__":
                      "0x45dda9cb7c25131df268515131f647d726f50608",
                        date(2022, 8, 20),
                        date(2022, 8, 20))
-    actuator.data["ma5"] = simple_moving_average(actuator.data.price, 5, unit=TimeUnitEnum.hour)  # add indicator
+    actuator.data["ma5"] = simple_moving_average(actuator.data.price)  # add indicator
 
     actuator.run()  # run test
     actuator.output()  # print final status

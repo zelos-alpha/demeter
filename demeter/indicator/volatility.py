@@ -1,14 +1,17 @@
+from datetime import timedelta
 from decimal import Decimal
 
-import pandas as pd
 import numpy as np
-from demeter import TimeUnitEnum, DemeterError
+import pandas as pd
+import math
+
+from demeter import DemeterError
 from .common import get_real_n
 
 
 def actual_volatility(data: pd.Series,
-                      n: int = 5,
-                      unit: TimeUnitEnum = TimeUnitEnum.hour) -> "Series(float64)":
+                      window: timedelta = timedelta(minutes=5),
+                      timeunit: timedelta = timedelta(days=1)) -> "Series(float64)":
     """
     get actual volatility. step:
 
@@ -22,12 +25,12 @@ def actual_volatility(data: pd.Series,
 
     :param data: data to process
     :type data: Series
-    :param n: time length
-    :type n: int
-    :param unit: time unit
-    :type unit: TimeUnitEnum
+    :param window: window width
+    :type window: timedelta
+    :param timeunit: time unit for volatility
+    :type timeunit: timedelta
     """
-    real_n = get_real_n(data, n, unit)
+    real_n = get_real_n(data, window)
 
     if real_n * 2 - 1 >= len(data.index):
         raise DemeterError(f"data length is {len(data.index)}, but window size is {real_n}, "
@@ -40,6 +43,6 @@ def actual_volatility(data: pd.Series,
         shifted = data.shift(periods=real_n)
         return_rate = data.div(shifted).apply(np.log)
 
-    column = return_rate.rolling(window=real_n).std()
-
-    return column
+    volatility_column: pd.Series = return_rate.rolling(window=real_n).std()
+    amp = math.sqrt(timeunit.total_seconds() / window.total_seconds())
+    return volatility_column * amp
