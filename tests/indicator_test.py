@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from demeter import simple_moving_average, TimeUnitEnum, exponential_moving_average
+from demeter import simple_moving_average, TimeUnitEnum, exponential_moving_average, actual_volatility
 
 
 class TestIndicator(unittest.TestCase):
@@ -49,3 +49,20 @@ class TestIndicator(unittest.TestCase):
         series_ma = simple_moving_average(series, 5, unit=TimeUnitEnum.minute)
         t2 = time.time()
         print(t2 - t1, "s")
+
+    def test_actual_volatility(self):
+        index = pd.date_range('2022-9-6 0:0:0', periods=10, freq='T')
+        series = pd.Series(data=[1, 1, 1, 1, 1, math.e, 1, 1, 1, 1], index=index)
+        series_v = actual_volatility(series, 2, TimeUnitEnum.minute)
+        df = pd.DataFrame(index=index, data={"d1": series, "d2": series_v})
+        print(df)
+        self.assertTrue(math.isnan(series_v.iloc[0]))
+        self.assertTrue(math.isnan(series_v.iloc[1]))
+        self.assertTrue(math.isnan(series_v.iloc[2]))
+        self.assertEqual(series_v.iloc[3], 0.000000)
+        self.assertEqual(series_v.iloc[4], 0.000000)
+        self.assertEqual(series_v.iloc[5], 0.7071067811865476)
+        self.assertEqual(series_v.iloc[6], 0.7071067811865476)
+        self.assertEqual(series_v.iloc[7], 0.7071067811865476)
+        self.assertEqual(series_v.iloc[8], 0.7071067811865476)
+        self.assertEqual(series_v.iloc[9], 0.000000)
