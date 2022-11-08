@@ -2,8 +2,8 @@ import unittest
 from datetime import date
 
 import demeter.indicator
-from demeter.download import ChainType
 from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, Lines
+from demeter.download import ChainType
 
 eth = TokenInfo(name="eth", decimal=18)
 usdc = TokenInfo(name="usdc", decimal=6)
@@ -42,9 +42,9 @@ class TestActuator(unittest.TestCase):
         actuator.set_assets([Asset(usdc, 1067), Asset(eth, 1)])
         actuator.data_path = "../data"
         actuator.load_data(ChainType.Polygon.name,
-                         "0x45dda9cb7c25131df268515131f647d726f50608",
-                         date(2022, 7, 1),
-                         date(2022, 7, 1))
+                           "0x45dda9cb7c25131df268515131f647d726f50608",
+                           date(2022, 7, 1),
+                           date(2022, 7, 1))
         return actuator
 
     def test_simple_run(self):
@@ -74,6 +74,6 @@ class TestActuator(unittest.TestCase):
         actuator = Actuator(self.pool)
         actuator.data_path = "../data"
         actuator.load_data(ChainType.Polygon.name,
-                         "0x45dda9cb7c25131df268515131f647d726f50608",
-                         date(2022, 7, 23),
-                         date(2022, 7, 24))
+                           "0x45dda9cb7c25131df268515131f647d726f50608",
+                           date(2022, 7, 23),
+                           date(2022, 7, 24))

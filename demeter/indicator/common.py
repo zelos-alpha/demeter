@@ -1,7 +1,9 @@
+from datetime import timedelta
+
 import pandas as pd
 from pandas import Timedelta
-from datetime import timedelta
-from .._typing import DemeterError, TimeUnitEnum
+
+from .._typing import DemeterError
 
 
 def get_real_n(data: pd.Series, window: timedelta):

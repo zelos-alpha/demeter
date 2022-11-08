@@ -1,7 +1,9 @@
+from datetime import timedelta
+
 import numpy as np
 import pandas as pd
 from pandas._typing import TimedeltaConvertibleTypes, Axis
-from datetime import timedelta
+
 from .common import get_real_n
 
 

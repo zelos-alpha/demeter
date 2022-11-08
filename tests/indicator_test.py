@@ -2,10 +2,11 @@ import math
 import time
 import unittest
 from datetime import timedelta
+
 import numpy as np
 import pandas as pd
 
-from demeter import simple_moving_average, TimeUnitEnum, exponential_moving_average, actual_volatility
+from demeter import simple_moving_average, exponential_moving_average, actual_volatility
 
 
 class TestIndicator(unittest.TestCase):
