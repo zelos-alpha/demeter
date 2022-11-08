@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from demeter._typing import RowData, ZelosError
+from demeter._typing import RowData, DemeterError
 
 
 def to_minute(time: datetime) -> datetime:
@@ -71,7 +71,7 @@ class TimeRangesTrigger(Trigger):
 
 def check_time_delta(delta: timedelta):
     if delta.total_seconds() % 60 != 0:
-        raise ZelosError("min time span is 1 minute")
+        raise DemeterError("min time span is 1 minute")
 
 
 class PeriodTrigger(Trigger):

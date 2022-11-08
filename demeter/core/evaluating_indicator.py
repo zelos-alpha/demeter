@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pandas as pd
 
-from .._typing import AccountStatus, EvaluatingIndicator, DECIMAL_ZERO, UnitDecimal, ZelosError
+from .._typing import AccountStatus, EvaluatingIndicator, DECIMAL_ZERO, UnitDecimal, DemeterError
 
 
 class Evaluator(object):
@@ -15,7 +15,7 @@ class Evaluator(object):
         self.end_status = data.iloc[-1]
         self.data = data
         if len(data) < 2:
-            raise ZelosError("not enought data")
+            raise DemeterError("not enought data")
         self.time_span_in_day = len(data.index) * (data.index[1] - data.index[0]).seconds / (60 * 60 * 24)
         self._evaluating_indicator: EvaluatingIndicator = None
 

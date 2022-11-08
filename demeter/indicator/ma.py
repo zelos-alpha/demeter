@@ -1,24 +1,9 @@
 import numpy as np
 import pandas as pd
-from pandas import Timedelta
 from pandas._typing import TimedeltaConvertibleTypes, Axis
 
-from .._typing import ZelosError, TimeUnitEnum
-
-
-def get_real_n(data: pd.Series, n=5, unit=TimeUnitEnum.hour):
-    if data.size < 2:
-        raise ZelosError("not enough data for simple_moving_average")
-    timespan: Timedelta = data.index[1] - data.index[0]
-    if timespan.seconds % 60 != 0:
-        return ZelosError("no seconds is allowed")
-    span_in_minute = timespan.total_seconds() / 60
-    if unit.value % span_in_minute != 0:
-        raise ZelosError(f"ma span is {n}{unit.name}, but data span is {span_in_minute}minute, cannot divide exactly")
-    real_n = n * int(unit.value / span_in_minute)
-    if data.size < real_n:
-        raise ZelosError("not enough data for simple_moving_average")
-    return real_n
+from .common import get_real_n
+from .._typing import TimeUnitEnum
 
 
 def simple_moving_average(data: pd.Series | pd.DataFrame,
@@ -74,8 +59,7 @@ def exponential_moving_average(data: pd.Series | pd.DataFrame,
     """
     calculate exponential moving average, just a shortcut for pandas.evm().mean()
 
-     docs for params, see: https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.ewm.html
-
+    docs for params, see: https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.ewm.html
     """
     return data.ewm(com=com,
                     span=span,

@@ -473,5 +473,5 @@ class EvaluatingIndicator:
         })
 
 
-class ZelosError(RuntimeError):
+class DemeterError(RuntimeError):
     pass

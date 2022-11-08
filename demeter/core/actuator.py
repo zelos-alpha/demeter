@@ -7,7 +7,7 @@ from tqdm import tqdm  # process bar
 
 from .evaluating_indicator import Evaluator
 from .. import PoolStatus
-from .._typing import AccountStatus, BarStatusNames, BaseAction, Asset, ZelosError, ActionTypeEnum, \
+from .._typing import AccountStatus, BarStatusNames, BaseAction, Asset, DemeterError, ActionTypeEnum, \
     EvaluatingIndicator, RowData
 from ..broker import Broker, PoolBaseInfo
 from ..data_line import Lines
@@ -67,7 +67,7 @@ class Actuator(object):
         if self.__backtest_finished:
             return self.account_status_list[len(self.account_status_list) - 1]
         else:
-            raise ZelosError("please run strategy first")
+            raise DemeterError("please run strategy first")
 
     def reset(self):
         """
@@ -339,7 +339,7 @@ class Actuator(object):
                                               first_data.price)
         self.init_strategy()
         if not isinstance(self._data, Lines):
-            raise ZelosError("Data must be instance of Lines")
+            raise DemeterError("Data must be instance of Lines")
         row_id = 0
         first = True
         self.logger.info("start main loop...")
@@ -410,14 +410,14 @@ class Actuator(object):
             print("Evaluating indicator")
             print(self._evaluator.evaluating_indicator.get_output_str())
         else:
-            raise ZelosError("please run strategy first")
+            raise DemeterError("please run strategy first")
 
     def init_strategy(self):
         """
         initialize strategy, set property to strategy. and run strategy.initialize()
         """
         if not isinstance(self._strategy, Strategy):
-            raise ZelosError("strategy must be inherit from Strategy")
+            raise DemeterError("strategy must be inherit from Strategy")
         self._strategy.broker = self._broker
         self._strategy.data = self._data
 

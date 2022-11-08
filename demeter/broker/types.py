@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import NamedTuple
 
-from .._typing import TokenInfo, ZelosError
+from .._typing import TokenInfo, DemeterError
 
 
 class PoolBaseInfo(object):
@@ -34,7 +34,7 @@ class PoolBaseInfo(object):
             case "1":
                 self.tickSpacing = 200
             case _:
-                raise ZelosError("fee should be 0.05 or 0.3 or 1")
+                raise DemeterError("fee should be 0.05 or 0.3 or 1")
         self.fee = Decimal(fee) * Decimal(10000)
         self.fee_rate = Decimal(fee) / Decimal(100)
 
@@ -94,7 +94,7 @@ class BrokerAsset(object):
         if abs((self.balance - amount) / base) < 0.00001:
             self.balance = Decimal(0)
         elif self.balance - amount < Decimal(0):
-            raise ZelosError(
+            raise DemeterError(
                 f"insufficient balance, balance is {self.balance}{self.name}, but sub amount is {amount}{self.name}")
         else:
             self.balance -= amount

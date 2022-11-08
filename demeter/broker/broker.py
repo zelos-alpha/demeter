@@ -6,7 +6,7 @@ from .helper import tick_to_quote_price, quote_price_to_tick
 from .liquitidymath import get_sqrt_ratio_at_tick
 from .types import PoolBaseInfo, TokenInfo, BrokerAsset, Position, PoolStatus
 from .v3_core import V3CoreLib
-from .._typing import PositionInfo, ZelosError, AddLiquidityAction, RemoveLiquidityAction, BuyAction, SellAction, \
+from .._typing import PositionInfo, DemeterError, AddLiquidityAction, RemoveLiquidityAction, BuyAction, SellAction, \
     CollectFeeAction, AccountStatus, DECIMAL_ZERO, UnitDecimal
 from ..utils.application import float_param_formatter
 
@@ -158,7 +158,7 @@ class Broker(object):
         :type amount: Union[Decimal, float]
         """
         if not self._pool_info:
-            raise ZelosError("set up pool info first")
+            raise DemeterError("set up pool info first")
         if token == self._asset0.token_info:
             self._asset0.balance = amount
             self._init_amount0 = amount
@@ -166,7 +166,7 @@ class Broker(object):
             self._asset1.balance = amount
             self._init_amount1 = amount
         else:
-            raise ZelosError("unknown token")
+            raise DemeterError("unknown token")
 
     def update(self):
         """
@@ -285,7 +285,7 @@ class Broker(object):
             # self.current_tick must be initialed
             sqrt_price_x96 = get_sqrt_ratio_at_tick(self.pool_status.current_tick)
         if lower_tick > upper_tick:
-            raise ZelosError("lower tick should be less than upper tick")
+            raise DemeterError("lower tick should be less than upper tick")
 
         token0_used, token1_used, liquidity, position_info = V3CoreLib.new_position(self._pool_info,
                                                                                     token0_amount,
@@ -439,7 +439,7 @@ class Broker(object):
         :rtype:  (Decimal,Decimal)
         """
         if liquidity and liquidity < 0:
-            raise ZelosError("liquidity should large than 0")
+            raise DemeterError("liquidity should large than 0")
         token0_get, token1_get, delta_liquidity = self.__remove_liquidity(position, liquidity, sqrt_price_x96)
 
         base_get, quote_get = self.__convert_pair(token0_get, token1_get)
@@ -478,7 +478,7 @@ class Broker(object):
         """
         if (max_collect_amount0 and max_collect_amount0 < 0) or \
                 (max_collect_amount1 and max_collect_amount1 < 0):
-            raise ZelosError("collect amount should large than 0")
+            raise DemeterError("collect amount should large than 0")
         token0_get, token1_get = self.__collect_fee(self._positions[position])
 
         base_get, quote_get = self.__convert_pair(token0_get, token1_get)
