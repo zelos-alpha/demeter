@@ -2,6 +2,14 @@ from decimal import Decimal
 
 # -*- coding: utf-8 -*-
 """
+!!! IMPORTANT 
+
+this module is developed and enhanced from active-strategy-framework of GammaStrategies
+source code: https://github.com/GammaStrategies/active-strategy-framework/blob/main/UNI_v3_funcs.py
+
+Original author information: 
+=============================================
+
 Created on Mon Jun 14 18:53:09 2021
 
 @author: JNP
@@ -32,7 +40,7 @@ def get_amount1(sqrtA: int, sqrtB: int, liquidity: int, decimals: int) -> Decima
     return amount1
 
 
-def get_sqrt(tick):
+def get_sqrt(tick: int):
     return Decimal(1.0001 ** (tick / 2) * (2 ** 96))
 
 
@@ -77,47 +85,14 @@ def amounts_relation(tick: int, tickA: int, tickB: int, decimals0: int, decimals
 '''get_liquidity function'''
 
 
-# Use 'get_liquidity' function to calculate liquidity as a function of amounts and price range
-# def get_liquidity0(sqrtA: Decimal, sqrtB: Decimal, amount0: Decimal, decimals: int) -> Decimal:
-#     if sqrtA > sqrtB:
-#         (sqrtA, sqrtB) = (sqrtB, sqrtA)
-#
-#     liquidity = amount0 / ((2 ** 96 * (sqrtB - sqrtA) / sqrtB / sqrtA) / 10 ** decimals)
-#     return liquidity
-#
-#
-# def get_liquidity1(sqrtA: Decimal, sqrtB: Decimal, amount1: Decimal, decimals: int) -> Decimal:
-#     if sqrtA > sqrtB:
-#         (sqrtA, sqrtB) = (sqrtB, sqrtA)
-#
-#     liquidity = amount1 / ((sqrtB - sqrtA) / 2 ** 96 / 10 ** decimals)
-#     return liquidity
-#
-#
-# def get_liquidity(tick: int, tickA: int, tickB: int,
-#                   amount0: Decimal, amount1: Decimal,
-#                   decimal0: int, decimal1: int) -> Decimal:
-#     sqrt = get_sqrt(tick)
-#     sqrtA = get_sqrt(tickA)
-#     sqrtB = get_sqrt(tickB)
-#
-#     if sqrtA > sqrtB:
-#         (sqrtA, sqrtB) = (sqrtB, sqrtA)
-#
-#     if sqrt <= sqrtA:
-#         liquidity0 = get_liquidity0(sqrtA, sqrtB, amount0, decimal0)
-#         return liquidity0
-#     elif sqrtB > sqrt > sqrtA:
-#         liquidity0 = get_liquidity0(sqrt, sqrtB, amount0, decimal0)
-#         liquidity1 = get_liquidity1(sqrtA, sqrt, amount1, decimal1)
-#         liquidity = liquidity0 if liquidity0 < liquidity1 else liquidity1
-#         return liquidity
-#     else:
-#         liquidity1 = get_liquidity1(sqrtA, sqrtB, amount1, decimal1)
-#         return liquidity1
-
-
 def mul_div(a: int, b: int, denominator: int) -> int:
+    """
+    this function is very long in contract. but It's because max length in solidity is limited.
+
+    But python has unlimit integer.
+
+    ensure all the parameter is int !
+    """
     return a * b // denominator
 
 

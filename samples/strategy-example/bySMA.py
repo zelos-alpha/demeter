@@ -1,10 +1,8 @@
-from datetime import date, datetime
-from typing import Union
+from datetime import date, timedelta
+
 import demeter.indicator
-from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, AccountStatus, BuyAction, SellAction, RowData, \
-    ChainType
-import pandas as pd
-from strategy_ploter import plotter, plot_position_return_decomposition
+from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, BuyAction, SellAction, ChainType, PeriodTrigger
+from strategy_ploter import plot_position_return_decomposition
 
 
 class AddLpByMa(Strategy):
@@ -15,26 +13,15 @@ class AddLpByMa(Strategy):
         self.price_width = price_width
 
     def initialize(self):
-        prices = self.data.closeTick.map(lambda x: self.broker.tick_to_price(x))
-        self._add_column("ma5", demeter.indicator.simple_moving_average(prices, 5))
+        self._add_column("ma5", demeter.indicator.simple_moving_average(self.data.price, 5))
+        self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=1),
+                                           trigger_immediately=True,
+                                           do=self.work))
 
-    def rebalance(self, price):
-        status: AccountStatus = self.broker.get_account_status(price)
-        base_amount = status.net_value / 2
-        quote_amount_diff = base_amount / price - status.quote_balance
-        if quote_amount_diff > 0:
-            self.buy(quote_amount_diff)
-        elif quote_amount_diff < 0:
-            self.sell(0 - quote_amount_diff)
-
-    def next(self, row_data: Union[RowData, pd.Series]):
-        if row_data.timestamp.minute != 0:
-            return
+    def work(self, row_data):
         if len(self.broker.positions) > 0:
-            keys = list(self.broker.positions.keys())
-            for k in keys:
-                self.remove_liquidity(k)
-            self.rebalance(row_data.price)
+            self.broker.remove_all_liquidity()
+            self.broker.even_rebalance(row_data.price)
         ma_price = row_data.ma5 if row_data.ma5 > 0 else row_data.price
         self.add_liquidity(ma_price - self.price_width,
                            ma_price + self.price_width)
@@ -56,7 +43,7 @@ if __name__ == "__main__":
     actuator_instance.set_assets([Asset(usdc, 2000)])
     actuator_instance.data_path = "../data"
     actuator_instance.load_data(ChainType.Polygon.name,
-                              "0x45dda9cb7c25131df268515131f647d726f50608",
+                                "0x45dda9cb7c25131df268515131f647d726f50608",
                                 date(2022, 8, 5),
                                 date(2022, 8, 20))
     actuator_instance.run(enable_notify=False)
