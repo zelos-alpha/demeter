@@ -460,6 +460,7 @@ class EvaluatingIndicator:
     """
     annualized_returns: UnitDecimal
     benchmark_returns: UnitDecimal
+    max_drawdown: UnitDecimal
 
     def get_output_str(self) -> str:
         """
@@ -470,6 +471,7 @@ class EvaluatingIndicator:
         return get_formatted_str({
             "annualized_returns": self.annualized_returns.to_str(),
             "benchmark_returns": self.benchmark_returns.to_str(),
+            "max_drawdown": self.max_drawdown.to_str()
         })
 
 
