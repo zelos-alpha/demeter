@@ -325,6 +325,10 @@ class Actuator(object):
 
         :param enable_notify: notify when new action happens
         :type enable_notify: bool
+        :param enable_evaluating: enable evaluating indicator. if not enabled, no evaluating will be calculated
+        :type enable_evaluating: bool
+        :param print_final_status: enable output.
+        :type print_final_status: bool
         """
         self._enable_evaluating = enable_evaluating
         self.reset()
