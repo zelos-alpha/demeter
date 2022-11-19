@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Union
 
-from .helper import tick_to_quote_price, quote_price_to_tick
+from .helper import tick_to_quote_price, quote_price_to_tick, quote_price_to_sqrt, tick_to_sqrtPriceX96
 from .liquitidymath import get_sqrt_ratio_at_tick
 from .types import PoolBaseInfo, TokenInfo, BrokerAsset, Position, PoolStatus
 from .v3_core import V3CoreLib
@@ -222,14 +222,15 @@ class Broker(object):
         base_asset, quote_asset = self.__convert_pair(self._asset0, self._asset1)
         base_fee_sum = DECIMAL_ZERO
         quote_fee_sum = DECIMAL_ZERO
-        tick = quote_price_to_tick(price, self.asset0.decimal, self.asset1.decimal, self._is_token0_base)
+        sqrt_price = quote_price_to_sqrt(price, self.asset0.decimal, self.asset1.decimal, self._is_token0_base)
         deposit_amount0 = deposit_amount1 = Decimal(0)
         for position_info, position in self._positions.items():
             base_fee, quote_fee = self.__convert_pair(position.pending_amount0,
                                                       position.pending_amount1)
             base_fee_sum += base_fee
             quote_fee_sum += quote_fee
-            amount0, amount1 = V3CoreLib.get_token_amounts(self._pool_info, position_info, tick, position.liquidity)
+            amount0, amount1 = V3CoreLib.get_token_amounts(self._pool_info, position_info, sqrt_price,
+                                                           position.liquidity)
             deposit_amount0 += amount0
             deposit_amount1 += amount1
 
@@ -334,7 +335,8 @@ class Broker(object):
                       lower_quote_price: Union[Decimal, float],
                       upper_quote_price: Union[Decimal, float],
                       base_max_amount: Union[Decimal, float] = None,
-                      quote_max_amount: Union[Decimal, float] = None) -> (PositionInfo, Decimal, Decimal):
+                      quote_max_amount: Union[Decimal, float] = None,
+                      ) -> (PositionInfo, Decimal, Decimal):
         """
 
         add liquidity, then get a new position
@@ -379,7 +381,8 @@ class Broker(object):
                               upper_tick: int,
                               base_max_amount: Union[Decimal, float] = None,
                               quote_max_amount: Union[Decimal, float] = None,
-                              sqrt_price_x96: int = -1):
+                              sqrt_price_x96: int = -1,
+                              tick: int = -1):
         """
 
         add liquidity, you need to set tick instead of price.
@@ -392,11 +395,15 @@ class Broker(object):
         :type base_max_amount: Union[Decimal, float]
         :param quote_max_amount: inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
         :type quote_max_amount: Union[Decimal, float]
-        :param sqrt_price_x96: precise price.  if set to none, it will be calculated from current price.
+        :param tick: precise price.  if set to none, it will be calculated from current price.
+        :type tick: int
+        :param sqrt_price_x96: precise price.  if set to none, it will be calculated from current price. this param will override tick
         :type sqrt_price_x96: int
         :return: added position, base token used, quote token used
         :rtype: (PositionInfo, Decimal, Decimal)
         """
+        if sqrt_price_x96 == -1 and tick != -1:
+            sqrt_price_x96 = tick_to_sqrtPriceX96(tick)
         base_max_amount = self.base_asset.balance if base_max_amount is None else base_max_amount
         quote_max_amount = self.quote_asset.balance if quote_max_amount is None else quote_max_amount
         token0_amt, token1_amt = self.__convert_pair(base_max_amount, quote_max_amount)

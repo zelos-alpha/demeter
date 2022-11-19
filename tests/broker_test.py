@@ -170,3 +170,33 @@ class TestBroker(unittest.TestCase):
         self.assertEqual(broker.asset0.balance,
                          token0_before + broker.pool_status.price * Decimal(1) * (1 - broker.pool_info.fee_rate))
         self.assertEqual(broker.asset1.balance, token1_before - Decimal(1))
+
+    def test_net_value(self):
+        pool0p3 = PoolBaseInfo(self.usdc, self.eth, 0.3, self.usdc)
+        broker = Broker(pool0p3)
+        broker.set_asset(self.usdc, 2000)
+        broker.set_asset(self.eth, 1)
+        price = 1100
+        tick = broker.price_to_tick(price)
+        old_net_value = price * broker.asset1.balance + broker.asset0.balance
+        pos = broker.add_liquidity_by_tick(broker.price_to_tick(1200), broker.price_to_tick(1000), tick=tick)
+        status = broker.get_account_status(Decimal(1100))
+        print(pos)
+        print(status)
+        self.assertEqual(old_net_value, round(status.net_value, 4))
+
+    def test_net_value2(self):
+        pool0p3 = PoolBaseInfo(self.usdc, self.eth, 0.3, self.usdc)
+        broker = Broker(pool0p3)
+        broker.set_asset(self.usdc, 1100)
+        broker.set_asset(self.eth, 1)
+        price = 1100
+        old_net_value = price * broker.asset1.balance + broker.asset0.balance
+        print(old_net_value)
+        tick = broker.price_to_tick(price)
+        broker.pool_status = PoolStatus(None, tick, Decimal(0), Decimal(0), Decimal(0), Decimal(0))
+        pos = broker.add_liquidity(1000, 1200)
+        status = broker.get_account_status(Decimal(1100))
+        print(pos)
+        print(status)
+        self.assertEqual(old_net_value, round(status.net_value, 4))

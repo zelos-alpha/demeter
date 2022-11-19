@@ -26,6 +26,10 @@ def pool_price_to_tick(price_decimal: Decimal):
     return int(math.log(price_decimal, math.sqrt(1.0001)))
 
 
+def tick_to_sqrtPriceX96(tick: int):
+    return get_sqrt_ratio_at_tick(tick)
+
+
 def tick_to_quote_price(tick: int, token_0_decimal, token_1_decimal, is_token0_base: bool):
     sqrt_price = get_sqrt_ratio_at_tick(tick)
     decimal_price = _x96_to_decimal(sqrt_price) ** 2
@@ -35,13 +39,18 @@ def tick_to_quote_price(tick: int, token_0_decimal, token_1_decimal, is_token0_b
 
 def quote_price_to_tick(based_price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token_base) -> int:
     # quote price->add decimal pool price->sqrt_price ->ticker
+    sqrt_price = quote_price_to_sqrt(based_price, token_0_decimal, token_1_decimal, is_token_base)
+    tick = sqrt_price_to_tick(sqrt_price)
+    return tick
+
+
+def quote_price_to_sqrt(based_price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token_base) -> int:
+    # quote price->add decimal pool price->sqrt_price ->ticker
 
     price = 1 / based_price if is_token_base else based_price
     pool_price = price / Decimal(10 ** (token_0_decimal - token_1_decimal))
     decimal_price = Decimal.sqrt(pool_price)
-    sqrt_price = decimal_to_x96(decimal_price)
-    tick = sqrt_price_to_tick(sqrt_price)
-    return tick
+    return decimal_to_x96(decimal_price)
 
 
 def from_wei(token_amt: int, decimal: int):
