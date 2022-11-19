@@ -19,12 +19,18 @@ def decode_address_from_topic(topic_str):
     return "0x" + topic_str[26:]
 
 
+def split_topic(topic: str) -> list[str]:
+    spliter = "\n" if "\n" in topic else ","
+    topic_list = topic.strip("[]").replace("'", "").replace("\"", "").replace(" ", "").split(spliter)
+    return topic_list
+
+
 def handle_event(topics_str, data_hex):
     # proprocess topics string -> topic list
     # topics_str = topics.values[0]
     sqrtPriceX96 = receipt = amount1 = current_liquidity = current_tick = tick_lower = tick_upper = delta_liquidity = None
     if isinstance(topics_str, str):
-        topic_list = topics_str.strip("[]").replace("'", "").replace(" ", "").split("\n")
+        topic_list = split_topic(topics_str)
     else:
         topic_list = topics_str
 
