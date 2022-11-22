@@ -8,7 +8,7 @@ from tqdm import tqdm  # process bar
 from .evaluating_indicator import Evaluator
 from .. import PoolStatus
 from .._typing import AccountStatus, BarStatusNames, BaseAction, Asset, DemeterError, ActionTypeEnum, \
-    EvaluatingIndicator, RowData
+    EvaluatingIndicator, RowData, ProcessOrder
 from ..broker import Broker, PoolBaseInfo
 from ..data_line import Lines
 from ..strategy import Strategy
@@ -53,6 +53,13 @@ class Actuator(object):
 
         # internal var
         self.__backtest_finished = False
+
+    @property
+    def account_status(self) -> pd.DataFrame:
+        index = self.data.index[0:len(self.account_status_list)]
+        return pd.DataFrame(columns=BarStatusNames,
+                            index=index,
+                            data=map(lambda d: d.to_array(), self.account_status_list))
 
     @property
     def final_status(self) -> AccountStatus:
@@ -308,7 +315,8 @@ class Actuator(object):
         df["volume0"] = df["inAmount0"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token0.decimal)
         df["volume1"] = df["inAmount1"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token1.decimal)
 
-    def run(self, enable_notify=True, enable_evaluating=True, print_final_status=False):
+    def run(self, enable_notify=True, enable_evaluating=True, print_final_status=False,
+            process_order=ProcessOrder.ActionFirst):
         """
         start back test, the whole process including:
 
@@ -364,6 +372,8 @@ class Actuator(object):
                                                       row_data.inAmount0,
                                                       row_data.inAmount1,
                                                       row_data.price)
+                if process_order == ProcessOrder.ActionFirst:
+                    self._broker.update()
                 self._strategy.next(row_data)
                 if self._strategy.triggers:
                     for trigger in self._strategy.triggers:
@@ -371,7 +381,10 @@ class Actuator(object):
                             trigger.do(row_data)
                 # update broker status, eg: re-calculate fee
                 # and read the latest status from broker
-                self._broker.update()
+                if process_order == ProcessOrder.ActionFirst:
+                    self._broker.update()
+                self._strategy.next_after(row_data)
+
                 if first:
                     init_price = row_data.price
                     first = False

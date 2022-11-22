@@ -37,6 +37,15 @@ class Strategy(object):
         """
         pass
 
+    def next_after(self, row_data: Union[RowData, pd.Series]):
+        """
+        triggerd on each row of data.
+
+        :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
+        :type row_data: Union[RowData, pd.Series]
+        """
+        pass
+
     def finalize(self):
         """
         this will run after all the data processed.
@@ -133,7 +142,8 @@ class Strategy(object):
 
         return self.broker.add_liquidity(lower_quote_price, upper_quote_price, base_max_amount, quote_max_amount)
 
-    def remove_liquidity(self, positions: Union[PositionInfo, list]) -> {PositionInfo: (Decimal, Decimal)}:
+    def remove_liquidity(self, positions: Union[PositionInfo, list], remove_dry_pool: bool = True) -> {
+        PositionInfo: (Decimal, Decimal)}:
         """
         remove liquidity from pool, position will be deleted
 
@@ -142,7 +152,7 @@ class Strategy(object):
         :return: a dict, key is position info, value is (base_got,quote_get), base_got is base token amount collected from position
         :rtype: {PositionInfo: (Decimal,Decimal)}
         """
-        return self.broker.remove_liquidity(positions)
+        return self.broker.remove_liquidity(positions, remove_dry_pool)
 
     def collect_fee(self, positions: [PositionInfo]) -> {PositionInfo: tuple}:
         """

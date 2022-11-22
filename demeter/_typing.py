@@ -9,6 +9,11 @@ from .utils.application import get_formatted_str
 DECIMAL_ZERO = Decimal(0)
 
 
+class ProcessOrder(Enum):
+    UpdateFeeFirst = 1
+    ActionFirst = 2
+
+
 class TimeUnitEnum(Enum):
     """
     time unit for moving average,

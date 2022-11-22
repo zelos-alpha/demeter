@@ -305,7 +305,7 @@ class Broker(object):
     def __remove_liquidity(self, position: PositionInfo, liquidity: int = None, sqrt_price_x96: int = -1):
         sqrt_price_x96 = int(sqrt_price_x96) if sqrt_price_x96 != -1 else get_sqrt_ratio_at_tick(
             self.pool_status.current_tick)
-        delta_liquidity = liquidity if liquidity and liquidity < self.positions[position].liquidity \
+        delta_liquidity = liquidity if (liquidity is not None) and liquidity < self.positions[position].liquidity \
             else self.positions[position].liquidity
         token0_get, token1_get = V3CoreLib.close_position(self._pool_info, position, delta_liquidity, sqrt_price_x96)
 
@@ -428,7 +428,7 @@ class Broker(object):
 
     @float_param_formatter
     def remove_liquidity(self, position: PositionInfo, liquidity: int = None, collect: bool = True,
-                         sqrt_price_x96: int = -1) -> (Decimal, Decimal):
+                         sqrt_price_x96: int = -1, remove_dry_pool: bool = True) -> (Decimal, Decimal):
         """
         remove liquidity from pool, liquidity will be reduced to 0,
         instead of send tokens to broker, tokens will be transferred to fee property in position.
@@ -461,7 +461,7 @@ class Broker(object):
                 remain_liquidity=self.positions[position].liquidity
             ))
         if collect:
-            return self.collect_fee(position)
+            return self.collect_fee(position, remove_dry_pool)
         else:
             return base_get, quote_get
 
@@ -469,7 +469,8 @@ class Broker(object):
     def collect_fee(self,
                     position: PositionInfo,
                     max_collect_amount0: Decimal = None,
-                    max_collect_amount1: Decimal = None) -> (Decimal, Decimal):
+                    max_collect_amount1: Decimal = None,
+                    remove_dry_pool: bool = True) -> (Decimal, Decimal):
         """
         collect fee and token from positions,
         if the amount and liquidity is zero, this position will be deleted.
@@ -500,7 +501,8 @@ class Broker(object):
                 ))
         if self._positions[position].pending_amount0 == Decimal(0) \
                 and self._positions[position].pending_amount1 == Decimal(0) \
-                and self._positions[position].liquidity == 0:
+                and self._positions[position].liquidity == 0 \
+                and remove_dry_pool:
             del self.positions[position]
         return base_get, quote_get
 

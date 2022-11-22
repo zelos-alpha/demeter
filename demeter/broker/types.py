@@ -91,13 +91,15 @@ class BrokerAsset(object):
             return self
         # if difference between amount and balance is below 0.01%, will deduct all the balance
         # That's because, the amount calculated by v3_core, has some acceptable error.
-        if abs((self.balance - amount) / base) < 0.00001:
-            self.balance = Decimal(0)
-        elif self.balance - amount < Decimal(0):
-            raise DemeterError(
-                f"insufficient balance, balance is {self.balance}{self.name}, but sub amount is {amount}{self.name}")
-        else:
-            self.balance -= amount
+        # if abs((self.balance - amount) / base) < 0.00001:
+        #     self.balance = Decimal(0)
+        # elif self.balance - amount < Decimal(0):
+        #     raise DemeterError(
+        #         f"insufficient balance, balance is {self.balance}{self.name}, but sub amount is {amount}{self.name}")
+        # else:
+        #     self.balance -= amount
+
+        self.balance -= amount
         return self
 
     def amount_in_wei(self):

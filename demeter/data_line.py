@@ -50,10 +50,10 @@ def get_agg_by_type(line_type: LineTypeEnum) -> str:
 
 def get_fillna_param(line_type: LineTypeEnum, method=None, value=0):
     match line_type:
-        case LineTypeEnum.openTick | LineTypeEnum.closeTick | LineTypeEnum.highestTick | LineTypeEnum.lowestTick:
+        case LineTypeEnum.openTick | LineTypeEnum.closeTick | LineTypeEnum.highestTick | LineTypeEnum.lowestTick | LineTypeEnum.currentLiquidity:
             method = "ffill"
             value = None
-        case LineTypeEnum.netAmount0 | LineTypeEnum.netAmount1 | LineTypeEnum.inAmount0 | LineTypeEnum.inAmount1 | LineTypeEnum.currentLiquidity:
+        case LineTypeEnum.netAmount0 | LineTypeEnum.netAmount1 | LineTypeEnum.inAmount0 | LineTypeEnum.inAmount1:
             method = None
             value = 0
     return {"method": method, "value": value}
@@ -124,7 +124,6 @@ class Cursorable(object):
         if real_index < 0 or real_index >= self.index.size:
             raise IndexError("index out of range")
         return self.iloc[real_index]
-
 
 
 class Line(pd.Series, Cursorable):
