@@ -7,7 +7,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='zelos-demeter',
-    version='0.1.6',
+    version='0.1.7',
     packages=find_packages(exclude=["tests", "tests.*", "samples", "samples.*"]),
     url='https://zelos-demeter.readthedocs.io',
     license='MIT',
