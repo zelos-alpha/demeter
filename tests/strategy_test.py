@@ -19,7 +19,7 @@ class TestStrategy(Strategy):
         self.triggers.append(
             PeriodTrigger(timedelta(hours=6), self.adjust_position, trigger_immediately=True, price_range=100))
 
-    def next(self, row_data: Union[RowData, pd.Series]):
+    def on_bar(self, row_data: Union[RowData, pd.Series]):
         pass
 
     def sell_1(self, row_data: RowData, *args, **kwargs):

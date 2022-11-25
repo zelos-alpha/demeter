@@ -15,7 +15,7 @@ pd.set_option('display.width', 5000)
 
 
 class WithSMA(Strategy):
-    def next(self, row_data: Union[RowData, pd.Series]):
+    def on_bar(self, row_data: Union[RowData, pd.Series]):
 
         if row_data.row_id == 2:
             # access current row, method is provided by demeter

@@ -21,7 +21,7 @@ class FillUp(dt.Strategy):
         else:
             self.my_b_position = self.add_liquidity(P0, P0 + a)
 
-    def next(self, row_data):
+    def on_bar(self, row_data):
         a = self.a
         if row_data.timestamp.hour != 0 or row_data.timestamp.minute != 0:  # every day. need a tool function to set in the future.
             return

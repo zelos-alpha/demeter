@@ -28,7 +28,7 @@ class TwoIntervalsAroundtheCurrentPrice(dt.Strategy):
         elif quote_amount_diff < 0:
             self.sell(0 - quote_amount_diff)
 
-    def next(self,row_data):
+    def on_bar(self, row_data):
         a = self.a
         b = self.b
         if row_data.timestamp.hour != 0 or row_data.timestamp.minute != 0: #every day. need a tool function to set in the future.

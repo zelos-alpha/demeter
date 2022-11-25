@@ -23,12 +23,12 @@ class Strategy(object):
 
     def initialize(self):
         """
-        initialize your strategy, this will be called before self.next()
+        initialize your strategy, this will be called before self.on_bar()
 
         """
         pass
 
-    def next(self, row_data: Union[RowData, pd.Series]):
+    def before_bar(self, row_data: Union[RowData, pd.Series]):
         """
         triggerd on each row of data.
 
@@ -37,7 +37,16 @@ class Strategy(object):
         """
         pass
 
-    def next_after(self, row_data: Union[RowData, pd.Series]):
+    def on_bar(self, row_data: Union[RowData, pd.Series]):
+        """
+        triggerd on each row of data.
+
+        :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
+        :type row_data: Union[RowData, pd.Series]
+        """
+        pass
+
+    def after_bar(self, row_data: Union[RowData, pd.Series]):
         """
         triggerd on each row of data.
 

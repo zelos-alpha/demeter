@@ -12,7 +12,7 @@ pd.set_option('display.width', 5000)
 
 
 class MyFirstStrategy(Strategy):
-    def next(self, row_data: Union[RowData, pd.Series]):
+    def on_bar(self, row_data: Union[RowData, pd.Series]):
         # show how to access data
         if row_data.row_id == 1000:
             # access current row

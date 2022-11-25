@@ -44,7 +44,7 @@ class V3CoreLib(object):
 
     @staticmethod
     def update_fee(pool: PoolBaseInfo, pos: PositionInfo, position: Position, state: PoolStatus):
-        # in most cases, tick will not cross to next one, which means L will not change.
+        # in most cases, tick will not cross to on_bar one, which means L will not change.
         if pos.upper_tick > state.current_tick > pos.lower_tick:
             # if the simulating liquidity is above the actual liquidity, we will consider share=1
             if position.liquidity >= state.current_liquidity:

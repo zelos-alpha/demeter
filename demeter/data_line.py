@@ -101,7 +101,7 @@ class Cursorable(object):
 
     def move_cursor_to_next(self):
         """
-        move cursor to next index
+        move cursor to on_bar index
         """
         self.cursor += 1
 

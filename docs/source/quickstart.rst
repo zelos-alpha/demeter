@@ -148,7 +148,7 @@ Not write a strategy
 .. code-block:: python
 
       class MyFirstStrategy(Strategy):
-        def next(self, row_data: Union[RowData, pd.Series]):
+        def on_bar(self, row_data: Union[RowData, pd.Series]):
             if row_data.price > 1500:
                 self.buy(0.1, row_data.price)
 
@@ -173,7 +173,7 @@ suppose we only have five rows of data, and in closeTick column, data is [0,1,2,
 .. code-block:: python
 
     class MyFirstStrategy(Strategy):
-        def next(self, row_data: Union[RowData, pd.Series]): #
+        def on_bar(self, row_data: Union[RowData, pd.Series]): #
             # access current row
             print(row_data.closeTick)
             print(self.data.get_by_cursor(0).closeTick)
@@ -216,7 +216,7 @@ this example shows how to add simple moving average indicator with 5 hour window
 .. code-block:: python
 
     class MyFirstStrategy(Strategy):
-        def next(self, row_data: Union[RowData, pd.Series]):
+        def on_bar(self, row_data: Union[RowData, pd.Series]):
             if row_data.ma5 > 1500: # access by row_data
                 self.buy(100, row_data.price)
             if self.data.get_by_cursor(0).ma5 > 1500 # access by index

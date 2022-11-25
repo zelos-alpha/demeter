@@ -18,7 +18,7 @@ pd.set_option('display.width', 5000)
 
 class WithSMA(Strategy):
 
-    def next(self, row_data: Lines):
+    def on_bar(self, row_data: Lines):
         if row_data.row_id == 0:
             tick = self.broker.price_to_tick(row_data.price)
             price_high = self.broker.tick_to_price(tick - 1000)

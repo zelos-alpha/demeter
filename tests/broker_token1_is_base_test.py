@@ -50,7 +50,7 @@ class TestBroker(unittest.TestCase):
                                                                                          broker.pool_status.current_tick + 100)
         TestBroker.print_broker(broker, [new_position, ])
         self.assertEqual(0, broker.asset0.balance.quantize(Decimal('.0000001')))
-        self.assertEqual(0, broker.asset1.balance.quantize(Decimal('.0000001')))
+        self.assertEqual(0, broker.asset1.balance.quantize(Decimal('.00001')))
 
     def test_remove_position(self):
         broker = self.get_one_broker()

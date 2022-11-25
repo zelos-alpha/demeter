@@ -9,11 +9,6 @@ from .utils.application import get_formatted_str
 DECIMAL_ZERO = Decimal(0)
 
 
-class ProcessOrder(Enum):
-    UpdateFeeFirst = 1
-    ActionFirst = 2
-
-
 class TimeUnitEnum(Enum):
     """
     time unit for moving average,
@@ -196,7 +191,7 @@ class AccountStatus:
 
 class RowData(object):
     """
-    data for each bar. Strategy.next() would know which property to use
+    data for each bar. Strategy.on_bar() would know which property to use
 
     :param timestamp: current time of test data
     :param row_id: data index of this line, start with 0, can be used in dataframe.iloc()

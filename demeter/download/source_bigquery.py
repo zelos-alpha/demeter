@@ -69,7 +69,7 @@ def process_raw_data(raw_data: pandas.DataFrame) -> "pandas.DataFrame":
         else:  #
             data.append(sample_data_to_one_minute(start_time, minute_rows))
             total_index += 1
-            # start next minute
+            # start on_bar minute
             start_time = current_time
             minute_rows = [row]
     data = DataUtil.fill_missing(data)

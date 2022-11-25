@@ -8,7 +8,7 @@ from tqdm import tqdm  # process bar
 from .evaluating_indicator import Evaluator
 from .. import PoolStatus
 from .._typing import AccountStatus, BarStatusNames, BaseAction, Asset, DemeterError, ActionTypeEnum, \
-    EvaluatingIndicator, RowData, ProcessOrder
+    EvaluatingIndicator, RowData
 from ..broker import Broker, PoolBaseInfo
 from ..data_line import Lines
 from ..strategy import Strategy
@@ -315,8 +315,7 @@ class Actuator(object):
         df["volume0"] = df["inAmount0"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token0.decimal)
         df["volume1"] = df["inAmount1"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token1.decimal)
 
-    def run(self, enable_notify=True, enable_evaluating=True, print_final_status=False,
-            process_order=ProcessOrder.ActionFirst):
+    def run(self, enable_notify=True, enable_evaluating=True, print_final_status=False):
         """
         start back test, the whole process including:
 
@@ -324,7 +323,7 @@ class Actuator(object):
         * initialize strategy (set object to strategy, then run strategy.initialize())
         * process each bar in data
             * prepare data in each row
-            * run strategy.next()
+            * run strategy.on_bar()
             * calculate fee earned
             * get latest account status
             * notify actions
@@ -372,18 +371,19 @@ class Actuator(object):
                                                       row_data.inAmount0,
                                                       row_data.inAmount1,
                                                       row_data.price)
-                if process_order == ProcessOrder.ActionFirst:
-                    self._broker.update()
-                self._strategy.next(row_data)
+                self._strategy.before_bar(row_data)
+
                 if self._strategy.triggers:
                     for trigger in self._strategy.triggers:
                         if trigger.when(row_data):
                             trigger.do(row_data)
+                self._strategy.on_bar(row_data)
+
                 # update broker status, eg: re-calculate fee
                 # and read the latest status from broker
-                if process_order == ProcessOrder.ActionFirst:
-                    self._broker.update()
-                self._strategy.next_after(row_data)
+                self._broker.update()
+
+                self._strategy.after_bar(row_data)
 
                 if first:
                     init_price = row_data.price
@@ -398,7 +398,7 @@ class Actuator(object):
                 if current_event_list and len(current_event_list) > 0:
                     self._actions.extend(current_event_list)
 
-                # process next
+                # process on_bar
                 self._data.move_cursor_to_next()
                 pbar.update()
         # notify
