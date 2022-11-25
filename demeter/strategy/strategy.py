@@ -30,7 +30,7 @@ class Strategy(object):
 
     def before_bar(self, row_data: Union[RowData, pd.Series]):
         """
-        triggerd on each row of data.
+        called before triggers on each row, at this time, fees are not updated yet. you can add some indicator or add some actions
 
         :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
         :type row_data: Union[RowData, pd.Series]
@@ -39,7 +39,7 @@ class Strategy(object):
 
     def on_bar(self, row_data: Union[RowData, pd.Series]):
         """
-        triggerd on each row of data.
+        called after triggers on each row, at this time, fees and account status are not updated yet. you can add some actions here
 
         :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
         :type row_data: Union[RowData, pd.Series]
@@ -48,7 +48,7 @@ class Strategy(object):
 
     def after_bar(self, row_data: Union[RowData, pd.Series]):
         """
-        triggerd on each row of data.
+        called after fees and account status are updated on each row. you can add some statistic logic here
 
         :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
         :type row_data: Union[RowData, pd.Series]
@@ -150,6 +150,39 @@ class Strategy(object):
         """
 
         return self.broker.add_liquidity(lower_quote_price, upper_quote_price, base_max_amount, quote_max_amount)
+
+    def add_liquidity_by_tick(self,
+                              lower_tick: int,
+                              upper_tick: int,
+                              base_max_amount: Union[Decimal, float] = None,
+                              quote_max_amount: Union[Decimal, float] = None,
+                              sqrt_price_x96: int = -1,
+                              tick: int = -1):
+        """
+
+        add liquidity, you need to set tick instead of price.
+
+        :param lower_tick: lower tick
+        :type lower_tick: int
+        :param upper_tick: upper tick
+        :type upper_tick: int
+        :param base_max_amount:  inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
+        :type base_max_amount: Union[Decimal, float]
+        :param quote_max_amount: inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
+        :type quote_max_amount: Union[Decimal, float]
+        :param tick: tick price.  if set to none, it will be calculated from current price.
+        :type tick: int
+        :param sqrt_price_x96: precise price.  if set to none, it will be calculated from current price. this param will override tick
+        :type sqrt_price_x96: int
+        :return: added position, base token used, quote token used
+        :rtype: (PositionInfo, Decimal, Decimal)
+        """
+        return self.broker.add_liquidity_by_tick(lower_tick,
+                                                 upper_tick,
+                                                 base_max_amount,
+                                                 quote_max_amount,
+                                                 sqrt_price_x96,
+                                                 tick)
 
     def remove_liquidity(self, positions: Union[PositionInfo, list], remove_dry_pool: bool = True) -> {
         PositionInfo: (Decimal, Decimal)}:

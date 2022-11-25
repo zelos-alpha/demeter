@@ -40,7 +40,7 @@ class Actuator(object):
         # actions in current bar
         self.bar_actions: [BaseAction] = []
         self._broker.action_buffer = self.bar_actions
-        # broker status in every bar
+        # broker status in every bar, use array for performance
         self.account_status_list: [AccountStatus] = []
         # path of source data, which is saved by downloader
         self._data_path: str = DEFAULT_DATA_PATH
@@ -442,7 +442,7 @@ class Actuator(object):
             raise DemeterError("strategy must be inherit from Strategy")
         self._strategy.broker = self._broker
         self._strategy.data = self._data
-
+        self._strategy.account_status = self.account_status
         self._strategy.initialize()
 
     def __str__(self):

@@ -76,12 +76,14 @@ class BrokerAsset(object):
         self.balance += amount
         return self
 
-    def sub(self, amount=Decimal(0)):
+    def sub(self, amount=Decimal(0), allow_negative_balance=False):
         """
         subtract amount from balance. if balance is not enough, an error will be raised.
 
         :param amount: amount to subtract
         :type amount: Decimal
+        :param allow_negative_balance: allow balance is negative
+        :type allow_negative_balance: bool
         :return:
         :rtype:
         """
@@ -89,17 +91,19 @@ class BrokerAsset(object):
 
         if base == Decimal(0):  # amount and balance is both 0
             return self
-        # if difference between amount and balance is below 0.01%, will deduct all the balance
-        # That's because, the amount calculated by v3_core, has some acceptable error.
-        # if abs((self.balance - amount) / base) < 0.00001:
-        #     self.balance = Decimal(0)
-        # elif self.balance - amount < Decimal(0):
-        #     raise DemeterError(
-        #         f"insufficient balance, balance is {self.balance}{self.name}, but sub amount is {amount}{self.name}")
-        # else:
-        #     self.balance -= amount
+        if allow_negative_balance:
+            self.balance -= amount
+        else:
+            # if difference between amount and balance is below 0.01%, will deduct all the balance
+            # That's because, the amount calculated by v3_core, has some acceptable error.
+            if abs((self.balance - amount) / base) < 0.00001:
+                self.balance = Decimal(0)
+            elif self.balance - amount < Decimal(0):
+                raise DemeterError(
+                    f"insufficient balance, balance is {self.balance}{self.name}, but sub amount is {amount}{self.name}")
+            else:
+                self.balance -= amount
 
-        self.balance -= amount
         return self
 
     def amount_in_wei(self):

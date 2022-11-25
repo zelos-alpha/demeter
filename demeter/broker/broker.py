@@ -395,7 +395,7 @@ class Broker(object):
         :type base_max_amount: Union[Decimal, float]
         :param quote_max_amount: inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
         :type quote_max_amount: Union[Decimal, float]
-        :param tick: precise price.  if set to none, it will be calculated from current price.
+        :param tick: tick price.  if set to none, it will be calculated from current price.
         :type tick: int
         :param sqrt_price_x96: precise price.  if set to none, it will be calculated from current price. this param will override tick
         :type sqrt_price_x96: int
@@ -442,6 +442,8 @@ class Broker(object):
         :type collect: bool
         :param sqrt_price_x96: precise price.  if set to none, it will be calculated from current price.
         :type sqrt_price_x96: int
+        :param remove_dry_pool: remove pool which liquidity==0, effect when collect==True
+        :type remove_dry_pool: bool
         :return: (base_got,quote_get), base and quote token amounts collected from position
         :rtype:  (Decimal,Decimal)
         """
@@ -481,6 +483,8 @@ class Broker(object):
         :type max_collect_amount0: Decimal
         :param max_collect_amount1: max token0 amount to collect, if set to None, all the amount will be collect
         :type max_collect_amount1: Decimal
+        :param remove_dry_pool: remove pool which liquidity==0, effect when collect==True
+        :type remove_dry_pool: bool
         :return: (base_got,quote_get), base and quote token amounts collected from position
         :rtype:  (Decimal,Decimal)
         """
