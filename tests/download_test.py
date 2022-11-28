@@ -8,19 +8,19 @@ import pandas
 
 class TestDict(unittest.TestCase):
     def test_download(self):
-        downloader.download_by_day(ChainType.Polygon,
+        downloader.download_from_bigquery(ChainType.Polygon,
                                    "0x45dda9cb7c25131df268515131f647d726f50608",
-                                   datetime.strptime("2022-7-24", "%Y-%m-%d").date(),
-                                   datetime.strptime("2022-7-25", "%Y-%m-%d").date(),
-                                   save_path="data"
-                                   )
+                                          datetime.strptime("2022-7-24", "%Y-%m-%d").date(),
+                                          datetime.strptime("2022-7-25", "%Y-%m-%d").date(),
+                                          save_path="data"
+                                          )
 
     def test_wrong_data(self):
         try:
-            downloader.download_by_day(ChainType.Polygon,
+            downloader.download_from_bigquery(ChainType.Polygon,
                                        "0x45dda9cb7c25131df268515131f647d726f50608",
-                                       date(2022, 9, 30),
-                                       date(2022, 6, 30))
+                                              date(2022, 9, 30),
+                                              date(2022, 6, 30))
         except RuntimeError as e:
             self.assertTrue(e.args[0].find("should earlier than") != -1, "error message is wrong")
 

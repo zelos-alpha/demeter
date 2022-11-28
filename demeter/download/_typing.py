@@ -1,8 +1,13 @@
+from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+
+DEFAULT_SAVE_PATH = "data"
 
 
 class DataSource(Enum):
     BigQuery = 1
+    RPC = 2
 
 
 class ChainType(Enum):
@@ -11,6 +16,33 @@ class ChainType(Enum):
     Optimism = 3
     Arbitrum = 4
     Celo = 5
+
+
+@dataclass
+class RpcParam:
+    end_point: str
+    start_height: int
+    end_height: int
+    auth_string: str = ""
+    proxy: str = ""
+    batch_size: int = 500
+
+
+@dataclass
+class BigQueryParam:
+    auth_file: str
+    start: str
+    end: str = datetime.now().strftime("%Y-%m-%d")
+
+
+@dataclass
+class DownloadParam:
+    chain: ChainType = ChainType.Ethereum
+    source: DataSource = DataSource.BigQuery
+    pool_address: str = ""
+    save_path: str = DEFAULT_SAVE_PATH
+    rpc = RpcParam("", 0, 0)
+    big_query = BigQueryParam("", "")
 
 
 class OnchainTxType(Enum):

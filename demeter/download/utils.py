@@ -27,6 +27,11 @@ class HexUtil(object):
         return i
 
 
+def get_file_name(path, chain, addr, day, raw: bool):
+    raw_str = "raw-" if raw else ""
+    return f"{path}{raw_str}{chain}-{addr.lower()}-{day}.csv"
+
+
 class DataUtil(object):
 
     @staticmethod

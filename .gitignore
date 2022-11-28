@@ -121,8 +121,7 @@ ENV/
 auth/
 env.bak/
 venv.bak/
-data/
-data1/
+data*
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -146,3 +145,4 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+demeter/*.pkl
