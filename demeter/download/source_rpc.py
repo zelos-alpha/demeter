@@ -8,11 +8,9 @@ from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from operator import itemgetter
-
+from .eth_req import EthRequestClient, GetLogsParam
 from tqdm import tqdm  # process bar
-from web3 import Web3
-from web3.middleware import geth_poa_middleware
-
+import json
 from ._typing import DownloadParam, ChainType
 from .swap_contract import Constant
 from .utils import get_file_name
@@ -59,59 +57,49 @@ def cut(obj, sec):
     return [obj[i:i + sec] for i in range(0, len(obj), sec)]
 
 
-def fill_block_info(log, client, block_dict):
+def fill_block_info(log, client: EthRequestClient, block_dict):
     height = log['block_number']
     if height not in block_dict:
-        block = client.eth.get_block(Web3.toHex(height))
-        block_dt = datetime.datetime.fromtimestamp(block['timestamp'], tz=datetime.timezone.utc)
+        block_dt = client.get_block_timestamp(height)
         block_dict[height] = block_dt
     log['block_timestamp'] = block_dict[height].isoformat()
     log['block_dt'] = block_dict[height]
     return log
 
 
-def query_event_log(client: Web3, contract_config: ContractConfig, start_height: int, end_height: int, save_path: str,
+def query_event_log(client: EthRequestClient, contract_config: ContractConfig, start_height: int, end_height: int,
+                    save_path: str,
                     block_dict, chain):
     collect_dt, log_by_day_dict, collect_start = None, OrderedDict(), None  # collect date, date log by day，collect start time
     start_tp = time.time()
     downloaded_day = []
     with tqdm(total=(end_height - start_height + 1), ncols=150) as pbar:
         for height_slice in cut([i for i in range(start_height, end_height + 1)], contract_config.batch_size):
-            start_height = height_slice[0]
-            start = Web3.toHex(start_height)
-            end = Web3.toHex(height_slice[-1])
+            start = height_slice[0]
+            end = height_slice[-1]
             if contract_config.one_by_one:
                 logs = []
                 for topic_hex in contract_config.topics:
-                    tmp_logs = client.eth.get_logs(
-                        {
-                            "address": Web3.toChecksumAddress(contract_config.address),
-                            "fromBlock": start,
-                            "toBlock": end,
-                            "topics": [topic_hex],
-                        }
-                    )
+                    tmp_logs = client.get_logs(GetLogsParam(contract_config.address,
+                                                            start,
+                                                            end,
+                                                            [topic_hex]))
                     logs.extend(tmp_logs)
             else:
-                logs = client.eth.get_logs(
-                    {
-                        "address": Web3.toChecksumAddress(contract_config.address),
-                        "fromBlock": start,
-                        "toBlock": end,
-                    }
-                )
+                logs = client.get_logs(GetLogsParam(contract_config.address, start, end, None))
             log_lst = []
             for log in logs:
-                if len(log['topics']) > 0 and Web3.toHex(log['topics'][0]) in contract_config.topics:
+                log['blockNumber'] = int(log['blockNumber'], 16)
+                if len(log['topics']) > 0 and (log['topics'][0] in contract_config.topics):
                     if log["removed"]:
                         continue
                     log_lst.append({
                         'block_number': log['blockNumber'],
-                        'transaction_hash': Web3.toHex(log['transactionHash']),
+                        'transaction_hash': log['transactionHash'],
                         'transaction_index': log['transactionIndex'],
                         'log_index': log['logIndex'],
                         'DATA': log["data"],
-                        'topics': Web3.toJSON(log['topics'])
+                        'topics': json.dumps(log['topics'])
                     })
             with ThreadPoolExecutor(max_workers=10) as t:
                 obj_lst = []
@@ -145,7 +133,7 @@ def query_event_log(client: Web3, contract_config: ContractConfig, start_height:
                     print(f'\nsaved date: {collect_dt}, start height: {collect_start}, '
                           f'length: {len(one_day_data)}, time: {time.time() - start_tp} s')
                     start_tp = time.time()
-    return downloaded_day
+        return downloaded_day
 
 
 def save_one_day(save_path, collect_dt, contract_config, one_day_data, chain: ChainType):
@@ -169,22 +157,8 @@ def download_and_save_by_day(config: DownloadParam):
     else:
         block_dict: dict[int:datetime.datetime] = {}
 
-    request_headers = {
-        'Authorization': config.rpc.auth_string,
-        'Content-Type': 'application/json'
-    } if config.rpc.auth_string != "" else {}
+    client = EthRequestClient(config.rpc.end_point, config.rpc.proxy, config.rpc.auth_string)
 
-    proxy = {
-        "https": config.rpc.proxy,
-        "http": config.rpc.proxy,
-    } if config.rpc.proxy != "" else {}
-
-    client = Web3(Web3.HTTPProvider(config.rpc.end_point, request_kwargs={
-        'headers': request_headers,
-        "proxies": proxy
-    }))
-    if chain_config["is_poa"]:
-        client.middleware_onion.inject(geth_poa_middleware, layer=0)
     try:
         downloaded_day = query_event_log(client,
                                          ContractConfig(config.pool_address,

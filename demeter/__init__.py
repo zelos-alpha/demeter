@@ -1,6 +1,6 @@
 from ._typing import UnitDecimal, TokenInfo, Asset, ActionTypeEnum, PositionInfo, AccountStatus, RowData, BaseAction, \
     AddLiquidityAction, CollectFeeAction, RemoveLiquidityAction, BuyAction, SellAction, EvaluatingIndicator, \
-    DemeterError, TimeUnitEnum
+    DemeterError, TimeUnitEnum, EthError
 from .broker import Broker, tick_to_quote_price, PoolBaseInfo, PoolStatus, BrokerAsset, Position
 from .core import Actuator
 from .data_line import LineTypeEnum, Cursorable, Line, Lines

@@ -475,5 +475,12 @@ class EvaluatingIndicator:
         })
 
 
-class DemeterError(RuntimeError):
-    pass
+class DemeterError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+
+class EthError(Exception):
+    def __init__(self, code, message):
+        self.code = code
+        self.message = message

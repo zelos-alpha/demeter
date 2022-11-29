@@ -1,6 +1,6 @@
 import os
 from datetime import date, timedelta
-
+import json
 import pandas as pd
 from tqdm import tqdm  # process bar
 
@@ -58,6 +58,7 @@ def download_from_bigquery(chain: ChainType, pool_address: str, start: date, end
             continue
         raw_day_data = download_bigquery_pool_event_oneday(chain, pool_address, day)
         if save_raw_file:
+            raw_day_data['topics'] = raw_day_data['topics'].apply(lambda x: json.dumps(x.tolist()))
             raw_day_data.to_csv(get_file_name(save_path, chain.name, pool_address, date_str, True),
                                 header=True,
                                 index=False)

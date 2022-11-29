@@ -1,3 +1,4 @@
+import json
 from datetime import date
 
 import pandas
@@ -48,7 +49,7 @@ def download_bigquery_pool_event_oneday(chain: ChainType, contract_address: str,
             AND address = "{contract_address}"  order by block_number asc,log_index asc"""
     # print(query);
     query_job = client.query(query)  # Make an API request.
-    result = query_job.to_dataframe(create_bqstorage_client=False)
+    result: pandas.DataFrame = query_job.to_dataframe(create_bqstorage_client=False)
     return result
 
 
