@@ -1,5 +1,5 @@
 chain = "polygon"
-source = "rpc"
+source = "rpc" # bigquery or rpc
 pool_address = "0x9B08288C3Be4F62bbf8d1C20Ac9C5e6f9467d8B7"
 save_path = "/home/sun/AA-labs-FE/code/demeter/data_rpc"
 
