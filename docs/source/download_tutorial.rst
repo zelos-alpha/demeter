@@ -94,4 +94,4 @@ columns including:
 * inAmount1: sum for positive amount of token 1
 * currentLiquidity: last Liquidity in swap
 
-To speed up download process. demeter cached timestamp of block in a dict. and kept it in a pkl file, such as "Polygon_height_timestamp.pkl". if you download data again. this file will be loaded and lessen get_block query.
+To speed up rpc download process. demeter cached timestamp of block in a dict. and kept it in a pkl file, such as "Polygon_height_timestamp.pkl". if you download data again. this file will be loaded and lessen get_block query.

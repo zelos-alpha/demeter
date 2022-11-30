@@ -14,8 +14,8 @@ class TestBigQuery(unittest.TestCase):
     def test_download(self):
         downloader.download_from_bigquery(ChainType.Polygon,
                                           "0x45dda9cb7c25131df268515131f647d726f50608",
-                                          datetime.strptime("2022-7-24", "%Y-%m-%d").date(),
-                                          datetime.strptime("2022-7-25", "%Y-%m-%d").date(),
+                                          date(2022,10,19),
+                                          date(2022,10,20),
                                           save_path="data"
                                           )
 
