@@ -1,10 +1,9 @@
 from decimal import Decimal
+from typing import Union
 
 import pandas as pd
 
-from .._typing import AccountStatus, EvaluatingIndicator, DECIMAL_ZERO, UnitDecimal, DemeterError
-
-from typing import Union
+from .._typing import AccountStatus, UnitDecimal, DemeterError, EvaluatorEnum
 
 
 class Evaluator(object):
@@ -20,14 +19,26 @@ class Evaluator(object):
         if len(data) < 2:
             raise DemeterError("not enough data")
         self.time_span_in_day = len(data.index) * (data.index[1] - data.index[0]).seconds / (60 * 60 * 24)
-        self._evaluating_indicator: EvaluatingIndicator = None
+        self._result = None
 
-    def run(self):
-        self._evaluating_indicator = EvaluatingIndicator(DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO)
-        self._evaluating_indicator.annualized_returns = UnitDecimal(self.get_annualized_returns(), "")
-        self._evaluating_indicator.benchmark_returns = UnitDecimal(self.get_benchmark_returns(), "")
-        self._evaluating_indicator.max_drawdown = UnitDecimal(Evaluator.get_max_drawdown_fast(self.data.net_value), "")
-        return self._evaluating_indicator
+    def run(self, enables: list[EvaluatorEnum]):
+        if EvaluatorEnum.ALL in enables:
+            enables = [x for x in EvaluatorEnum]
+            enables = filter(lambda x: x.value > 0, enables)
+        result_dict: dict[EvaluatorEnum:UnitDecimal] = {}
+        for request in enables:
+            match request:
+                case EvaluatorEnum.ANNUALIZED_RETURNS:
+                    result = UnitDecimal(self.get_annualized_returns(), "")
+                case EvaluatorEnum.BENCHMARK_RETURNS:
+                    result = UnitDecimal(self.get_benchmark_returns(), "")
+                case EvaluatorEnum.MAX_DRAEDOWN:
+                    result = UnitDecimal(Evaluator.get_max_drawdown_fast(self.data.net_value), "")
+                case _:
+                    raise DemeterError(f"{request} has not implied")
+            result_dict[request] = result
+        self._result = result_dict
+        return result_dict
 
     def get_annualized_returns(self):
         """Annualized return rate"""
@@ -90,5 +101,5 @@ class Evaluator(object):
         return base_amount, quote_amount
 
     @property
-    def evaluating_indicator(self):
-        return self._evaluating_indicator
+    def result(self) -> dict[EvaluatorEnum:UnitDecimal]:
+        return self._result

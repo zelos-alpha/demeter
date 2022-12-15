@@ -37,6 +37,7 @@ class Broker(object):
         self._price_unit = f"{self.base_asset.name}/{self.quote_asset.name}"
         # internal temporary variable
         self.action_buffer = []
+        self.allow_negative_balance = False
 
     def __str__(self):
         return f"Pool: {self.pool_info}, position count: {len(self.positions)}, " \
@@ -298,8 +299,8 @@ class Broker(object):
             self._positions[position_info].liquidity += liquidity
         else:
             self._positions[position_info] = Position(DECIMAL_ZERO, DECIMAL_ZERO, liquidity)
-        self._asset0.sub(token0_used)
-        self._asset1.sub(token1_used)
+        self._asset0.sub(token0_used, self.allow_negative_balance)
+        self._asset1.sub(token1_used, self.allow_negative_balance)
         return position_info, token0_used, token1_used, liquidity
 
     def __remove_liquidity(self, position: PositionInfo, liquidity: int = None, sqrt_price_x96: int = -1):
@@ -527,7 +528,7 @@ class Broker(object):
         from_amount_with_fee = from_amount * (1 + self.pool_info.fee_rate)
         fee = from_amount_with_fee - from_amount
         from_asset, to_asset = self.__convert_pair(self._asset0, self._asset1)
-        from_asset.sub(from_amount_with_fee)
+        from_asset.sub(from_amount_with_fee, self.allow_negative_balance)
         to_asset.add(amount)
         base_amount, quote_amount = self.__convert_pair(from_amount, amount)
         self.action_buffer.append(
@@ -558,7 +559,7 @@ class Broker(object):
         to_amount = from_amount * price
         fee = from_amount_with_fee - from_amount
         to_asset, from_asset = self.__convert_pair(self._asset0, self._asset1)
-        from_asset.sub(from_amount_with_fee)
+        from_asset.sub(from_amount_with_fee, self.allow_negative_balance)
         to_asset.add(to_amount)
         base_amount, quote_amount = self.__convert_pair(to_amount, from_amount)
         self.action_buffer.append(

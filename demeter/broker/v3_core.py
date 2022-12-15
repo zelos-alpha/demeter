@@ -26,6 +26,8 @@ class V3CoreLib(object):
 
     @staticmethod
     def get_token_amounts(pool: PoolBaseInfo, pos: PositionInfo, sqrt_price_x96, liquidity) -> (Decimal, Decimal):
+        if liquidity == 0: # performance improve
+            return 0, 0
         amount0, amount1 = get_amounts(sqrt_price_x96,
                                        pos.lower_tick,
                                        pos.upper_tick,

@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import date, timedelta, datetime
 from decimal import Decimal
 
@@ -8,7 +9,7 @@ from tqdm import tqdm  # process bar
 from .evaluating_indicator import Evaluator
 from .. import PoolStatus
 from .._typing import AccountStatus, BarStatusNames, BaseAction, Asset, DemeterError, ActionTypeEnum, \
-    EvaluatingIndicator, RowData
+    RowData, EvaluatorEnum, UnitDecimal
 from ..broker import Broker, PoolBaseInfo
 from ..data_line import Lines
 from ..strategy import Strategy
@@ -29,8 +30,9 @@ class Actuator(object):
 
     """
 
-    def __init__(self, pool_info: PoolBaseInfo):
+    def __init__(self, pool_info: PoolBaseInfo, allow_negative_balance=False):
         self._broker: Broker = Broker(pool_info)
+        self._broker.allow_negative_balance = allow_negative_balance
         # data
         self._data: Lines = None
         # strategy
@@ -46,7 +48,7 @@ class Actuator(object):
         self._data_path: str = DEFAULT_DATA_PATH
         # evaluating indicator calculator
         self._evaluator: Evaluator = None
-        self._enable_evaluating: bool = True
+        self._enabled_evaluator: [] = []
         # logging
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
         self.logger = logging.getLogger(__name__)
@@ -117,14 +119,14 @@ class Actuator(object):
         return self._actions
 
     @property
-    def evaluating_indicator(self) -> EvaluatingIndicator:
+    def evaluating_indicator(self) -> dict[EvaluatorEnum:UnitDecimal]:
         """
         evaluating indicator result
 
         :return:  evaluating indicator
         :rtype: EvaluatingIndicator
         """
-        return self._evaluator.evaluating_indicator if self._evaluator is not None else None
+        return self._evaluator.result if self._evaluator is not None else None
 
     @property
     def broker(self) -> Broker:
@@ -315,7 +317,7 @@ class Actuator(object):
         df["volume0"] = df["inAmount0"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token0.decimal)
         df["volume1"] = df["inAmount1"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token1.decimal)
 
-    def run(self, enable_notify=True, enable_evaluating=True, print_final_status=False):
+    def run(self, enable_notify=True, evaluator=[EvaluatorEnum.ALL], print_final_status=False):
         """
         start back test, the whole process including:
 
@@ -337,7 +339,8 @@ class Actuator(object):
         :param print_final_status: enable output.
         :type print_final_status: bool
         """
-        self._enable_evaluating = enable_evaluating
+        run_begin_time = time.time()
+        self._enabled_evaluator = evaluator
         self.reset()
         if self._data is None:
             return
@@ -410,16 +413,16 @@ class Actuator(object):
                                      index=self.data.index,
                                      data=map(lambda d: d.to_array(), self.account_status_list))
         self.logger.info("run evaluating indicator")
-        if self._enable_evaluating:
+        if len(self._enabled_evaluator) > 0:
             self._evaluator = Evaluator(
                 self._broker.get_init_account_status(init_price, self.data.index[0].to_pydatetime()),
                 bar_status_df)
-            self._evaluator.run()
+            self._evaluator.run(self._enabled_evaluator)
         self._strategy.finalize()
-        self.logger.info("back testing finish")
         self.__backtest_finished = True
         if print_final_status:
             self.output()
+        self.logger.info(f"back testing finish, execute time {time.time() - run_begin_time}s")
 
     def output(self):
         """
@@ -428,9 +431,9 @@ class Actuator(object):
         if self.__backtest_finished:
             print("Final status")
             print(self.broker.get_account_status(self.data.tail(1).price[0]).get_output_str())
-            if self._enable_evaluating:
+            if len(self._enabled_evaluator) > 0:
                 print("Evaluating indicator")
-                print(self._evaluator.evaluating_indicator.get_output_str())
+                print(self._evaluator.result)
         else:
             raise DemeterError("please run strategy first")
 

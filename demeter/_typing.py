@@ -56,6 +56,13 @@ class UnitDecimal(Decimal):
         return "{:{}} {}".format(dec, self.output_format, self.unit)
 
 
+class EvaluatorEnum(Enum):
+    ALL = 0
+    ANNUALIZED_RETURNS = 1
+    BENCHMARK_RETURNS = 2
+    MAX_DRAEDOWN = 3
+
+
 class TokenInfo(NamedTuple):
     """
     token info
@@ -444,35 +451,6 @@ class SellAction(BaseAction):
                    "fee": self.fee.to_str(),
                    "balance": f"{self.base_balance_after.to_str()}(+{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_change.to_str()})"
                })
-
-
-@dataclass
-class EvaluatingIndicator:
-    """
-    Indicator to evaluate a strategy
-
-    :param annualized_returns: annualized returns
-    :type annualized_returns: UnitDecimal
-    :param benchmark_returns: benchmark returns
-    :type benchmark_returns: UnitDecimal
-
-
-    """
-    annualized_returns: UnitDecimal
-    benchmark_returns: UnitDecimal
-    max_drawdown: UnitDecimal
-
-    def get_output_str(self) -> str:
-        """
-        get colored and formatted string to output in console
-        :return: formatted string
-        :rtype: str
-        """
-        return get_formatted_str({
-            "annualized_returns": self.annualized_returns.to_str(),
-            "benchmark_returns": self.benchmark_returns.to_str(),
-            "max_drawdown": self.max_drawdown.to_str()
-        })
 
 
 class DemeterError(Exception):

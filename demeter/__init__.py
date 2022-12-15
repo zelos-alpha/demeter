@@ -1,5 +1,5 @@
 from ._typing import UnitDecimal, TokenInfo, Asset, ActionTypeEnum, PositionInfo, AccountStatus, RowData, BaseAction, \
-    AddLiquidityAction, CollectFeeAction, RemoveLiquidityAction, BuyAction, SellAction, EvaluatingIndicator, \
+    AddLiquidityAction, CollectFeeAction, RemoveLiquidityAction, BuyAction, SellAction, \
     DemeterError, TimeUnitEnum, EthError
 from .broker import Broker, tick_to_quote_price, PoolBaseInfo, PoolStatus, BrokerAsset, Position
 from .core import Actuator
