@@ -492,7 +492,7 @@ class Broker(object):
         if (max_collect_amount0 and max_collect_amount0 < 0) or \
                 (max_collect_amount1 and max_collect_amount1 < 0):
             raise DemeterError("collect amount should large than 0")
-        token0_get, token1_get = self.__collect_fee(self._positions[position])
+        token0_get, token1_get = self.__collect_fee(self._positions[position], max_collect_amount0, max_collect_amount1)
 
         base_get, quote_get = self.__convert_pair(token0_get, token1_get)
         if self._positions[position]:

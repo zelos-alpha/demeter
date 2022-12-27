@@ -45,9 +45,9 @@ class PoolBaseInfo(object):
         :rtype:
         """
         return "PoolBaseInfo(Token0: {},".format(self.token0) + \
-               "Token1: {},".format(self.token1) + \
-               "fee: {},".format(self.fee_rate * Decimal(100)) + \
-               "base token: {})".format(self.token0.name if self.is_token0_base else self.token1.name)
+            "Token1: {},".format(self.token1) + \
+            "fee: {},".format(self.fee_rate * Decimal(100)) + \
+            "base token: {})".format(self.token0.name if self.is_token0_base else self.token1.name)
 
 
 class BrokerAsset(object):
@@ -63,7 +63,7 @@ class BrokerAsset(object):
         self.balance = init_amount
 
     def __str__(self):
-        return self.name
+        return f"{self.balance} {self.name}"
 
     def add(self, amount=Decimal(0)):
         """
