@@ -290,7 +290,7 @@ class Actuator(object):
         df = df.fillna()
         self.add_statistic_column(df)
         self.data = df
-        self.logger.info("data has benn prepared")
+        self.logger.info("data has been prepared")
 
     def add_statistic_column(self, df: Lines):
         """

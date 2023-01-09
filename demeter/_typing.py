@@ -22,6 +22,9 @@ class TimeUnitEnum(Enum):
     day = 60 * 24
 
 
+Decimal_1 = Decimal(1)
+
+
 class UnitDecimal(Decimal):
     """
     Decimal with unit, such a 1 eth.
@@ -52,7 +55,7 @@ class UnitDecimal(Decimal):
         :return: formatted string
         :rtype: str
         """
-        dec = self.quantize(self.__integral) if self == self.to_integral() else self.normalize()
+        dec = self.quantize(Decimal_1) if (self == self.to_integral() and self < 1e+29) else self.normalize()
         return "{:{}} {}".format(dec, self.output_format, self.unit)
 
 
@@ -61,6 +64,9 @@ class EvaluatorEnum(Enum):
     ANNUALIZED_RETURNS = 1
     BENCHMARK_RETURNS = 2
     MAX_DRAEDOWN = 3
+
+    def __str__(self):
+        return self.name
 
 
 class TokenInfo(NamedTuple):
@@ -301,13 +307,13 @@ class AddLiquidityAction(BaseAction):
         :rtype: str
         """
         return f"""\033[1;31m{"Add liquidity":<20}\033[0m""" + \
-               get_formatted_str({
-                   "max amount": f"{self.base_amount_max.to_str()},{self.quote_amount_max.to_str()}",
-                   "price": f"{self.lower_quote_price.to_str()},{self.upper_quote_price.to_str()}",
-                   "position": self.position,
-                   "liquidity": self.liquidity,
-                   "balance": f"{self.base_balance_after.to_str()}(-{self.base_amount_actual.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_amount_actual.to_str()})"
-               })
+            get_formatted_str({
+                "max amount": f"{self.base_amount_max.to_str()},{self.quote_amount_max.to_str()}",
+                "price": f"{self.lower_quote_price.to_str()},{self.upper_quote_price.to_str()}",
+                "position": self.position,
+                "liquidity": self.liquidity,
+                "balance": f"{self.base_balance_after.to_str()}(-{self.base_amount_actual.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_amount_actual.to_str()})"
+            })
 
 
 @dataclass
@@ -335,10 +341,10 @@ class CollectFeeAction(BaseAction):
         :rtype: str
         """
         return f"""\033[1;33m{"Collect fee":<20}\033[0m""" + \
-               get_formatted_str({
-                   "position": self.position,
-                   "balance": f"{self.base_balance_after.to_str()}(+{self.base_amount.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_amount.to_str()})"
-               })
+            get_formatted_str({
+                "position": self.position,
+                "balance": f"{self.base_balance_after.to_str()}(+{self.base_amount.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_amount.to_str()})"
+            })
 
 
 @dataclass
@@ -373,13 +379,13 @@ class RemoveLiquidityAction(BaseAction):
         :rtype: str
         """
         return f"""\033[1;32m{"Remove liquidity":<20}\033[0m""" + \
-               get_formatted_str({
-                   "position": self.position,
-                   "balance": f"{self.base_balance_after.to_str()}(+0), {self.quote_balance_after.to_str()}(+0)",
-                   "token_got": f"{self.base_amount.to_str()},{self.quote_amount.to_str()}",
-                   "removed liquidity": self.removed_liquidity,
-                   "remain liquidity": self.remain_liquidity
-               })
+            get_formatted_str({
+                "position": self.position,
+                "balance": f"{self.base_balance_after.to_str()}(+0), {self.quote_balance_after.to_str()}(+0)",
+                "token_got": f"{self.base_amount.to_str()},{self.quote_amount.to_str()}",
+                "removed liquidity": self.removed_liquidity,
+                "remain liquidity": self.remain_liquidity
+            })
 
 
 @dataclass
@@ -413,11 +419,11 @@ class BuyAction(BaseAction):
         :rtype: str
         """
         return f"""\033[1;36m{"Buy":<20}\033[0m""" + \
-               get_formatted_str({
-                   "price": self.price.to_str(),
-                   "fee": self.fee.to_str(),
-                   "balance": f"{self.base_balance_after.to_str()}(-{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_change.to_str()})"
-               })
+            get_formatted_str({
+                "price": self.price.to_str(),
+                "fee": self.fee.to_str(),
+                "balance": f"{self.base_balance_after.to_str()}(-{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_change.to_str()})"
+            })
 
 
 @dataclass
@@ -446,11 +452,11 @@ class SellAction(BaseAction):
 
     def get_output_str(self):
         return f"""\033[1;37m{"Sell":<20}\033[0m""" + \
-               get_formatted_str({
-                   "price": self.price.to_str(),
-                   "fee": self.fee.to_str(),
-                   "balance": f"{self.base_balance_after.to_str()}(+{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_change.to_str()})"
-               })
+            get_formatted_str({
+                "price": self.price.to_str(),
+                "fee": self.fee.to_str(),
+                "balance": f"{self.base_balance_after.to_str()}(+{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_change.to_str()})"
+            })
 
 
 class DemeterError(Exception):
