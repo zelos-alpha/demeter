@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 import demeter.indicator
-from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, BuyAction, SellAction, ChainType, PeriodTrigger
+from demeter import TokenInfo, PoolInfo, Actuator, Strategy, Asset, BuyAction, SellAction, ChainType, PeriodTrigger
 from strategy_ploter import plot_position_return_decomposition
 
 
@@ -47,7 +47,7 @@ class AddLpByMa(Strategy):
 if __name__ == "__main__":
     eth = TokenInfo(name="eth", decimal=18)
     usdc = TokenInfo(name="usdc", decimal=6)
-    pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
+    pool = PoolInfo(usdc, eth, 0.05, usdc)
 
     actuator_instance = Actuator(pool)
     actuator_instance.strategy = AddLpByMa(200)

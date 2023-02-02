@@ -6,7 +6,7 @@ import pandas as pd
 from .trigger import Trigger
 from .._typing import PositionInfo, BaseAction, AddLiquidityAction, SellAction, BuyAction, CollectFeeAction, \
     RemoveLiquidityAction, RowData
-from ..broker import Broker
+from ..broker import UniLpMarket
 from ..data_line import Lines, Line
 
 
@@ -16,7 +16,7 @@ class Strategy(object):
     """
 
     def __init__(self):
-        self.broker: Broker = None
+        self.broker: UniLpMarket = None
         self.data: Lines = None
         self.number_format = ".8g"
         self.triggers: [Trigger] = []

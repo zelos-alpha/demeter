@@ -1,5 +1,5 @@
 import demeter as dt
-from demeter import PoolBaseInfo, Actuator
+from demeter import PoolInfo, Actuator
 from demeter._typing import TokenInfo, AccountStatus, Asset
 from datetime import date
 from demeter.download import ChainType
@@ -38,7 +38,7 @@ class ConstantInterval(dt.Strategy):
 if __name__ == "__main__":
     eth = TokenInfo(name="eth", decimal=18)
     usdc = TokenInfo(name="usdc", decimal=6)
-    pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
+    pool = PoolInfo(usdc, eth, 0.05, usdc)
 
     actuator_instance = Actuator(pool)
     actuator_instance.enable_notify = False

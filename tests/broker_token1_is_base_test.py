@@ -1,5 +1,5 @@
 import unittest
-from demeter import Broker, TokenInfo, PoolBaseInfo, PoolStatus
+from demeter import UniLpMarket, TokenInfo, PoolInfo, PoolStatus
 from pandas import Series
 from decimal import Decimal
 
@@ -10,12 +10,12 @@ class TestBroker(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         self.eth = TokenInfo(name="eth", decimal=18)
         self.usdc = TokenInfo(name="usdc", decimal=6)
-        self.pool = PoolBaseInfo(token0=self.eth, token1=self.usdc, fee=0.05, base_token=self.usdc)
+        self.pool = PoolInfo(token0=self.eth, token1=self.usdc, fee=0.05, base_token=self.usdc)
         super(TestBroker, self).__init__(*args, **kwargs)
 
-    def get_one_broker(self) -> Broker:
+    def get_one_broker(self) -> UniLpMarket:
         # 1066.091101419725805850594389
-        broker = Broker(self.pool)
+        broker = UniLpMarket(self.pool)
         tick = -206604
         price = broker.tick_to_price(tick)
         broker.pool_status = PoolStatus(None, tick, Decimal("1107562474636574291"),

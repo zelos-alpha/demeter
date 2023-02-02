@@ -10,7 +10,7 @@ from .evaluating_indicator import Evaluator
 from .. import PoolStatus
 from .._typing import AccountStatus, BarStatusNames, BaseAction, Asset, DemeterError, ActionTypeEnum, \
     RowData, EvaluatorEnum, UnitDecimal
-from ..broker import Broker, PoolBaseInfo
+from ..broker import UniLpMarket, PoolInfo
 from ..data_line import Lines
 from ..strategy import Strategy
 
@@ -26,12 +26,12 @@ class Actuator(object):
     Core component of a back test. Manage the resources in a test, including broker/strategy/data/indicator,
 
     :param pool_info: pool information
-    :type pool_info: PoolBaseInfo
+    :type pool_info: PoolInfo
 
     """
 
-    def __init__(self, pool_info: PoolBaseInfo, allow_negative_balance=False):
-        self._broker: Broker = Broker(pool_info)
+    def __init__(self, pool_info: PoolInfo, allow_negative_balance=False):
+        self._broker: UniLpMarket = UniLpMarket(pool_info)
         self._broker.allow_negative_balance = allow_negative_balance
         # data
         self._data: Lines = None
@@ -129,12 +129,12 @@ class Actuator(object):
         return self._evaluator.result if self._evaluator is not None else None
 
     @property
-    def broker(self) -> Broker:
+    def broker(self) -> UniLpMarket:
         """
         Broker manage assets in back testing. Including asset, positions. it also provides operations for positions,
 
         :return: Broker
-        :rtype: Broker
+        :rtype: UniLpMarket
         """
         return self._broker
 

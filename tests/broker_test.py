@@ -2,14 +2,14 @@ import unittest
 from decimal import Decimal
 
 import demeter
-from demeter import Broker, TokenInfo, PoolBaseInfo, PoolStatus
+from demeter import UniLpMarket, TokenInfo, PoolInfo, PoolStatus
 
 
 class TestBroker(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         self.eth = TokenInfo(name="eth", decimal=18)
         self.usdc = TokenInfo(name="usdc", decimal=6)
-        self.pool = PoolBaseInfo(self.usdc, self.eth, 0.05, self.usdc)
+        self.pool = PoolInfo(self.usdc, self.eth, 0.05, self.usdc)
         super(TestBroker, self).__init__(*args, **kwargs)
 
     def test_price(self):
@@ -18,7 +18,7 @@ class TestBroker(unittest.TestCase):
         self.assertEqual(broker.tick_to_price(206600).quantize(Decimal("1.00000")), Decimal("1066.41096"))
 
     def get_one_broker(self):
-        broker = Broker(self.pool)
+        broker = UniLpMarket(self.pool)
         tick = 200000
         price = broker.tick_to_price(tick)
         broker.pool_status = PoolStatus(None, tick, Decimal("840860039126296093"), Decimal("18714189922"),
@@ -177,8 +177,8 @@ class TestBroker(unittest.TestCase):
         self.assertEqual(broker.asset1.balance, token1_before - Decimal(1))
 
     def test_net_value(self):
-        pool0p3 = PoolBaseInfo(self.usdc, self.eth, 0.3, self.usdc)
-        broker = Broker(pool0p3)
+        pool0p3 = PoolInfo(self.usdc, self.eth, 0.3, self.usdc)
+        broker = UniLpMarket(pool0p3)
         broker.set_asset(self.usdc, 2000)
         broker.set_asset(self.eth, 1)
         price = 1100
@@ -191,8 +191,8 @@ class TestBroker(unittest.TestCase):
         self.assertEqual(old_net_value, round(status.net_value, 4))
 
     def test_net_value2(self):
-        pool0p3 = PoolBaseInfo(self.usdc, self.eth, 0.3, self.usdc)
-        broker = Broker(pool0p3)
+        pool0p3 = PoolInfo(self.usdc, self.eth, 0.3, self.usdc)
+        broker = UniLpMarket(pool0p3)
         broker.set_asset(self.usdc, 1100)
         broker.set_asset(self.eth, 1)
         price = 1100

@@ -2,7 +2,7 @@ import unittest
 from typing import Union
 from datetime import timedelta, date
 
-from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, RowData, simple_moving_average, ChainType, \
+from demeter import TokenInfo, PoolInfo, Actuator, Strategy, Asset, RowData, simple_moving_average, ChainType, \
     TimeUnitEnum
 import pandas as pd
 
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)  # declare  token0
     eth = TokenInfo(name="eth", decimal=18)  # declare token1
 
-    pool = PoolBaseInfo(usdc, eth, 0.05, usdc)  # declare pool
+    pool = PoolInfo(usdc, eth, 0.05, usdc)  # declare pool
 
     actuator = Actuator(pool)  # declare actuator
     actuator.strategy = MyFirstStrategy()  # set strategy to actuator

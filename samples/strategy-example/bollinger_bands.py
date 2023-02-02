@@ -1,7 +1,7 @@
 import math
 from datetime import date, timedelta
 
-from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, ChainType, PeriodTrigger, actual_volatility, \
+from demeter import TokenInfo, PoolInfo, Actuator, Strategy, Asset, ChainType, PeriodTrigger, actual_volatility, \
     simple_moving_average
 
 c = 2
@@ -44,7 +44,7 @@ class AddByVolatility(Strategy):
 if __name__ == "__main__":
     eth = TokenInfo(name="eth", decimal=18)
     usdc = TokenInfo(name="usdc", decimal=6)
-    pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
+    pool = PoolInfo(usdc, eth, 0.05, usdc)
 
     actuator = Actuator(pool)
     actuator.strategy = AddByVolatility()

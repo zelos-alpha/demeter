@@ -1,7 +1,7 @@
 import unittest
 from typing import Union
 from datetime import timedelta
-from demeter import TokenInfo, PoolBaseInfo, Actuator, Strategy, Asset, RowData
+from demeter import TokenInfo, PoolInfo, Actuator, Strategy, Asset, RowData
 import pandas as pd
 from .actuator_simulate_data_test import get_clean_data
 from .common import assert_equal
@@ -36,7 +36,7 @@ class WithSMA(Strategy):
 
 class TestActuator(unittest.TestCase):
     def __init__(self, *args, **kwargs):
-        self.pool = PoolBaseInfo(usdc, eth, 0.05, usdc)
+        self.pool = PoolInfo(usdc, eth, 0.05, usdc)
         super(TestActuator, self).__init__(*args, **kwargs)
 
     def test_load_clean_data(self):
