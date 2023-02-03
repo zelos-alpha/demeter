@@ -42,7 +42,7 @@ class Evaluator(object):
 
     def get_annualized_returns(self):
         """Annualized return rate"""
-        return (self.end_status.net_value / self.init_net_value) ** Decimal(365 / self.time_span_in_day) - 1
+        return (self.end_status.pool_net_value / self.init_net_value) ** Decimal(365 / self.time_span_in_day) - 1
 
     def get_benchmark_returns(self):
         """

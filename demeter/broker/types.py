@@ -24,10 +24,9 @@ class Market:
 
     def __init__(self,
                  data: Lines = None,
-                 allow_negative_balance=False,
                  ):
         self.data: Lines = data
-        self.allow_negative_balance: bool = allow_negative_balance
+        self.broker = None
 
     @property
     def net_value(self) -> Decimal:

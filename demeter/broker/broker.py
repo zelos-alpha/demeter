@@ -1,10 +1,14 @@
+from ctypes import Union
 from decimal import Decimal
 
 from .types import Asset, TokenInfo, Market, MarketInfo
+from .. import DemeterError, UnitDecimal
+from ..utils.application import float_param_formatter
 
 
 class Broker:
-    def __int__(self):
+    def __int__(self, allow_negative_balance=False):
+        self.allow_negative_balance = allow_negative_balance
         self._assets: {TokenInfo: Asset} = {}
         self._markets: {MarketInfo: Market} = {}
 
@@ -44,3 +48,43 @@ class Broker:
         :rtype:
         """
         self._markets[market_info] = market
+        market.broker = self
+        market.history_recorder = xxxxx
+
+    @float_param_formatter
+    def add_asset(self, token: TokenInfo, amount: Union[Decimal, float]):  # TODO: 名字再想想
+        """
+        set initial balance for token
+
+        :param token: which token to set
+        :type token: TokenInfo
+        :param amount: balance, eg: 1.2345
+        :type amount: Union[Decimal, float]
+        """
+        if token in self._assets:
+            asset: Asset = self._assets[token]
+            asset.add(amount)
+        else:
+            self._assets[token] = Asset(token, amount)
+        return self._assets[token].balance
+
+    @float_param_formatter
+    def sub_asset(self, token: TokenInfo, amount: Union[Decimal, float]):  # TODO: 名字再想想
+        if token in self._assets:
+            asset: Asset = self._assets[token]
+            asset.sub(amount, allow_negative_balance=self.allow_negative_balance)
+        else:
+            if self.allow_negative_balance:
+                self._assets[token] = Asset(token, 0 - amount)
+            else:
+                raise DemeterError(f"{token.name} doesn't exist in assets dict")
+        return self._assets[token].balance
+
+    def get_token_balance(self, token: TokenInfo):
+        if token in self.assets:
+            return self._assets[token].balance
+        else:
+            raise DemeterError(f"{token.name} doesn't exist in assets dict")
+
+    def get_token_balance_with_unit(self, token: TokenInfo):
+        return UnitDecimal(self.get_token_balance(token), token.name)

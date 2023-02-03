@@ -188,7 +188,7 @@ class TestBroker(unittest.TestCase):
         status = broker.get_account_status(Decimal(1100))
         print(pos)
         print(status)
-        self.assertEqual(old_net_value, round(status.net_value, 4))
+        self.assertEqual(old_net_value, round(status.pool_net_value, 4))
 
     def test_net_value2(self):
         pool0p3 = PoolInfo(self.usdc, self.eth, 0.3, self.usdc)
@@ -204,4 +204,4 @@ class TestBroker(unittest.TestCase):
         status = broker.get_account_status(Decimal(1100))
         print(pos)
         print(status)
-        self.assertEqual(old_net_value, round(status.net_value, 4))
+        self.assertEqual(old_net_value, round(status.pool_net_value, 4))

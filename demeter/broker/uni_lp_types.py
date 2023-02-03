@@ -4,7 +4,8 @@ from decimal import Decimal
 from typing import NamedTuple
 
 from . import RowData
-from .._typing import TokenInfo, DemeterError
+from .._typing import TokenInfo, DemeterError, UnitDecimal
+from ..utils.application import get_formatted_str
 
 
 @dataclass
@@ -70,6 +71,56 @@ class PoolInfo(object):
             "base token: {})".format(self.token0.name if self.is_token0_base else self.token1.name)
 
 
+@dataclass
+class DepositBalance:
+    """
+    current status of broker
+
+    :param timestamp: timestamp
+    :type timestamp: datetime
+    :param base_uncollected: base token uncollect fee in all the positions.
+    :type base_uncollected: UnitDecimal
+    :param quote_uncollected: quote token uncollect fee in all the positions.
+    :type quote_uncollected: UnitDecimal
+    :param base_in_position: base token amount deposited in positions, calculated according to current price
+    :type base_in_position: UnitDecimal
+    :param quote_in_position: quote token amount deposited in positions, calculated according to current price
+    :type quote_in_position: UnitDecimal
+    :param pool_net_value: 按照池子base/quote关系的净值. 不是broker层面的(which 通常是对u的).
+    :type pool_net_value: UnitDecimal
+    :param price: current price
+    :type price: UnitDecimal
+
+    """
+    timestamp: datetime
+    base_uncollected: UnitDecimal
+    quote_uncollected: UnitDecimal
+    base_in_position: UnitDecimal
+    quote_in_position: UnitDecimal
+    pool_net_value: UnitDecimal
+    price: UnitDecimal
+
+    def get_output_str(self) -> str:
+        """
+        get colored and formatted string to output in console
+        :return: formatted string
+        :rtype: str
+        """
+        return get_formatted_str({
+            "total capital": f"{self.pool_net_value.to_str()}",
+            "uncollect fee": f"{self.base_uncollected.to_str()},{self.quote_uncollected.to_str()}",
+            "in position amount": f"{self.base_in_position.to_str()},{self.quote_in_position.to_str()}"
+        })
+
+    def to_array(self):
+        return [
+            self.base_uncollected,
+            self.quote_uncollected,
+            self.base_in_position,
+            self.quote_in_position,
+            self.pool_net_value,
+            self.price
+        ]
 
 
 @DeprecationWarning
@@ -122,8 +173,8 @@ class BrokerAsset(object):
             if abs((self.balance - amount) / base) < 0.00001:
                 self.balance = Decimal(0)
             elif self.balance - amount < Decimal(0):
-                raise DemeterError(
-                    f"insufficient balance, balance is {self.balance}{self.name}, but sub amount is {amount}{self.name}")
+                raise DemeterError(f"Insufficient balance, balance is {self.balance}{self.name}, "
+                                   f"but sub amount is {amount}{self.name}")
             else:
                 self.balance -= amount
 

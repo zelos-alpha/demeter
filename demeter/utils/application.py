@@ -1,6 +1,7 @@
 import json
 from decimal import Decimal
 from types import SimpleNamespace
+from functools import wraps
 
 OUTPUT_WIDTH = 30
 
@@ -14,6 +15,7 @@ def dict_to_object(dict_entity):
 
 
 def float_param_formatter(func):
+    @wraps(func)
     def wrapper_func(*args, **kwargs):
         new_args = ()
         for arg in args:

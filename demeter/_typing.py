@@ -142,7 +142,7 @@ BarStatusNames = [
 
 
 @dataclass
-class AccountStatus:
+class AccountStatus: # TODO 干掉, 用DepositBalance代替
     """
     current status of broker
 
