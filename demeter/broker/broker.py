@@ -1,7 +1,8 @@
-from ctypes import Union
 from decimal import Decimal
 
-from .types import Asset, TokenInfo, Market, MarketInfo
+from .action_history import ActionRecorder
+from .market import Market
+from .types import Asset, TokenInfo, MarketInfo
 from .. import DemeterError, UnitDecimal
 from ..utils.application import float_param_formatter
 
@@ -11,6 +12,7 @@ class Broker:
         self.allow_negative_balance = allow_negative_balance
         self._assets: {TokenInfo: Asset} = {}
         self._markets: {MarketInfo: Market} = {}
+        self._action_recorder = ActionRecorder()
 
     # region properties
 
@@ -49,17 +51,17 @@ class Broker:
         """
         self._markets[market_info] = market
         market.broker = self
-        market.history_recorder = xxxxx
+        market.action_recorder = self._action_recorder
 
     @float_param_formatter
-    def add_asset(self, token: TokenInfo, amount: Union[Decimal, float]):  # TODO: 名字再想想
+    def add_asset(self, token: TokenInfo, amount: Decimal | float):  # TODO: 名字再想想
         """
         set initial balance for token
 
         :param token: which token to set
         :type token: TokenInfo
         :param amount: balance, eg: 1.2345
-        :type amount: Union[Decimal, float]
+        :type amount: Decimal | float
         """
         if token in self._assets:
             asset: Asset = self._assets[token]
@@ -69,7 +71,7 @@ class Broker:
         return self._assets[token].balance
 
     @float_param_formatter
-    def sub_asset(self, token: TokenInfo, amount: Union[Decimal, float]):  # TODO: 名字再想想
+    def sub_asset(self, token: TokenInfo, amount: Decimal | float):  # TODO: 名字再想想
         if token in self._assets:
             asset: Asset = self._assets[token]
             asset.sub(amount, allow_negative_balance=self.allow_negative_balance)

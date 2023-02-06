@@ -117,7 +117,7 @@ def to_wei(amount, decimals) -> int:
 
 def get_liquidity(sqrt_price_x96: int, tickA: int, tickB: int,
                   amount0: Decimal, amount1: Decimal,
-                  decimal0: int, decimal1: int) -> Decimal:
+                  decimal0: int, decimal1: int) -> int:
     sqrt = sqrt_price_x96
     sqrtA = get_sqrt_ratio_at_tick(tickA)
     sqrtB = get_sqrt_ratio_at_tick(tickB)

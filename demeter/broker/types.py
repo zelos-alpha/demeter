@@ -1,10 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-
-from .. import Asset, TokenInfo, DemeterError
-from ..data_line import Lines
+from enum import Enum
 from typing import NamedTuple
+
+from .. import TokenInfo, DemeterError
 
 
 @dataclass
@@ -15,22 +15,6 @@ class RowData:
 
 class MarketInfo(NamedTuple):
     name: str
-
-
-class Market:
-    """
-    note: only get properties are allow in this base class
-    """
-
-    def __init__(self,
-                 data: Lines = None,
-                 ):
-        self.data: Lines = data
-        self.broker = None
-
-    @property
-    def net_value(self) -> Decimal:
-        return Decimal(0)
 
 
 class Asset(object):
@@ -91,3 +75,38 @@ class Asset(object):
 
     def amount_in_wei(self):
         return self.balance * Decimal(10 ** self.decimal)
+
+
+class ActionTypeEnum(Enum):
+    """
+    Trade types
+
+    * add_liquidity = 1,
+    * remove_liquidity = 2,
+    * buy = 3,
+    * sell = 4,
+    * collect_fee = 5
+    """
+    uni_lp_add_liquidity = 1,
+    uni_lp_remove_liquidity = 2,
+    uni_lp_buy = 3,
+    uni_lp_sell = 4,
+    uni_lp_collect_fee = 5
+
+
+@dataclass
+class BaseAction(object):
+    """
+    Parent class of broker actions,
+
+    :param trade_type: action type
+    :type action_type: ActionTypeEnum
+    :param timestamp: action time
+    :type timestamp: datetime
+
+    """
+    action_type: ActionTypeEnum = field(default=False, init=False)
+    timestamp: datetime = field(default=False, init=False)
+
+    def get_output_str(self):
+        return str(self)

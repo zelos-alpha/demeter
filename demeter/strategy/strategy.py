@@ -128,23 +128,23 @@ class Strategy(object):
         self.data[name] = line
 
     def add_liquidity(self,
-                      lower_quote_price: Union[Decimal, float],
-                      upper_quote_price: Union[Decimal, float],
-                      base_max_amount: Union[Decimal, float] = None,
-                      quote_max_amount: Union[Decimal, float] = None,
+                      lower_quote_price: Decimal | float,
+                      upper_quote_price: Decimal | float,
+                      base_max_amount: Decimal | float = None,
+                      quote_max_amount: Decimal | float = None,
                       ) -> (PositionInfo, Decimal, Decimal):
         """
 
         add liquidity, then get a new position
 
         :param lower_quote_price: lower price base on quote token.
-        :type lower_quote_price: Union[Decimal, float]
+        :type lower_quote_price: Decimal | float
         :param upper_quote_price: upper price base on quote token.
-        :type upper_quote_price: Union[Decimal, float]
+        :type upper_quote_price: Decimal | float
         :param base_max_amount:  inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
-        :type base_max_amount: Union[Decimal, float]
+        :type base_max_amount: Decimal | float
         :param quote_max_amount: inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
-        :type quote_max_amount: Union[Decimal, float]
+        :type quote_max_amount: Decimal | float
         :return: added position, base token used, quote token used
         :rtype: (PositionInfo, Decimal, Decimal)
         """
@@ -154,8 +154,8 @@ class Strategy(object):
     def add_liquidity_by_tick(self,
                               lower_tick: int,
                               upper_tick: int,
-                              base_max_amount: Union[Decimal, float] = None,
-                              quote_max_amount: Union[Decimal, float] = None,
+                              base_max_amount: Decimal | float = None,
+                              quote_max_amount: Decimal | float = None,
                               sqrt_price_x96: int = -1,
                               tick: int = -1):
         """
@@ -167,9 +167,9 @@ class Strategy(object):
         :param upper_tick: upper tick
         :type upper_tick: int
         :param base_max_amount:  inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
-        :type base_max_amount: Union[Decimal, float]
+        :type base_max_amount: Decimal | float
         :param quote_max_amount: inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
-        :type quote_max_amount: Union[Decimal, float]
+        :type quote_max_amount: Decimal | float
         :param tick: tick price.  if set to none, it will be calculated from current price.
         :type tick: int
         :param sqrt_price_x96: precise price.  if set to none, it will be calculated from current price. this param will override tick
@@ -184,7 +184,7 @@ class Strategy(object):
                                                  sqrt_price_x96,
                                                  tick)
 
-    def remove_liquidity(self, positions: Union[PositionInfo, list], remove_dry_pool: bool = True) -> {
+    def remove_liquidity(self, positions: PositionInfo | list, remove_dry_pool: bool = True) -> {
         PositionInfo: (Decimal, Decimal)}:
         """
         remove liquidity from pool, position will be deleted
@@ -207,27 +207,27 @@ class Strategy(object):
         """
         return self.broker.collect_fee(positions)
 
-    def buy(self, amount: Union[Decimal, float], price: Union[Decimal, float] = None) -> (Decimal, Decimal, Decimal):
+    def buy(self, amount: Decimal | float, price: Decimal | float = None) -> (Decimal, Decimal, Decimal):
         """
         buy token, swap from base token to quote token.
 
         :param amount: amount to buy(in quote token)
-        :type amount:  Union[Decimal, float]
+        :type amount:  Decimal | float
         :param price: price
-        :type price: Union[Decimal, float]
+        :type price: Decimal | float
         :return: fee, base token amount spend, quote token amount got
         :rtype: (Decimal, Decimal, Decimal)
         """
         return self.broker.buy(amount, price)
 
-    def sell(self, amount: Union[Decimal, float], price: Union[Decimal, float] = None) -> (Decimal, Decimal, Decimal):
+    def sell(self, amount: Decimal | float, price: Decimal | float = None) -> (Decimal, Decimal, Decimal):
         """
         sell token, swap from quote token to base token.
 
         :param amount: amount to sell(in quote token)
-        :type amount:  Union[Decimal, float]
+        :type amount:  Decimal | float
         :param price: price
-        :type price: Union[Decimal, float]
+        :type price: Decimal | float
         :return: fee, base token amount got, quote token amount spend
         :rtype: (Decimal, Decimal, Decimal)
         """

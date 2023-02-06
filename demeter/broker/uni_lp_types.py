@@ -4,7 +4,8 @@ from decimal import Decimal
 from typing import NamedTuple
 
 from . import RowData
-from .._typing import TokenInfo, DemeterError, UnitDecimal
+from .types import BaseAction, ActionTypeEnum
+from .._typing import TokenInfo, DemeterError, UnitDecimal, PositionInfo
 from ..utils.application import get_formatted_str
 
 
@@ -56,8 +57,8 @@ class PoolInfo(object):
                 self.tickSpacing = 200
             case _:
                 raise DemeterError("fee should be 0.05 or 0.3 or 1")
-        self.fee = Decimal(fee) * Decimal(10000)
-        self.fee_rate = Decimal(fee) / Decimal(100)
+        self.fee: Decimal = Decimal(fee) * Decimal(10000)
+        self.fee_rate: Decimal = Decimal(fee) / Decimal(100)
 
     def __str__(self):
         """
@@ -201,7 +202,216 @@ class PoolStatus(NamedTuple):
     """
     timestamp: datetime
     current_tick: int
-    current_liquidity: Decimal
-    in_amount0: Decimal
-    in_amount1: Decimal
+    current_liquidity: int
+    in_amount0: int
+    in_amount1: int
     price: Decimal
+
+
+@dataclass
+class UniLpBaseAction(BaseAction):
+    """
+    Parent class of broker actions,
+
+    :param base_balance_after: after action balance of base token
+    :type base_balance_after: UnitDecimal
+    :param quote_balance_after: after action balance of quote token
+    :type quote_balance_after: UnitDecimal
+    """
+
+    base_balance_after: UnitDecimal
+    quote_balance_after: UnitDecimal
+
+    def get_output_str(self):
+        return str(self)
+
+
+@dataclass
+class AddLiquidityAction(UniLpBaseAction):
+    """
+    Add Liquidity
+
+    :param base_amount_max: inputted base token amount, also the max amount to deposit
+    :type base_amount_max: ActionTypeEnum
+    :param quote_amount_max: inputted base token amount, also the max amount to deposit
+    :type quote_amount_max: datetime
+    :param lower_quote_price: lower price base on quote token.
+    :type lower_quote_price: UnitDecimal
+    :param upper_quote_price: upper price base on quote token.
+    :type upper_quote_price: UnitDecimal
+    :param base_amount_actual: actual used base token
+    :type base_amount_actual: UnitDecimal
+    :param quote_amount_actual: actual used quote token
+    :type quote_amount_actual: UnitDecimal
+    :param position: generated position
+    :type position: PositionInfo
+    :param liquidity: liquidity added
+    :type liquidity: int
+    """
+    base_amount_max: UnitDecimal
+    quote_amount_max: UnitDecimal
+    lower_quote_price: UnitDecimal
+    upper_quote_price: UnitDecimal
+    base_amount_actual: UnitDecimal
+    quote_amount_actual: UnitDecimal
+    position: PositionInfo
+    liquidity: int
+    action_type = ActionTypeEnum.uni_lp_add_liquidity
+
+    def get_output_str(self) -> str:
+        """
+        get colored and formatted string to output in console
+        :return: formatted string
+        :rtype: str
+        """
+        return f"""\033[1;31m{"Add liquidity":<20}\033[0m""" + \
+            get_formatted_str({
+                "max amount": f"{self.base_amount_max.to_str()},{self.quote_amount_max.to_str()}",
+                "price": f"{self.lower_quote_price.to_str()},{self.upper_quote_price.to_str()}",
+                "position": self.position,
+                "liquidity": self.liquidity,
+                "balance": f"{self.base_balance_after.to_str()}(-{self.base_amount_actual.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_amount_actual.to_str()})"
+            })
+
+
+@dataclass
+class CollectFeeAction(UniLpBaseAction):
+    """
+    collect fee
+
+    :param position: position to operate
+    :type position: PositionInfo
+    :param base_amount: fee collected in base token
+    :type base_amount: UnitDecimal
+    :param quote_amount: fee collected in quote token
+    :type quote_amount: UnitDecimal
+
+    """
+    position: PositionInfo
+    base_amount: UnitDecimal
+    quote_amount: UnitDecimal
+    action_type = ActionTypeEnum.uni_lp_collect_fee
+
+    def get_output_str(self) -> str:
+        """
+        get colored and formatted string to output in console
+        :return: formatted string
+        :rtype: str
+        """
+        return f"""\033[1;33m{"Collect fee":<20}\033[0m""" + \
+            get_formatted_str({
+                "position": self.position,
+                "balance": f"{self.base_balance_after.to_str()}(+{self.base_amount.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_amount.to_str()})"
+            })
+
+
+@dataclass
+class RemoveLiquidityAction(UniLpBaseAction):
+    """
+    TODO: update
+    remove position
+
+    :param position: position to operate
+    :type position: PositionInfo
+    :param base_amount: base token amount collected
+    :type base_amount: UnitDecimal
+    :param quote_amount: quote token amount collected
+    :type quote_amount: UnitDecimal
+    :param removed_liquidity: liquidity number has removed
+    :type removed_liquidity: int
+    :param remain_liquidity: liquidity number left in position
+    :type remain_liquidity: int
+
+    """
+    position: PositionInfo
+    base_amount: UnitDecimal
+    quote_amount: UnitDecimal
+    removed_liquidity: int
+    remain_liquidity: int
+    action_type = ActionTypeEnum.uni_lp_remove_liquidity
+
+    def get_output_str(self) -> str:
+        """
+        get colored and formatted string to output in console
+        :return: formatted string
+        :rtype: str
+        """
+        return f"""\033[1;32m{"Remove liquidity":<20}\033[0m""" + \
+            get_formatted_str({
+                "position": self.position,
+                "balance": f"{self.base_balance_after.to_str()}(+0), {self.quote_balance_after.to_str()}(+0)",
+                "token_got": f"{self.base_amount.to_str()},{self.quote_amount.to_str()}",
+                "removed liquidity": self.removed_liquidity,
+                "remain liquidity": self.remain_liquidity
+            })
+
+
+@dataclass
+class BuyAction(UniLpBaseAction):
+    """
+    buy token, swap from base token to quote token.
+
+    :param amount: amount to buy(in quote token)
+    :type amount: UnitDecimal
+    :param price: price,
+    :type price: UnitDecimal
+    :param fee: fee paid (in base token)
+    :type fee: UnitDecimal
+    :param base_change: base token amount changed
+    :type base_change: PositionInfo
+    :param quote_change: quote token amount changed
+    :type quote_change: UnitDecimal
+
+    """
+    amount: UnitDecimal
+    price: UnitDecimal
+    fee: UnitDecimal
+    base_change: UnitDecimal
+    quote_change: UnitDecimal
+    action_type = ActionTypeEnum.uni_lp_buy
+
+    def get_output_str(self) -> str:
+        """
+        get colored and formatted string to output in console
+        :return: formatted string
+        :rtype: str
+        """
+        return f"""\033[1;36m{"Buy":<20}\033[0m""" + \
+            get_formatted_str({
+                "price": self.price.to_str(),
+                "fee": self.fee.to_str(),
+                "balance": f"{self.base_balance_after.to_str()}(-{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_change.to_str()})"
+            })
+
+
+@dataclass
+class SellAction(UniLpBaseAction):
+    """
+    sell token, swap from quote token to base token.
+
+    :param amount: amount to sell(in quote token)
+    :type amount: UnitDecimal
+    :param price: price,
+    :type price: UnitDecimal
+    :param fee: fee paid (in quote token)
+    :type fee: UnitDecimal
+    :param base_change: base token amount changed
+    :type base_change: PositionInfo
+    :param quote_change: quote token amount changed
+    :type quote_change: UnitDecimal
+
+    """
+    amount: UnitDecimal
+    price: UnitDecimal
+    fee: UnitDecimal
+    base_change: UnitDecimal
+    quote_change: UnitDecimal
+    action_type = ActionTypeEnum.uni_lp_sell
+
+    def get_output_str(self):
+        return f"""\033[1;37m{"Sell":<20}\033[0m""" + \
+            get_formatted_str({
+                "price": self.price.to_str(),
+                "fee": self.fee.to_str(),
+                "balance": f"{self.base_balance_after.to_str()}(+{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_change.to_str()})"
+            })

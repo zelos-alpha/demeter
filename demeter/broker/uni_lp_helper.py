@@ -1,6 +1,6 @@
 import math
 from decimal import Decimal
-from .liquitidymath import get_sqrt_ratio_at_tick
+from .uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
 
 
 def _x96_to_decimal(number: int):

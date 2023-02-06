@@ -3,7 +3,7 @@ from demeter import UniLpMarket, TokenInfo, PoolInfo, PoolStatus
 from pandas import Series
 from decimal import Decimal
 
-from demeter.broker.helper import tick_to_quote_price
+from demeter.broker.uni_lp_helper import tick_to_quote_price
 
 
 class TestBroker(unittest.TestCase):

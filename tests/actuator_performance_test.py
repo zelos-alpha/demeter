@@ -2,7 +2,7 @@ from datetime import datetime, date
 from decimal import Decimal
 
 from demeter import TokenInfo, PoolInfo, Actuator, Strategy, Asset, ChainType
-from demeter.broker.liquitidymath import get_sqrt_ratio_at_tick
+from demeter.broker.uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
 import time
 
 

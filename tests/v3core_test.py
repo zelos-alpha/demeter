@@ -2,7 +2,7 @@ import unittest
 from decimal import Decimal
 
 from demeter import TokenInfo, PoolInfo
-from demeter.broker.v3_core import V3CoreLib
+from demeter.broker.uni_lp_core import V3CoreLib
 from tests.common import assert_equal_with_error
 
 eth = TokenInfo(name="eth", decimal=18)

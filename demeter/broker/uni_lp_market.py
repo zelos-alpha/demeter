@@ -1,15 +1,14 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Union
 
-from .helper import tick_to_quote_price, quote_price_to_tick, quote_price_to_sqrt, tick_to_sqrtPriceX96
-from .liquitidymath import get_sqrt_ratio_at_tick
-from .types import Market
-from .uni_lp_types import PoolInfo, TokenInfo, BrokerAsset, Position, PoolStatus, DepositBalance
-from .v3_core import V3CoreLib
+from .market import Market
+from .uni_lp_helper import tick_to_quote_price, quote_price_to_tick, quote_price_to_sqrt, tick_to_sqrtPriceX96
+from .uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
+from .uni_lp_types import PoolInfo, TokenInfo, BrokerAsset, Position, PoolStatus, DepositBalance, AddLiquidityAction, \
+    RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction
+from .uni_lp_core import V3CoreLib
 from .. import Lines
-from .._typing import PositionInfo, DemeterError, AddLiquidityAction, RemoveLiquidityAction, BuyAction, SellAction, \
-    CollectFeeAction, DECIMAL_ZERO, UnitDecimal
+from .._typing import PositionInfo, DemeterError, DECIMAL_ZERO, UnitDecimal
 from ..utils.application import float_param_formatter
 
 
@@ -27,12 +26,8 @@ class UniLpMarket(Market):
     :type pool_info: PoolInfo
     """
 
-    def __init__(self, pool_info: PoolInfo,
-                 data: Lines = None,
-                 allow_negative_balance=False
-                 ):
-        super.__init__(data=data,
-                       allow_negative_balance=allow_negative_balance)
+    def __init__(self, pool_info: PoolInfo, data: Lines = None):
+        super().__init__(data=data)
         self._pool: PoolInfo = pool_info
         # init balance
         self._is_token0_base = pool_info.is_token0_base
@@ -42,8 +37,8 @@ class UniLpMarket(Market):
         self._positions: dict[PositionInfo:Position] = {}
         self._pool_status = PoolStatus(None, 0, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO)
         # In order to distinguish price in pool and to u, we call former one "pool price"
-        self._pool_price_unit = f"{self._pool.base_token.name}/{self._pool.quote_token.name}"
-        self.history_recorder= None # TODO 设计历史记录u'b'fen
+        self._pool_price_unit = f"{self.base_token.name}/{self.quote_token.name}"
+        self.history_recorder = None  # TODO 设计历史记录u'b'fen
         # internal temporary variable
         # self.action_buffer = []
 
@@ -224,12 +219,12 @@ class UniLpMarket(Market):
                                    self._is_token0_base)
 
     @float_param_formatter
-    def price_to_tick(self, price: Union[Decimal, float]) -> int:
+    def price_to_tick(self, price: Decimal | float) -> int:
         """
         convert price to tick
 
         :param price: price
-        :type price:  Union[Decimal, float]
+        :type price:  Decimal | float
         :return: tick
         :rtype: int
         """
@@ -263,8 +258,8 @@ class UniLpMarket(Market):
             self._positions[position_info].liquidity += liquidity
         else:
             self._positions[position_info] = Position(DECIMAL_ZERO, DECIMAL_ZERO, liquidity)
-        self._asset0.sub(token0_used, self.allow_negative_balance)
-        self._asset1.sub(token1_used, self.allow_negative_balance)
+        self.broker.sub_asset(self.token0, token0_used)
+        self.broker.sub_asset(self.token1, token1_used)
         return position_info, token0_used, token1_used, liquidity
 
     def __remove_liquidity(self, position: PositionInfo, liquidity: int = None, sqrt_price_x96: int = -1):
@@ -296,22 +291,22 @@ class UniLpMarket(Market):
 
     @float_param_formatter
     def add_liquidity(self,
-                      lower_quote_price: Union[Decimal, float],
-                      upper_quote_price: Union[Decimal, float],
-                      base_max_amount: Union[Decimal, float] = None,
-                      quote_max_amount: Union[Decimal, float] = None) -> (PositionInfo, Decimal, Decimal):
+                      lower_quote_price: Decimal | float,
+                      upper_quote_price: Decimal | float,
+                      base_max_amount: Decimal | float = None,
+                      quote_max_amount: Decimal | float = None) -> (PositionInfo, Decimal, Decimal):
         """
 
         add liquidity, then get a new position
 
         :param lower_quote_price: lower price base on quote token.
-        :type lower_quote_price: Union[Decimal, float]
+        :type lower_quote_price: Decimal | float
         :param upper_quote_price: upper price base on quote token.
-        :type upper_quote_price: Union[Decimal, float]
+        :type upper_quote_price: Decimal | float
         :param base_max_amount:  inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
-        :type base_max_amount: Union[Decimal, float]
+        :type base_max_amount: Decimal | float
         :param quote_max_amount: inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
-        :type quote_max_amount: Union[Decimal, float]
+        :type quote_max_amount: Decimal | float
         :return: added position, base token used, quote token used
         :rtype: (PositionInfo, Decimal, Decimal)
         """
@@ -329,23 +324,23 @@ class UniLpMarket(Market):
                                                                                               lower_tick,
                                                                                               upper_tick)
         base_used, quote_used = self._convert_pair(token0_used, token1_used)
-        self.action_buffer.append(
-            AddLiquidityAction(base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
-                               quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
-                               base_amount_max=UnitDecimal(base_max_amount, self.base_token.name),
-                               quote_amount_max=UnitDecimal(quote_max_amount, self.quote_token.name),
-                               lower_quote_price=UnitDecimal(lower_quote_price, self._pool_price_unit),
-                               upper_quote_price=UnitDecimal(upper_quote_price, self._pool_price_unit),
-                               base_amount_actual=UnitDecimal(base_used, self.base_token.name),
-                               quote_amount_actual=UnitDecimal(quote_used, self.quote_token.name),
-                               position=created_position,
-                               liquidity=int(liquidity)))
+        self.action_recorder.add_history(AddLiquidityAction(
+            base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
+            quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
+            base_amount_max=UnitDecimal(base_max_amount, self.base_token.name),
+            quote_amount_max=UnitDecimal(quote_max_amount, self.quote_token.name),
+            lower_quote_price=UnitDecimal(lower_quote_price, self._pool_price_unit),
+            upper_quote_price=UnitDecimal(upper_quote_price, self._pool_price_unit),
+            base_amount_actual=UnitDecimal(base_used, self.base_token.name),
+            quote_amount_actual=UnitDecimal(quote_used, self.quote_token.name),
+            position=created_position,
+            liquidity=int(liquidity)))
         return created_position, base_used, quote_used, liquidity
 
     def add_liquidity_by_tick(self, lower_tick: int,
                               upper_tick: int,
-                              base_max_amount: Union[Decimal, float] = None,
-                              quote_max_amount: Union[Decimal, float] = None,
+                              base_max_amount: Decimal | float = None,
+                              quote_max_amount: Decimal | float = None,
                               sqrt_price_x96: int = -1,
                               tick: int = -1):
         """
@@ -357,9 +352,9 @@ class UniLpMarket(Market):
         :param upper_tick: upper tick
         :type upper_tick: int
         :param base_max_amount:  inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
-        :type base_max_amount: Union[Decimal, float]
+        :type base_max_amount: Decimal | float
         :param quote_max_amount: inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
-        :type quote_max_amount: Union[Decimal, float]
+        :type quote_max_amount: Decimal | float
         :param tick: tick price.  if set to none, it will be calculated from current price.
         :type tick: int
         :param sqrt_price_x96: precise price.  if set to none, it will be calculated from current price. this param will override tick
@@ -382,7 +377,7 @@ class UniLpMarket(Market):
                                                                                               upper_tick,
                                                                                               sqrt_price_x96)
         base_used, quote_used = self._convert_pair(token0_used, token1_used)
-        self.action_buffer.append(
+        self.action_recorder.add_history(
             AddLiquidityAction(base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
                                quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
                                base_amount_max=UnitDecimal(base_max_amount, self.base_token.name),
@@ -421,7 +416,7 @@ class UniLpMarket(Market):
         token0_get, token1_get, delta_liquidity = self.__remove_liquidity(position, liquidity, sqrt_price_x96)
 
         base_get, quote_get = self._convert_pair(token0_get, token1_get)
-        self.action_buffer.append(
+        self.action_recorder.add_history(
             RemoveLiquidityAction(
                 base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
                 quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
@@ -432,7 +427,7 @@ class UniLpMarket(Market):
                 remain_liquidity=self.positions[position].liquidity
             ))
         if collect:
-            return self.collect_fee(position, remove_dry_pool)
+            return self.collect_fee(position, remove_dry_pool=remove_dry_pool)
         else:
             return base_get, quote_get
 
@@ -464,14 +459,13 @@ class UniLpMarket(Market):
 
         base_get, quote_get = self._convert_pair(token0_get, token1_get)
         if self._positions[position]:
-            self.action_buffer.append(
-                CollectFeeAction(
-                    base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
-                    quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
-                    position=position,
-                    base_amount=UnitDecimal(base_get, self.base_token.name),
-                    quote_amount=UnitDecimal(quote_get, self.quote_token.name)
-                ))
+            self.action_recorder.add_history(CollectFeeAction(
+                base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
+                quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
+                position=position,
+                base_amount=UnitDecimal(base_get, self.base_token.name),
+                quote_amount=UnitDecimal(quote_get, self.quote_token.name)
+            ))
         if self._positions[position].pending_amount0 == Decimal(0) \
                 and self._positions[position].pending_amount1 == Decimal(0) \
                 and self._positions[position].liquidity == 0 \
@@ -480,14 +474,14 @@ class UniLpMarket(Market):
         return base_get, quote_get
 
     @float_param_formatter
-    def buy(self, amount: Union[Decimal, float], price: Union[Decimal, float] = None) -> (Decimal, Decimal, Decimal):
+    def buy(self, amount: Decimal | float, price: Decimal | float = None) -> (Decimal, Decimal, Decimal):
         """
         buy token, swap from base token to quote token.
 
         :param amount: amount to buy(in quote token)
-        :type amount:  Union[Decimal, float]
+        :type amount:  Decimal | float
         :param price: price
-        :type price: Union[Decimal, float]
+        :type price: Decimal | float
         :return: fee, base token amount spend, quote token amount got
         :rtype: (Decimal, Decimal, Decimal)
         """
@@ -499,26 +493,25 @@ class UniLpMarket(Market):
         self.broker.sub_asset(from_token, from_amount_with_fee)
         self.broker.add_asset(to_token, amount)
         base_amount, quote_amount = self._convert_pair(from_amount, amount)
-        self.action_buffer.append(
-            BuyAction(
-                base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
-                quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
-                amount=UnitDecimal(amount, self.quote_token.name),
-                price=UnitDecimal(price, self._pool_price_unit),
-                fee=UnitDecimal(fee, self.base_token.name),
-                base_change=UnitDecimal(base_amount, self.base_token.name),
-                quote_change=UnitDecimal(quote_amount, self.quote_token.name)))
+        self.action_recorder.add_history(BuyAction(
+            base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
+            quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
+            amount=UnitDecimal(amount, self.quote_token.name),
+            price=UnitDecimal(price, self._pool_price_unit),
+            fee=UnitDecimal(fee, self.base_token.name),
+            base_change=UnitDecimal(base_amount, self.base_token.name),
+            quote_change=UnitDecimal(quote_amount, self.quote_token.name)))
         return fee, base_amount, quote_amount
 
     @float_param_formatter
-    def sell(self, amount: Union[Decimal, float], price: Union[Decimal, float] = None) -> (Decimal, Decimal, Decimal):
+    def sell(self, amount: Decimal | float, price: Decimal | float = None) -> (Decimal, Decimal, Decimal):
         """
         sell token, swap from quote token to base token.
 
         :param amount: amount to sell(in quote token)
-        :type amount:  Union[Decimal, float]
+        :type amount:  Decimal | float
         :param price: price
-        :type price: Union[Decimal, float]
+        :type price: Decimal | float
         :return: fee, base token amount got, quote token amount spend
         :rtype: (Decimal, Decimal, Decimal)
         """
@@ -527,19 +520,18 @@ class UniLpMarket(Market):
         from_amount = from_amount_with_fee * (1 - self._pool.fee_rate)
         to_amount = from_amount * price
         fee = from_amount_with_fee - from_amount
-        to_token, from_token = self._convert_pair(self._asset0, self._asset1)
+        to_token, from_token = self._convert_pair(self.token0, self.token1)
         self.broker.sub_asset(from_token, from_amount_with_fee)
         self.broker.add_asset(to_token, to_amount)
         base_amount, quote_amount = self._convert_pair(to_amount, from_amount)
-        self.action_buffer.append(
-            SellAction(
-                base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
-                quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
-                amount=UnitDecimal(amount, self.base_token.name),
-                price=UnitDecimal(price, self._pool_price_unit),
-                fee=UnitDecimal(fee, self.quote_token.name),
-                base_change=UnitDecimal(base_amount, self.base_token.name),
-                quote_change=UnitDecimal(quote_amount, self.quote_token.name)))
+        self.action_recorder.add_history(SellAction(
+            base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
+            quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
+            amount=UnitDecimal(amount, self.base_token.name),
+            price=UnitDecimal(price, self._pool_price_unit),
+            fee=UnitDecimal(fee, self.quote_token.name),
+            base_change=UnitDecimal(base_amount, self.base_token.name),
+            quote_change=UnitDecimal(quote_amount, self.quote_token.name)))
 
         return fee, base_amount, quote_amount
 
@@ -555,8 +547,8 @@ class UniLpMarket(Market):
         if price is None:
             price = self._pool_status.price
 
-        total_capital = self.broker.get_token_balance(self.base_token) + \
-                        self.broker.get_token_balance(self.quote_token) * price
+        total_capital = self.broker.get_token_balance(self.base_token) + self.broker.get_token_balance(
+            self.quote_token) * price
         target_base_amount = total_capital / 2
         quote_amount_diff = target_base_amount / price - self.broker.get_token_balance(self.quote_token)
         if quote_amount_diff > 0:

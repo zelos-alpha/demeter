@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 
 from demeter import TokenInfo, PoolInfo, Actuator, Strategy, Asset, Lines, AccountStatus
-from demeter.broker.liquitidymath import get_sqrt_ratio_at_tick
-from demeter.broker.v3_core import V3CoreLib
+from demeter.broker.uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
+from demeter.broker.uni_lp_core import V3CoreLib
 
 eth = TokenInfo(name="eth", decimal=18)
 usdc = TokenInfo(name="usdc", decimal=6)
