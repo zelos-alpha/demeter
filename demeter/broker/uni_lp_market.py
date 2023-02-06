@@ -8,7 +8,7 @@ from .uni_lp_typing import PoolInfo, TokenInfo, BrokerAsset, Position, PoolStatu
     RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction
 from .uni_lp_core import V3CoreLib
 from .. import Lines
-from .._typing import PositionInfo, DemeterError, DECIMAL_ZERO, UnitDecimal
+from .._typing import PositionInfo, DemeterError, DECIMAL_0, UnitDecimal
 from ..utils.application import float_param_formatter
 
 
@@ -35,7 +35,7 @@ class UniLpMarket(Market):
         self.base_token, self.quote_token = self._convert_pair(self.pool_info.token0, self.pool_info.token1)
         # status
         self._positions: dict[PositionInfo:Position] = {}
-        self._pool_status = PoolStatus(None, 0, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO, DECIMAL_ZERO)
+        self._pool_status = PoolStatus(None, 0, DECIMAL_0, DECIMAL_0, DECIMAL_0, DECIMAL_0)
         # In order to distinguish price in pool and to u, we call former one "pool price"
         self._pool_price_unit = f"{self.base_token.name}/{self.quote_token.name}"
         self.history_recorder = None  # TODO 设计历史记录u'b'fen
@@ -174,14 +174,14 @@ class UniLpMarket(Market):
         if price is None:
             price = self.pool_status.price
 
-        base_fee_sum = DECIMAL_ZERO
-        quote_fee_sum = DECIMAL_ZERO
+        base_fee_sum = DECIMAL_0
+        quote_fee_sum = DECIMAL_0
         sqrt_price = quote_price_to_sqrt(price,
                                          self._pool.token0.decimal,
                                          self._pool.token1.decimal,
                                          self._is_token0_base)
-        deposit_amount0 = DECIMAL_ZERO
-        deposit_amount1 = DECIMAL_ZERO
+        deposit_amount0 = DECIMAL_0
+        deposit_amount1 = DECIMAL_0
         for position_info, position in self._positions.items():
             base_fee, quote_fee = self._convert_pair(position.pending_amount0,
                                                      position.pending_amount1)
@@ -257,7 +257,7 @@ class UniLpMarket(Market):
         if position_info in self._positions:
             self._positions[position_info].liquidity += liquidity
         else:
-            self._positions[position_info] = Position(DECIMAL_ZERO, DECIMAL_ZERO, liquidity)
+            self._positions[position_info] = Position(DECIMAL_0, DECIMAL_0, liquidity)
         self.broker.sub_asset(self.token0, token0_used)
         self.broker.sub_asset(self.token1, token1_used)
         return position_info, token0_used, token1_used, liquidity
@@ -328,7 +328,7 @@ class UniLpMarket(Market):
                                                                                               lower_tick,
                                                                                               upper_tick)
         base_used, quote_used = self._convert_pair(token0_used, token1_used)
-        self.action_recorder.add_history(AddLiquidityAction(
+        self.record_action(AddLiquidityAction(
             base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
             quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
             base_amount_max=UnitDecimal(base_max_amount, self.base_token.name),
@@ -381,7 +381,7 @@ class UniLpMarket(Market):
                                                                                               upper_tick,
                                                                                               sqrt_price_x96)
         base_used, quote_used = self._convert_pair(token0_used, token1_used)
-        self.action_recorder.add_history(
+        self.record_action(
             AddLiquidityAction(base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
                                quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
                                base_amount_max=UnitDecimal(base_max_amount, self.base_token.name),
@@ -420,7 +420,7 @@ class UniLpMarket(Market):
         token0_get, token1_get, delta_liquidity = self.__remove_liquidity(position, liquidity, sqrt_price_x96)
 
         base_get, quote_get = self._convert_pair(token0_get, token1_get)
-        self.action_recorder.add_history(
+        self.record_action(
             RemoveLiquidityAction(
                 base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
                 quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
@@ -463,7 +463,7 @@ class UniLpMarket(Market):
 
         base_get, quote_get = self._convert_pair(token0_get, token1_get)
         if self._positions[position]:
-            self.action_recorder.add_history(CollectFeeAction(
+            self.record_action(CollectFeeAction(
                 base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
                 quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
                 position=position,
@@ -497,7 +497,7 @@ class UniLpMarket(Market):
         self.broker.sub_asset(from_token, from_amount_with_fee)
         self.broker.add_asset(to_token, amount)
         base_amount, quote_amount = self._convert_pair(from_amount, amount)
-        self.action_recorder.add_history(BuyAction(
+        self.record_action(BuyAction(
             base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
             quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
             amount=UnitDecimal(amount, self.quote_token.name),
@@ -528,7 +528,7 @@ class UniLpMarket(Market):
         self.broker.sub_asset(from_token, from_amount_with_fee)
         self.broker.add_asset(to_token, to_amount)
         base_amount, quote_amount = self._convert_pair(to_amount, from_amount)
-        self.action_recorder.add_history(SellAction(
+        self.record_action(SellAction(
             base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
             quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
             amount=UnitDecimal(amount, self.base_token.name),

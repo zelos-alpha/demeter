@@ -2,8 +2,8 @@ from decimal import Decimal
 from enum import Enum
 from typing import NamedTuple
 
-DECIMAL_ZERO = Decimal(0)
-
+DECIMAL_0 = Decimal(0)
+DECIMAL_1 = Decimal(1)
 
 class TimeUnitEnum(Enum):
     """
@@ -18,7 +18,6 @@ class TimeUnitEnum(Enum):
     day = 60 * 24
 
 
-Decimal_1 = Decimal(1)
 
 
 class UnitDecimal(Decimal):
@@ -51,7 +50,7 @@ class UnitDecimal(Decimal):
         :return: formatted string
         :rtype: str
         """
-        dec = self.quantize(Decimal_1) if (self == self.to_integral() and self < 1e+29) else self.normalize()
+        dec = self.quantize(DECIMAL_1) if (self == self.to_integral() and self < 1e+29) else self.normalize()
         return "{:{}} {}".format(dec, self.output_format, self.unit)
 
 

@@ -1,6 +1,5 @@
 from decimal import Decimal
 
-from .action_history import ActionRecorder
 from .market import Market
 from ._typing import Asset, TokenInfo, MarketInfo
 from .. import DemeterError, UnitDecimal
@@ -8,11 +7,11 @@ from ..utils.application import float_param_formatter
 
 
 class Broker:
-    def __int__(self, allow_negative_balance=False):
+    def __int__(self, allow_negative_balance=False, record_action_callback=None):
         self.allow_negative_balance = allow_negative_balance
         self._assets: {TokenInfo: Asset} = {}
         self._markets: {MarketInfo: Market} = {}
-        self._action_recorder = ActionRecorder()
+        self._record_action_callback = record_action_callback
 
     # region properties
 
@@ -51,7 +50,7 @@ class Broker:
         """
         self._markets[market_info] = market
         market.broker = self
-        market.action_recorder = self._action_recorder
+        market.record_action = self._record_action_callback
 
     @float_param_formatter
     def add_asset(self, token: TokenInfo, amount: Decimal | float):  # TODO: 名字再想想

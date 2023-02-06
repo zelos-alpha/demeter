@@ -62,4 +62,4 @@ if __name__ == "__main__":
 
     actuator_instance.broker.get_account_status(actuator_instance.final_status.price)
 
-    plot_position_return_decomposition(actuator_instance.account_status_list)
+    plot_position_return_decomposition(actuator_instance._account_status_list)

@@ -52,5 +52,5 @@ if __name__ == "__main__":
     actuator_instance.run(enable_notify=False)
     print(actuator_instance.final_status.net_value)
 
-    plot_position_return_decomposition(actuator_instance.account_status_list)
+    plot_position_return_decomposition(actuator_instance._account_status_list)
 

@@ -7,14 +7,13 @@ import pandas as pd
 from tqdm import tqdm  # process bar
 
 from .evaluating_indicator import Evaluator
-from .. import PoolStatus
+from .. import PoolStatus, Broker
 from .._typing import AccountStatus, BarStatusNames, BaseAction, Asset, DemeterError, ActionTypeEnum, \
     RowData, EvaluatorEnum, UnitDecimal
 from ..broker import UniLpMarket, PoolInfo
 from ..data_line import Lines
 from ..strategy import Strategy
 
-DEFAULT_DATA_PATH = "./data"
 
 
 def decimal_from_value(value):
@@ -30,22 +29,17 @@ class Actuator(object):
 
     """
 
-    def __init__(self, pool_info: PoolInfo, allow_negative_balance=False):
-        self._broker: UniLpMarket = UniLpMarket(pool_info)
-        self._broker.allow_negative_balance = allow_negative_balance
-        # data
-        self._data: Lines = None
+    def __init__(self, allow_negative_balance=False):
+        # all the actions during the test(buy/sell/add liquidity)
+        self._action_list: [BaseAction] = []
+        # broker status in every bar, use array for performance
+        self._account_status_list: [AccountStatus] = []
+        # broker
+        self._broker: Broker = Broker(allow_negative_balance, lambda action: self._action_list.append(action))
         # strategy
         self._strategy: Strategy = Strategy()
-        # all the actions during the test(buy/sell/add liquidity)
-        self._actions: [BaseAction] = []
-        # actions in current bar
-        self.bar_actions: [BaseAction] = []
-        self._broker.action_buffer = self.bar_actions
-        # broker status in every bar, use array for performance
-        self.account_status_list: [AccountStatus] = []
+
         # path of source data, which is saved by downloader
-        self._data_path: str = DEFAULT_DATA_PATH
         # evaluating indicator calculator
         self._evaluator: Evaluator = None
         self._enabled_evaluator: [] = []
@@ -58,10 +52,10 @@ class Actuator(object):
 
     @property
     def account_status(self) -> pd.DataFrame:
-        index = self.data.index[0:len(self.account_status_list)]
+        index = self.data.index[0:len(self._account_status_list)]
         return pd.DataFrame(columns=BarStatusNames,
                             index=index,
-                            data=map(lambda d: d.to_array(), self.account_status_list))
+                            data=map(lambda d: d.to_array(), self._account_status_list))
 
     @property
     def final_status(self) -> AccountStatus:
@@ -74,7 +68,7 @@ class Actuator(object):
         :rtype: AccountStatus
         """
         if self.__backtest_finished:
-            return self.account_status_list[len(self.account_status_list) - 1]
+            return self._account_status_list[len(self._account_status_list) - 1]
         else:
             raise DemeterError("please run strategy first")
 
@@ -84,9 +78,9 @@ class Actuator(object):
         reset all the status variables
 
         """
-        self._actions = []
+        self._action_list = []
         self._evaluator = None
-        self.account_status_list = []
+        self._account_status_list = []
         self.__backtest_finished = False
         self.data.reset_cursor()
 
@@ -116,7 +110,7 @@ class Actuator(object):
         :return: action list
         :rtype: [BaseAction]
         """
-        return self._actions
+        return self._action_list
 
     @property
     def evaluating_indicator(self) -> dict[EvaluatorEnum:UnitDecimal]:
@@ -391,7 +385,7 @@ class Actuator(object):
                 if first:
                     init_price = row_data.price
                     first = False
-                self.account_status_list.append(self._broker.get_account_status(row_data.price, index.to_pydatetime()))
+                self._account_status_list.append(self._broker.get_account_status(row_data.price, index.to_pydatetime()))
 
                 # collect actions in this loop
                 current_event_list = self.bar_actions.copy()
@@ -399,19 +393,19 @@ class Actuator(object):
                     event.timestamp = index
                 self.bar_actions.clear()
                 if current_event_list and len(current_event_list) > 0:
-                    self._actions.extend(current_event_list)
+                    self._action_list.extend(current_event_list)
 
                 # process on_bar
                 self._data.move_cursor_to_next()
                 pbar.update()
         # notify
-        if enable_notify and len(self._actions) > 0:
+        if enable_notify and len(self._action_list) > 0:
             self.logger.info("start notify all the actions")
-            self.notify(self.strategy, self._actions)
+            self.notify(self.strategy, self._action_list)
         self.logger.info("main loop finished, start calculate evaluating indicator...")
         bar_status_df = pd.DataFrame(columns=BarStatusNames,
                                      index=self.data.index,
-                                     data=map(lambda d: d.to_array(), self.account_status_list))
+                                     data=map(lambda d: d.to_array(), self._account_status_list))
         self.logger.info("run evaluating indicator")
         if len(self._enabled_evaluator) > 0:
             self._evaluator = Evaluator(
