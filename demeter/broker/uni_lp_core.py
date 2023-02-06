@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from .uni_lp_helper import quote_price_to_tick, from_wei
 from .uni_lp_liquitidy_math import get_amounts, get_liquidity
-from .uni_lp_types import PoolInfo, Position, PoolStatus
+from .uni_lp_typing import PoolInfo, Position, PoolStatus
 from .._typing import PositionInfo
 
 

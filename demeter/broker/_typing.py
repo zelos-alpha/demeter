@@ -4,7 +4,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import NamedTuple
 
-from .. import TokenInfo, DemeterError
+from .. import DemeterError, TokenInfo
 
 
 @dataclass
@@ -66,8 +66,8 @@ class Asset(object):
             if abs((self.balance - amount) / base) < 0.00001:
                 self.balance = Decimal(0)
             elif self.balance - amount < Decimal(0):
-                raise DemeterError(
-                    f"insufficient balance, balance is {self.balance}{self.name}, but sub amount is {amount}{self.name}")
+                raise DemeterError(f"insufficient balance, balance is {self.balance}{self.name}, "
+                                   f"but sub amount is {amount}{self.name}")
             else:
                 self.balance -= amount
 

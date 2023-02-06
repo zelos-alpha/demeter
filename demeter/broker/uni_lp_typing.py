@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import NamedTuple
 
 from . import RowData
-from .types import BaseAction, ActionTypeEnum
+from ._typing import BaseAction, ActionTypeEnum
 from .._typing import TokenInfo, DemeterError, UnitDecimal, PositionInfo
 from ..utils.application import get_formatted_str
 

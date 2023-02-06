@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from .action_history import ActionRecorder
 from .market import Market
-from .types import Asset, TokenInfo, MarketInfo
+from ._typing import Asset, TokenInfo, MarketInfo
 from .. import DemeterError, UnitDecimal
 from ..utils.application import float_param_formatter
 

@@ -4,7 +4,7 @@ from decimal import Decimal
 from .market import Market
 from .uni_lp_helper import tick_to_quote_price, quote_price_to_tick, quote_price_to_sqrt, tick_to_sqrtPriceX96
 from .uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
-from .uni_lp_types import PoolInfo, TokenInfo, BrokerAsset, Position, PoolStatus, DepositBalance, AddLiquidityAction, \
+from .uni_lp_typing import PoolInfo, TokenInfo, BrokerAsset, Position, PoolStatus, DepositBalance, AddLiquidityAction, \
     RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction
 from .uni_lp_core import V3CoreLib
 from .. import Lines
@@ -277,8 +277,12 @@ class UniLpMarket(Market):
 
     def __collect_fee(self, position: Position, max_collect_amount0: Decimal = None,
                       max_collect_amount1: Decimal = None):
-        token0_fee = max_collect_amount0 if max_collect_amount0 is not None and max_collect_amount0 < position.pending_amount0 else position.pending_amount0
-        token1_fee = max_collect_amount1 if max_collect_amount1 is not None and max_collect_amount1 < position.pending_amount1 else position.pending_amount1
+        token0_fee = max_collect_amount0 if \
+            max_collect_amount0 is not None and max_collect_amount0 < position.pending_amount0 else \
+            position.pending_amount0
+        token1_fee = max_collect_amount1 if \
+            max_collect_amount1 is not None and max_collect_amount1 < position.pending_amount1 else \
+            position.pending_amount1
 
         position.pending_amount0 -= token0_fee
         position.pending_amount1 -= token1_fee

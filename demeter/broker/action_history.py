@@ -1,4 +1,4 @@
-from demeter.broker.types import BaseAction
+from demeter.broker._typing import BaseAction
 
 
 class ActionRecorder(object):

@@ -109,6 +109,7 @@ class MarketData(object):
         self.openTick = self.openTick if self.openTick is not None else prev_data.closeTick
         self.lowestTick = self.lowestTick if self.lowestTick is not None else prev_data.closeTick
         self.highestTick = self.highestTick if self.highestTick is not None else prev_data.closeTick
-        self.currentLiquidity = self.currentLiquidity if self.currentLiquidity is not None else prev_data.currentLiquidity
+        self.currentLiquidity = self.currentLiquidity if self.currentLiquidity is not None \
+            else prev_data.currentLiquidity
 
         return False if (self.closeTick is None or self.currentLiquidity is None) else True
