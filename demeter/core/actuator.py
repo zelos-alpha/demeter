@@ -2,22 +2,18 @@ import logging
 import time
 from datetime import date, timedelta, datetime
 from decimal import Decimal
+from typing import List
 
 import pandas as pd
 from tqdm import tqdm  # process bar
 
 from .evaluating_indicator import Evaluator
-from .. import PoolStatus, Broker
-from .._typing import AccountStatus, BarStatusNames, BaseAction, Asset, DemeterError, ActionTypeEnum, \
-    RowData, EvaluatorEnum, UnitDecimal
-from ..broker import UniLpMarket, PoolInfo
+from .. import PoolStatus, Broker, RowData
+from .._typing import BarStatusNames, Asset, DemeterError, \
+    EvaluatorEnum, UnitDecimal
+from ..broker import UniLpMarket, PoolInfo, BaseAction, AccountStatus
 from ..data_line import Lines
 from ..strategy import Strategy
-
-
-
-def decimal_from_value(value):
-    return Decimal(value)
 
 
 class Actuator(object):
@@ -50,6 +46,7 @@ class Actuator(object):
         # internal var
         self.__backtest_finished = False
 
+    # region property
     @property
     def account_status(self) -> pd.DataFrame:
         index = self.data.index[0:len(self._account_status_list)]
@@ -72,7 +69,7 @@ class Actuator(object):
         else:
             raise DemeterError("please run strategy first")
 
-    def reset(self):
+    def reset(self):  # TODO Finish this
         """
 
         reset all the status variables
@@ -83,24 +80,6 @@ class Actuator(object):
         self._account_status_list = []
         self.__backtest_finished = False
         self.data.reset_cursor()
-
-    @property
-    def data_path(self) -> str:
-        """
-        path of source data, which is saved by downloader
-        """
-        return self._data_path
-
-    @data_path.setter
-    def data_path(self, value: str):
-        """
-        path of source data, which is saved by downloader
-
-        :param value: path
-        :type value: str
-
-        """
-        self._data_path = value
 
     @property
     def actions(self) -> [BaseAction]:
@@ -123,7 +102,7 @@ class Actuator(object):
         return self._evaluator.result if self._evaluator is not None else None
 
     @property
-    def broker(self) -> UniLpMarket:
+    def broker(self) -> Broker:
         """
         Broker manage assets in back testing. Including asset, positions. it also provides operations for positions,
 
@@ -131,36 +110,6 @@ class Actuator(object):
         :rtype: UniLpMarket
         """
         return self._broker
-
-    @property
-    def data(self) -> Lines:
-        """
-        data
-
-        :return:
-        :rtype: Lines
-        """
-        return self._data
-
-    @data.setter
-    def data(self, value: Lines):
-        """
-        set data which saved by downloader. data source should contain the following column, and indexed with timestamp
-
-        * netAmount0,
-        * netAmount1,
-        * closeTick,
-        * openTick,
-        * lowestTick,
-        * highestTick,
-        * inAmount0,
-        * inAmount1,
-        * currentLiquidity
-
-        :param value: data
-        :type value: Lines
-        """
-        self._data = value
 
     @property
     def strategy(self) -> Strategy:
@@ -179,7 +128,10 @@ class Actuator(object):
         :param value: strategy
         :type value: Strategy
         """
-        self._strategy = value
+        if isinstance(value, Strategy):
+            self._strategy = value
+        else:
+            raise ValueError()
 
     @property
     def number_format(self) -> str:
@@ -194,12 +146,15 @@ class Actuator(object):
     @number_format.setter
     def number_format(self, value: str):
         """
-        number format for console output, eg: ".8g", ".5f", follow the document here: https://python-reference.readthedocs.io/en/latest/docs/functions/format.html
+        number format for console output, eg: ".8g", ".5f",
+        follow the document here: https://python-reference.readthedocs.io/en/latest/docs/functions/format.html
 
         :param value: number format,
         :type value:str
         """
         self._number_format = value
+
+    # endregion
 
     def set_assets(self, assets=[Asset]):
         """
@@ -221,97 +176,69 @@ class Actuator(object):
         :param actions:  action list
         :type actions: [BaseAction]
         """
-        if len(actions) < 1:
-            return
-        last_time = datetime(1970, 1, 1)
-        for action in actions:
-            if last_time != action.timestamp:
-                print(f"\033[7;34m{action.timestamp} \033[0m")
-                last_time = action.timestamp
-            match action.action_type:
-                case ActionTypeEnum.add_liquidity:
-                    strategy.notify_add_liquidity(action)
-                case ActionTypeEnum.remove_liquidity:
-                    strategy.notify_remove_liquidity(action)
-                case ActionTypeEnum.collect_fee:
-                    strategy.notify_collect_fee(action)
-                case ActionTypeEnum.buy:
-                    strategy.notify_buy(action)
-                case ActionTypeEnum.sell:
-                    strategy.notify_sell(action)
-                case _:
-                    strategy.notify(action)
+        # if len(actions) < 1:
+        #     return
+        # last_time = datetime(1970, 1, 1)
+        # for action in actions:
+        #     if last_time != action.timestamp:
+        #         print(f"\033[7;34m{action.timestamp} \033[0m")
+        #         last_time = action.timestamp
+        #     match action.action_type:
+        #         case ActionTypeEnum.add_liquidity:
+        #             strategy.notify_add_liquidity(action)
+        #         case ActionTypeEnum.remove_liquidity:
+        #             strategy.notify_remove_liquidity(action)
+        #         case ActionTypeEnum.collect_fee:
+        #             strategy.notify_collect_fee(action)
+        #         case ActionTypeEnum.buy:
+        #             strategy.notify_buy(action)
+        #         case ActionTypeEnum.sell:
+        #             strategy.notify_sell(action)
+        #         case _:
+        #             strategy.notify(action)
+        pass
 
-    def load_data(self, chain: str, contract_addr: str, start_date: date, end_date: date):
-        """
+    def _check_backtest(self):
 
-        load data, and preprocess. preprocess actions including:
+        if len(self._broker.markets) < 1:
+            raise DemeterError("No market assigned")
+        data_length = []
+        # ensure data length same
+        for marketInfo, market in self._broker.markets:
+            if not isinstance(market.data, Lines):
+                raise DemeterError(f"data in {marketInfo.name} must be type of Lines")
+            data_length.append(len(market.data.index))
+            market.check_asset()  # check each market, including assets
 
-        * fill empty data
-        * calculate statistic column
-        * set timestamp as index
+        if List.count(data_length[0]) != len(data_length):
+            raise DemeterError("data length among markets are not same")
+        length = data_length[0]
+        # ensure data interval same
+        data_interval = []
+        if length > 1:
+            for marketInfo, market in self._broker.markets:
+                data_interval.append(market.data.iloc[1] - market.data.iloc[0])
+            if List.count(data_interval[0]) != len(data_interval):
+                raise DemeterError("data interval among markets are not same")
 
-        :param chain: chain name
-        :type chain: str
-        :param contract_addr: pool contract address
-        :type contract_addr: str
-        :param start_date: start test date
-        :type start_date: date
-        :param end_date: end test date
-        :type end_date: date
-        """
-        self.logger.info(f"start load files from {start_date} to {end_date}...")
-        df = pd.DataFrame()
-        day = start_date
-        while day <= end_date:
-            path = f"{self.data_path}/{chain}-{contract_addr}-{day.strftime('%Y-%m-%d')}.csv"
-            day_df = pd.read_csv(path, converters={'inAmount0': decimal_from_value,
-                                                   'inAmount1': decimal_from_value,
-                                                   'netAmount0': decimal_from_value,
-                                                   'netAmount1': decimal_from_value,
-                                                   "currentLiquidity": decimal_from_value})
-            df = pd.concat([df, day_df])
-            day = day + timedelta(days=1)
-        self.logger.info("load file complete, preparing...")
+    def __get_market_row_dict(self, index, row_id):
+        markets_row = {}
+        for market_key, market in self._broker.markets.items():
+            market_row = RowData(index.to_pydatetime(), row_id)
+            df_row = market.data.loc[index]
+            for column_name in df_row.index:
+                setattr(market_row, column_name, df_row[column_name])
+            markets_row[market_key] = market_row
+        return market_row
 
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
-        df.set_index("timestamp", inplace=True)
+    def __set_row_to_markets(self, market_row_dict: dict):
+        for market_key, market_row_data in market_row_dict.items():
+            self._broker.markets[market_key].set_market_status(market_row_data)
 
-        # fill empty row (first minutes in a day, might be blank)
-        full_indexes = pd.date_range(start=df.index[0], end=df.index[df.index.size - 1], freq="1min")
-        df = df.reindex(full_indexes)
-        df = Lines.from_dataframe(df)
-        df = df.fillna()
-        self.add_statistic_column(df)
-        self.data = df
-        self.logger.info("data has been prepared")
-
-    def add_statistic_column(self, df: Lines):
-        """
-        add statistic column to data, new columns including:
-
-        * open: open price
-        * price: close price (current price)
-        * low: lowest price
-        * high: height price
-        * volume0: swap volume for token 0
-        * volume1: swap volume for token 1
-
-        :param df: original data
-        :type df: Lines
-
-        """
-        # add statistic column
-        df["open"] = df["openTick"].map(lambda x: self.broker.tick_to_price(x))
-        df["price"] = df["closeTick"].map(lambda x: self.broker.tick_to_price(x))
-        high_name, low_name = ("lowestTick", "highestTick") if self.broker.pool_info.is_token0_base \
-            else ("highestTick", "lowestTick")
-        df["low"] = df[high_name].map(lambda x: self.broker.tick_to_price(x))
-        df["high"] = df[low_name].map(lambda x: self.broker.tick_to_price(x))
-        df["volume0"] = df["inAmount0"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token0.decimal)
-        df["volume1"] = df["inAmount1"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token1.decimal)
-
-    def run(self, enable_notify=True, evaluator=[EvaluatorEnum.ALL], print_final_status=False):
+    def run(self,
+            enable_notify=True,
+            evaluator=[EvaluatorEnum.ALL],
+            print_final_status=False):
         """
         start back test, the whole process including:
 
@@ -336,86 +263,67 @@ class Actuator(object):
         run_begin_time = time.time()
         self._enabled_evaluator = evaluator
         self.reset()
-        if self._data is None:
-            return
+        self._check_backtest()
+        index_array: pd.DatetimeIndex = list(self._broker.markets.keys())[0].data.index
         self.logger.info("init strategy...")
-        first_data = self._data.iloc[0]
-        self._broker.pool_status = PoolStatus(self._data.index[0].to_pydatetime(),
-                                              int(first_data.closeTick),
-                                              first_data.currentLiquidity,
-                                              first_data.inAmount0,
-                                              first_data.inAmount1,
-                                              first_data.price)
+
+        # set initial status for strategy, so user can run some calculation in initial function.
+        first_data = self.__get_market_row_dict(index_array.iloc[0], 0)
+        self.__set_row_to_markets(first_data)
+
         self.init_strategy()
-        if not isinstance(self._data, Lines):
-            raise DemeterError("Data must be instance of Lines")
         row_id = 0
+        data_length = len(index_array)
         first = True
         self.logger.info("start main loop...")
-        with tqdm(total=len(self._data.index), ncols=150) as pbar:
-            for index, row in self._data.iterrows():
-                row_data = RowData()
-                setattr(row_data, "timestamp", index.to_pydatetime())
-                setattr(row_data, "row_id", row_id)
+        with tqdm(total=data_length, ncols=150) as pbar:
+            for timestamp_index in index_array:
+                # prepare data of a row
+                market_row_dict = self.__get_market_row_dict(timestamp_index, row_id)
                 row_id += 1
-                for column_name in row.index:
-                    setattr(row_data, column_name, row[column_name])
+                self.__set_row_to_markets(market_row_dict)
                 # execute strategy, and some calculate
-                # update price tick
-                self._broker.pool_status = PoolStatus(index.to_pydatetime(),
-                                                      int(row_data.closeTick),
-                                                      row_data.currentLiquidity,
-                                                      row_data.inAmount0,
-                                                      row_data.inAmount1,
-                                                      row_data.price)
-                self._strategy.before_bar(row_data)
+
+                self._strategy.before_bar(market_row_dict)
 
                 if self._strategy.triggers:
                     for trigger in self._strategy.triggers:
-                        if trigger.when(row_data):
-                            trigger.do(row_data)
-                self._strategy.on_bar(row_data)
+                        if trigger.when(market_row_dict):
+                            trigger.do(market_row_dict)
+                self._strategy.on_bar(market_row_dict)
 
                 # update broker status, eg: re-calculate fee
                 # and read the latest status from broker
-                self._broker.update()
+                for market in self._broker.markets.values():
+                    market.update()
 
-                self._strategy.after_bar(row_data)
+                self._strategy.after_bar(market_row_dict)
 
                 if first:
-                    init_price = row_data.price
                     first = False
-                self._account_status_list.append(self._broker.get_account_status(row_data.price, index.to_pydatetime()))
-
-                # collect actions in this loop
-                current_event_list = self.bar_actions.copy()
-                for event in current_event_list:
-                    event.timestamp = index
-                self.bar_actions.clear()
-                if current_event_list and len(current_event_list) > 0:
-                    self._action_list.extend(current_event_list)
+                self._account_status_list.append(self._broker.get_account_status(timestamp_index))
 
                 # process on_bar
-                self._data.move_cursor_to_next()
+                [market.data.move_cursor_to_next() for market in self._broker.markets]
                 pbar.update()
         # notify
-        if enable_notify and len(self._action_list) > 0:
-            self.logger.info("start notify all the actions")
-            self.notify(self.strategy, self._action_list)
+        # if enable_notify and len(self._action_list) > 0:
+        #     self.logger.info("start notify all the actions")
+        #     self.notify(self.strategy, self._action_list)
         self.logger.info("main loop finished, start calculate evaluating indicator...")
-        bar_status_df = pd.DataFrame(columns=BarStatusNames,
-                                     index=self.data.index,
-                                     data=map(lambda d: d.to_array(), self._account_status_list))
-        self.logger.info("run evaluating indicator")
-        if len(self._enabled_evaluator) > 0:
-            self._evaluator = Evaluator(
-                self._broker.get_init_account_status(init_price, self.data.index[0].to_pydatetime()),
-                bar_status_df)
-            self._evaluator.run(self._enabled_evaluator)
-        self._strategy.finalize()
-        self.__backtest_finished = True
-        if print_final_status:
-            self.output()
+        # bar_status_df = pd.DataFrame(columns=BarStatusNames,
+        #                              index=self.data.index,
+        #                              data=map(lambda d: d.to_array(), self._account_status_list))
+        # self.logger.info("run evaluating indicator")
+        # if len(self._enabled_evaluator) > 0:
+        #     self._evaluator = Evaluator(
+        #         self._broker.get_init_account_status(init_price, self.data.index[0].to_pydatetime()),
+        #         bar_status_df)
+        #     self._evaluator.run(self._enabled_evaluator)
+        # self._strategy.finalize()
+        # self.__backtest_finished = True
+        # if print_final_status:
+        #     self.output()
         self.logger.info(f"back testing finish, execute time {time.time() - run_begin_time}s")
 
     def output(self):

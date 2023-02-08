@@ -1,4 +1,4 @@
-from .broker import UniLpMarket, tick_to_quote_price, PoolInfo, PoolStatus, BrokerAsset, Position, Broker
+from .broker import UniLpMarket, tick_to_quote_price, PoolInfo, PoolStatus, BrokerAsset, Position, Broker, RowData
 from .core import Actuator
 from .data_line import LineTypeEnum, Cursorable, Line, Lines
 from .download import ChainType, DataSource

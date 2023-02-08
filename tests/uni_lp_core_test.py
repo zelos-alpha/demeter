@@ -9,10 +9,10 @@ eth = TokenInfo(name="eth", decimal=18)
 usdc = TokenInfo(name="usdc", decimal=6)
 
 
-class V3CoreTest(unittest.TestCase):
+class UniLpCoreTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         self.pool = PoolInfo(usdc, eth, 0.05, usdc)
-        super(V3CoreTest, self).__init__(*args, **kwargs)
+        super(UniLpCoreTest, self).__init__(*args, **kwargs)
 
     def test_add_position1(self):
         # https://polygonscan.com/tx/0x8f4db90e734e80e7101c3247c6e9949fe1f12398edea523e6a2ace04a2dc2425#eventlog

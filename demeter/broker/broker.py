@@ -1,7 +1,9 @@
 from decimal import Decimal
 
+import pandas as pd
+
 from .market import Market
-from ._typing import Asset, TokenInfo, MarketInfo
+from ._typing import Asset, TokenInfo, MarketInfo, AccountStatus
 from .. import DemeterError, UnitDecimal
 from ..utils.application import float_param_formatter
 
@@ -70,6 +72,11 @@ class Broker:
         return self._assets[token].balance
 
     @float_param_formatter
+    def set_asset(self, token: TokenInfo, amount: Decimal | float):  # TODO: 名字再想想
+        self._assets[token] = Asset(token, amount)
+        return amount
+
+    @float_param_formatter
     def sub_asset(self, token: TokenInfo, amount: Decimal | float):  # TODO: 名字再想想
         if token in self._assets:
             asset: Asset = self._assets[token]
@@ -89,3 +96,12 @@ class Broker:
 
     def get_token_balance_with_unit(self, token: TokenInfo):
         return UnitDecimal(self.get_token_balance(token), token.name)
+
+    def get_account_status(self, timestamp=None):
+        account_status = AccountStatus(timestamp=timestamp)
+        account_status.market_status = {k: v.get_market_status() for k, v in self.markets.items()}
+        account_status.asset_balances = {k: v.balance for k, v in self.assets.items()}
+        asset_sum = sum([v for v in account_status.asset_balances.values()])
+        market_sum = sum([v.net_value for v in account_status.market_status.values()])
+        account_status.net_value = asset_sum + market_sum
+        return account_status

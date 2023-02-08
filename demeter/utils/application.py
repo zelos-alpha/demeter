@@ -6,6 +6,10 @@ from functools import wraps
 OUTPUT_WIDTH = 30
 
 
+def to_decimal(value):
+    return Decimal(value)
+
+
 def object_to_decimal(num):
     return Decimal(str(num)) if (isinstance(num, float) or type(num) == int) else num
 

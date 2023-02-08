@@ -105,8 +105,22 @@ class BaseAction(object):
     :type timestamp: datetime
 
     """
+    market: str
     action_type: ActionTypeEnum = field(default=False, init=False)
     timestamp: datetime = field(default=False, init=False)
 
     def get_output_str(self):
         return str(self)
+
+
+@dataclass
+class MarketStatus:
+    net_value: Decimal
+
+
+@dataclass
+class AccountStatus:
+    timestamp: datetime
+    net_value: Decimal
+    asset_balances: {TokenInfo: Decimal}
+    market_status: {MarketInfo: MarketStatus}

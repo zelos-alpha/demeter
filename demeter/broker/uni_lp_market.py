@@ -1,15 +1,18 @@
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from decimal import Decimal
 
+import pandas as pd
+
+from . import MarketStatus
 from .market import Market
 from .uni_lp_helper import tick_to_quote_price, quote_price_to_tick, quote_price_to_sqrt, tick_to_sqrtPriceX96
 from .uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
-from .uni_lp_typing import PoolInfo, TokenInfo, BrokerAsset, Position, PoolStatus, DepositBalance, AddLiquidityAction, \
-    RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction
+from .uni_lp_typing import PoolInfo, TokenInfo, BrokerAsset, Position, PoolStatus, LiquidityStatus, AddLiquidityAction, \
+    RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction, UniLPData
 from .uni_lp_core import V3CoreLib
 from .. import Lines
-from .._typing import PositionInfo, DemeterError, DECIMAL_0, UnitDecimal
-from ..utils.application import float_param_formatter
+from .._typing import PositionInfo, DemeterError, DECIMAL_0, UnitDecimal, DECIMAL_1
+from ..utils.application import float_param_formatter, to_decimal
 
 
 class UniLpMarket(Market):
@@ -134,7 +137,7 @@ class UniLpMarket(Market):
         """
         return (any0, any1) if self._is_token0_base else (any1, any0)
 
-    def _check_asset(self):
+    def check_asset(self):
         """
 
         """
@@ -160,23 +163,27 @@ class UniLpMarket(Market):
         for position_info, position in self._positions.items():
             V3CoreLib.update_fee(self.pool_info, position_info, position, self.pool_status)
 
-    def get_deposit_balance(self, price: Decimal = None, timestamp: datetime = None) -> DepositBalance:
+    def get_market_status(self, price: {TokenInfo: Decimal} = None) -> MarketStatus:
         """
         get current status, including positions, balances
 
         :param price: current price, used for calculate position value and net value, if set to None, will use price in current status
-        :type price: Decimal
+        :type price: {TokenInfo: Decimal}
         :param timestamp: current timestamp, default is none, this parameter is useless, unless you want to convert a DepositBalance list to Dataframe, timestamp will be used as an index
         :type timestamp: datetime
         :return: BrokerStatus
         """
-
         if price is None:
-            price = self.pool_status.price
-
+            pool_price = self._pool_status.price
+            price = {
+                self.base_token: DECIMAL_1,
+                self.quote_token: self._pool_status.price
+            }
+        else:
+            pool_price = price[self.base_token] / price[self.quote_token]
         base_fee_sum = DECIMAL_0
         quote_fee_sum = DECIMAL_0
-        sqrt_price = quote_price_to_sqrt(price,
+        sqrt_price = quote_price_to_sqrt(pool_price,
                                          self._pool.token0.decimal,
                                          self._pool.token1.decimal,
                                          self._is_token0_base)
@@ -193,16 +200,15 @@ class UniLpMarket(Market):
             deposit_amount1 += amount1
 
         base_deposit_amount, quote_deposit_amount = self._convert_pair(deposit_amount0, deposit_amount1)
-        net_value = (base_fee_sum + base_deposit_amount) + \
-                    (quote_fee_sum + quote_deposit_amount) * price
+        # net value here is calculated by external price, because we usually want a net value with usd base,
+        net_value = (base_fee_sum + base_deposit_amount) * price[self.base_token] + \
+                    (quote_fee_sum + quote_deposit_amount) * price[self.quote_token]
 
-        return DepositBalance(timestamp=timestamp,
-                              base_uncollected=UnitDecimal(base_fee_sum, self.base_token.name),
-                              quote_uncollected=UnitDecimal(quote_fee_sum, self.quote_token.name),
-                              base_in_position=UnitDecimal(base_deposit_amount, self.base_token.name),
-                              quote_in_position=UnitDecimal(quote_deposit_amount, self.quote_token.name),
-                              pool_net_value=UnitDecimal(net_value, self.base_token.name),
-                              price=UnitDecimal(price, self._pool_price_unit))
+        return LiquidityStatus(net_value=net_value,
+                               base_uncollected=UnitDecimal(base_fee_sum, self.base_token.name),
+                               quote_uncollected=UnitDecimal(quote_fee_sum, self.quote_token.name),
+                               base_in_position=UnitDecimal(base_deposit_amount, self.base_token.name),
+                               quote_in_position=UnitDecimal(quote_deposit_amount, self.quote_token.name))
 
     def tick_to_price(self, tick: int) -> Decimal:
         """
@@ -569,3 +575,81 @@ class UniLpMarket(Market):
         keys = list(self.positions.keys())
         for position_key in keys:
             self.remove_liquidity(position_key)
+
+    def add_statistic_column(self, df: Lines):
+        """
+        add statistic column to data, new columns including:
+
+        * open: open price
+        * price: close price (current price)
+        * low: lowest price
+        * high: height price
+        * volume0: swap volume for token 0
+        * volume1: swap volume for token 1
+
+        :param df: original data
+        :type df: Lines
+
+        """
+        # add statistic column
+        df["open"] = df["openTick"].map(lambda x: self.broker.tick_to_price(x))
+        df["price"] = df["closeTick"].map(lambda x: self.broker.tick_to_price(x))
+        high_name, low_name = ("lowestTick", "highestTick") if self.broker.pool_info.is_token0_base \
+            else ("highestTick", "lowestTick")
+        df["low"] = df[high_name].map(lambda x: self.broker.tick_to_price(x))
+        df["high"] = df[low_name].map(lambda x: self.broker.tick_to_price(x))
+        df["volume0"] = df["inAmount0"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token0.decimal)
+        df["volume1"] = df["inAmount1"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token1.decimal)
+
+    def load_data(self, chain: str, contract_addr: str, start_date: date, end_date: date):
+        """
+
+        load data, and preprocess. preprocess actions including:
+
+        * fill empty data
+        * calculate statistic column
+        * set timestamp as index
+
+        :param chain: chain name
+        :type chain: str
+        :param contract_addr: pool contract address
+        :type contract_addr: str
+        :param start_date: start test date
+        :type start_date: date
+        :param end_date: end test date
+        :type end_date: date
+        """
+        self.logger.info(f"start load files from {start_date} to {end_date}...")
+        df = pd.DataFrame()
+        day = start_date
+        while day <= end_date:
+            path = f"{self.data_path}/{chain}-{contract_addr}-{day.strftime('%Y-%m-%d')}.csv"
+            day_df = pd.read_csv(path, converters={'inAmount0': to_decimal,
+                                                   'inAmount1': to_decimal,
+                                                   'netAmount0': to_decimal,
+                                                   'netAmount1': to_decimal,
+                                                   "currentLiquidity": to_decimal})
+            df = pd.concat([df, day_df])
+            day = day + timedelta(days=1)
+        self.logger.info("load file complete, preparing...")
+
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df.set_index("timestamp", inplace=True)
+
+        # fill empty row (first minutes in a day, might be blank)
+        full_indexes = pd.date_range(start=df.index[0], end=df.index[df.index.size - 1], freq="1min")
+        df = df.reindex(full_indexes)
+        df = Lines.from_dataframe(df)
+        df = df.fillna()
+        self.add_statistic_column(df)
+        self.data = df
+        self.logger.info("data has been prepared")
+
+    def set_market_status(self, data: UniLPData):
+        # update price tick
+        self.market_status = PoolStatus(data.timestamp,
+                                        int(data.closeTick),
+                                        data.currentLiquidity,
+                                        data.inAmount0,
+                                        data.inAmount1,
+                                        data.price)

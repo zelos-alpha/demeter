@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import NamedTuple
 
 from . import RowData
-from ._typing import BaseAction, ActionTypeEnum
+from ._typing import BaseAction, ActionTypeEnum, MarketStatus
 from .._typing import TokenInfo, DemeterError, UnitDecimal, PositionInfo
 from ..utils.application import get_formatted_str
 
@@ -19,7 +19,7 @@ class UniLPData(RowData):
     highestTick: int = None
     inAmount0: int = None
     inAmount1: int = None
-    currentLiquidity: Decimal = None
+    currentLiquidity: int = None
     open: Decimal = None
     price: Decimal = None
     low: Decimal = None
@@ -73,7 +73,7 @@ class PoolInfo(object):
 
 
 @dataclass
-class DepositBalance:
+class LiquidityStatus(MarketStatus):
     """
     current status of broker
 
@@ -93,13 +93,11 @@ class DepositBalance:
     :type price: UnitDecimal
 
     """
-    timestamp: datetime
     base_uncollected: UnitDecimal
     quote_uncollected: UnitDecimal
     base_in_position: UnitDecimal
     quote_in_position: UnitDecimal
-    pool_net_value: UnitDecimal
-    price: UnitDecimal
+
 
     def get_output_str(self) -> str:
         """
@@ -119,8 +117,6 @@ class DepositBalance:
             self.quote_uncollected,
             self.base_in_position,
             self.quote_in_position,
-            self.pool_net_value,
-            self.price
         ]
 
 
