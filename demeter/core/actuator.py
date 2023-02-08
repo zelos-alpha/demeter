@@ -29,10 +29,11 @@ class Actuator(object):
     def __init__(self, allow_negative_balance=False):
         # all the actions during the test(buy/sell/add liquidity)
         self._action_list: [BaseAction] = []
+        self._current_actions: [BaseAction] = []
         # broker status in every bar, use array for performance
         self._account_status_list: [AccountStatus] = []
         # broker
-        self._broker: Broker = Broker(allow_negative_balance, lambda action: self._action_list.append(action))
+        self._broker: Broker = Broker(allow_negative_balance, self._record_action_list)
         # strategy
         self._strategy: Strategy = Strategy()
 
@@ -46,6 +47,10 @@ class Actuator(object):
 
         # internal var
         self.__backtest_finished = False
+
+    def _record_action_list(self, actions):
+        self._action_list.append(actions)
+        self._current_actions.append(actions)
 
     # region property
     @property
@@ -177,27 +182,14 @@ class Actuator(object):
         :param actions:  action list
         :type actions: [BaseAction]
         """
-        # if len(actions) < 1:
-        #     return
+        if len(actions) < 1:
+            return
         # last_time = datetime(1970, 1, 1)
-        # for action in actions:
-        #     if last_time != action.timestamp:
-        #         print(f"\033[7;34m{action.timestamp} \033[0m")
-        #         last_time = action.timestamp
-        #     match action.action_type:
-        #         case ActionTypeEnum.add_liquidity:
-        #             strategy.notify_add_liquidity(action)
-        #         case ActionTypeEnum.remove_liquidity:
-        #             strategy.notify_remove_liquidity(action)
-        #         case ActionTypeEnum.collect_fee:
-        #             strategy.notify_collect_fee(action)
-        #         case ActionTypeEnum.buy:
-        #             strategy.notify_buy(action)
-        #         case ActionTypeEnum.sell:
-        #             strategy.notify_sell(action)
-        #         case _:
-        #             strategy.notify(action)
-        pass
+        for action in actions:
+            # if last_time != action.timestamp:
+            #     print(f"\033[7;34m{action.timestamp} \033[0m")
+            #     last_time = action.timestamp
+            strategy.notify(action)
 
     def _check_backtest(self):
 
@@ -222,7 +214,7 @@ class Actuator(object):
             if List.count(data_interval[0]) != len(data_interval):
                 raise DemeterError("data interval among markets are not same")
 
-    def __get_market_row_dict(self, index, row_id)->{MarketInfo:RowData}:
+    def __get_market_row_dict(self, index, row_id) -> {MarketInfo: RowData}:
         markets_row = {}
         for market_key, market in self._broker.markets.items():
             market_row = RowData(index.to_pydatetime(), row_id)
@@ -303,14 +295,14 @@ class Actuator(object):
                 if first:
                     first = False
                 self._account_status_list.append(self._broker.get_account_status(timestamp_index))
-
+                # notify actions in current loop
+                if enable_notify and len(self._action_list) > 0:
+                    self.notify(self.strategy, self._current_actions)
+                    self._current_actions = []
                 # process on_bar
                 [market.data.move_cursor_to_next() for market in self._broker.markets]
                 pbar.update()
-        # notify
-        # if enable_notify and len(self._action_list) > 0:
-        #     self.logger.info("start notify all the actions")
-        #     self.notify(self.strategy, self._action_list)
+
         self.logger.info("main loop finished, start calculate evaluating indicator...")
         # bar_status_df = pd.DataFrame(columns=BarStatusNames,
         #                              index=self.data.index,

@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import NamedTuple
 
 from . import RowData
-from ._typing import BaseAction, ActionTypeEnum, MarketStatus
+from ._typing import BaseAction, ActionTypeEnum, MarketBalance, MarketStatus
 from .._typing import TokenInfo, DemeterError, UnitDecimal, PositionInfo
 from ..utils.application import get_formatted_str
 
@@ -73,7 +73,7 @@ class PoolInfo(object):
 
 
 @dataclass
-class LiquidityStatus(MarketStatus):
+class LiquidityBalance(MarketBalance):
     """
     current status of broker
 
@@ -97,7 +97,6 @@ class LiquidityStatus(MarketStatus):
     quote_uncollected: UnitDecimal
     base_in_position: UnitDecimal
     quote_in_position: UnitDecimal
-
 
     def get_output_str(self) -> str:
         """
@@ -192,11 +191,11 @@ class Position(object):
     liquidity: int
 
 
-class PoolStatus(NamedTuple):
+@dataclass
+class PoolStatus(MarketStatus):
     """
     current status of a pool, actuators can notify current status to broker by filling this entity
     """
-    timestamp: datetime
     current_tick: int
     current_liquidity: int
     in_amount0: int

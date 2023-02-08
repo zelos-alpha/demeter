@@ -1,12 +1,11 @@
 from decimal import Decimal
-from typing import Union, Dict
+from typing import Dict
 
 import pandas as pd
 
 from .trigger import Trigger
-from ..broker._typing import MarketInfo, RowData
 from .._typing import PositionInfo
-from ..broker import UniLpMarket
+from ..broker import MarketInfo, RowData, BaseAction, UniLpMarket
 from ..data_line import Lines, Line
 
 
@@ -62,59 +61,14 @@ class Strategy(object):
         """
         pass
 
-    # def notify(self, action: BaseAction):
-    #     """
-    #     notify if non-basic action happens
-    #
-    #     :param action:  action
-    #     :type action: BaseAction
-    #     """
-    #     print(action.get_output_str())
-    #
-    # def notify_add_liquidity(self, action: AddLiquidityAction):
-    #     """
-    #     notify if add liquidity action happens
-    #
-    #     :param action:  action
-    #     :type action: AddLiquidityAction
-    #     """
-    #     print(action.get_output_str())
-    #
-    # def notify_remove_liquidity(self, action: RemoveLiquidityAction):
-    #     """
-    #     notify if remove liquidity action happens
-    #
-    #     :param action:  action
-    #     :type action: RemoveLiquidityAction
-    #     """
-    #     print(action.get_output_str())
-    #
-    # def notify_collect_fee(self, action: CollectFeeAction):
-    #     """
-    #     notify if collect fee action happens
-    #
-    #     :param action:  action
-    #     :type action: CollectFeeAction
-    #     """
-    #     print(action.get_output_str())
-    #
-    # def notify_buy(self, action: BuyAction):
-    #     """
-    #     notify if buy action happens
-    #
-    #     :param action:  action
-    #     :type action: BuyAction
-    #     """
-    #     print(action.get_output_str())
-    #
-    # def notify_sell(self, action: SellAction):
-    #     """
-    #     notify if sell action happens
-    #
-    #     :param action:  action
-    #     :type action: SellAction
-    #     """
-    #     print(action.get_output_str())
+    def notify(self, action: BaseAction):
+        """
+        notify if non-basic action happens
+
+        :param action:  action
+        :type action: BaseAction
+        """
+        pass
 
     def _add_column(self, name: str, line: Line):
         """

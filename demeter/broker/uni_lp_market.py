@@ -3,11 +3,11 @@ from decimal import Decimal
 
 import pandas as pd
 
-from . import MarketStatus
+from . import MarketBalance
 from .market import Market
 from .uni_lp_helper import tick_to_quote_price, quote_price_to_tick, quote_price_to_sqrt, tick_to_sqrtPriceX96
 from .uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
-from .uni_lp_typing import PoolInfo, TokenInfo, BrokerAsset, Position, PoolStatus, LiquidityStatus, AddLiquidityAction, \
+from .uni_lp_typing import PoolInfo, TokenInfo, BrokerAsset, Position, PoolStatus, LiquidityBalance, AddLiquidityAction, \
     RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction, UniLPData
 from .uni_lp_core import V3CoreLib
 from ..data_line import Lines
@@ -38,7 +38,7 @@ class UniLpMarket(Market):
         self.base_token, self.quote_token = self._convert_pair(self.pool_info.token0, self.pool_info.token1)
         # status
         self._positions: dict[PositionInfo:Position] = {}
-        self._pool_status = PoolStatus(None, 0, DECIMAL_0, DECIMAL_0, DECIMAL_0, DECIMAL_0)
+        self._market_status = PoolStatus(None, 0, 0, 0, 0, DECIMAL_0)
         # In order to distinguish price in pool and to u, we call former one "pool price"
         self._pool_price_unit = f"{self.base_token.name}/{self.quote_token.name}"
         self.history_recorder = None  # TODO 设计历史记录u'b'fen
@@ -90,28 +90,6 @@ class UniLpMarket(Market):
         """
         return self._pool.token1
 
-    @property
-    def pool_status(self) -> PoolStatus:
-        """
-        pool的状态, 包括交易量, 价格等. 数据需要从链上获取, 并在回测的时候, 每次迭代设置一次.
-
-        :return: PoolStatus
-        :rtype: PoolStatus
-        """
-        return self._pool_status
-
-    @pool_status.setter
-    def pool_status(self, value: PoolStatus):
-        """
-        current pool status. will be writen by runner.
-
-        Do not update this property unless necessary
-
-        :param value: current pool status
-        :type value: PoolStatus
-        """
-        self._pool_status = value
-
     def position(self, position_info: PositionInfo) -> Position:
         """
         get position by position information
@@ -122,6 +100,23 @@ class UniLpMarket(Market):
         :rtype: Position
         """
         return self._positions[position_info]
+
+    @property
+    def market_status(self):
+        return self._market_status
+
+    @market_status.setter
+    def market_status(self, data):
+        # update price tick
+        if isinstance(data, PoolStatus):
+            self._market_status = data
+        else:
+            self._market_status = PoolStatus(data.timestamp,
+                                             int(data.closeTick),
+                                             data.currentLiquidity,
+                                             data.inAmount0,
+                                             data.inAmount1,
+                                             data.price)
 
     # endregion
 
@@ -163,7 +158,7 @@ class UniLpMarket(Market):
         for position_info, position in self._positions.items():
             V3CoreLib.update_fee(self.pool_info, position_info, position, self.pool_status)
 
-    def get_market_status(self, price: {TokenInfo: Decimal} = None) -> MarketStatus:
+    def get_market_balance(self, price: {TokenInfo: Decimal} = None) -> MarketBalance:
         """
         get current status, including positions, balances
 
@@ -204,11 +199,11 @@ class UniLpMarket(Market):
         net_value = (base_fee_sum + base_deposit_amount) * price[self.base_token] + \
                     (quote_fee_sum + quote_deposit_amount) * price[self.quote_token]
 
-        return LiquidityStatus(net_value=net_value,
-                               base_uncollected=UnitDecimal(base_fee_sum, self.base_token.name),
-                               quote_uncollected=UnitDecimal(quote_fee_sum, self.quote_token.name),
-                               base_in_position=UnitDecimal(base_deposit_amount, self.base_token.name),
-                               quote_in_position=UnitDecimal(quote_deposit_amount, self.quote_token.name))
+        return LiquidityBalance(net_value=net_value,
+                                base_uncollected=UnitDecimal(base_fee_sum, self.base_token.name),
+                                quote_uncollected=UnitDecimal(quote_fee_sum, self.quote_token.name),
+                                base_in_position=UnitDecimal(base_deposit_amount, self.base_token.name),
+                                quote_in_position=UnitDecimal(quote_deposit_amount, self.quote_token.name))
 
     def tick_to_price(self, tick: int) -> Decimal:
         """
@@ -644,12 +639,3 @@ class UniLpMarket(Market):
         self.add_statistic_column(df)
         self.data = df
         self.logger.info("data has been prepared")
-
-    def set_market_status(self, data: UniLPData):
-        # update price tick
-        self.market_status = PoolStatus(data.timestamp,
-                                        int(data.closeTick),
-                                        data.currentLiquidity,
-                                        data.inAmount0,
-                                        data.inAmount1,
-                                        data.price)

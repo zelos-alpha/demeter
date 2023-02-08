@@ -105,7 +105,7 @@ class BaseAction(object):
     :type timestamp: datetime
 
     """
-    market: str
+    market: MarketInfo
     action_type: ActionTypeEnum = field(default=False, init=False)
     timestamp: datetime = field(default=False, init=False)
 
@@ -114,7 +114,7 @@ class BaseAction(object):
 
 
 @dataclass
-class MarketStatus:
+class MarketBalance:
     net_value: Decimal
 
 
@@ -123,4 +123,9 @@ class AccountStatus:
     timestamp: datetime
     net_value: Decimal
     asset_balances: {TokenInfo: Decimal}
-    market_status: {MarketInfo: MarketStatus}
+    market_status: {MarketInfo: MarketBalance}
+
+
+@dataclass
+class MarketStatus:
+    timestamp: datetime

@@ -1,7 +1,7 @@
 import logging
 from decimal import Decimal
 
-from ._typing import BaseAction, MarketStatus
+from ._typing import BaseAction, MarketBalance, MarketStatus
 from ..data_line import Lines
 
 DEFAULT_DATA_PATH = "./data"
@@ -16,11 +16,11 @@ class Market:
                  data: Lines = None,
                  data_path=DEFAULT_DATA_PATH):
         self._data: Lines = data
-        self.broker: Broker = None
+        self.broker = None
         self._record_action_callback = None
         self.data_path: str = data_path
         self.logger = logging.getLogger(__name__)
-        self.market_status = None
+        self._market_status = MarketStatus(None)
 
     @property
     def net_value(self) -> Decimal:
@@ -48,9 +48,15 @@ class Market:
     def update(self):
         pass
 
-    def set_market_status(self, data):
-        self.market_status = data
+    @property
+    def market_status(self):
+        return self._market_status
+
+    @market_status.setter
+    def market_status(self, data):
+        self._market_status = data
+
     # endregion
 
-    def get_market_status(self, *args, **kwargs) -> MarketStatus:
+    def get_market_balance(self, *args, **kwargs) -> MarketBalance:
         pass

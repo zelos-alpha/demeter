@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import Dict
 
 import pandas as pd
 
@@ -9,7 +10,7 @@ from ..utils.application import float_param_formatter
 
 
 class Broker:
-    def __int__(self, allow_negative_balance=False, record_action_callback=None):
+    def __init__(self, allow_negative_balance=False, record_action_callback=None):
         self.allow_negative_balance = allow_negative_balance
         self._assets: {TokenInfo: Asset} = {}
         self._markets: {MarketInfo: Market} = {}
@@ -18,11 +19,11 @@ class Broker:
     # region properties
 
     @property
-    def markets(self):
+    def markets(self) -> Dict[MarketInfo, Market]:
         return self._markets
 
     @property
-    def assets(self):
+    def assets(self) -> Dict[TokenInfo, Asset]:
         return self._assets
 
     @property
@@ -99,7 +100,7 @@ class Broker:
 
     def get_account_status(self, timestamp=None):
         account_status = AccountStatus(timestamp=timestamp)
-        account_status.market_status = {k: v.get_market_status() for k, v in self.markets.items()}
+        account_status.market_status = {k: v.get_market_balance() for k, v in self.markets.items()}
         account_status.asset_balances = {k: v.balance for k, v in self.assets.items()}
         asset_sum = sum([v for v in account_status.asset_balances.values()])
         market_sum = sum([v.net_value for v in account_status.market_status.values()])
