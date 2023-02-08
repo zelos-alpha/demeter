@@ -3,7 +3,7 @@ from typing import Union
 
 import pandas as pd
 
-from .._typing import AccountStatus, UnitDecimal, DemeterError, EvaluatorEnum
+from .._typing import UnitDecimal, DemeterError, EvaluatorEnum
 
 
 class Evaluator(object):
@@ -11,11 +11,11 @@ class Evaluator(object):
     calculate evaluator indicator for strategy.
     """
 
-    def __init__(self, init_status: AccountStatus, data: Union[pd.DataFrame, AccountStatus]):
-        self.init_status: AccountStatus = init_status
+    def __init__(self, init_status, data):
+        self.init_status = init_status
         self.init_net_value = init_status.base_balance + init_status.quote_balance * init_status.price
         self.end_status = data.iloc[-1]
-        self.data: Union[pd.DataFrame, AccountStatus] = data
+        self.data: Union[pd.DataFrame] = data
         if len(data) < 2:
             raise DemeterError("not enough data")
         self.time_span_in_day = len(data.index) * (data.index[1] - data.index[0]).seconds / (60 * 60 * 24)

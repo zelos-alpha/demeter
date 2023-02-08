@@ -2,8 +2,7 @@ import logging
 from decimal import Decimal
 
 from ._typing import BaseAction, MarketStatus
-from .broker import Broker
-from .. import Lines
+from ..data_line import Lines
 
 DEFAULT_DATA_PATH = "./data"
 

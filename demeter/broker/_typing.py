@@ -4,7 +4,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import NamedTuple
 
-from .. import DemeterError, TokenInfo
+from .._typing import DemeterError, TokenInfo
 
 
 @dataclass

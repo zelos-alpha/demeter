@@ -1,7 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Dict
 
-from demeter._typing import RowData, DemeterError
+import pandas as pd
+
+from .._typing import DemeterError
+from ..broker import MarketInfo, RowData
 
 
 def to_minute(time: datetime) -> datetime:
@@ -14,13 +18,13 @@ class Trigger:
         self.kwargs = kwargs
         self.args = args
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Dict[MarketInfo,RowData] | pd.Series) -> bool:
         return False
 
-    def do_nothing(self, row_data: RowData, *args, **kwargs):
+    def do_nothing(self, row_data: Dict[MarketInfo,RowData] | pd.Series, *args, **kwargs):
         pass
 
-    def do(self, row_data: RowData):
+    def do(self, row_data: Dict[MarketInfo,RowData] | pd.Series):
         return self._do(row_data, *self.args, **self.kwargs)
 
 
@@ -29,7 +33,7 @@ class AtTimeTrigger(Trigger):
         self._time = to_minute(time)
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Dict[MarketInfo,RowData] | pd.Series) -> bool:
         return row_data.timestamp == self._time
 
 
@@ -38,7 +42,7 @@ class AtTimesTrigger(Trigger):
         self._time = [to_minute(t) for t in time]
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Dict[MarketInfo,RowData] | pd.Series) -> bool:
         return self._time in row_data.timestamp
 
 
@@ -53,7 +57,7 @@ class TimeRangeTrigger(Trigger):
         self._time_range = TimeRange(to_minute(time_range.start), to_minute(time_range.end))
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Dict[MarketInfo,RowData] | pd.Series) -> bool:
         return self._time_range.start <= row_data.timestamp < self._time_range.end
 
 
@@ -62,7 +66,7 @@ class TimeRangesTrigger(Trigger):
         self._time_range: [TimeRange] = [TimeRange(to_minute(t.start), to_minute(t.end)) for t in time_range]
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Dict[MarketInfo,RowData] | pd.Series) -> bool:
         for r in self._time_range:
             if r.start <= row_data.timestamp < r.end:
                 return True
@@ -85,7 +89,7 @@ class PeriodTrigger(Trigger):
     def reset(self):
         self._next_match = None
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Dict[MarketInfo,RowData] | pd.Series) -> bool:
         if self._next_match is None:
             self._next_match = row_data.timestamp + self._delta
             return self._trigger_immediately
@@ -110,7 +114,7 @@ class PeriodsTrigger(Trigger):
     def reset(self):
         self._next_matches = [None for _ in self._delta]
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Dict[MarketInfo,RowData] | pd.Series) -> bool:
         if self._next_matches[0] is None:
             self._next_matches = [row_data.timestamp + d for d in self._delta]
             return self._trigger_immediately

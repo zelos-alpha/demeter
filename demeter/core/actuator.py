@@ -12,6 +12,7 @@ from .. import PoolStatus, Broker, RowData
 from .._typing import BarStatusNames, Asset, DemeterError, \
     EvaluatorEnum, UnitDecimal
 from ..broker import UniLpMarket, PoolInfo, BaseAction, AccountStatus
+from ..broker._typing import MarketInfo
 from ..data_line import Lines
 from ..strategy import Strategy
 
@@ -221,7 +222,7 @@ class Actuator(object):
             if List.count(data_interval[0]) != len(data_interval):
                 raise DemeterError("data interval among markets are not same")
 
-    def __get_market_row_dict(self, index, row_id):
+    def __get_market_row_dict(self, index, row_id)->{MarketInfo:RowData}:
         markets_row = {}
         for market_key, market in self._broker.markets.items():
             market_row = RowData(index.to_pydatetime(), row_id)
@@ -229,7 +230,7 @@ class Actuator(object):
             for column_name in df_row.index:
                 setattr(market_row, column_name, df_row[column_name])
             markets_row[market_key] = market_row
-        return market_row
+        return markets_row
 
     def __set_row_to_markets(self, market_row_dict: dict):
         for market_key, market_row_data in market_row_dict.items():

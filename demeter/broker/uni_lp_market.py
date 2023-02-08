@@ -10,7 +10,7 @@ from .uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
 from .uni_lp_typing import PoolInfo, TokenInfo, BrokerAsset, Position, PoolStatus, LiquidityStatus, AddLiquidityAction, \
     RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction, UniLPData
 from .uni_lp_core import V3CoreLib
-from .. import Lines
+from ..data_line import Lines
 from .._typing import PositionInfo, DemeterError, DECIMAL_0, UnitDecimal, DECIMAL_1
 from ..utils.application import float_param_formatter, to_decimal
 

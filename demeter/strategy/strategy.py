@@ -1,11 +1,11 @@
 from decimal import Decimal
-from typing import Union
+from typing import Union, Dict
 
 import pandas as pd
 
 from .trigger import Trigger
-from .._typing import PositionInfo, BaseAction, AddLiquidityAction, SellAction, BuyAction, CollectFeeAction, \
-    RemoveLiquidityAction, RowData
+from ..broker._typing import MarketInfo, RowData
+from .._typing import PositionInfo
 from ..broker import UniLpMarket
 from ..data_line import Lines, Line
 
@@ -28,30 +28,30 @@ class Strategy(object):
         """
         pass
 
-    def before_bar(self, row_data: Union[RowData, pd.Series]):
+    def before_bar(self, row_data: Dict[MarketInfo, RowData] | pd.Series):
         """
         called before triggers on each row, at this time, fees are not updated yet. you can add some indicator or add some actions
 
         :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
-        :type row_data: Union[RowData, pd.Series]
+        :type row_data: Union[{MarketInfo:RowData}, pd.Series]
         """
         pass
 
-    def on_bar(self, row_data: Union[RowData, pd.Series]):
+    def on_bar(self, row_data: Dict[MarketInfo, RowData] | pd.Series):
         """
         called after triggers on each row, at this time, fees and account status are not updated yet. you can add some actions here
 
         :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
-        :type row_data: Union[RowData, pd.Series]
+        :type row_data: Union[{MarketInfo:RowData}, pd.Series]
         """
         pass
 
-    def after_bar(self, row_data: Union[RowData, pd.Series]):
+    def after_bar(self, row_data: Dict[MarketInfo, RowData] | pd.Series):
         """
         called after fees and account status are updated on each row. you can add some statistic logic here
 
         :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
-        :type row_data: Union[RowData, pd.Series]
+        :type row_data: Union[{MarketInfo:RowData}, pd.Series]
         """
         pass
 
@@ -62,59 +62,59 @@ class Strategy(object):
         """
         pass
 
-    def notify(self, action: BaseAction):
-        """
-        notify if non-basic action happens
-
-        :param action:  action
-        :type action: BaseAction
-        """
-        print(action.get_output_str())
-
-    def notify_add_liquidity(self, action: AddLiquidityAction):
-        """
-        notify if add liquidity action happens
-
-        :param action:  action
-        :type action: AddLiquidityAction
-        """
-        print(action.get_output_str())
-
-    def notify_remove_liquidity(self, action: RemoveLiquidityAction):
-        """
-        notify if remove liquidity action happens
-
-        :param action:  action
-        :type action: RemoveLiquidityAction
-        """
-        print(action.get_output_str())
-
-    def notify_collect_fee(self, action: CollectFeeAction):
-        """
-        notify if collect fee action happens
-
-        :param action:  action
-        :type action: CollectFeeAction
-        """
-        print(action.get_output_str())
-
-    def notify_buy(self, action: BuyAction):
-        """
-        notify if buy action happens
-
-        :param action:  action
-        :type action: BuyAction
-        """
-        print(action.get_output_str())
-
-    def notify_sell(self, action: SellAction):
-        """
-        notify if sell action happens
-
-        :param action:  action
-        :type action: SellAction
-        """
-        print(action.get_output_str())
+    # def notify(self, action: BaseAction):
+    #     """
+    #     notify if non-basic action happens
+    #
+    #     :param action:  action
+    #     :type action: BaseAction
+    #     """
+    #     print(action.get_output_str())
+    #
+    # def notify_add_liquidity(self, action: AddLiquidityAction):
+    #     """
+    #     notify if add liquidity action happens
+    #
+    #     :param action:  action
+    #     :type action: AddLiquidityAction
+    #     """
+    #     print(action.get_output_str())
+    #
+    # def notify_remove_liquidity(self, action: RemoveLiquidityAction):
+    #     """
+    #     notify if remove liquidity action happens
+    #
+    #     :param action:  action
+    #     :type action: RemoveLiquidityAction
+    #     """
+    #     print(action.get_output_str())
+    #
+    # def notify_collect_fee(self, action: CollectFeeAction):
+    #     """
+    #     notify if collect fee action happens
+    #
+    #     :param action:  action
+    #     :type action: CollectFeeAction
+    #     """
+    #     print(action.get_output_str())
+    #
+    # def notify_buy(self, action: BuyAction):
+    #     """
+    #     notify if buy action happens
+    #
+    #     :param action:  action
+    #     :type action: BuyAction
+    #     """
+    #     print(action.get_output_str())
+    #
+    # def notify_sell(self, action: SellAction):
+    #     """
+    #     notify if sell action happens
+    #
+    #     :param action:  action
+    #     :type action: SellAction
+    #     """
+    #     print(action.get_output_str())
 
     def _add_column(self, name: str, line: Line):
         """

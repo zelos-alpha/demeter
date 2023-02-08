@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import math
 
-from demeter import DemeterError
+from .._typing import DemeterError
 from .common import get_real_n
 
 

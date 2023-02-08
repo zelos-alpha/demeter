@@ -4,7 +4,7 @@ import pandas as pd
 
 from .market import Market
 from ._typing import Asset, TokenInfo, MarketInfo, AccountStatus
-from .. import DemeterError, UnitDecimal
+from .._typing import DemeterError, UnitDecimal
 from ..utils.application import float_param_formatter
 
 
