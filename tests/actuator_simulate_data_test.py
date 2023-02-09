@@ -4,7 +4,7 @@ from decimal import Decimal
 import numpy as np
 import pandas as pd
 
-from demeter import TokenInfo, PoolInfo, Actuator, Strategy, Asset, Lines, AccountStatus
+from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, Asset, Lines, AccountStatus
 from demeter.broker.uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
 from demeter.broker.uni_lp_core import V3CoreLib
 
@@ -56,7 +56,7 @@ def get_clean_data(actuator: Actuator, tick, amount0=0, amount1=0, total_l=0):
 
 class TestActuator(unittest.TestCase):
     def __init__(self, *args, **kwargs):
-        self.pool = PoolInfo(usdc, eth, 0.05, usdc)
+        self.pool = UniV3Pool(usdc, eth, 0.05, usdc)
         super(TestActuator, self).__init__(*args, **kwargs)
 
     def test_load_clean_data(self):

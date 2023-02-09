@@ -1,7 +1,7 @@
 from datetime import datetime, date
 from decimal import Decimal
 
-from demeter import TokenInfo, PoolInfo, Actuator, Strategy, Asset, ChainType
+from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, Asset, ChainType
 from demeter.broker.uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
 import time
 
@@ -20,7 +20,7 @@ class ActualStrategy(Strategy):
 if __name__ == "__main__":
     eth = TokenInfo(name="eth", decimal=18)
     usdc = TokenInfo(name="usdc", decimal=6)
-    pool = PoolInfo(usdc, eth, 0.05, usdc)
+    pool = UniV3Pool(usdc, eth, 0.05, usdc)
     t1 = time.time()
     actuator = Actuator(pool)
     actuator.strategy = ActualStrategy()

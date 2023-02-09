@@ -1,5 +1,6 @@
 from datetime import datetime, date, timedelta
 from decimal import Decimal
+from typing import Dict
 
 import pandas as pd
 
@@ -7,8 +8,8 @@ from . import MarketBalance
 from .market import Market
 from .uni_lp_helper import tick_to_quote_price, quote_price_to_tick, quote_price_to_sqrt, tick_to_sqrtPriceX96
 from .uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
-from .uni_lp_typing import PoolInfo, TokenInfo, BrokerAsset, Position, PoolStatus, LiquidityBalance, AddLiquidityAction, \
-    RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction, UniLPData
+from .uni_lp_typing import UniV3Pool, TokenInfo, BrokerAsset, Position, UniV3PoolStatus, LiquidityBalance, \
+    AddLiquidityAction, RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction, UniLPData
 from .uni_lp_core import V3CoreLib
 from ..data_line import Lines
 from .._typing import PositionInfo, DemeterError, DECIMAL_0, UnitDecimal, DECIMAL_1
@@ -26,22 +27,22 @@ class UniLpMarket(Market):
     因此, 无法计算出当前池子价格等信息, 如current_tick, SqrtPriceX96,
     这些信息需要在回测的时候从外部输入(设置到pool_status变量).
     :param pool_info: pool information
-    :type pool_info: PoolInfo
+    :type pool_info: UniV3Pool
     """
 
-    def __init__(self, pool_info: PoolInfo, data: Lines = None):
+    def __init__(self, pool_info: UniV3Pool, data: Lines = None):
         super().__init__(data=data)
-        self._pool: PoolInfo = pool_info
+        self._pool: UniV3Pool = pool_info
         # init balance
         self._is_token0_base = pool_info.is_token0_base
         # reference for super().assets dict.
         self.base_token, self.quote_token = self._convert_pair(self.pool_info.token0, self.pool_info.token1)
         # status
         self._positions: dict[PositionInfo:Position] = {}
-        self._market_status = PoolStatus(None, 0, 0, 0, 0, DECIMAL_0)
+        self._market_status = UniV3PoolStatus(None, 0, 0, 0, 0, DECIMAL_0)
         # In order to distinguish price in pool and to u, we call former one "pool price"
         self._pool_price_unit = f"{self.base_token.name}/{self.quote_token.name}"
-        self.history_recorder = None  # TODO 设计历史记录u'b'fen
+        self.history_recorder = None
         # internal temporary variable
         # self.action_buffer = []
 
@@ -61,12 +62,12 @@ class UniLpMarket(Market):
         return self._positions
 
     @property
-    def pool_info(self) -> PoolInfo:
+    def pool_info(self) -> UniV3Pool:
         """
         Get pool info.
 
         :return: pool info
-        :rtype: PoolInfo
+        :rtype: UniV3Pool
         """
         return self._pool
 
@@ -108,17 +109,26 @@ class UniLpMarket(Market):
     @market_status.setter
     def market_status(self, data):
         # update price tick
-        if isinstance(data, PoolStatus):
+        if isinstance(data, UniV3PoolStatus):
             self._market_status = data
         else:
-            self._market_status = PoolStatus(data.timestamp,
-                                             int(data.closeTick),
-                                             data.currentLiquidity,
-                                             data.inAmount0,
-                                             data.inAmount1,
-                                             data.price)
+            self._market_status = UniV3PoolStatus(data.timestamp,
+                                                  int(data.closeTick),
+                                                  data.currentLiquidity,
+                                                  data.inAmount0,
+                                                  data.inAmount1,
+                                                  data.price)
 
     # endregion
+
+    def get_price_from_data(self) -> pd.DataFrame:
+        if self.data is None:
+            raise DemeterError("data has not set")
+        price_series: pd.Series = self.data.price
+        df = pd.DataFrame(index=price_series.index,
+                          data={self.quote_token.name: price_series})
+        df[self.base_token.name] = 1
+        return df
 
     def _convert_pair(self, any0, any1):
         """
@@ -158,7 +168,7 @@ class UniLpMarket(Market):
         for position_info, position in self._positions.items():
             V3CoreLib.update_fee(self.pool_info, position_info, position, self.pool_status)
 
-    def get_market_balance(self, price: {TokenInfo: Decimal} = None) -> MarketBalance:
+    def get_market_balance(self, prices: pd.Series | Dict[str, Decimal] = None) -> MarketBalance:
         """
         get current status, including positions, balances
 
@@ -168,14 +178,14 @@ class UniLpMarket(Market):
         :type timestamp: datetime
         :return: BrokerStatus
         """
-        if price is None:
+        if prices is None:
             pool_price = self._pool_status.price
-            price = {
-                self.base_token: DECIMAL_1,
-                self.quote_token: self._pool_status.price
+            prices = {
+                self.base_token.name: DECIMAL_1,
+                self.quote_token.name: self._pool_status.price
             }
         else:
-            pool_price = price[self.base_token] / price[self.quote_token]
+            pool_price = prices[self.base_token.name] / prices[self.quote_token.name]
         base_fee_sum = DECIMAL_0
         quote_fee_sum = DECIMAL_0
         sqrt_price = quote_price_to_sqrt(pool_price,
@@ -196,8 +206,8 @@ class UniLpMarket(Market):
 
         base_deposit_amount, quote_deposit_amount = self._convert_pair(deposit_amount0, deposit_amount1)
         # net value here is calculated by external price, because we usually want a net value with usd base,
-        net_value = (base_fee_sum + base_deposit_amount) * price[self.base_token] + \
-                    (quote_fee_sum + quote_deposit_amount) * price[self.quote_token]
+        net_value = (base_fee_sum + base_deposit_amount) * prices[self.base_token.name] + \
+                    (quote_fee_sum + quote_deposit_amount) * prices[self.quote_token.name]
 
         return LiquidityBalance(net_value=net_value,
                                 base_uncollected=UnitDecimal(base_fee_sum, self.base_token.name),

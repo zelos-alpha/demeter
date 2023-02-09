@@ -3,7 +3,7 @@ from typing import Union
 
 import pandas as pd
 
-from demeter import TokenInfo, PoolInfo, Actuator, Strategy, Asset, RowData, \
+from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, Asset, RowData, \
     ChainType, AtTimeTrigger, PeriodTrigger
 
 
@@ -36,7 +36,7 @@ class TestStrategy(Strategy):
 if __name__ == "__main__":
     eth = TokenInfo(name="eth", decimal=18)
     usdc = TokenInfo(name="usdc", decimal=6)
-    pool = PoolInfo(usdc, eth, 0.05, usdc)
+    pool = UniV3Pool(usdc, eth, 0.05, usdc)
 
     actuator_instance = Actuator(pool)
     actuator_instance.strategy = TestStrategy()

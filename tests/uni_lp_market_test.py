@@ -2,7 +2,7 @@ import unittest
 from decimal import Decimal
 
 import demeter
-from demeter import UniLpMarket, TokenInfo, PoolInfo, PoolStatus, Broker, MarketInfo
+from demeter import UniLpMarket, TokenInfo, UniV3Pool, UniV3PoolStatus, Broker, MarketInfo
 
 test_market = MarketInfo("market1")
 
@@ -11,7 +11,7 @@ class TestUniLpMarket(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         self.eth = TokenInfo(name="eth", decimal=18)
         self.usdc = TokenInfo(name="usdc", decimal=6)
-        self.pool = PoolInfo(self.usdc, self.eth, 0.05, self.usdc)
+        self.pool = UniV3Pool(self.usdc, self.eth, 0.05, self.usdc)
         super(TestUniLpMarket, self).__init__(*args, **kwargs)
 
     def test_price(self):
@@ -26,8 +26,8 @@ class TestUniLpMarket(unittest.TestCase):
         broker.add_market(test_market, market)
         tick = 200000
         price = market.tick_to_price(tick)
-        market.market_status = PoolStatus(None, tick, Decimal("840860039126296093"),
-                                          Decimal("18714189922"), Decimal("58280013108171131649"), price)
+        market.market_status = UniV3PoolStatus(None, tick, Decimal("840860039126296093"),
+                                               Decimal("18714189922"), Decimal("58280013108171131649"), price)
         broker.set_asset(self.eth, 1)
         broker.set_asset(self.usdc, price)
         market.sqrt_price = demeter.broker.uni_lp_helper.tick_to_sqrtPriceX96(tick)
@@ -139,11 +139,11 @@ class TestUniLpMarket(unittest.TestCase):
         TestUniLpMarket.print_broker(broker, [new_position])
         eth_amount = Decimal("10000000000000000000")
         usdc_amount = Decimal("10000000")
-        broker.pool_status = PoolStatus(None, broker.pool_status.current_tick,
-                                        liquidity * 100,
-                                        usdc_amount,
-                                        eth_amount,
-                                        broker.tick_to_price(broker.pool_status.current_tick))
+        broker.pool_status = UniV3PoolStatus(None, broker.pool_status.current_tick,
+                                             liquidity * 100,
+                                             usdc_amount,
+                                             eth_amount,
+                                             broker.tick_to_price(broker.pool_status.current_tick))
         print("=========after a bar======================================================================")
         broker.update()
         TestUniLpMarket.print_broker(broker, [new_position])
@@ -186,7 +186,7 @@ class TestUniLpMarket(unittest.TestCase):
         self.assertEqual(broker.asset1.balance, token1_before - Decimal(1))
 
     def test_net_value(self):
-        pool0p3 = PoolInfo(self.usdc, self.eth, 0.3, self.usdc)
+        pool0p3 = UniV3Pool(self.usdc, self.eth, 0.3, self.usdc)
         broker = UniLpMarket(pool0p3)
         broker.set_asset(self.usdc, 2000)
         broker.set_asset(self.eth, 1)
@@ -200,7 +200,7 @@ class TestUniLpMarket(unittest.TestCase):
         self.assertEqual(old_net_value, round(status.pool_net_value, 4))
 
     def test_net_value2(self):
-        pool0p3 = PoolInfo(self.usdc, self.eth, 0.3, self.usdc)
+        pool0p3 = UniV3Pool(self.usdc, self.eth, 0.3, self.usdc)
         broker = UniLpMarket(pool0p3)
         broker.set_asset(self.usdc, 1100)
         broker.set_asset(self.eth, 1)
@@ -208,7 +208,7 @@ class TestUniLpMarket(unittest.TestCase):
         old_net_value = price * broker.asset1.balance + broker.asset0.balance
         print(old_net_value)
         tick = broker.price_to_tick(price)
-        broker.pool_status = PoolStatus(None, tick, Decimal(0), Decimal(0), Decimal(0), Decimal(0))
+        broker.pool_status = UniV3PoolStatus(None, tick, Decimal(0), Decimal(0), Decimal(0), Decimal(0))
         pos = broker.add_liquidity(1000, 1200)
         status = broker.get_account_status(Decimal(1100))
         print(pos)

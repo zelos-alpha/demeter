@@ -28,7 +28,7 @@ class UniLPData(RowData):
     volume1: Decimal = None
 
 
-class PoolInfo(object):
+class UniV3Pool(object):
     """
     pool information, corresponding with definition in pool contract.
 
@@ -192,7 +192,7 @@ class Position(object):
 
 
 @dataclass
-class PoolStatus(MarketStatus):
+class UniV3PoolStatus(MarketStatus):
     """
     current status of a pool, actuators can notify current status to broker by filling this entity
     """

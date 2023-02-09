@@ -98,11 +98,11 @@ class Broker:
     def get_token_balance_with_unit(self, token: TokenInfo):
         return UnitDecimal(self.get_token_balance(token), token.name)
 
-    def get_account_status(self, timestamp=None):
+    def get_account_status(self, prices: pd.Series, timestamp=None):
         account_status = AccountStatus(timestamp=timestamp)
-        account_status.market_status = {k: v.get_market_balance() for k, v in self.markets.items()}
+        account_status.market_status = {k: v.get_market_balance(prices) for k, v in self.markets.items()}
         account_status.asset_balances = {k: v.balance for k, v in self.assets.items()}
-        asset_sum = sum([v for v in account_status.asset_balances.values()])
+        asset_sum = sum([v * prices[k.name] for k, v in account_status.asset_balances.items()])  # TODO error!!!
         market_sum = sum([v.net_value for v in account_status.market_status.values()])
         account_status.net_value = asset_sum + market_sum
         return account_status

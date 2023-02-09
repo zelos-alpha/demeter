@@ -1,7 +1,10 @@
 import logging
 from decimal import Decimal
 
+import pandas as pd
+
 from ._typing import BaseAction, MarketBalance, MarketStatus
+from .. import DECIMAL_0
 from ..data_line import Lines
 
 DEFAULT_DATA_PATH = "./data"
@@ -56,7 +59,6 @@ class Market:
     def market_status(self, data):
         self._market_status = data
 
+    def get_market_balance(self, prices: pd.Series) -> MarketBalance:
+        return MarketBalance(DECIMAL_0)
     # endregion
-
-    def get_market_balance(self, *args, **kwargs) -> MarketBalance:
-        pass

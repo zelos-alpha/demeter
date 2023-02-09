@@ -1,7 +1,7 @@
 import unittest
 from decimal import Decimal
 
-from demeter import TokenInfo, PoolInfo
+from demeter import TokenInfo, UniV3Pool
 from demeter.broker.uni_lp_core import V3CoreLib
 from tests.common import assert_equal_with_error
 
@@ -11,7 +11,7 @@ usdc = TokenInfo(name="usdc", decimal=6)
 
 class UniLpCoreTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
-        self.pool = PoolInfo(usdc, eth, 0.05, usdc)
+        self.pool = UniV3Pool(usdc, eth, 0.05, usdc)
         super(UniLpCoreTest, self).__init__(*args, **kwargs)
 
     def test_add_position1(self):

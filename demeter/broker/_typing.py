@@ -2,7 +2,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import NamedTuple
+from typing import NamedTuple, List, Dict
+
+import pandas as pd
 
 from .._typing import DemeterError, TokenInfo
 
@@ -119,11 +121,38 @@ class MarketBalance:
 
 
 @dataclass
-class AccountStatus:
+class AccountStatusCommon:
     timestamp: datetime
     net_value: Decimal
-    asset_balances: {TokenInfo: Decimal}
-    market_status: {MarketInfo: MarketBalance}
+
+
+@dataclass
+class AccountStatus(AccountStatusCommon):
+    asset_balances: Dict[TokenInfo, Decimal]
+    market_status: Dict[MarketInfo, MarketBalance]
+
+    def to_array(self) -> List:
+        result = [self.net_value]
+        for balance in self.asset_balances.values():
+            result.append(balance)
+        for market in self.market_status.values():
+            result.append(market.net_value)
+        return result
+
+    def get_names(self) -> List:
+        result = ["net_value"]
+        for asset in self.asset_balances.keys():
+            result.append(asset.name)
+        for market in self.market_status.keys():
+            result.append(market.name)
+        return result
+
+    @staticmethod
+    def to_dataframe(list) -> pd.DataFrame:
+        index = [i.timestamp for i in list]
+        return pd.DataFrame(columns=list.get_names(),
+                            index=index,
+                            data=map(lambda d: d.to_array(), list))
 
 
 @dataclass

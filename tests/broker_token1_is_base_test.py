@@ -1,5 +1,5 @@
 import unittest
-from demeter import UniLpMarket, TokenInfo, PoolInfo, PoolStatus
+from demeter import UniLpMarket, TokenInfo, UniV3Pool, UniV3PoolStatus
 from pandas import Series
 from decimal import Decimal
 
@@ -10,7 +10,7 @@ class TestBroker(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         self.eth = TokenInfo(name="eth", decimal=18)
         self.usdc = TokenInfo(name="usdc", decimal=6)
-        self.pool = PoolInfo(token0=self.eth, token1=self.usdc, fee=0.05, base_token=self.usdc)
+        self.pool = UniV3Pool(token0=self.eth, token1=self.usdc, fee=0.05, base_token=self.usdc)
         super(TestBroker, self).__init__(*args, **kwargs)
 
     def get_one_broker(self) -> UniLpMarket:
@@ -18,8 +18,8 @@ class TestBroker(unittest.TestCase):
         broker = UniLpMarket(self.pool)
         tick = -206604
         price = broker.tick_to_price(tick)
-        broker.pool_status = PoolStatus(None, tick, Decimal("1107562474636574291"),
-                                        Decimal("58280013108171131649"), Decimal("18714189922"), price)
+        broker.pool_status = UniV3PoolStatus(None, tick, Decimal("1107562474636574291"),
+                                             Decimal("58280013108171131649"), Decimal("18714189922"), price)
         broker.set_asset(self.eth, 1)
         broker.set_asset(self.usdc, price)
         # https://etherscan.io/address/0x4e68ccd3e89f51c3074ca5072bbac773960dfa36#readContract
@@ -82,8 +82,8 @@ class TestBroker(unittest.TestCase):
                            eth_amount,
                            usdc_amount])
         price = broker.tick_to_price(broker.pool_status.current_tick)
-        broker.pool_status = PoolStatus(None, broker.pool_status.current_tick, liquidity * 100,
-                                        eth_amount, usdc_amount, price)
+        broker.pool_status = UniV3PoolStatus(None, broker.pool_status.current_tick, liquidity * 100,
+                                             eth_amount, usdc_amount, price)
         broker.update()
         print("=========after a bar======================================================================")
         TestBroker.print_broker(broker, [new_position])

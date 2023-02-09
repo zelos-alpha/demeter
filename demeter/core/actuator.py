@@ -1,18 +1,15 @@
 import logging
 import time
-from datetime import date, timedelta, datetime
-from decimal import Decimal
 from typing import List
 
 import pandas as pd
 from tqdm import tqdm  # process bar
 
 from .evaluating_indicator import Evaluator
-from .. import PoolStatus, Broker, RowData
+from .. import Broker, RowData
 from .._typing import BarStatusNames, Asset, DemeterError, \
     EvaluatorEnum, UnitDecimal
-from ..broker import UniLpMarket, PoolInfo, BaseAction, AccountStatus
-from ..broker._typing import MarketInfo
+from ..broker import UniLpMarket, BaseAction, AccountStatus, MarketInfo
 from ..data_line import Lines
 from ..strategy import Strategy
 
@@ -21,8 +18,7 @@ class Actuator(object):
     """
     Core component of a back test. Manage the resources in a test, including broker/strategy/data/indicator,
 
-    :param pool_info: pool information
-    :type pool_info: PoolInfo
+
 
     """
 
@@ -36,7 +32,7 @@ class Actuator(object):
         self._broker: Broker = Broker(allow_negative_balance, self._record_action_list)
         # strategy
         self._strategy: Strategy = Strategy()
-
+        self._token_prices: pd.DataFrame = None
         # path of source data, which is saved by downloader
         # evaluating indicator calculator
         self._evaluator: Evaluator = None
@@ -192,9 +188,15 @@ class Actuator(object):
             strategy.notify(action)
 
     def _check_backtest(self):
-
+        # ensure a market exist
         if len(self._broker.markets) < 1:
             raise DemeterError("No market assigned")
+        # ensure all token has price list.
+        if self._token_prices is None:
+            raise DemeterError("token prices is not set")
+        for token in self._broker.assets.keys():
+            if token.name not in self._token_prices:
+                raise DemeterError(f"Price of {token.name} has not set yet")
         data_length = []
         # ensure data length same
         for marketInfo, market in self._broker.markets:
@@ -205,14 +207,19 @@ class Actuator(object):
 
         if List.count(data_length[0]) != len(data_length):
             raise DemeterError("data length among markets are not same")
+        if len(self._token_prices.index) != data_length[0]:
+            raise DemeterError("price length and data length are not same")
         length = data_length[0]
         # ensure data interval same
         data_interval = []
         if length > 1:
             for marketInfo, market in self._broker.markets:
-                data_interval.append(market.data.iloc[1] - market.data.iloc[0])
+                data_interval.append(market.data.index[1] - market.data.index[0])
             if List.count(data_interval[0]) != len(data_interval):
                 raise DemeterError("data interval among markets are not same")
+            price_interval = self._token_prices.index[1] - self._token_prices.index[0]
+            if price_interval != data_interval[0]:
+                raise DemeterError("price list interval and data interval are not same")
 
     def __get_market_row_dict(self, index, row_id) -> {MarketInfo: RowData}:
         markets_row = {}
@@ -231,7 +238,8 @@ class Actuator(object):
     def run(self,
             enable_notify=True,
             evaluator=[EvaluatorEnum.ALL],
-            print_final_status=False):
+            print_final_status=False,
+            save_path="."):
         """
         start back test, the whole process including:
 
@@ -261,9 +269,9 @@ class Actuator(object):
         self.logger.info("init strategy...")
 
         # set initial status for strategy, so user can run some calculation in initial function.
-        first_data = self.__get_market_row_dict(index_array.iloc[0], 0)
-        self.__set_row_to_markets(first_data)
-
+        init_row_data = self.__get_market_row_dict(index_array.iloc[0], 0)
+        self.__set_row_to_markets(init_row_data)
+        init_account_status = self._broker.get_account_status()  # keep initial balance for evaluating
         self.init_strategy()
         row_id = 0
         data_length = len(index_array)
@@ -294,7 +302,8 @@ class Actuator(object):
 
                 if first:
                     first = False
-                self._account_status_list.append(self._broker.get_account_status(timestamp_index))
+                self._account_status_list.append(
+                    self._broker.get_account_status(self._token_prices.loc[timestamp_index], timestamp_index))
                 # notify actions in current loop
                 if enable_notify and len(self._action_list) > 0:
                     self.notify(self.strategy, self._current_actions)
@@ -304,33 +313,29 @@ class Actuator(object):
                 pbar.update()
 
         self.logger.info("main loop finished, start calculate evaluating indicator...")
-        # bar_status_df = pd.DataFrame(columns=BarStatusNames,
-        #                              index=self.data.index,
-        #                              data=map(lambda d: d.to_array(), self._account_status_list))
-        # self.logger.info("run evaluating indicator")
-        # if len(self._enabled_evaluator) > 0:
-        #     self._evaluator = Evaluator(
-        #         self._broker.get_init_account_status(init_price, self.data.index[0].to_pydatetime()),
-        #         bar_status_df)
-        #     self._evaluator.run(self._enabled_evaluator)
-        # self._strategy.finalize()
-        # self.__backtest_finished = True
-        # if print_final_status:
-        #     self.output()
+        account_status: pd.DataFrame = AccountStatus.to_dataframe(self._account_status_list)
+
+        self.logger.info("run evaluating indicator")
+        if len(self._enabled_evaluator) > 0:
+            self._evaluator = Evaluator(init_account_status, account_status, self._token_prices)
+            self._evaluator.run(self._enabled_evaluator)
+        self._strategy.finalize()
+        self.__backtest_finished = True
+        if print_final_status:
+            self.output()
         self.logger.info(f"back testing finish, execute time {time.time() - run_begin_time}s")
 
     def output(self):
         """
         output back test result to console
         """
-        if self.__backtest_finished:
-            print("Final status")
-            print(self.broker.get_account_status(self.data.tail(1).price[0]).get_output_str())
-            if len(self._enabled_evaluator) > 0:
-                print("Evaluating indicator")
-                print(self._evaluator.result)
-        else:
+        if not self.__backtest_finished:
             raise DemeterError("please run strategy first")
+        print("Final status")
+        print(self.broker.get_account_status(self.data.tail(1).price[0]).get_output_str())
+        if len(self._enabled_evaluator) > 0:
+            print("Evaluating indicator")
+            print(self._evaluator.result)
 
     def init_strategy(self):
         """

@@ -58,7 +58,7 @@ class EvaluatorEnum(Enum):
     ALL = 0
     ANNUALIZED_RETURNS = 1
     BENCHMARK_RETURNS = 2
-    MAX_DRAEDOWN = 3
+    MAX_DRAW_DOWN = 3
 
     def __str__(self):
         return self.name

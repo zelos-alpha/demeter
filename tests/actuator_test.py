@@ -2,7 +2,7 @@ import unittest
 from datetime import date
 
 import demeter.indicator
-from demeter import TokenInfo, PoolInfo, Actuator, Strategy, Asset, Lines
+from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, Asset, Lines
 from demeter.download import ChainType
 
 eth = TokenInfo(name="eth", decimal=18)
@@ -29,7 +29,7 @@ class WithSMA(Strategy):
 
 class TestActuator(unittest.TestCase):
     def __init__(self, *args, **kwargs):
-        self.pool = PoolInfo(usdc, eth, 0.05, usdc)
+        self.pool = UniV3Pool(usdc, eth, 0.05, usdc)
         super(TestActuator, self).__init__(*args, **kwargs)
 
     def test_new(self):
