@@ -1,31 +1,10 @@
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import NamedTuple
 
-from . import RowData
 from ._typing import BaseAction, ActionTypeEnum, MarketBalance, MarketStatus
 from .._typing import TokenInfo, DemeterError, UnitDecimal, PositionInfo
 from ..utils.application import get_formatted_str
-
-
-@dataclass
-class UniLPData(RowData):
-    netAmount0: int = None
-    netAmount1: int = None
-    closeTick: int = None
-    openTick: int = None
-    lowestTick: int = None
-    highestTick: int = None
-    inAmount0: int = None
-    inAmount1: int = None
-    currentLiquidity: int = None
-    open: Decimal = None
-    price: Decimal = None
-    low: Decimal = None
-    high: Decimal = None
-    volume0: Decimal = None
-    volume1: Decimal = None
 
 
 class UniV3Pool(object):

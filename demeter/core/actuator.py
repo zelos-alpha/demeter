@@ -10,7 +10,6 @@ from .. import Broker, RowData
 from .._typing import BarStatusNames, Asset, DemeterError, \
     EvaluatorEnum, UnitDecimal
 from ..broker import UniLpMarket, BaseAction, AccountStatus, MarketInfo
-from ..data_line import Lines
 from ..strategy import Strategy
 
 
@@ -198,10 +197,10 @@ class Actuator(object):
             if token.name not in self._token_prices:
                 raise DemeterError(f"Price of {token.name} has not set yet")
         data_length = []
+        [market.check_before_test() for marketInfo, market in self._broker.markets.values()]
+
         # ensure data length same
-        for marketInfo, market in self._broker.markets:
-            if not isinstance(market.data, Lines):
-                raise DemeterError(f"data in {marketInfo.name} must be type of Lines")
+        for marketInfo, market in self._broker.markets.values():
             data_length.append(len(market.data.index))
             market.check_asset()  # check each market, including assets
 
@@ -231,9 +230,9 @@ class Actuator(object):
             markets_row[market_key] = market_row
         return markets_row
 
-    def __set_row_to_markets(self, market_row_dict: dict):
+    def __set_row_to_markets(self, timestamp, market_row_dict: dict):
         for market_key, market_row_data in market_row_dict.items():
-            self._broker.markets[market_key].set_market_status(market_row_data)
+            self._broker.markets[market_key].set_market_status(timestamp, market_row_data)
 
     def run(self,
             enable_notify=True,
@@ -270,7 +269,7 @@ class Actuator(object):
 
         # set initial status for strategy, so user can run some calculation in initial function.
         init_row_data = self.__get_market_row_dict(index_array.iloc[0], 0)
-        self.__set_row_to_markets(init_row_data)
+        self.__set_row_to_markets(index_array.iloc[0], init_row_data)
         init_account_status = self._broker.get_account_status()  # keep initial balance for evaluating
         self.init_strategy()
         row_id = 0
@@ -282,7 +281,7 @@ class Actuator(object):
                 # prepare data of a row
                 market_row_dict = self.__get_market_row_dict(timestamp_index, row_id)
                 row_id += 1
-                self.__set_row_to_markets(market_row_dict)
+                self.__set_row_to_markets(timestamp_index, market_row_dict)
                 # execute strategy, and some calculate
 
                 self._strategy.before_bar(market_row_dict)

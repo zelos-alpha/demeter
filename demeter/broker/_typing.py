@@ -9,6 +9,12 @@ import pandas as pd
 from .._typing import DemeterError, TokenInfo
 
 
+class Rule(NamedTuple):
+    agg: str | None
+    fillna_method: str | None
+    fillna_value: int | None
+
+
 @dataclass
 class RowData:
     timestamp: datetime = None

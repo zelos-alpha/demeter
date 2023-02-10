@@ -1,10 +1,11 @@
 import logging
+from datetime import datetime
 from decimal import Decimal
 
 import pandas as pd
 
 from ._typing import BaseAction, MarketBalance, MarketStatus
-from .. import DECIMAL_0
+from .. import DECIMAL_0, DemeterError
 from ..data_line import Lines
 
 DEFAULT_DATA_PATH = "./data"
@@ -55,10 +56,20 @@ class Market:
     def market_status(self):
         return self._market_status
 
-    @market_status.setter
-    def market_status(self, data):
-        self._market_status = data
+    def set_market_status(self, timestamp: datetime, data: pd.Series):
+        self._market_status = MarketStatus(timestamp)
 
     def get_market_balance(self, prices: pd.Series) -> MarketBalance:
         return MarketBalance(DECIMAL_0)
+
+    def check_before_test(self):
+        """
+        do some check for this market before back test start
+        :return:
+        :rtype:
+        """
+        if not isinstance(self.data, pd.DataFrame):
+            raise DemeterError("data must be type of data frame")
+        if not isinstance(self.data.index, pd.core.indexes.datetimes.DatetimeIndex):
+            raise DemeterError("date index must be datetime")
     # endregion

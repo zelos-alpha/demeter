@@ -6,10 +6,11 @@ import pandas as pd
 
 from . import MarketBalance
 from .market import Market
+from .uni_lp_data import fillna, UniLPData
 from .uni_lp_helper import tick_to_quote_price, quote_price_to_tick, quote_price_to_sqrt, tick_to_sqrtPriceX96
 from .uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
 from .uni_lp_typing import UniV3Pool, TokenInfo, BrokerAsset, Position, UniV3PoolStatus, LiquidityBalance, \
-    AddLiquidityAction, RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction, UniLPData
+    AddLiquidityAction, RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction
 from .uni_lp_core import V3CoreLib
 from ..data_line import Lines
 from .._typing import PositionInfo, DemeterError, DECIMAL_0, UnitDecimal, DECIMAL_1
@@ -30,7 +31,7 @@ class UniLpMarket(Market):
     :type pool_info: UniV3Pool
     """
 
-    def __init__(self, pool_info: UniV3Pool, data: Lines = None):
+    def __init__(self, pool_info: UniV3Pool, data: pd.DataFrame = None):
         super().__init__(data=data)
         self._pool: UniV3Pool = pool_info
         # init balance
@@ -106,20 +107,19 @@ class UniLpMarket(Market):
     def market_status(self):
         return self._market_status
 
-    @market_status.setter
-    def market_status(self, data):
+    # endregion
+
+    def set_market_status(self, timestamp: datetime, data: pd.Series):
         # update price tick
         if isinstance(data, UniV3PoolStatus):
             self._market_status = data
         else:
-            self._market_status = UniV3PoolStatus(data.timestamp,
+            self._market_status = UniV3PoolStatus(timestamp,
                                                   int(data.closeTick),
                                                   data.currentLiquidity,
                                                   data.inAmount0,
                                                   data.inAmount1,
                                                   data.price)
-
-    # endregion
 
     def get_price_from_data(self) -> pd.DataFrame:
         if self.data is None:
@@ -179,10 +179,10 @@ class UniLpMarket(Market):
         :return: BrokerStatus
         """
         if prices is None:
-            pool_price = self._pool_status.price
+            pool_price = self._market_status.price
             prices = {
                 self.base_token.name: DECIMAL_1,
-                self.quote_token.name: self._pool_status.price
+                self.quote_token.name: self._market_status.price
             }
         else:
             pool_price = prices[self.base_token.name] / prices[self.quote_token.name]
@@ -560,7 +560,7 @@ class UniLpMarket(Market):
         :rtype: (Decimal, Decimal, Decimal)
         """
         if price is None:
-            price = self._pool_status.price
+            price = self._market_status.price
 
         total_capital = self.broker.get_token_balance(self.base_token) + self.broker.get_token_balance(
             self.quote_token) * price
@@ -581,7 +581,7 @@ class UniLpMarket(Market):
         for position_key in keys:
             self.remove_liquidity(position_key)
 
-    def add_statistic_column(self, df: Lines):
+    def add_statistic_column(self, df: pd.DataFrame):
         """
         add statistic column to data, new columns including:
 
@@ -593,7 +593,7 @@ class UniLpMarket(Market):
         * volume1: swap volume for token 1
 
         :param df: original data
-        :type df: Lines
+        :type df: pd.DataFrame
 
         """
         # add statistic column
@@ -644,8 +644,19 @@ class UniLpMarket(Market):
         # fill empty row (first minutes in a day, might be blank)
         full_indexes = pd.date_range(start=df.index[0], end=df.index[df.index.size - 1], freq="1min")
         df = df.reindex(full_indexes)
-        df = Lines.from_dataframe(df)
-        df = df.fillna()
+        # df = Lines.from_dataframe(df)
+        # df = df.fillna()
+        df = fillna(df)
         self.add_statistic_column(df)
         self.data = df
         self.logger.info("data has been prepared")
+
+    def check_before_test(self):
+        super().check_before_test()
+        required_columns = ["closeTick",
+                            "currentLiquidity",
+                            "inAmount0",
+                            "inAmount1",
+                            "price"]
+        for col in required_columns:
+            assert col in self.data.columns

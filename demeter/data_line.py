@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import NamedTuple, Dict
 
 import pandas as pd
 from pandas import _typing as pd_typing
@@ -6,6 +7,22 @@ from pandas import _typing as pd_typing
 from ._typing import DemeterError
 
 DEFAULT_AGG_METHOD = "first"
+
+
+class Rule(NamedTuple):
+    agg: str | None
+    fillna_method: str | None
+    fillna_value: int | None
+
+
+EMPTY_RULE = Rule(None, None, None)
+
+
+def get_line_rules_safe(key: str) -> Rule:
+    if key in LINE_RULES:
+        return LINE_RULES[key]
+    else:
+        return EMPTY_RULE
 
 
 class LineTypeEnum(Enum):
@@ -24,39 +41,19 @@ class LineTypeEnum(Enum):
     currentLiquidity = 10
     other = 100
 
-    @staticmethod
-    def safe_get(key):
-        try:
-            return LineTypeEnum[key]
-        except KeyError:
-            return None
 
-
-def get_agg_by_type(line_type: LineTypeEnum) -> str:
-    match line_type:
-        case LineTypeEnum.openTick:
-            return "first"
-        case LineTypeEnum.closeTick:
-            return "last"
-        case LineTypeEnum.highestTick:
-            return "max"
-        case LineTypeEnum.lowestTick:
-            return "min"
-        case LineTypeEnum.netAmount0 | LineTypeEnum.netAmount1 | LineTypeEnum.inAmount0 | LineTypeEnum.inAmount1 | LineTypeEnum.currentLiquidity:
-            return "sum"
-        case _:
-            return ""
-
-
-def get_fillna_param(line_type: LineTypeEnum, method=None, value=0):
-    match line_type:
-        case LineTypeEnum.openTick | LineTypeEnum.closeTick | LineTypeEnum.highestTick | LineTypeEnum.lowestTick | LineTypeEnum.currentLiquidity:
-            method = "ffill"
-            value = None
-        case LineTypeEnum.netAmount0 | LineTypeEnum.netAmount1 | LineTypeEnum.inAmount0 | LineTypeEnum.inAmount1:
-            method = None
-            value = 0
-    return {"method": method, "value": value}
+LINE_RULES = {
+    LineTypeEnum.timestamp.name: EMPTY_RULE,
+    LineTypeEnum.netAmount0.name: Rule("sum", None, 0),
+    LineTypeEnum.netAmount1.netAmount0: Rule("sum", None, 0),
+    LineTypeEnum.closeTick.name: Rule("last", "ffill", None),
+    LineTypeEnum.openTick.name: Rule("first", "ffill", None),
+    LineTypeEnum.lowestTick.name: Rule("min", "ffill", None),
+    LineTypeEnum.highestTick.name: Rule("max", "ffill", None),
+    LineTypeEnum.inAmount0.name: Rule("sum", None, 0),
+    LineTypeEnum.inAmount1.name: Rule("sum", None, 0),
+    LineTypeEnum.currentLiquidity.name: Rule("sum", "ffill", None),
+}
 
 
 class Cursorable(object):
@@ -145,14 +142,12 @@ class Line(pd.Series, Cursorable):
             dtype: pd_typing.Dtype | None = None,
             name=None,
             copy: bool = False,
-            fastpath: bool = False,
-            line_type=LineTypeEnum.other
+            fastpath: bool = False
     ):
 
         if not isinstance(index, pd.core.indexes.datetimes.DatetimeIndex):
             raise DemeterError("index must be datetime")
         super().__init__(data, index, dtype, name, copy, fastpath)
-        self.line_type = line_type
         Cursorable.__init__(self)
 
     def resample_by_type(
@@ -169,7 +164,7 @@ class Line(pd.Series, Cursorable):
             level=None,
             origin: str | pd_typing.TimestampConvertibleTypes = "start_day",
             offset: pd_typing.TimedeltaConvertibleTypes | None = None,
-            agg=""
+            agg=DEFAULT_AGG_METHOD
     ) -> pd.Series:
         """
         with this method, predefined type will be resampled correctly, other param is the same to Series.resample()
@@ -179,14 +174,10 @@ class Line(pd.Series, Cursorable):
         """
         resampler = super().resample(rule, axis, closed, label, convention, kind, loffset, base, on, level, origin,
                                      offset)
-        agg_method = get_agg_by_type(self.line_type)
-        if agg_method == "":
-            agg_method = DEFAULT_AGG_METHOD
-        if self.line_type == LineTypeEnum.other:
-            if agg == "":
-                agg_method = DEFAULT_AGG_METHOD
-            else:
-                agg_method = agg
+        rule = get_line_rules_safe(self.name)
+        agg_method = rule.agg
+        if agg_method is None:
+            agg_method = agg
         return resampler.agg(agg_method)
 
     def fillna(
@@ -204,9 +195,11 @@ class Line(pd.Series, Cursorable):
         if line type is predefined, method and value will be omitted, and data will be filled as predefined
 
         """
-        param = get_fillna_param(self.line_type, method, value)
-        method = param["method"]
-        value = param["value"]
+        param = get_line_rules_safe(self.name)
+        if param.fillna_method:
+            method = param.fillna_method
+        if param.fillna_value:
+            value = param.fillna_value
         return super().fillna(
             value=value,
             method=method,
@@ -228,14 +221,8 @@ class Line(pd.Series, Cursorable):
         :return: converted Line
         :rtype: Line
         """
-        line_type = LineTypeEnum.other
-        try:
-            line_type = LineTypeEnum[series.name]
-        except:
-            line_type = LineTypeEnum.other
         line = series.copy(deep=True)
         line.cursor = row_index
-        setattr(line, "line_type", line_type)
         return line
 
 
@@ -280,9 +267,7 @@ class Lines(pd.DataFrame, Cursorable):
         """
         after line is added, it's type will become series, so we set their type to name.
         """
-        if isinstance(item, Line) and item.line_type != LineTypeEnum.other:
-            line_data[item.line_type.name] = item
-        elif isinstance(item, pd.Series) and item.name:
+        if isinstance(item, pd.Series) and item.name:
             line_data[item.name] = item
         else:
             line_data["Column" + str(len(line_data.keys()))] = item
@@ -322,24 +307,27 @@ class Lines(pd.DataFrame, Cursorable):
 
         # fill close tick first, it will be used later.
         if LineTypeEnum.closeTick.name in new_df.columns:
-            new_df[LineTypeEnum.closeTick.name] = new_df[LineTypeEnum.closeTick.name].fillna(value=None, method="ffill",
-                                                                                             axis=axis,
-                                                                                             inplace=inplace,
-                                                                                             limit=limit,
-                                                                                             downcast=downcast)
+            new_df[LineTypeEnum.closeTick.name] = \
+                new_df[LineTypeEnum.closeTick.name].fillna(value=None,
+                                                           method=get_line_rules_safe(
+                                                               LineTypeEnum.closeTick.name).fillna_method,
+                                                           axis=axis,
+                                                           inplace=inplace,
+                                                           limit=limit,
+                                                           downcast=downcast)
         for column_name in new_df.columns:
             if column_name == LineTypeEnum.closeTick.name:
                 continue
-            line_type = LineTypeEnum.safe_get(column_name)
-            if line_type == "":
+            rule = get_line_rules_safe(column_name)
+            if not rule.fillna_method and not rule.fillna_value:
                 new_df[column_name] = new_df[column_name].fillna(value, method, axis, inplace, limit, downcast)
             else:
-                param = get_fillna_param(line_type, method, value)
-                current_method = param["method"]
-                current_value = param["value"]
+                current_method = rule.fillna_method if rule.fillna_method else method
+                current_value = rule.fillna_value if rule.fillna_value else value
                 # all tick related field will be filled with close_tick.
-                if line_type in [LineTypeEnum.openTick, LineTypeEnum.highestTick,
-                                 LineTypeEnum.lowestTick] and LineTypeEnum.closeTick.name in new_df.columns:
+                if column_name in [LineTypeEnum.openTick.name,
+                                   LineTypeEnum.highestTick.name,
+                                   LineTypeEnum.lowestTick.name] and LineTypeEnum.closeTick.name in new_df.columns:
                     current_method = None
                     current_value = new_df[LineTypeEnum.closeTick.name]
                 new_df[column_name] = new_df[column_name].fillna(value=current_value, method=current_method, axis=axis,
@@ -348,45 +336,6 @@ class Lines(pd.DataFrame, Cursorable):
                                                                  downcast=downcast)
         new_lines = Lines.from_dataframe(new_df)
         new_lines.cursor = self.cursor
-        return new_lines
-
-    def resample_by_type(
-            self,
-            rule,
-            axis=0,
-            closed: str | None = None,
-            label: str | None = None,
-            convention: str = "start",
-            kind: str | None = None,
-            loffset=None,
-            base: int | None = None,
-            on=None,
-            level=None,
-            origin: str | pd_typing.TimestampConvertibleTypes = "start_day",
-            offset: pd_typing.TimedeltaConvertibleTypes | None = None,
-            agg=dict()
-    ) -> "Lines":
-        """
-        with this method, predefined column will be resampled correctly, other param is the same to Series.resample()
-
-        :param agg: if line name is not predefined, should define resample method, such as sum, mean
-        :return: resampled data
-        """
-        resampler = super().resample(rule, axis, closed, label, convention, kind, loffset, base, on, level, origin,
-                                     offset)
-        agg_dict = dict()
-        for column_name in self.columns:
-            column_type = LineTypeEnum.safe_get(column_name)
-            agg_method = get_agg_by_type(column_type)
-            if agg_method == "":
-                if column_name in agg:
-                    agg_method = agg[column_name]
-                else:
-                    agg_method = DEFAULT_AGG_METHOD
-            agg_dict[column_name] = agg_method
-        df = resampler.agg(agg_dict)
-        new_lines = Lines.from_dataframe(df)
-        new_lines.cursor = 0
         return new_lines
 
     def get_line(self, index: int = None, name: str = None) -> Line:
@@ -406,6 +355,45 @@ class Lines(pd.DataFrame, Cursorable):
             return Line.from_series(self.iloc[:, index], self.cursor)
         elif name:
             return Line.from_series(self[name], self.cursor)
+
+    def resample_by_type(
+            self,
+            rule,
+            axis=0,
+            closed: str | None = None,
+            label: str | None = None,
+            convention: str = "start",
+            kind: str | None = None,
+            loffset=None,
+            base: int | None = None,
+            on=None,
+            level=None,
+            origin: str | pd_typing.TimestampConvertibleTypes = "start_day",
+            offset: pd_typing.TimedeltaConvertibleTypes | None = None,
+            agg: Dict[str, str] = {}
+    ) -> "Lines":
+        """
+        with this method, predefined column will be resampled correctly, other param is the same to Series.resample()
+
+        :param agg: if line name is not predefined, should define resample method, such as sum, mean
+        :return: resampled data
+        """
+        resampler = super().resample(rule, axis, closed, label, convention, kind, loffset, base, on, level, origin,
+                                     offset)
+        agg_dict = {}
+        for column_name in self.columns:
+            rule = get_line_rules_safe(column_name)
+            agg_method = rule.agg
+            if agg_method is None:
+                if column_name in agg:
+                    agg_method = agg[column_name]
+                else:
+                    agg_method = DEFAULT_AGG_METHOD
+            agg_dict[column_name] = agg_method
+        df = resampler.agg(agg_dict)
+        new_lines = Lines.from_dataframe(df)
+        new_lines.cursor = 0
+        return new_lines
 
     @staticmethod
     def from_dataframe(df: pd.DataFrame) -> "Lines":
