@@ -38,7 +38,7 @@ class Asset(object):
         self.balance = init_amount
 
     def __str__(self):
-        return f"{self.balance} {self.name}"
+        return f"{self.name}: {self.balance}"
 
     def add(self, amount=Decimal(0)):
         """
@@ -129,13 +129,13 @@ class MarketBalance:
 @dataclass
 class AccountStatusCommon:
     timestamp: datetime
-    net_value: Decimal
+    net_value: Decimal = Decimal(0)
 
 
 @dataclass
 class AccountStatus(AccountStatusCommon):
-    asset_balances: Dict[TokenInfo, Decimal]
-    market_status: Dict[MarketInfo, MarketBalance]
+    asset_balances: Dict[TokenInfo, Decimal] = field(default_factory=dict)
+    market_status: Dict[MarketInfo, MarketBalance] = field(default_factory=dict)
 
     def to_array(self) -> List:
         result = [self.net_value]
@@ -163,4 +163,4 @@ class AccountStatus(AccountStatusCommon):
 
 @dataclass
 class MarketStatus:
-    timestamp: datetime
+    timestamp: datetime | None

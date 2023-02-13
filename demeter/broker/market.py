@@ -1,11 +1,12 @@
 import logging
 from datetime import datetime
 from decimal import Decimal
+from typing import Dict
 
 import pandas as pd
 
-from ._typing import BaseAction, MarketBalance, MarketStatus
-from .. import DECIMAL_0, DemeterError
+from ._typing import BaseAction, MarketBalance, MarketStatus, MarketInfo
+from .._typing import DECIMAL_0, DemeterError
 from ..data_line import Lines
 
 DEFAULT_DATA_PATH = "./data"
@@ -17,18 +18,23 @@ class Market:
     """
 
     def __init__(self,
+                 market_info: MarketInfo,
                  data: Lines = None,
                  data_path=DEFAULT_DATA_PATH):
         self._data: Lines = data
+        self._market_info: MarketInfo = market_info
         self.broker = None
-        self._record_action_callback = None
+        self._record_action_callback = lambda x: x
         self.data_path: str = data_path
         self.logger = logging.getLogger(__name__)
         self._market_status = MarketStatus(None)
 
+    def __str__(self):
+        return f"{self._market_info.name}:{type(self).__name__}"
+
     @property
-    def net_value(self) -> Decimal:
-        return Decimal(0)
+    def market_info(self) -> MarketInfo:
+        return self._market_info
 
     @property
     def data(self):
@@ -56,10 +62,13 @@ class Market:
     def market_status(self):
         return self._market_status
 
-    def set_market_status(self, timestamp: datetime, data: pd.Series):
-        self._market_status = MarketStatus(timestamp)
+    def set_market_status(self, timestamp: datetime, data: pd.Series | MarketStatus):
+        if isinstance(data, MarketStatus):
+            self._market_status = data
+        else:
+            self._market_status = MarketStatus(timestamp)
 
-    def get_market_balance(self, prices: pd.Series) -> MarketBalance:
+    def get_market_balance(self, prices: pd.Series | Dict[str, Decimal]) -> MarketBalance:
         return MarketBalance(DECIMAL_0)
 
     def check_before_test(self):

@@ -40,7 +40,11 @@ class Broker:
 
     # endregion
 
-    def add_market(self, market_info: MarketInfo, market: Market):
+    def __str__(self):
+        return "assets: " + ",".join([f"({v})" for k, v in self._assets.items()]) + \
+            "; markets: " + ",".join([f"({v})" for k, v in self.markets.items()])
+
+    def add_market(self, market: Market):
         """
         Set a new market to broker,
         User should initialize market before set to broker(Because there are too many initial parameters)
@@ -51,9 +55,9 @@ class Broker:
         :return:
         :rtype:
         """
-        self._markets[market_info] = market
+        self._markets[market.market_info] = market
         market.broker = self
-        market.record_action = self._record_action_callback
+        market._record_action_callback = self._record_action_callback
 
     @float_param_formatter
     def add_asset(self, token: TokenInfo, amount: Decimal | float):  # TODO: 名字再想想
@@ -98,11 +102,11 @@ class Broker:
     def get_token_balance_with_unit(self, token: TokenInfo):
         return UnitDecimal(self.get_token_balance(token), token.name)
 
-    def get_account_status(self, prices: pd.Series, timestamp=None):
+    def get_account_status(self, prices: pd.Series | Dict[str, Decimal], timestamp=None):
         account_status = AccountStatus(timestamp=timestamp)
         account_status.market_status = {k: v.get_market_balance(prices) for k, v in self.markets.items()}
         account_status.asset_balances = {k: v.balance for k, v in self.assets.items()}
-        asset_sum = sum([v * prices[k.name] for k, v in account_status.asset_balances.items()])  # TODO error!!!
+        asset_sum = sum([v * prices[k.name] for k, v in account_status.asset_balances.items()])
         market_sum = sum([v.net_value for v in account_status.market_status.values()])
         account_status.net_value = asset_sum + market_sum
         return account_status

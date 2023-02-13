@@ -6,15 +6,15 @@ import pandas as pd
 
 from . import MarketBalance
 from .market import Market
-from .uni_lp_data import fillna, UniLPData
+from .uni_lp_core import V3CoreLib
+from .uni_lp_data import fillna
 from .uni_lp_helper import tick_to_quote_price, quote_price_to_tick, quote_price_to_sqrt, tick_to_sqrtPriceX96
 from .uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
 from .uni_lp_typing import UniV3Pool, TokenInfo, BrokerAsset, Position, UniV3PoolStatus, LiquidityBalance, \
     AddLiquidityAction, RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction
-from .uni_lp_core import V3CoreLib
-from ..data_line import Lines
 from .._typing import PositionInfo, DemeterError, DECIMAL_0, UnitDecimal, DECIMAL_1
 from ..utils.application import float_param_formatter, to_decimal
+from ._typing import MarketInfo
 
 
 class UniLpMarket(Market):
@@ -26,13 +26,13 @@ class UniLpMarket(Market):
 
     出于对计算效率的考虑, 回测没有模拟每个add/remove liquidity,
     因此, 无法计算出当前池子价格等信息, 如current_tick, SqrtPriceX96,
-    这些信息需要在回测的时候从外部输入(设置到pool_status变量).
+    这些信息需要在回测的时候从外部输入(设置到market_status变量).
     :param pool_info: pool information
     :type pool_info: UniV3Pool
     """
 
-    def __init__(self, pool_info: UniV3Pool, data: pd.DataFrame = None):
-        super().__init__(data=data)
+    def __init__(self, market_info: MarketInfo, pool_info: UniV3Pool, data: pd.DataFrame = None):
+        super().__init__(market_info=market_info, data=data)
         self._pool: UniV3Pool = pool_info
         # init balance
         self._is_token0_base = pool_info.is_token0_base
@@ -47,13 +47,10 @@ class UniLpMarket(Market):
         # internal temporary variable
         # self.action_buffer = []
 
-    def __str__(self):  # todo update this
-        return f"Pool: {self.pool_info}, position count: {len(self.positions)}"
-
     # region properties
 
     @property
-    def positions(self) -> dict[PositionInfo:Position]:
+    def positions(self) -> Dict[PositionInfo, Position]:
         """
         current positions in broker
 
@@ -104,12 +101,12 @@ class UniLpMarket(Market):
         return self._positions[position_info]
 
     @property
-    def market_status(self):
+    def market_status(self) -> UniV3PoolStatus:
         return self._market_status
 
     # endregion
 
-    def set_market_status(self, timestamp: datetime, data: pd.Series):
+    def set_market_status(self, timestamp: datetime | None, data: pd.Series | UniV3PoolStatus):
         # update price tick
         if isinstance(data, UniV3PoolStatus):
             self._market_status = data
@@ -166,7 +163,7 @@ class UniLpMarket(Market):
         fee will be calculated by liquidity
         """
         for position_info, position in self._positions.items():
-            V3CoreLib.update_fee(self.pool_info, position_info, position, self.pool_status)
+            V3CoreLib.update_fee(self.pool_info, position_info, position, self.market_status)
 
     def get_market_balance(self, prices: pd.Series | Dict[str, Decimal] = None) -> MarketBalance:
         """
@@ -185,7 +182,7 @@ class UniLpMarket(Market):
                 self.quote_token.name: self._market_status.price
             }
         else:
-            pool_price = prices[self.base_token.name] / prices[self.quote_token.name]
+            pool_price = prices[self.quote_token.name] / prices[self.base_token.name]
         base_fee_sum = DECIMAL_0
         quote_fee_sum = DECIMAL_0
         sqrt_price = quote_price_to_sqrt(pool_price,
@@ -255,7 +252,7 @@ class UniLpMarket(Market):
 
         if sqrt_price_x96 == -1:
             # self.current_tick must be initialed
-            sqrt_price_x96 = get_sqrt_ratio_at_tick(self.pool_status.current_tick)
+            sqrt_price_x96 = get_sqrt_ratio_at_tick(self.market_status.current_tick)
         if lower_tick > upper_tick:
             raise DemeterError("lower tick should be less than upper tick")
 
@@ -275,7 +272,7 @@ class UniLpMarket(Market):
 
     def __remove_liquidity(self, position: PositionInfo, liquidity: int = None, sqrt_price_x96: int = -1):
         sqrt_price_x96 = int(sqrt_price_x96) if sqrt_price_x96 != -1 else \
-            get_sqrt_ratio_at_tick(self.pool_status.current_tick)
+            get_sqrt_ratio_at_tick(self.market_status.current_tick)
         delta_liquidity = liquidity if (liquidity is not None) and liquidity < self.positions[position].liquidity \
             else self.positions[position].liquidity
         token0_get, token1_get = V3CoreLib.close_position(self._pool, position, delta_liquidity, sqrt_price_x96)
@@ -340,6 +337,7 @@ class UniLpMarket(Market):
                                                                                               upper_tick)
         base_used, quote_used = self._convert_pair(token0_used, token1_used)
         self.record_action(AddLiquidityAction(
+            market=self.market_info,
             base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
             quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
             base_amount_max=UnitDecimal(base_max_amount, self.base_token.name),
@@ -352,7 +350,8 @@ class UniLpMarket(Market):
             liquidity=int(liquidity)))
         return created_position, base_used, quote_used, liquidity
 
-    def add_liquidity_by_tick(self, lower_tick: int,
+    def add_liquidity_by_tick(self,
+                              lower_tick: int,
                               upper_tick: int,
                               base_max_amount: Decimal | float = None,
                               quote_max_amount: Decimal | float = None,
@@ -393,7 +392,8 @@ class UniLpMarket(Market):
                                                                                               sqrt_price_x96)
         base_used, quote_used = self._convert_pair(token0_used, token1_used)
         self.record_action(
-            AddLiquidityAction(base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
+            AddLiquidityAction(market=self.market_info,
+                               base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
                                quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
                                base_amount_max=UnitDecimal(base_max_amount, self.base_token.name),
                                quote_amount_max=UnitDecimal(quote_max_amount, self.quote_token.name),
@@ -432,15 +432,15 @@ class UniLpMarket(Market):
 
         base_get, quote_get = self._convert_pair(token0_get, token1_get)
         self.record_action(
-            RemoveLiquidityAction(
-                base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
-                quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
-                position=position,
-                base_amount=UnitDecimal(base_get, self.base_token.name),
-                quote_amount=UnitDecimal(quote_get, self.quote_token.name),
-                removed_liquidity=delta_liquidity,
-                remain_liquidity=self.positions[position].liquidity
-            ))
+            RemoveLiquidityAction(market=self.market_info,
+                                  base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
+                                  quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
+                                  position=position,
+                                  base_amount=UnitDecimal(base_get, self.base_token.name),
+                                  quote_amount=UnitDecimal(quote_get, self.quote_token.name),
+                                  removed_liquidity=delta_liquidity,
+                                  remain_liquidity=self.positions[position].liquidity
+                                  ))
         if collect:
             return self.collect_fee(position, remove_dry_pool=remove_dry_pool)
         else:
@@ -475,6 +475,7 @@ class UniLpMarket(Market):
         base_get, quote_get = self._convert_pair(token0_get, token1_get)
         if self._positions[position]:
             self.record_action(CollectFeeAction(
+                market=self.market_info,
                 base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
                 quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
                 position=position,
@@ -500,7 +501,7 @@ class UniLpMarket(Market):
         :return: fee, base token amount spend, quote token amount got
         :rtype: (Decimal, Decimal, Decimal)
         """
-        price = price if price else self.pool_status.price
+        price = price if price else self.market_status.price
         from_amount = price * amount
         from_amount_with_fee = from_amount * (1 + self._pool.fee_rate)
         fee = from_amount_with_fee - from_amount
@@ -509,6 +510,7 @@ class UniLpMarket(Market):
         self.broker.add_asset(to_token, amount)
         base_amount, quote_amount = self._convert_pair(from_amount, amount)
         self.record_action(BuyAction(
+            market=self.market_info,
             base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
             quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
             amount=UnitDecimal(amount, self.quote_token.name),
@@ -530,7 +532,7 @@ class UniLpMarket(Market):
         :return: fee, base token amount got, quote token amount spend
         :rtype: (Decimal, Decimal, Decimal)
         """
-        price = price if price else self.pool_status.price
+        price = price if price else self.market_status.price
         from_amount_with_fee = amount
         from_amount = from_amount_with_fee * (1 - self._pool.fee_rate)
         to_amount = from_amount * price
@@ -540,6 +542,7 @@ class UniLpMarket(Market):
         self.broker.add_asset(to_token, to_amount)
         base_amount, quote_amount = self._convert_pair(to_amount, from_amount)
         self.record_action(SellAction(
+            market=self.market_info,
             base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
             quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
             amount=UnitDecimal(amount, self.base_token.name),

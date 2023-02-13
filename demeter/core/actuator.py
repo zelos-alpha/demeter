@@ -76,11 +76,13 @@ class Actuator(object):
         reset all the status variables
 
         """
+        self._evaluator: Evaluator = None
+        self._enabled_evaluator: [] = []
+
         self._action_list = []
-        self._evaluator = None
+        self._current_actions = None
         self._account_status_list = []
         self.__backtest_finished = False
-        self.data.reset_cursor()
 
     @property
     def actions(self) -> [BaseAction]:
