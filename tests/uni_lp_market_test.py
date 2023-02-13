@@ -60,6 +60,8 @@ class TestUniLpMarket(unittest.TestCase):
         self.assertEqual(1, broker.assets[self.eth].balance)
         self.assertEqual(uni_market.token0, self.usdc)
         self.assertEqual(uni_market.token1, self.eth)
+        self.assertEqual(uni_market.quote_token, self.eth)
+        self.assertEqual(uni_market.base_token, self.usdc)
         self.check_type(broker)
 
     def test_add_Liquidity(self):
