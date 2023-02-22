@@ -80,4 +80,8 @@ class Market:
             raise DemeterError("data must be type of data frame")
         if not isinstance(self.data.index, pd.core.indexes.datetimes.DatetimeIndex):
             raise DemeterError("date index must be datetime")
+
+    def formatted_str(self):
+        return ""
+
     # endregion

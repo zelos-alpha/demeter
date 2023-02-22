@@ -31,8 +31,8 @@ class TestUniLpMarketToken1Base(unittest.TestCase):
                                                        58280013108171131649,
                                                        price))
 
-        broker.set_asset(self.eth, 1)
-        broker.set_asset(self.usdc, price)
+        broker.set_balance(self.eth, 1)
+        broker.set_balance(self.usdc, price)
         market.sqrt_price = demeter.broker.uni_lp_helper.tick_to_sqrtPriceX96(tick)
 
         # https://etherscan.io/address/0x4e68ccd3e89f51c3074ca5072bbac773960dfa36#readContract

@@ -8,6 +8,7 @@ from demeter import UniLpMarket, TokenInfo, UniV3Pool, UniV3PoolStatus, Broker, 
 test_market = MarketInfo("market1")
 
 
+
 class TestUniLpMarket(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         self.eth = TokenInfo(name="eth", decimal=18)
@@ -33,8 +34,8 @@ class TestUniLpMarket(unittest.TestCase):
                                                        18714189922,
                                                        58280013108171131649,
                                                        price))
-        broker.set_asset(self.eth, 1)
-        broker.set_asset(self.usdc, price)
+        broker.set_balance(self.eth, 1)
+        broker.set_balance(self.usdc, price)
         market.sqrt_price = demeter.broker.uni_lp_helper.tick_to_sqrtPriceX96(tick)
         return broker
 
@@ -142,9 +143,26 @@ class TestUniLpMarket(unittest.TestCase):
         self.assertEqual(new_position1, new_position2)
         self.assertEqual(liquidity1 + liquidity2, market.positions[new_position1].liquidity)
 
-    def test_add_Liquidity_use_all_balance(self):
+    def test_item_as_property(self):
+        broker = self.get_broker()
+        self.assertEqual(broker.markets[test_market], broker.market1)
+        self.assertEqual(broker.assets[self.usdc], broker.usdc)
+        self.assertEqual(broker.assets[self.eth], broker.eth)
+
+    def test_print_broker(self):
         broker = self.get_broker()
         market: UniLpMarket = broker.markets[test_market]
+        # should use all the balance
+        market._add_liquidity_by_tick(market.market_status.price,
+                                      Decimal(1),
+                                      market.market_status.current_tick - 1000,
+                                      market.market_status.current_tick + 1000)
+
+        print(broker.formatted_str())
+
+    def test_add_Liquidity_use_all_balance(self):
+        broker = self.get_broker()
+        market: UniLpMarket = broker.market1
         # should use all the balance
         (new_position, base_used, quote_used, liquidity) = market._add_liquidity_by_tick(market.market_status.price,
                                                                                          Decimal(1),
@@ -243,8 +261,8 @@ class TestUniLpMarket(unittest.TestCase):
         market = UniLpMarket(test_market, self.pool)
         broker.add_market(market)
 
-        broker.set_asset(self.usdc, 2000)
-        broker.set_asset(self.eth, 1)
+        broker.set_balance(self.usdc, 2000)
+        broker.set_balance(self.eth, 1)
         price = Decimal(1100)
         tick = market.price_to_tick(price)
         old_net_value = price * broker.assets[self.eth].balance + broker.assets[self.usdc].balance
@@ -268,8 +286,8 @@ class TestUniLpMarket(unittest.TestCase):
         market = UniLpMarket(test_market, self.pool)
         broker.add_market(market)
 
-        broker.set_asset(self.usdc, 1100)
-        broker.set_asset(self.eth, 1)
+        broker.set_balance(self.usdc, 1100)
+        broker.set_balance(self.eth, 1)
         price = Decimal(1100)
         old_net_value = price * broker.assets[self.eth].balance + broker.assets[self.usdc].balance
         print(old_net_value)

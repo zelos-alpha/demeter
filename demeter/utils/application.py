@@ -31,14 +31,6 @@ def float_param_formatter(func):
     return wrapper_func
 
 
-def get_formatted_str(values: dict) -> str:
-    str_array = []
-    for k, v in values.items():
-        value_str = str(v)
-        str_array.append(f"""\033[1;34m{k:<10}:\033[0m {value_str:<30} """)
-    return "".join(str_array)
-
-
 def get_enum_by_name(me, name):
     for e in me:
         if e.name.lower() == name.lower():

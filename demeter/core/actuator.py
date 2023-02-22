@@ -10,6 +10,7 @@ from .. import Broker, RowData, Asset
 from .._typing import DemeterError, EvaluatorEnum, UnitDecimal
 from ..broker import UniLpMarket, BaseAction, AccountStatus, MarketInfo
 from ..strategy import Strategy
+from ..utils import get_formatted_from_dict, get_formatted_predefined, ForColorEnum, BackColorEnum, ModeEnum, STYLE
 
 
 class Actuator(object):
@@ -70,7 +71,7 @@ class Actuator(object):
         else:
             raise DemeterError("please run strategy first")
 
-    def reset(self):  # TODO Finish this
+    def reset(self):
         """
 
         reset all the status variables
@@ -80,7 +81,7 @@ class Actuator(object):
         self._enabled_evaluator: [] = []
 
         self._action_list = []
-        self._current_actions = None
+        self._current_actions = []
         self._account_status_list = []
         self.__backtest_finished = False
 
@@ -170,7 +171,7 @@ class Actuator(object):
         :type assets: [Asset]
         """
         for asset in assets:
-            self._broker.set_asset(asset.token_info, asset.balance)
+            self._broker.set_balance(asset.token_info, asset.balance)
 
     def set_price(self, prices: pd.DataFrame | pd.Series):
         if isinstance(prices, pd.DataFrame):
@@ -256,10 +257,10 @@ class Actuator(object):
             self._broker.markets[market_key].set_market_status(timestamp, market_row_data)
 
     def run(self,
-            enable_notify=True,
-            evaluator=[EvaluatorEnum.ALL],
-            print_final_status=False,
-            save_path="."):
+            evaluator: List[EvaluatorEnum] = [],
+            output: bool = True,
+            save_results: bool = False,
+            save_results_path: str = "."):
         """
         start back test, the whole process including:
 
@@ -326,33 +327,34 @@ class Actuator(object):
                 self._account_status_list.append(
                     self._broker.get_account_status(self._token_prices.loc[timestamp_index], timestamp_index))
                 # notify actions in current loop
-                if enable_notify and len(self._action_list) > 0:
-                    self.notify(self.strategy, self._current_actions)
-                    self._current_actions = []
+                self.notify(self.strategy, self._current_actions)
+                self._current_actions = []
                 # move forward for process bar and index
                 pbar.update()
 
-        self.logger.info("main loop finished, start calculate evaluating indicator...")
-        account_status_df: pd.DataFrame = self.account_status_dataframe()
+        self.logger.info("main loop finished")
 
-        self.logger.info("run evaluating indicator")
         if len(self._enabled_evaluator) > 0:
+            self.logger.info("Start calculate evaluating indicator...")
+            account_status_df: pd.DataFrame = self.account_status_dataframe()
             self._evaluator = Evaluator(init_account_status, account_status_df, self._token_prices)
             self._evaluator.run(self._enabled_evaluator)
+            self.logger.info("Evaluating indicator has finished it's job.")
         self._strategy.finalize()
         self.__backtest_finished = True
-        if print_final_status:
+        if output:
             self.output()
-        self.logger.info(f"back testing finish, execute time {time.time() - run_begin_time}s")
+        self.logger.info(f"Backtesting finished, execute time {time.time() - run_begin_time}s")
 
     def output(self):
         """
         output back test result to console
         """
         if not self.__backtest_finished:
-            raise DemeterError("please run strategy first")
-        print("Final status")
-        print(self.broker.get_account_status(self.data.tail(1).price[0]).get_output_str())
+            raise DemeterError("Please run strategy first")
+        print(self.broker.formatted_str())
+        print(get_formatted_predefined("Account Status", STYLE["header1"]))
+        print(self.account_status_dataframe())
         if len(self._enabled_evaluator) > 0:
             print("Evaluating indicator")
             print(self._evaluator.result)
@@ -367,6 +369,10 @@ class Actuator(object):
         self._strategy.data = {k: v.data for k, v in self.broker.markets.items()}
         self._strategy.account_status = self._account_status_list
         self._strategy.account_status_dataframe = self.account_status_dataframe
+        for k, v in self.broker.markets.items():
+            setattr(self._strategy, k.name, v)
+        for k, v in self.broker.assets.items():
+            setattr(self._strategy, k.name, v)
         self._strategy.initialize()
 
     def __str__(self):

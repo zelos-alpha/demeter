@@ -11,10 +11,12 @@ from .uni_lp_data import fillna
 from .uni_lp_helper import tick_to_quote_price, quote_price_to_tick, quote_price_to_sqrt, tick_to_sqrtPriceX96
 from .uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
 from .uni_lp_typing import UniV3Pool, TokenInfo, BrokerAsset, Position, UniV3PoolStatus, LiquidityBalance, \
-    AddLiquidityAction, RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction
+    AddLiquidityAction, RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction, position_dict_to_dataframe
 from .._typing import PositionInfo, DemeterError, DECIMAL_0, UnitDecimal, DECIMAL_1
 from ..utils.application import float_param_formatter, to_decimal
 from ._typing import MarketInfo
+from ..utils import get_formatted_from_dict, get_formatted_predefined, ForColorEnum, BackColorEnum, ModeEnum, STYLE, \
+    float_param_formatter
 
 
 class UniLpMarket(Market):
@@ -39,7 +41,7 @@ class UniLpMarket(Market):
         # reference for super().assets dict.
         self.base_token, self.quote_token = self._convert_pair(self.pool_info.token0, self.pool_info.token1)
         # status
-        self._positions: Dict[PositionInfo,Position] = {}
+        self._positions: Dict[PositionInfo, Position] = {}
         self._market_status = UniV3PoolStatus(None, 0, 0, 0, 0, DECIMAL_0)
         # In order to distinguish price in pool and to u, we call former one "pool price"
         self._pool_price_unit = f"{self.base_token.name}/{self.quote_token.name}"
@@ -48,6 +50,10 @@ class UniLpMarket(Market):
         # self.action_buffer = []
 
     # region properties
+
+    def __str__(self):
+        return f"{self._market_info.name}:{type(self).__name__}, positions: {len(self._positions)}, " \
+               f"total liquidity: {sum([p.liquidity for p in self._positions.values()])}"
 
     @property
     def positions(self) -> Dict[PositionInfo, Position]:
@@ -266,8 +272,8 @@ class UniLpMarket(Market):
             self._positions[position_info].liquidity += liquidity
         else:
             self._positions[position_info] = Position(DECIMAL_0, DECIMAL_0, liquidity)
-        self.broker.sub_asset(self.token0, token0_used)
-        self.broker.sub_asset(self.token1, token1_used)
+        self.broker.subtract_from_balance(self.token0, token0_used)
+        self.broker.subtract_from_balance(self.token1, token1_used)
         return position_info, token0_used, token1_used, liquidity
 
     def __remove_liquidity(self, position: PositionInfo, liquidity: int = None, sqrt_price_x96: int = -1):
@@ -295,8 +301,8 @@ class UniLpMarket(Market):
         position.pending_amount0 -= token0_fee
         position.pending_amount1 -= token1_fee
         # add un_collect fee to current balance
-        self.broker.add_asset(self.token0, token0_fee)
-        self.broker.add_asset(self.token1, token1_fee)
+        self.broker.add_to_balance(self.token0, token0_fee)
+        self.broker.add_to_balance(self.token1, token1_fee)
         return token0_fee, token1_fee
 
     # action for strategy
@@ -506,8 +512,8 @@ class UniLpMarket(Market):
         from_amount_with_fee = from_amount * (1 + self._pool.fee_rate)
         fee = from_amount_with_fee - from_amount
         from_token, to_token = self._convert_pair(self.token0, self.token1)
-        self.broker.sub_asset(from_token, from_amount_with_fee)
-        self.broker.add_asset(to_token, amount)
+        self.broker.subtract_from_balance(from_token, from_amount_with_fee)
+        self.broker.add_to_balance(to_token, amount)
         base_amount, quote_amount = self._convert_pair(from_amount, amount)
         self.record_action(BuyAction(
             market=self.market_info,
@@ -538,8 +544,8 @@ class UniLpMarket(Market):
         to_amount = from_amount * price
         fee = from_amount_with_fee - from_amount
         to_token, from_token = self._convert_pair(self.token0, self.token1)
-        self.broker.sub_asset(from_token, from_amount_with_fee)
-        self.broker.add_asset(to_token, to_amount)
+        self.broker.subtract_from_balance(from_token, from_amount_with_fee)
+        self.broker.add_to_balance(to_token, to_amount)
         base_amount, quote_amount = self._convert_pair(to_amount, from_amount)
         self.record_action(SellAction(
             market=self.market_info,
@@ -663,3 +669,19 @@ class UniLpMarket(Market):
                             "price"]
         for col in required_columns:
             assert col in self.data.columns
+
+    def formatted_str(self):
+        value = get_formatted_predefined(f"{self.market_info.name}({type(self).__name__})", STYLE["header3"]) + "\n"
+        value += get_formatted_from_dict({
+            "token0": self.pool_info.token0.name,
+            "token1": self.pool_info.token1.name,
+            "fee": self.pool_info.fee_rate * 100,
+            "is 0 base": self.pool_info.is_token0_base
+        }) + "\n"
+        value += get_formatted_predefined("positions", STYLE["key"]) + "\n"
+        df = position_dict_to_dataframe(self.positions)
+        if len(df.index)>0:
+            value += position_dict_to_dataframe(self.positions).to_string()
+        else:
+            value += "Empty DataFrame"
+        return value
