@@ -1,8 +1,9 @@
 import unittest
+from datetime import date
 from decimal import Decimal
-
+import pandas as pd
 import demeter
-from demeter import UniLpMarket, TokenInfo, UniV3Pool, UniV3PoolStatus, Broker, MarketInfo
+from demeter import UniLpMarket, TokenInfo, UniV3Pool, UniV3PoolStatus, Broker, MarketInfo, ChainType
 
 test_market = MarketInfo("market1")
 
@@ -285,3 +286,13 @@ class TestUniLpMarket(unittest.TestCase):
         print(pos)
         print(status)
         self.assertEqual(old_net_value, round(status.net_value, 4))
+
+    def test_get_price(self):
+        market = UniLpMarket(test_market, self.pool)
+        market.data_path = "../data"
+        market.load_data(ChainType.Polygon.name,
+                         "0x45dda9cb7c25131df268515131f647d726f50608",
+                         date(2022, 7, 1),
+                         date(2022, 7, 1))
+        prices: pd.DataFrame = market.get_price_from_data()
+        print(prices)

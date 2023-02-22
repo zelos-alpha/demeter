@@ -1,4 +1,5 @@
 import datetime
+from typing import List
 
 import requests
 from dataclasses import dataclass
@@ -12,7 +13,7 @@ class GetLogsParam:
     address: str
     fromBlock: int
     toBlock: int
-    topics: list[str]
+    topics: List[str]
 
 
 class EthRequestClient:

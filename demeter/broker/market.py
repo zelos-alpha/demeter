@@ -7,7 +7,6 @@ import pandas as pd
 
 from ._typing import BaseAction, MarketBalance, MarketStatus, MarketInfo
 from .._typing import DECIMAL_0, DemeterError
-from ..data_line import Lines
 
 DEFAULT_DATA_PATH = "./data"
 
@@ -19,9 +18,9 @@ class Market:
 
     def __init__(self,
                  market_info: MarketInfo,
-                 data: Lines = None,
+                 data: pd.DataFrame = None,
                  data_path=DEFAULT_DATA_PATH):
-        self._data: Lines = data
+        self._data: pd.DataFrame = data
         self._market_info: MarketInfo = market_info
         self.broker = None
         self._record_action_callback = lambda x: x
@@ -42,7 +41,7 @@ class Market:
 
     @data.setter
     def data(self, value):
-        if isinstance(value, Lines):
+        if isinstance(value, pd.DataFrame):
             self._data = value
         else:
             raise ValueError()

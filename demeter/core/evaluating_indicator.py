@@ -1,3 +1,5 @@
+from typing import Dict, List
+
 import pandas as pd
 
 from .._typing import UnitDecimal, DemeterError, EvaluatorEnum
@@ -20,11 +22,11 @@ class Evaluator(object):
         self.time_span_in_day = len(data.index) * (data.index[1] - data.index[0]).seconds / (60 * 60 * 24)
         self._result = None
 
-    def run(self, enables: list[EvaluatorEnum]):
+    def run(self, enables: List[EvaluatorEnum]):
         if EvaluatorEnum.ALL in enables:
             enables = [x for x in EvaluatorEnum]
             enables = filter(lambda x: x.value > 0, enables)
-        result_dict: dict[EvaluatorEnum:UnitDecimal] = {}
+        result_dict: Dict[EvaluatorEnum,UnitDecimal] = {}
         for request in enables:
             match request:
                 case EvaluatorEnum.ANNUALIZED_RETURNS:
@@ -45,5 +47,5 @@ class Evaluator(object):
         return result_dict
 
     @property
-    def result(self) -> dict[EvaluatorEnum:UnitDecimal]:
+    def result(self) -> Dict[EvaluatorEnum,UnitDecimal]:
         return self._result

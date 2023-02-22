@@ -1,8 +1,10 @@
 import unittest
 from datetime import date
 
+import pandas as pd
+
 import demeter.indicator
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, Asset, Lines
+from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, Asset, UniLpMarket, MarketInfo
 from demeter.download import ChainType
 
 eth = TokenInfo(name="eth", decimal=18)
@@ -23,7 +25,7 @@ class WithSMA(Strategy):
     def initialize(self):
         self._add_column("ma5", demeter.indicator.simple_moving_average(self.data.closeTick))
 
-    def on_bar(self, row_data: Lines):
+    def on_bar(self, row_data):
         pass
 
 
@@ -37,23 +39,31 @@ class TestActuator(unittest.TestCase):
         print(actuator)
 
     def get_one_actuator(self) -> Actuator:
-        actuator = Actuator(self.pool)
-        actuator.strategy = EmptyStrategy()
-        actuator.set_assets([Asset(usdc, 1067), Asset(eth, 1)])
-        actuator.data_path = "../data"
-        actuator.load_data(ChainType.Polygon.name,
-                           "0x45dda9cb7c25131df268515131f647d726f50608",
-                           date(2022, 7, 1),
-                           date(2022, 7, 1))
+        pool = UniV3Pool(usdc, eth, 0.05, usdc)
+        test_market = MarketInfo("market1")
+        market = UniLpMarket(test_market, pool)
+        actuator: Actuator = Actuator()  # declare actuator
+        broker = actuator.broker
+        broker.add_market(market)
+        broker.set_asset(usdc, 1067)
+        broker.set_asset(eth, 1)
+
+        actuator.strategy = EmptyStrategy()  # set strategy to actuator
+
+        market.data_path = "../data"
+        market.load_data(ChainType.Polygon.name,
+                         "0x45dda9cb7c25131df268515131f647d726f50608",
+                         date(2022, 7, 1),
+                         date(2022, 7, 1))
+        actuator.run()  # run test
+        # actuator.output()  # print final status
+
         return actuator
 
     def test_simple_run(self):
         actuator = self.get_one_actuator()
-        print(actuator.data.head(5))
+        print(actuator.account_status_dataframe().head(5))
         print(actuator)
-
-    def test_lines(self):
-        print(Lines())
 
     def test_run_empty_strategy(self):
         actuator = self.get_one_actuator()

@@ -4,9 +4,8 @@ from typing import Dict
 import pandas as pd
 
 from .trigger import Trigger
-from .._typing import PositionInfo
+from .._typing import PositionInfo, DemeterError
 from ..broker import MarketInfo, RowData, BaseAction, UniLpMarket
-from ..data_line import Lines, Line
 
 
 class Strategy(object):
@@ -16,7 +15,7 @@ class Strategy(object):
 
     def __init__(self):
         self.broker: UniLpMarket = None
-        self.data: Lines = None
+        self.data: Dict[MarketInfo, pd.DataFrame] = {}
         self.number_format = ".8g"
         self.triggers: [Trigger] = []
 
@@ -33,7 +32,9 @@ class Strategy(object):
 
         :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
         :type row_data: Union[{MarketInfo:RowData}, pd.Series]
+
         """
+
         pass
 
     def on_bar(self, row_data: Dict[MarketInfo, RowData] | pd.Series):
@@ -70,7 +71,7 @@ class Strategy(object):
         """
         pass
 
-    def _add_column(self, name: str, line: Line):
+    def _add_column(self, name: str, line: pd.Series):
         """
         add a column to data
 
@@ -79,6 +80,8 @@ class Strategy(object):
         :param line: data
         :type line: Line
         """
+        if not isinstance(self.data.index, pd.core.indexes.datetimes.DatetimeIndex):
+            raise DemeterError("date index must be datetime")
         self.data[name] = line
 
     def add_liquidity(self,

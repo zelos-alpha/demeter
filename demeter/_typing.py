@@ -5,6 +5,7 @@ from typing import NamedTuple
 DECIMAL_0 = Decimal(0)
 DECIMAL_1 = Decimal(1)
 
+
 class TimeUnitEnum(Enum):
     """
     time unit for moving average,
@@ -16,8 +17,6 @@ class TimeUnitEnum(Enum):
     minute = 1
     hour = 60
     day = 60 * 24
-
-
 
 
 class UnitDecimal(Decimal):
@@ -77,19 +76,6 @@ class TokenInfo(NamedTuple):
     decimal: int
 
 
-class Asset(NamedTuple):
-    """
-    asset info of a token
-
-    :param token: token info
-    :type token: TokenInfo
-    :param amount: amount of this token, eg: 1.123456
-    :type amount: Decimal
-    """
-    token: TokenInfo
-    amount: Decimal
-
-
 class PositionInfo(NamedTuple):
     """
     position information, including tick range and liquidity. It's the immute properties of a position
@@ -105,18 +91,6 @@ class PositionInfo(NamedTuple):
 
     def __str__(self):
         return f"""tick:{self.lower_tick},{self.upper_tick}"""
-
-
-BarStatusNames = [
-    "base_balance",
-    "quote_balance",
-    "base_uncollected",
-    "quote_uncollected",
-    "base_in_position",
-    "quote_in_position",
-    "net_value",
-    "price"
-]
 
 
 class DemeterError(Exception):

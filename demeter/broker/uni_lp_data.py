@@ -7,8 +7,7 @@ from typing import Dict
 import pandas as pd
 from pandas import _typing as pd_typing
 
-from . import RowData
-from ._typing import Rule
+from ._typing import Rule, RowData
 
 DEFAULT_AGG_METHOD = "first"
 EMPTY_RULE = Rule(None, None, None)
@@ -73,7 +72,7 @@ class LineTypeEnum(Enum):
 LINE_RULES = {
     LineTypeEnum.timestamp.name: EMPTY_RULE,
     LineTypeEnum.netAmount0.name: Rule("sum", None, 0),
-    LineTypeEnum.netAmount1.netAmount0: Rule("sum", None, 0),
+    LineTypeEnum.netAmount1.name: Rule("sum", None, 0),
     LineTypeEnum.closeTick.name: Rule("last", "ffill", None),
     LineTypeEnum.openTick.name: Rule("first", "ffill", None),
     LineTypeEnum.lowestTick.name: Rule("min", "ffill", None),
@@ -104,7 +103,7 @@ def resample(df: pd.DataFrame,
              level=None,
              origin: str | pd_typing.TimestampConvertibleTypes = "start_day",
              offset: pd_typing.TimedeltaConvertibleTypes | None = None,
-             agg: Dict[str, str] = None):
+             agg: Dict[str, str] = None) -> pd.DataFrame:
     agg = agg if agg else {}
     resampler = df.resample(rule, axis, closed, label, convention, kind, loffset, base, on, level, origin, offset)
     agg_dict = {}
@@ -151,11 +150,11 @@ def fillna(
         if column_name == LineTypeEnum.closeTick.name:
             continue
         rule = get_line_rules_safe(column_name)
-        if not rule.fillna_method and not rule.fillna_value:
+        if not rule.fillna_method and rule.fillna_value is None:
             new_df[column_name] = new_df[column_name].fillna(value, method, axis, inplace, limit, downcast)
         else:
             current_method = rule.fillna_method if rule.fillna_method else method
-            current_value = rule.fillna_value if rule.fillna_value else value
+            current_value = rule.fillna_value if rule.fillna_value is not None else value
             # all tick related field will be filled with close_tick.
             if column_name in [LineTypeEnum.openTick.name,
                                LineTypeEnum.highestTick.name,

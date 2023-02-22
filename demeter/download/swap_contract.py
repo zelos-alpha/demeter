@@ -1,3 +1,5 @@
+from typing import List
+
 from ._typing import OnchainTxType
 from .utils import HexUtil
 
@@ -19,7 +21,7 @@ def decode_address_from_topic(topic_str):
     return "0x" + topic_str[26:]
 
 
-def split_topic(topic: str) -> list[str]:
+def split_topic(topic: str) -> List[str]:
     spliter = "\n" if "\n" in topic else ","
     topic_list = topic.strip("[]").replace("'", "").replace("\"", "").replace(" ", "").split(spliter)
     return topic_list

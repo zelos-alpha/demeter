@@ -154,11 +154,14 @@ class AccountStatus(AccountStatusCommon):
         return result
 
     @staticmethod
-    def to_dataframe(list) -> pd.DataFrame:
-        index = [i.timestamp for i in list]
-        return pd.DataFrame(columns=list.get_names(),
-                            index=index,
-                            data=map(lambda d: d.to_array(), list))
+    def to_dataframe(status_list: []) -> pd.DataFrame:
+        index = [i.timestamp for i in status_list]
+        if len(index) > 0:
+            return pd.DataFrame(columns=status_list[0].get_names(),
+                                index=index,
+                                data=map(lambda d: d.to_array(), status_list))
+        else:
+            return pd.DataFrame()
 
 
 @dataclass

@@ -8,6 +8,8 @@ from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from operator import itemgetter
+from typing import List, Dict
+
 from .eth_req import EthRequestClient, GetLogsParam
 from tqdm import tqdm  # process bar
 import json
@@ -36,7 +38,7 @@ CHAINS = {
 @dataclass
 class ContractConfig:
     address: str
-    topics: list[str]
+    topics: List[str]
     batch_size: int
     one_by_one: bool
 
@@ -155,7 +157,7 @@ def download_and_save_by_day(config: DownloadParam):
             block_dict = pickle.load(f)
             print(f"Height cache has loaded, length: {len(block_dict)}")
     else:
-        block_dict: dict[int:datetime.datetime] = {}
+        block_dict: Dict[int,datetime.datetime] = {}
 
     client = EthRequestClient(config.rpc.end_point, config.rpc.proxy, config.rpc.auth_string)
 

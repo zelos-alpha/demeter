@@ -1,14 +1,13 @@
 import logging
 import time
-from typing import List
+from typing import List, Dict
 
 import pandas as pd
 from tqdm import tqdm  # process bar
 
 from .evaluating_indicator import Evaluator
-from .. import Broker, RowData
-from .._typing import BarStatusNames, Asset, DemeterError, \
-    EvaluatorEnum, UnitDecimal
+from .. import Broker, RowData, Asset
+from .._typing import DemeterError, EvaluatorEnum, UnitDecimal
 from ..broker import UniLpMarket, BaseAction, AccountStatus, MarketInfo
 from ..strategy import Strategy
 
@@ -23,10 +22,10 @@ class Actuator(object):
 
     def __init__(self, allow_negative_balance=False):
         # all the actions during the test(buy/sell/add liquidity)
-        self._action_list: [BaseAction] = []
-        self._current_actions: [BaseAction] = []
+        self._action_list: List[BaseAction] = []
+        self._current_actions: List[BaseAction] = []
         # broker status in every bar, use array for performance
-        self._account_status_list: [AccountStatus] = []
+        self._account_status_list: List[AccountStatus] = []
         # broker
         self._broker: Broker = Broker(allow_negative_balance, self._record_action_list)
         # strategy
@@ -49,11 +48,12 @@ class Actuator(object):
 
     # region property
     @property
-    def account_status(self) -> pd.DataFrame:
-        index = self.data.index[0:len(self._account_status_list)]
-        return pd.DataFrame(columns=BarStatusNames,
-                            index=index,
-                            data=map(lambda d: d.to_array(), self._account_status_list))
+    def account_status(self) -> List[AccountStatus]:
+        return self._account_status_list
+
+    @property
+    def token_prices(self):
+        return self._token_prices
 
     @property
     def final_status(self) -> AccountStatus:
@@ -95,7 +95,7 @@ class Actuator(object):
         return self._action_list
 
     @property
-    def evaluating_indicator(self) -> dict[EvaluatorEnum:UnitDecimal]:
+    def evaluating_indicator(self) -> Dict[EvaluatorEnum, UnitDecimal]:
         """
         evaluating indicator result
 
@@ -159,7 +159,10 @@ class Actuator(object):
 
     # endregion
 
-    def set_assets(self, assets=[Asset]):
+    def account_status_dataframe(self) -> pd.DataFrame:
+        return AccountStatus.to_dataframe(self._account_status_list)
+
+    def set_assets(self, assets: List[Asset]):
         """
         set initial balance for token
 
@@ -167,9 +170,21 @@ class Actuator(object):
         :type assets: [Asset]
         """
         for asset in assets:
-            self._broker.set_asset(asset.token, asset.amount)
+            self._broker.set_asset(asset.token_info, asset.balance)
 
-    def notify(self, strategy: Strategy, actions: [BaseAction]):
+    def set_price(self, prices: pd.DataFrame | pd.Series):
+        if isinstance(prices, pd.DataFrame):
+            if self._token_prices is None:
+                self._token_prices = prices
+            else:
+                self._token_prices = pd.concat([self._token_prices, prices])
+        else:
+            if self._token_prices is None:
+                self._token_prices = pd.DataFrame(data=prices, index=prices.index)
+            else:
+                self._token_prices[prices.name] = prices
+
+    def notify(self, strategy: Strategy, actions: List[BaseAction]):
         """
 
         notify user when new action happens.
@@ -194,19 +209,23 @@ class Actuator(object):
             raise DemeterError("No market assigned")
         # ensure all token has price list.
         if self._token_prices is None:
-            raise DemeterError("token prices is not set")
+            # if price is not set and market is uni_lp_market, get price from market automatically
+            for market in self.broker.markets.values():
+                if isinstance(market, UniLpMarket):
+                    self.set_price(market.get_price_from_data())
+            if self._token_prices is None:
+                raise DemeterError("token prices is not set")
         for token in self._broker.assets.keys():
             if token.name not in self._token_prices:
                 raise DemeterError(f"Price of {token.name} has not set yet")
-        data_length = []
-        [market.check_before_test() for marketInfo, market in self._broker.markets.values()]
+        [market.check_before_test() for market in self._broker.markets.values()]
 
-        # ensure data length same
-        for marketInfo, market in self._broker.markets.values():
+        data_length = []
+        for market in self._broker.markets.values():
             data_length.append(len(market.data.index))
             market.check_asset()  # check each market, including assets
-
-        if List.count(data_length[0]) != len(data_length):
+        # ensure data length same
+        if List.count(data_length, data_length[0]) != len(data_length):
             raise DemeterError("data length among markets are not same")
         if len(self._token_prices.index) != data_length[0]:
             raise DemeterError("price length and data length are not same")
@@ -214,15 +233,15 @@ class Actuator(object):
         # ensure data interval same
         data_interval = []
         if length > 1:
-            for marketInfo, market in self._broker.markets:
+            for market in self._broker.markets.values():
                 data_interval.append(market.data.index[1] - market.data.index[0])
-            if List.count(data_interval[0]) != len(data_interval):
+            if List.count(data_interval, data_interval[0]) != len(data_interval):
                 raise DemeterError("data interval among markets are not same")
             price_interval = self._token_prices.index[1] - self._token_prices.index[0]
             if price_interval != data_interval[0]:
                 raise DemeterError("price list interval and data interval are not same")
 
-    def __get_market_row_dict(self, index, row_id) -> {MarketInfo: RowData}:
+    def __get_market_row_dict(self, index, row_id) -> Dict[MarketInfo, RowData]:
         markets_row = {}
         for market_key, market in self._broker.markets.items():
             market_row = RowData(index.to_pydatetime(), row_id)
@@ -266,13 +285,14 @@ class Actuator(object):
         self._enabled_evaluator = evaluator
         self.reset()
         self._check_backtest()
-        index_array: pd.DatetimeIndex = list(self._broker.markets.keys())[0].data.index
+        index_array: pd.DatetimeIndex = list(self._broker.markets.values())[0].data.index
         self.logger.info("init strategy...")
 
         # set initial status for strategy, so user can run some calculation in initial function.
-        init_row_data = self.__get_market_row_dict(index_array.iloc[0], 0)
-        self.__set_row_to_markets(index_array.iloc[0], init_row_data)
-        init_account_status = self._broker.get_account_status()  # keep initial balance for evaluating
+        init_row_data = self.__get_market_row_dict(index_array[0], 0)
+        self.__set_row_to_markets(index_array[0], init_row_data)
+        # keep initial balance for evaluating
+        init_account_status = self._broker.get_account_status(self._token_prices.iloc[0])
         self.init_strategy()
         row_id = 0
         data_length = len(index_array)
@@ -309,16 +329,15 @@ class Actuator(object):
                 if enable_notify and len(self._action_list) > 0:
                     self.notify(self.strategy, self._current_actions)
                     self._current_actions = []
-                # process on_bar
-                [market.data.move_cursor_to_next() for market in self._broker.markets]
+                # move forward for process bar and index
                 pbar.update()
 
         self.logger.info("main loop finished, start calculate evaluating indicator...")
-        account_status: pd.DataFrame = AccountStatus.to_dataframe(self._account_status_list)
+        account_status_df: pd.DataFrame = self.account_status_dataframe()
 
         self.logger.info("run evaluating indicator")
         if len(self._enabled_evaluator) > 0:
-            self._evaluator = Evaluator(init_account_status, account_status, self._token_prices)
+            self._evaluator = Evaluator(init_account_status, account_status_df, self._token_prices)
             self._evaluator.run(self._enabled_evaluator)
         self._strategy.finalize()
         self.__backtest_finished = True
@@ -345,10 +364,10 @@ class Actuator(object):
         if not isinstance(self._strategy, Strategy):
             raise DemeterError("strategy must be inherit from Strategy")
         self._strategy.broker = self._broker
-        self._strategy.data = self._data
-        self._strategy.account_status = self.account_status
+        self._strategy.data = {k: v.data for k, v in self.broker.markets.items()}
+        self._strategy.account_status = self._account_status_list
+        self._strategy.account_status_dataframe = self.account_status_dataframe
         self._strategy.initialize()
 
     def __str__(self):
-        return f"Demeter(broker:{self._broker})\n" \
-               f"data(data length: {0 if self._data is None else len(self._data)})"
+        return f"Demeter Actuator (broker:{self._broker})\n"

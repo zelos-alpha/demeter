@@ -39,7 +39,7 @@ class UniLpMarket(Market):
         # reference for super().assets dict.
         self.base_token, self.quote_token = self._convert_pair(self.pool_info.token0, self.pool_info.token1)
         # status
-        self._positions: dict[PositionInfo:Position] = {}
+        self._positions: Dict[PositionInfo,Position] = {}
         self._market_status = UniV3PoolStatus(None, 0, 0, 0, 0, DECIMAL_0)
         # In order to distinguish price in pool and to u, we call former one "pool price"
         self._pool_price_unit = f"{self.base_token.name}/{self.quote_token.name}"
@@ -600,14 +600,14 @@ class UniLpMarket(Market):
 
         """
         # add statistic column
-        df["open"] = df["openTick"].map(lambda x: self.broker.tick_to_price(x))
-        df["price"] = df["closeTick"].map(lambda x: self.broker.tick_to_price(x))
-        high_name, low_name = ("lowestTick", "highestTick") if self.broker.pool_info.is_token0_base \
+        df["open"] = df["openTick"].map(lambda x: self.tick_to_price(x))
+        df["price"] = df["closeTick"].map(lambda x: self.tick_to_price(x))
+        high_name, low_name = ("lowestTick", "highestTick") if self.pool_info.is_token0_base \
             else ("highestTick", "lowestTick")
-        df["low"] = df[high_name].map(lambda x: self.broker.tick_to_price(x))
-        df["high"] = df[low_name].map(lambda x: self.broker.tick_to_price(x))
-        df["volume0"] = df["inAmount0"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token0.decimal)
-        df["volume1"] = df["inAmount1"].map(lambda x: Decimal(x) / 10 ** self.broker.pool_info.token1.decimal)
+        df["low"] = df[high_name].map(lambda x: self.tick_to_price(x))
+        df["high"] = df[low_name].map(lambda x: self.tick_to_price(x))
+        df["volume0"] = df["inAmount0"].map(lambda x: Decimal(x) / 10 ** self.pool_info.token0.decimal)
+        df["volume1"] = df["inAmount1"].map(lambda x: Decimal(x) / 10 ** self.pool_info.token1.decimal)
 
     def load_data(self, chain: str, contract_addr: str, start_date: date, end_date: date):
         """
