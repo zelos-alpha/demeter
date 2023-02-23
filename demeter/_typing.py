@@ -29,16 +29,16 @@ class UnitDecimal(Decimal):
     :param number: number to keep
     :type number: Decimal
     :param unit: unit of the number, eg: eth
-    :type unit: str
+    :type _unit: str
     :param output_format: output format, follow the document here: https://python-reference.readthedocs.io/en/latest/docs/functions/format.html
     :type output_format: str
     """
     __integral = Decimal(1)
     default_output_format = ".8g"
 
-    def __new__(cls, value, unit: str, output_format=None):
+    def __new__(cls, value, unit: str = "", output_format=None):
         obj = Decimal.__new__(cls, value)
-        obj.unit = unit
+        obj._unit = unit
         obj.output_format: str = output_format if output_format is not None else UnitDecimal.default_output_format
         return obj
 
@@ -50,7 +50,15 @@ class UnitDecimal(Decimal):
         :rtype: str
         """
         dec = self.quantize(DECIMAL_1) if (self == self.to_integral() and self < 1e+29) else self.normalize()
-        return "{:{}} {}".format(dec, self.output_format, self.unit)
+        return "{:{}} {}".format(dec, self.output_format, self._unit)
+
+    @property
+    def unit(self):
+        return self._unit
+
+    @unit.setter
+    def unit(self, value):
+        self._unit = value
 
 
 class EvaluatorEnum(Enum):

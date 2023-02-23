@@ -1,16 +1,21 @@
 import logging
+import os
 import time
+from datetime import datetime
+from enum import Enum
 from typing import List, Dict
-
+import orjson
+import pickle
 import pandas as pd
 from tqdm import tqdm  # process bar
 
 from .evaluating_indicator import Evaluator
 from .. import Broker, RowData, Asset
-from .._typing import DemeterError, EvaluatorEnum, UnitDecimal
-from ..broker import UniLpMarket, BaseAction, AccountStatus, MarketInfo
+from .._typing import DemeterError, EvaluatorEnum, UnitDecimal, PositionInfo
+from ..broker import UniLpMarket, BaseAction, AccountStatus, MarketInfo, ActionTypeEnum
+from ..broker.uni_lp_typing import AddLiquidityAction
 from ..strategy import Strategy
-from ..utils import get_formatted_from_dict, get_formatted_predefined, ForColorEnum, BackColorEnum, ModeEnum, STYLE
+from ..utils import get_formatted_predefined, STYLE
 
 
 class Actuator(object):
@@ -24,9 +29,14 @@ class Actuator(object):
     def __init__(self, allow_negative_balance=False):
         # all the actions during the test(buy/sell/add liquidity)
         self._action_list: List[BaseAction] = []
-        self._current_actions: List[BaseAction] = []
+        self._currents = {
+            "actions": [],
+            "timestamp": None
+        }
         # broker status in every bar, use array for performance
         self._account_status_list: List[AccountStatus] = []
+        self._account_status_df: pd.DataFrame = None
+
         # broker
         self._broker: Broker = Broker(allow_negative_balance, self._record_action_list)
         # strategy
@@ -43,9 +53,11 @@ class Actuator(object):
         # internal var
         self.__backtest_finished = False
 
-    def _record_action_list(self, actions):
-        self._action_list.append(actions)
-        self._current_actions.append(actions)
+    def _record_action_list(self, action):
+        action.timestamp = self._currents["timestamp"]
+        action.set_type()
+        self._action_list.append(action)
+        self._currents["actions"].append(action)
 
     # region property
     @property
@@ -81,9 +93,11 @@ class Actuator(object):
         self._enabled_evaluator: [] = []
 
         self._action_list = []
-        self._current_actions = []
+        self._currents = {"actions": [], "timestamp": None}
         self._account_status_list = []
         self.__backtest_finished = False
+
+        self._account_status_df: pd.DataFrame = None
 
     @property
     def actions(self) -> [BaseAction]:
@@ -160,7 +174,7 @@ class Actuator(object):
 
     # endregion
 
-    def account_status_dataframe(self) -> pd.DataFrame:
+    def get_account_status_dataframe(self) -> pd.DataFrame:
         return AccountStatus.to_dataframe(self._account_status_list)
 
     def set_assets(self, assets: List[Asset]):
@@ -258,9 +272,7 @@ class Actuator(object):
 
     def run(self,
             evaluator: List[EvaluatorEnum] = [],
-            output: bool = True,
-            save_results: bool = False,
-            save_results_path: str = "."):
+            output: bool = True):
         """
         start back test, the whole process including:
 
@@ -306,7 +318,7 @@ class Actuator(object):
                 row_id += 1
                 self.__set_row_to_markets(timestamp_index, market_row_dict)
                 # execute strategy, and some calculate
-
+                self._currents["timestamp"] = timestamp_index.to_pydatetime()
                 self._strategy.before_bar(market_row_dict)
 
                 if self._strategy.triggers:
@@ -327,23 +339,24 @@ class Actuator(object):
                 self._account_status_list.append(
                     self._broker.get_account_status(self._token_prices.loc[timestamp_index], timestamp_index))
                 # notify actions in current loop
-                self.notify(self.strategy, self._current_actions)
-                self._current_actions = []
+                self.notify(self.strategy, self._currents["actions"])
+                self._currents["actions"] = []
                 # move forward for process bar and index
                 pbar.update()
 
         self.logger.info("main loop finished")
+        self._account_status_df: pd.DataFrame = self.get_account_status_dataframe()
 
         if len(self._enabled_evaluator) > 0:
             self.logger.info("Start calculate evaluating indicator...")
-            account_status_df: pd.DataFrame = self.account_status_dataframe()
-            self._evaluator = Evaluator(init_account_status, account_status_df, self._token_prices)
+            self._evaluator = Evaluator(init_account_status, self._account_status_df, self._token_prices)
             self._evaluator.run(self._enabled_evaluator)
             self.logger.info("Evaluating indicator has finished it's job.")
         self._strategy.finalize()
         self.__backtest_finished = True
         if output:
             self.output()
+
         self.logger.info(f"Backtesting finished, execute time {time.time() - run_begin_time}s")
 
     def output(self):
@@ -354,10 +367,38 @@ class Actuator(object):
             raise DemeterError("Please run strategy first")
         print(self.broker.formatted_str())
         print(get_formatted_predefined("Account Status", STYLE["header1"]))
-        print(self.account_status_dataframe())
+        print(self._account_status_df)
         if len(self._enabled_evaluator) > 0:
             print("Evaluating indicator")
             print(self._evaluator.result)
+
+    def save_result(self, path: str, account=True, actions=True) -> List[str]:
+        file_name_head = "backtest-" + datetime.now().strftime('%Y%m%d-%H%M%S')
+        if not os.path.exists(path):
+            os.mkdir(path)
+        file_list = []
+        if account:
+            file_name = os.path.join(path, file_name_head + ".account.csv")
+            self._account_status_df.to_csv(file_name)
+            file_list.append(file_name)
+        if actions:
+            # save pkl file to load again
+            pkl_name = os.path.join(path, file_name_head + ".action.pkl")
+            with open(pkl_name, "wb") as outfile1:
+                pickle.dump(self._action_list, outfile1)
+            # save json to read
+            actions_json_str = orjson.dumps(self._action_list,
+                                            option=orjson.OPT_INDENT_2,
+                                            default=json_default)
+            json_name = os.path.join(path, file_name_head + ".action.json")
+            with open(json_name, "wb") as outfile:
+                outfile.write(actions_json_str)
+
+            file_list.append(json_name)
+            file_list.append(pkl_name)
+
+        print("files have saved to", file_list)
+        return file_list
 
     def init_strategy(self):
         """
@@ -368,7 +409,7 @@ class Actuator(object):
         self._strategy.broker = self._broker
         self._strategy.data = {k: v.data for k, v in self.broker.markets.items()}
         self._strategy.account_status = self._account_status_list
-        self._strategy.account_status_dataframe = self.account_status_dataframe
+        self._strategy.get_account_status_dataframe = self.get_account_status_dataframe
         for k, v in self.broker.markets.items():
             setattr(self._strategy, k.name, v)
         for k, v in self.broker.assets.items():
@@ -377,3 +418,15 @@ class Actuator(object):
 
     def __str__(self):
         return f"Demeter Actuator (broker:{self._broker})\n"
+
+
+def json_default(obj):
+    if isinstance(obj, UnitDecimal):
+        return obj.to_str()
+    elif isinstance(obj, MarketInfo):
+        return {"name": obj.name}
+    elif isinstance(obj, PositionInfo):
+        return {"lower_tick": obj.lower_tick,
+                "upper_tick": obj.upper_tick}
+    else:
+        raise TypeError

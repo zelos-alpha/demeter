@@ -14,7 +14,7 @@ from .uni_lp_typing import UniV3Pool, TokenInfo, BrokerAsset, Position, UniV3Poo
     AddLiquidityAction, RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction, position_dict_to_dataframe
 from .._typing import PositionInfo, DemeterError, DECIMAL_0, UnitDecimal, DECIMAL_1
 from ..utils.application import float_param_formatter, to_decimal
-from ._typing import MarketInfo
+from ._typing import MarketInfo, ActionTypeEnum
 from ..utils import get_formatted_from_dict, get_formatted_predefined, ForColorEnum, BackColorEnum, ModeEnum, STYLE, \
     float_param_formatter
 
@@ -216,7 +216,8 @@ class UniLpMarket(Market):
                                 base_uncollected=UnitDecimal(base_fee_sum, self.base_token.name),
                                 quote_uncollected=UnitDecimal(quote_fee_sum, self.quote_token.name),
                                 base_in_position=UnitDecimal(base_deposit_amount, self.base_token.name),
-                                quote_in_position=UnitDecimal(quote_deposit_amount, self.quote_token.name))
+                                quote_in_position=UnitDecimal(quote_deposit_amount, self.quote_token.name),
+                                position_count=len(self._positions))
 
     def tick_to_price(self, tick: int) -> Decimal:
         """
@@ -397,18 +398,18 @@ class UniLpMarket(Market):
                                                                                               upper_tick,
                                                                                               sqrt_price_x96)
         base_used, quote_used = self._convert_pair(token0_used, token1_used)
-        self.record_action(
-            AddLiquidityAction(market=self.market_info,
-                               base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
-                               quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
-                               base_amount_max=UnitDecimal(base_max_amount, self.base_token.name),
-                               quote_amount_max=UnitDecimal(quote_max_amount, self.quote_token.name),
-                               lower_quote_price=UnitDecimal(self.tick_to_price(lower_tick), self._pool_price_unit),
-                               upper_quote_price=UnitDecimal(self.tick_to_price(upper_tick), self._pool_price_unit),
-                               base_amount_actual=UnitDecimal(base_used, self.base_token.name),
-                               quote_amount_actual=UnitDecimal(quote_used, self.quote_token.name),
-                               position=created_position,
-                               liquidity=int(liquidity)))
+        self.record_action(AddLiquidityAction(
+            market=self.market_info,
+            base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
+            quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
+            base_amount_max=UnitDecimal(base_max_amount, self.base_token.name),
+            quote_amount_max=UnitDecimal(quote_max_amount, self.quote_token.name),
+            lower_quote_price=UnitDecimal(self.tick_to_price(lower_tick), self._pool_price_unit),
+            upper_quote_price=UnitDecimal(self.tick_to_price(upper_tick), self._pool_price_unit),
+            base_amount_actual=UnitDecimal(base_used, self.base_token.name),
+            quote_amount_actual=UnitDecimal(quote_used, self.quote_token.name),
+            position=created_position,
+            liquidity=int(liquidity)))
         return created_position, base_used, quote_used, liquidity
 
     @float_param_formatter
@@ -680,7 +681,7 @@ class UniLpMarket(Market):
         }) + "\n"
         value += get_formatted_predefined("positions", STYLE["key"]) + "\n"
         df = position_dict_to_dataframe(self.positions)
-        if len(df.index)>0:
+        if len(df.index) > 0:
             value += position_dict_to_dataframe(self.positions).to_string()
         else:
             value += "Empty DataFrame"

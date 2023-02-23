@@ -141,16 +141,19 @@ class AccountStatus(AccountStatusCommon):
         result = [self.net_value]
         for balance in self.asset_balances.values():
             result.append(balance)
-        for market in self.market_status.values():
-            result.append(market.net_value)
+        for market, status in self.market_status.items():
+            for k, v in vars(status).items():
+                result.append(v)
         return result
 
     def get_names(self) -> List:
         result = ["net_value"]
         for asset in self.asset_balances.keys():
             result.append(asset.name)
-        for market in self.market_status.keys():
-            result.append(market.name)
+        for market, status in self.market_status.items():
+            base_name = market.name
+            for k, v in vars(status).items():
+                result.append(f"{base_name}.{k}")
         return result
 
     @staticmethod

@@ -1,11 +1,12 @@
 import unittest
 from datetime import date
 from typing import Dict
-
+import pickle
 import pandas as pd
 
 import demeter.indicator
 from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, Asset, UniLpMarket, MarketInfo, RowData
+from demeter.broker import BaseAction
 from demeter.download import ChainType
 
 pd.options.display.max_columns = None
@@ -26,6 +27,18 @@ class BuyOnSecond(Strategy):
     def on_bar(self, row_data: Dict[MarketInfo, RowData | pd.Series]):
         if row_data[test_market].row_id == 2:
             self.market1.buy(0.5)
+            pass
+
+
+class AddLiquidity(Strategy):
+    def on_bar(self, row_data: Dict[MarketInfo, RowData | pd.Series]):
+        if row_data[test_market].row_id == 2:
+            market: UniLpMarket = self.broker.markets[test_market]
+            market.add_liquidity(1000, 2000)
+            pass
+
+    def notify(self, action: BaseAction):
+        print(action)
 
 
 class WithSMA(Strategy):
@@ -88,7 +101,23 @@ class TestActuator(unittest.TestCase):
     def test_load_missing_data(self):
         actuator = Actuator(self.pool)
         actuator.data_path = "../data"
-        actuator.load_data(ChainType.Polygon.name,
-                           "0x45dda9cb7c25131df268515131f647d726f50608",
-                           date(2022, 7, 23),
-                           date(2022, 7, 24))
+        actuator.broker.market1.load_data(ChainType.Polygon.name,
+                                          "0x45dda9cb7c25131df268515131f647d726f50608",
+                                          date(2022, 7, 23),
+                                          date(2022, 7, 24))
+
+    def test_save_result(self):
+        actuator = self.get_one_actuator()
+        actuator.strategy = AddLiquidity()
+        actuator.run()
+        actuator.save_result("./result", account=False)
+
+    def test_load_pkl(self):
+        actuator = self.get_one_actuator()
+        actuator.strategy = AddLiquidity()
+        actuator.run()
+        files = actuator.save_result("./result", account=False)
+        file = filter(lambda x: ".pkl" in x, files)
+        with open(list(file)[0], "rb") as f:
+            xxx = pickle.load(f)
+            pass

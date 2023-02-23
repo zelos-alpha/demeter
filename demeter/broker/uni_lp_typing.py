@@ -71,6 +71,7 @@ class LiquidityBalance(MarketBalance):
     quote_uncollected: UnitDecimal
     base_in_position: UnitDecimal
     quote_in_position: UnitDecimal
+    position_count: int
 
     def get_output_str(self) -> str:
         """
@@ -79,9 +80,10 @@ class LiquidityBalance(MarketBalance):
         :rtype: str
         """
         return get_formatted_from_dict({
-            "total capital": f"{self.pool_net_value.to_str()}",
+            "total capital": self.pool_net_value.to_str(),
             "uncollect fee": f"{self.base_uncollected.to_str()},{self.quote_uncollected.to_str()}",
-            "in position amount": f"{self.base_in_position.to_str()},{self.quote_in_position.to_str()}"
+            "in position amount": f"{self.base_in_position.to_str()},{self.quote_in_position.to_str()}",
+            "position count": self.position_count.to_str()
         })
 
     def to_array(self):
@@ -90,6 +92,7 @@ class LiquidityBalance(MarketBalance):
             self.quote_uncollected,
             self.base_in_position,
             self.quote_in_position,
+            self.position_count
         ]
 
 
@@ -242,7 +245,9 @@ class AddLiquidityAction(UniLpBaseAction):
     quote_amount_actual: UnitDecimal
     position: PositionInfo
     liquidity: int
-    action_type = ActionTypeEnum.uni_lp_add_liquidity
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.uni_lp_add_liquidity
 
     def get_output_str(self) -> str:
         """
@@ -276,7 +281,9 @@ class CollectFeeAction(UniLpBaseAction):
     position: PositionInfo
     base_amount: UnitDecimal
     quote_amount: UnitDecimal
-    action_type = ActionTypeEnum.uni_lp_collect_fee
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.uni_lp_collect_fee
 
     def get_output_str(self) -> str:
         """
@@ -313,7 +320,9 @@ class RemoveLiquidityAction(UniLpBaseAction):
     quote_amount: UnitDecimal
     removed_liquidity: int
     remain_liquidity: int
-    action_type = ActionTypeEnum.uni_lp_remove_liquidity
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.uni_lp_remove_liquidity
 
     def get_output_str(self) -> str:
         """
@@ -353,7 +362,9 @@ class BuyAction(UniLpBaseAction):
     fee: UnitDecimal
     base_change: UnitDecimal
     quote_change: UnitDecimal
-    action_type = ActionTypeEnum.uni_lp_buy
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.uni_lp_buy
 
     def get_output_str(self) -> str:
         """
@@ -391,7 +402,9 @@ class SellAction(UniLpBaseAction):
     fee: UnitDecimal
     base_change: UnitDecimal
     quote_change: UnitDecimal
-    action_type = ActionTypeEnum.uni_lp_sell
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.uni_lp_sell
 
     def get_output_str(self):
         return f"""\033[1;37m{"Sell":<20}\033[0m""" + \
