@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
+from typing import Generic, TypeVar
 from typing import NamedTuple, List, Dict
 
 import pandas as pd
@@ -170,3 +171,60 @@ class AccountStatus(AccountStatusCommon):
 @dataclass
 class MarketStatus:
     timestamp: datetime | None
+
+
+T = TypeVar('T')
+
+
+class MarketDict(Generic[T]):
+    def __init__(self):
+        self.data: Dict[MarketInfo, T] = {}
+
+    def __getitem__(self, item) -> T:
+        return self.data[item]
+
+    def __setitem__(self, key: MarketInfo, value: T):
+        self.data[key] = value
+        setattr(self, key.name, value)
+
+    def items(self) -> (List[MarketInfo], List[T]):
+        return self.data.items()
+
+    def keys(self) -> List[MarketInfo]:
+        return self.data.keys()
+
+    def values(self) -> List[T]:
+        return self.data.values()
+
+    def __contains__(self, item):
+        return item in self.data
+
+    def __len__(self):
+        return len(self.data)
+
+
+class AssetDict:
+    def __init__(self):
+        self.data: Dict[TokenInfo, Asset] = {}
+
+    def __getitem__(self, item) -> Asset:
+        return self.data[item]
+
+    def __setitem__(self, key: TokenInfo, value: Asset):
+        self.data[key] = value
+        setattr(self, key.name, value)
+
+    def items(self) -> (List[TokenInfo], List[Asset]):
+        return self.data.items()
+
+    def keys(self) -> List[TokenInfo]:
+        return self.data.keys()
+
+    def values(self) -> List[Asset]:
+        return self.data.values()
+
+    def __contains__(self, item):
+        return item in self.data
+
+    def __len__(self):
+        return len(self.data)

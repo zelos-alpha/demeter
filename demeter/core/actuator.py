@@ -1,19 +1,18 @@
 import logging
 import os
+import pickle
 import time
 from datetime import datetime
-from enum import Enum
 from typing import List, Dict
+
 import orjson
-import pickle
 import pandas as pd
 from tqdm import tqdm  # process bar
 
 from .evaluating_indicator import Evaluator
 from .. import Broker, RowData, Asset
 from .._typing import DemeterError, EvaluatorEnum, UnitDecimal, PositionInfo
-from ..broker import UniLpMarket, BaseAction, AccountStatus, MarketInfo, ActionTypeEnum
-from ..broker.uni_lp_typing import AddLiquidityAction
+from ..broker import UniLpMarket, BaseAction, AccountStatus, MarketInfo, MarketDict
 from ..strategy import Strategy
 from ..utils import get_formatted_predefined, STYLE
 
@@ -256,15 +255,15 @@ class Actuator(object):
             if price_interval != data_interval[0]:
                 raise DemeterError("price list interval and data interval are not same")
 
-    def __get_market_row_dict(self, index, row_id) -> Dict[MarketInfo, RowData]:
-        markets_row = {}
+    def __get_market_row_dict(self, index, row_id) -> MarketDict:
+        market_dict = MarketDict()
         for market_key, market in self._broker.markets.items():
             market_row = RowData(index.to_pydatetime(), row_id)
             df_row = market.data.loc[index]
             for column_name in df_row.index:
                 setattr(market_row, column_name, df_row[column_name])
-            markets_row[market_key] = market_row
-        return markets_row
+            market_dict[market_key] = market_row
+        return market_dict
 
     def __set_row_to_markets(self, timestamp, market_row_dict: dict):
         for market_key, market_row_data in market_row_dict.items():

@@ -5,7 +5,7 @@ import pickle
 import pandas as pd
 
 import demeter.indicator
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, Asset, UniLpMarket, MarketInfo, RowData
+from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, Asset, UniLpMarket, MarketInfo, RowData, MarketDict
 from demeter.broker import BaseAction
 from demeter.download import ChainType
 
@@ -24,14 +24,14 @@ class EmptyStrategy(Strategy):
 
 
 class BuyOnSecond(Strategy):
-    def on_bar(self, row_data: Dict[MarketInfo, RowData | pd.Series]):
+    def on_bar(self, row_data: MarketDict[RowData | pd.Series]):
         if row_data[test_market].row_id == 2:
             self.market1.buy(0.5)
             pass
 
 
 class AddLiquidity(Strategy):
-    def on_bar(self, row_data: Dict[MarketInfo, RowData | pd.Series]):
+    def on_bar(self, row_data: MarketDict[RowData | pd.Series]):
         if row_data[test_market].row_id == 2:
             market: UniLpMarket = self.broker.markets[test_market]
             market.add_liquidity(1000, 2000)

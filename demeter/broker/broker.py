@@ -3,29 +3,28 @@ from typing import Dict
 
 import pandas as pd
 
+from ._typing import Asset, TokenInfo, AccountStatus, MarketDict, AssetDict
 from .market import Market
-from ._typing import Asset, TokenInfo, MarketInfo, AccountStatus
 from .._typing import DemeterError, UnitDecimal
-
-from ..utils import get_formatted_from_dict, get_formatted_predefined, ForColorEnum, BackColorEnum, ModeEnum, STYLE, \
+from ..utils import get_formatted_from_dict, get_formatted_predefined, STYLE, \
     float_param_formatter
 
 
 class Broker:
     def __init__(self, allow_negative_balance=False, record_action_callback=None):
         self.allow_negative_balance = allow_negative_balance
-        self._assets: {TokenInfo: Asset} = {}
-        self._markets: {MarketInfo: Market} = {}
+        self._assets: AssetDict = AssetDict()
+        self._markets: MarketDict[Market] = MarketDict()
         self._record_action_callback = record_action_callback
 
     # region properties
 
     @property
-    def markets(self) -> Dict[MarketInfo, Market]:
+    def markets(self) -> MarketDict[Market]:
         return self._markets
 
     @property
-    def assets(self) -> Dict[TokenInfo, Asset]:
+    def assets(self) -> AssetDict[Asset]:
         return self._assets
 
     @property
@@ -62,7 +61,6 @@ class Broker:
         self._markets[market.market_info] = market
         market.broker = self
         market._record_action_callback = self._record_action_callback
-        setattr(self, market.market_info.name, market)
 
     @float_param_formatter
     def add_to_balance(self, token: TokenInfo, amount: Decimal | float):
@@ -102,7 +100,6 @@ class Broker:
 
     def __add_asset(self, token: TokenInfo) -> Asset:
         self._assets[token] = Asset(token, 0)
-        setattr(self, token.name, token)  # add shortcut for token, such as broker.usdc
         return self._assets[token]
 
     def get_token_balance(self, token: TokenInfo):

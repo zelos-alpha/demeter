@@ -145,9 +145,9 @@ class TestUniLpMarket(unittest.TestCase):
 
     def test_item_as_property(self):
         broker = self.get_broker()
-        self.assertEqual(broker.markets[test_market], broker.market1)
-        self.assertEqual(broker.assets[self.usdc], broker.usdc)
-        self.assertEqual(broker.assets[self.eth], broker.eth)
+        self.assertEqual(broker.markets[test_market], broker.markets.market1)
+        self.assertEqual(broker.assets[self.usdc], broker.assets.usdc)
+        self.assertEqual(broker.assets[self.eth], broker.assets.eth)
 
     def test_print_broker(self):
         broker = self.get_broker()
@@ -162,7 +162,7 @@ class TestUniLpMarket(unittest.TestCase):
 
     def test_add_Liquidity_use_all_balance(self):
         broker = self.get_broker()
-        market: UniLpMarket = broker.market1
+        market: UniLpMarket = broker.markets.market1
         # should use all the balance
         (new_position, base_used, quote_used, liquidity) = market._add_liquidity_by_tick(market.market_status.price,
                                                                                          Decimal(1),
