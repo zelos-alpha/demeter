@@ -373,6 +373,8 @@ class Actuator(object):
             print(self._evaluator.result)
 
     def save_result(self, path: str, account=True, actions=True) -> List[str]:
+        if not self.__backtest_finished:
+            raise DemeterError("Please run strategy first")
         file_name_head = "backtest-" + datetime.now().strftime('%Y%m%d-%H%M%S')
         if not os.path.exists(path):
             os.mkdir(path)

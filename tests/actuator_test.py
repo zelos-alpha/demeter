@@ -99,12 +99,17 @@ class TestActuator(unittest.TestCase):
         actuator.run()
 
     def test_load_missing_data(self):
-        actuator = Actuator(self.pool)
-        actuator.data_path = "../data"
-        actuator.broker.market1.load_data(ChainType.Polygon.name,
-                                          "0x45dda9cb7c25131df268515131f647d726f50608",
-                                          date(2022, 7, 23),
-                                          date(2022, 7, 24))
+        pool = UniV3Pool(usdc, eth, 0.05, usdc)
+        market = UniLpMarket(test_market, pool)
+        actuator: Actuator = Actuator()  # declare actuator
+        broker = actuator.broker
+        broker.add_market(market)
+
+        market.data_path = "../data"
+        market.load_data(ChainType.Polygon.name,
+                         "0x45dda9cb7c25131df268515131f647d726f50608",
+                         date(2022, 7, 23),
+                         date(2022, 7, 24))
 
     def test_save_result(self):
         actuator = self.get_one_actuator()
@@ -120,4 +125,6 @@ class TestActuator(unittest.TestCase):
         file = filter(lambda x: ".pkl" in x, files)
         with open(list(file)[0], "rb") as f:
             xxx = pickle.load(f)
-            pass
+            self.assertEqual(actuator._action_list[0].lower_quote_price, xxx[0].lower_quote_price)
+            self.assertEqual(actuator._action_list[0].action_type, xxx[0].action_type)
+            self.assertEqual(actuator._action_list[0].timestamp, xxx[0].timestamp)

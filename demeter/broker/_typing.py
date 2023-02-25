@@ -95,11 +95,11 @@ class ActionTypeEnum(Enum):
     * sell = 4,
     * collect_fee = 5
     """
-    uni_lp_add_liquidity = 1,
-    uni_lp_remove_liquidity = 2,
-    uni_lp_buy = 3,
-    uni_lp_sell = 4,
-    uni_lp_collect_fee = 5
+    uni_lp_add_liquidity = "add_liquidity"
+    uni_lp_remove_liquidity = "remove_liquidity"
+    uni_lp_buy = "buy"
+    uni_lp_sell = "sell"
+    uni_lp_collect = "collect"
 
 
 @dataclass

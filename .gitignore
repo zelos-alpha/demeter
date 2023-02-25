@@ -146,3 +146,4 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 demeter/*.pkl
+/tests/result/

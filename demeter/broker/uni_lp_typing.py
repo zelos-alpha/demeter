@@ -283,7 +283,7 @@ class CollectFeeAction(UniLpBaseAction):
     quote_amount: UnitDecimal
 
     def set_type(self):
-        self.action_type = ActionTypeEnum.uni_lp_collect_fee
+        self.action_type = ActionTypeEnum.uni_lp_collect
 
     def get_output_str(self) -> str:
         """
