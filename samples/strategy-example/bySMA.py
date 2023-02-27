@@ -1,11 +1,16 @@
 from datetime import date, timedelta
 
+import pandas as pd
+
 import demeter.indicator
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, Asset, BuyAction, SellAction, ChainType, PeriodTrigger
+from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, ChainType, PeriodTrigger, \
+    MarketInfo, UniLpMarket, MarketDict, RowData
 from strategy_ploter import plot_position_return_decomposition
 
+pd.options.display.max_columns = None
+pd.set_option('display.width', 5000)
 
-class AddLpByMa(Strategy):
+class AddLiquidityByMA(Strategy):
     """
     We will provide liquidity according simple moving average,
     The liquidity position will be [pa − price_width, pa + price_width].
@@ -17,49 +22,51 @@ class AddLpByMa(Strategy):
     and provide liquidity by the rules above.
 
     """
-    price_width = None
 
     def __init__(self, price_width=100):
         super().__init__()
         self.price_width = price_width
 
     def initialize(self):
-        self._add_column("ma5", demeter.indicator.simple_moving_average(self.data.price, timedelta(hours=5)))
+        market: UniLpMarket = self.broker.markets[market_key]
+        self._add_column(market, "ma5",
+                         demeter.indicator.simple_moving_average(self.data.default.price, timedelta(hours=5)))
         self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=1),
                                            trigger_immediately=True,
                                            do=self.work))
 
-    def work(self, row_data):
-        if len(self.broker.positions) > 0:
-            self.broker.remove_all_liquidity()
-            self.broker.even_rebalance(row_data.price)
-        ma_price = row_data.ma5 if row_data.ma5 > 0 else row_data.price
-        self.add_liquidity(ma_price - self.price_width,
-                           ma_price + self.price_width)
-
-    def notify_buy(self, action: BuyAction):
-        print(action.get_output_str(), action.base_balance_after / action.quote_balance_after)
-
-    def notify_sell(self, action: SellAction):
-        print(action.get_output_str(), action.base_balance_after / action.quote_balance_after)
+    def work(self, row_data: MarketDict[RowData | pd.Series]):
+        market: UniLpMarket = self.broker.markets[market_key]
+        if len(market.positions) > 0:
+            market.remove_all_liquidity()
+            market.even_rebalance(row_data.default.price)
+        ma_price = row_data.default.ma5 if row_data.default.ma5 > 0 else row_data.default.price
+        market.add_liquidity(ma_price - self.price_width,
+                             ma_price + self.price_width)
 
 
 if __name__ == "__main__":
-    eth = TokenInfo(name="eth", decimal=18)
-    usdc = TokenInfo(name="usdc", decimal=6)
-    pool = UniV3Pool(usdc, eth, 0.05, usdc)
+    usdc = TokenInfo(name="usdc", decimal=6)  # declare  token0
+    eth = TokenInfo(name="eth", decimal=18)  # declare token1
+    pool = UniV3Pool(usdc, eth, 0.05, usdc)  # declare pool
+    market_key = MarketInfo("uni_market")
 
-    actuator_instance = Actuator(pool)
-    actuator_instance.strategy = AddLpByMa(200)
-    actuator_instance.set_assets([Asset(usdc, 2000)])
-    actuator_instance.data_path = "../data"
-    actuator_instance.load_data(ChainType.Polygon.name,
-                                "0x45dda9cb7c25131df268515131f647d726f50608",
-                                date(2022, 8, 5),
-                                date(2022, 8, 20))
-    actuator_instance.run(enable_notify=False)
-    print(actuator_instance.final_status.net_value)
+    actuator = Actuator()  # declare actuator
+    broker = actuator.broker
+    market = UniLpMarket(market_key, pool)
 
-    actuator_instance.broker.get_account_status(actuator_instance.final_status.price)
+    broker.add_market(market)
+    broker.set_balance(usdc, 2000)
+    broker.set_balance(eth, 0)
 
-    plot_position_return_decomposition(actuator_instance._account_status_list)
+    actuator.strategy = AddLiquidityByMA(200)
+
+    market.data_path = "../data"
+    market.load_data(ChainType.Polygon.name,
+                     "0x45dda9cb7c25131df268515131f647d726f50608",
+                     date(2022, 8, 5),
+                     date(2022, 8, 20))
+    actuator.set_price(market.get_price_from_data())
+    actuator.run()  # run test
+
+    plot_position_return_decomposition(actuator.get_account_status_dataframe(), actuator.token_prices[eth.name], market_key)
