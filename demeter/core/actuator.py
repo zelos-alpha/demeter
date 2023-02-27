@@ -263,6 +263,7 @@ class Actuator(object):
             for column_name in df_row.index:
                 setattr(market_row, column_name, df_row[column_name])
             market_dict[market_key] = market_row
+        market_dict.set_default_key(self.broker.markets.get_default_key())
         return market_dict
 
     def __set_row_to_markets(self, timestamp, market_row_dict: dict):
@@ -408,7 +409,11 @@ class Actuator(object):
         if not isinstance(self._strategy, Strategy):
             raise DemeterError("strategy must be inherit from Strategy")
         self._strategy.broker = self._broker
-        self._strategy.data = {k: v.data for k, v in self.broker.markets.items()}
+        market_datas = MarketDict()
+        for k, v in self.broker.markets.items():
+            market_datas[k] = v.data
+        market_datas.set_default_key(self.broker.markets.get_default_key())
+        self._strategy.data = market_datas
         self._strategy.account_status = self._account_status_list
         self._strategy.get_account_status_dataframe = self.get_account_status_dataframe
         for k, v in self.broker.markets.items():

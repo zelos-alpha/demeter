@@ -44,6 +44,5 @@ if __name__ == "__main__":
     actuator.run()
     t2 = time.time()
     print(f"process time {t2 - t1}s")
-    actuator.output()
     # for status: AccountStatus in actuator.account_status_list:
     #     print(status)

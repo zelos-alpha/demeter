@@ -1,9 +1,9 @@
 import datetime
+import random
+from dataclasses import dataclass
 from typing import List
 
 import requests
-from dataclasses import dataclass
-import random
 
 from .._typing import EthError
 
@@ -13,7 +13,7 @@ class GetLogsParam:
     address: str
     fromBlock: int
     toBlock: int
-    topics: List[str]
+    topics: List[str] | None
 
 
 class EthRequestClient:

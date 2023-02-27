@@ -13,7 +13,7 @@ from ..utils import get_formatted_from_dict, get_formatted_predefined, STYLE, \
 class Broker:
     def __init__(self, allow_negative_balance=False, record_action_callback=None):
         self.allow_negative_balance = allow_negative_balance
-        self._assets: AssetDict = AssetDict()
+        self._assets: AssetDict[Asset] = AssetDict()
         self._markets: MarketDict[Market] = MarketDict()
         self._record_action_callback = record_action_callback
 
@@ -113,8 +113,11 @@ class Broker:
 
     def get_account_status(self, prices: pd.Series | Dict[str, Decimal], timestamp=None):
         account_status = AccountStatus(timestamp=timestamp)
-        account_status.market_status = {k: v.get_market_balance(prices) for k, v in self.markets.items()}
-        account_status.asset_balances = {k: v.balance for k, v in self.assets.items()}
+        for k, v in self.markets.items():
+            account_status.market_status[k] = v.get_market_balance(prices)
+        account_status.market_status.set_default_key(self.markets.get_default_key())
+        for k, v in self.assets.items():
+            account_status.asset_balances[k] = v.balance
         asset_sum = sum([v * prices[k.name] for k, v in account_status.asset_balances.items()])
         market_sum = sum([v.net_value for v in account_status.market_status.values()])
         account_status.net_value = asset_sum + market_sum

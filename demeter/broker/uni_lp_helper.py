@@ -54,5 +54,5 @@ def quote_price_to_sqrt(based_price: Decimal, token_0_decimal: int, token_1_deci
     return decimal_to_x96(decimal_price)
 
 
-def from_wei(token_amt: int, decimal: int):
-    return Decimal(token_amt) / Decimal(10 ** decimal)
+def from_wei(token_amt: int, decimal: int) -> Decimal:
+    return Decimal(int(token_amt)) / Decimal(10 ** decimal)

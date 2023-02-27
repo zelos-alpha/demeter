@@ -1,15 +1,20 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict
 
 import pandas as pd
 
+from .. import MarketDict
 from .._typing import DemeterError
-from ..broker import MarketInfo, RowData
+from ..broker import RowData
 
 
 def to_minute(time: datetime) -> datetime:
     return datetime(time.year, time.month, time.day, time.hour, time.minute)
+
+"""
+Note: in current version, all the market data should have the same index, which means the same timestamp range and
+ interval, so we choose timestamp in default market to trigger actions. 
+"""
 
 
 class Trigger:
@@ -18,13 +23,13 @@ class Trigger:
         self.kwargs = kwargs
         self.args = args
 
-    def when(self, row_data: Dict[MarketInfo,RowData] | pd.Series) -> bool:
+    def when(self, row_data: MarketDict[RowData | pd.Series]) -> bool:
         return False
 
-    def do_nothing(self, row_data: Dict[MarketInfo,RowData] | pd.Series, *args, **kwargs):
+    def do_nothing(self, row_data: MarketDict[RowData | pd.Series], *args, **kwargs):
         pass
 
-    def do(self, row_data: Dict[MarketInfo,RowData] | pd.Series):
+    def do(self, row_data: MarketDict[RowData | pd.Series]):
         return self._do(row_data, *self.args, **self.kwargs)
 
 
@@ -33,8 +38,8 @@ class AtTimeTrigger(Trigger):
         self._time = to_minute(time)
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: Dict[MarketInfo,RowData] | pd.Series) -> bool:
-        return row_data.timestamp == self._time
+    def when(self, row_data: MarketDict[RowData | pd.Series]) -> bool:
+        return row_data.default.timestamp == self._time
 
 
 class AtTimesTrigger(Trigger):
@@ -42,8 +47,8 @@ class AtTimesTrigger(Trigger):
         self._time = [to_minute(t) for t in time]
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: Dict[MarketInfo,RowData] | pd.Series) -> bool:
-        return self._time in row_data.timestamp
+    def when(self, row_data: MarketDict[RowData | pd.Series]) -> bool:
+        return self._time in row_data.default.timestamp
 
 
 @dataclass
@@ -57,8 +62,8 @@ class TimeRangeTrigger(Trigger):
         self._time_range = TimeRange(to_minute(time_range.start), to_minute(time_range.end))
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: Dict[MarketInfo,RowData] | pd.Series) -> bool:
-        return self._time_range.start <= row_data.timestamp < self._time_range.end
+    def when(self, row_data: MarketDict[RowData | pd.Series]) -> bool:
+        return self._time_range.start <= row_data.default.timestamp < self._time_range.end
 
 
 class TimeRangesTrigger(Trigger):
@@ -66,9 +71,9 @@ class TimeRangesTrigger(Trigger):
         self._time_range: [TimeRange] = [TimeRange(to_minute(t.start), to_minute(t.end)) for t in time_range]
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: Dict[MarketInfo,RowData] | pd.Series) -> bool:
+    def when(self, row_data: MarketDict[RowData | pd.Series]) -> bool:
         for r in self._time_range:
-            if r.start <= row_data.timestamp < r.end:
+            if r.start <= row_data.default.timestamp < r.end:
                 return True
         return False
 
@@ -89,12 +94,12 @@ class PeriodTrigger(Trigger):
     def reset(self):
         self._next_match = None
 
-    def when(self, row_data: Dict[MarketInfo,RowData] | pd.Series) -> bool:
+    def when(self, row_data: MarketDict[RowData | pd.Series]) -> bool:
         if self._next_match is None:
-            self._next_match = row_data.timestamp + self._delta
+            self._next_match = row_data.default.timestamp + self._delta
             return self._trigger_immediately
 
-        if self._next_match == row_data.timestamp:
+        if self._next_match == row_data.default.timestamp:
             self._next_match = self._next_match + self._delta
             return True
 
@@ -112,15 +117,15 @@ class PeriodsTrigger(Trigger):
         super().__init__(do, *args, **kwargs)
 
     def reset(self):
-        self._next_matches = [None for _ in self._delta]
+        self._next_matches = [None for _ in self._deltas]
 
-    def when(self, row_data: Dict[MarketInfo,RowData] | pd.Series) -> bool:
+    def when(self, row_data: MarketDict[RowData | pd.Series]) -> bool:
         if self._next_matches[0] is None:
-            self._next_matches = [row_data.timestamp + d for d in self._delta]
+            self._next_matches = [row_data.default.timestamp + d for d in self._deltas]
             return self._trigger_immediately
 
         for i in range(len(self._deltas)):
-            if self._next_matches[i] == row_data.timestamp:
+            if self._next_matches[i] == row_data.default.timestamp:
                 self._next_matches[i] = self._next_matches[i] + self._deltas[i]
                 return True
 

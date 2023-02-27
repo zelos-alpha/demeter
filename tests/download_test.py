@@ -2,11 +2,10 @@ import datetime
 import unittest
 from datetime import date, datetime
 
-from demeter import EthError
-from demeter.download import ChainType
-from demeter.download import downloader, source_bigquery
 import pandas
 
+from demeter import EthError
+from demeter.download import ChainType, process_raw_data, downloader
 from demeter.download.eth_req import EthRequestClient, GetLogsParam
 
 
@@ -14,8 +13,8 @@ class TestBigQuery(unittest.TestCase):
     def test_download(self):
         downloader.download_from_bigquery(ChainType.Polygon,
                                           "0x45dda9cb7c25131df268515131f647d726f50608",
-                                          date(2022,10,19),
-                                          date(2022,10,20),
+                                          date(2022, 10, 19),
+                                          date(2022, 10, 20),
                                           save_path="data"
                                           )
 
@@ -30,8 +29,8 @@ class TestBigQuery(unittest.TestCase):
 
     def test_process_data(self):
         df = pandas.read_csv("data/0x45dda9cb7c25131df268515131f647d726f50608-2022-07-01.csv")
-        newdf = source_bigquery.process_raw_data(df)
-        newdf.to_csv("data/test_processed_result.csv", header=True, index=False)
+        new_df = process_raw_data(df)
+        new_df.to_csv("data/test_processed_result.csv", header=True, index=False)
 
 
 class TestRpc(unittest.TestCase):
@@ -49,9 +48,10 @@ class TestRpc(unittest.TestCase):
         print(resp)
         self.assertEqual(resp, datetime(2022, 11, 29, 1, 51, 53))
 
-    def test_expection(self):
+    def test_exception(self):
         try:
             resp = self.tool.get_block_timestamp(-1)
+            print(resp)
         except EthError as e:
             print(e)
             self.assertTrue(e.code == -32602)

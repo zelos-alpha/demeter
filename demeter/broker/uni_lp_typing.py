@@ -47,7 +47,7 @@ class UniV3Pool(object):
 
 
 @dataclass
-class LiquidityBalance(MarketBalance):
+class UniLpBalance(MarketBalance):
     """
     current status of broker
 

@@ -33,12 +33,10 @@ class BuyOnSecond(Strategy):
 class AddLiquidity(Strategy):
     def on_bar(self, row_data: MarketDict[RowData | pd.Series]):
         if row_data[test_market].row_id == 2:
+            assert row_data.market1.row_id == row_data[test_market].row_id
             market: UniLpMarket = self.broker.markets[test_market]
             market.add_liquidity(1000, 2000)
             pass
-
-    def notify(self, action: BaseAction):
-        print(action)
 
 
 class WithSMA(Strategy):
@@ -110,6 +108,11 @@ class TestActuator(unittest.TestCase):
                          "0x45dda9cb7c25131df268515131f647d726f50608",
                          date(2022, 7, 23),
                          date(2022, 7, 24))
+
+    def test_add_liquidity(self):
+        actuator = self.get_one_actuator()
+        actuator.strategy = AddLiquidity()
+        actuator.run()
 
     def test_save_result(self):
         actuator = self.get_one_actuator()

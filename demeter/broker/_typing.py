@@ -134,9 +134,84 @@ class AccountStatusCommon:
 
 
 @dataclass
+class MarketStatus:
+    timestamp: datetime | None
+
+
+T = TypeVar('T')
+
+
+class MarketDict(Generic[T]):
+    def __init__(self):
+        self.data: Dict[MarketInfo, T] = {}
+        self._default: MarketInfo | None = None
+
+    def __getitem__(self, item) -> T:
+        return self.data[item]
+
+    def __setitem__(self, key: MarketInfo, value: T):
+        if len(self.data) == 0:
+            self._default = key
+        self.data[key] = value
+        setattr(self, key.name, value)
+
+    @property
+    def default(self) -> T:
+        return self.data[self._default]
+
+    def get_default_key(self):
+        return self._default
+
+    def set_default_key(self, value: MarketInfo):
+        self._default = value
+
+    def items(self) -> (List[MarketInfo], List[T]):
+        return self.data.items()
+
+    def keys(self) -> List[MarketInfo]:
+        return self.data.keys()
+
+    def values(self) -> List[T]:
+        return self.data.values()
+
+    def __contains__(self, item):
+        return item in self.data
+
+    def __len__(self):
+        return len(self.data)
+
+
+class AssetDict(Generic[T]):
+    def __init__(self):
+        self.data: Dict[TokenInfo, T] = {}
+
+    def __getitem__(self, item) -> T:
+        return self.data[item]
+
+    def __setitem__(self, key: TokenInfo, value: T):
+        self.data[key] = value
+        setattr(self, key.name, value)
+
+    def items(self) -> (List[TokenInfo], List[T]):
+        return self.data.items()
+
+    def keys(self) -> List[TokenInfo]:
+        return self.data.keys()
+
+    def values(self) -> List[T]:
+        return self.data.values()
+
+    def __contains__(self, item):
+        return item in self.data
+
+    def __len__(self):
+        return len(self.data)
+
+
+@dataclass
 class AccountStatus(AccountStatusCommon):
-    asset_balances: Dict[TokenInfo, Decimal] = field(default_factory=dict)
-    market_status: Dict[MarketInfo, MarketBalance] = field(default_factory=dict)
+    asset_balances: AssetDict[Decimal] = AssetDict()
+    market_status: MarketDict[MarketBalance] = MarketDict()
 
     def to_array(self) -> List:
         result = [self.net_value]
@@ -166,65 +241,3 @@ class AccountStatus(AccountStatusCommon):
                                 data=map(lambda d: d.to_array(), status_list))
         else:
             return pd.DataFrame()
-
-
-@dataclass
-class MarketStatus:
-    timestamp: datetime | None
-
-
-T = TypeVar('T')
-
-
-class MarketDict(Generic[T]):
-    def __init__(self):
-        self.data: Dict[MarketInfo, T] = {}
-
-    def __getitem__(self, item) -> T:
-        return self.data[item]
-
-    def __setitem__(self, key: MarketInfo, value: T):
-        self.data[key] = value
-        setattr(self, key.name, value)
-
-    def items(self) -> (List[MarketInfo], List[T]):
-        return self.data.items()
-
-    def keys(self) -> List[MarketInfo]:
-        return self.data.keys()
-
-    def values(self) -> List[T]:
-        return self.data.values()
-
-    def __contains__(self, item):
-        return item in self.data
-
-    def __len__(self):
-        return len(self.data)
-
-
-class AssetDict:
-    def __init__(self):
-        self.data: Dict[TokenInfo, Asset] = {}
-
-    def __getitem__(self, item) -> Asset:
-        return self.data[item]
-
-    def __setitem__(self, key: TokenInfo, value: Asset):
-        self.data[key] = value
-        setattr(self, key.name, value)
-
-    def items(self) -> (List[TokenInfo], List[Asset]):
-        return self.data.items()
-
-    def keys(self) -> List[TokenInfo]:
-        return self.data.keys()
-
-    def values(self) -> List[Asset]:
-        return self.data.values()
-
-    def __contains__(self, item):
-        return item in self.data
-
-    def __len__(self):
-        return len(self.data)

@@ -10,7 +10,7 @@ from .uni_lp_core import V3CoreLib
 from .uni_lp_data import fillna
 from .uni_lp_helper import tick_to_quote_price, quote_price_to_tick, quote_price_to_sqrt, tick_to_sqrtPriceX96
 from .uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
-from .uni_lp_typing import UniV3Pool, TokenInfo, BrokerAsset, Position, UniV3PoolStatus, LiquidityBalance, \
+from .uni_lp_typing import UniV3Pool, TokenInfo, BrokerAsset, Position, UniV3PoolStatus, UniLpBalance, \
     AddLiquidityAction, RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction, position_dict_to_dataframe
 from .._typing import PositionInfo, DemeterError, DECIMAL_0, UnitDecimal, DECIMAL_1
 from ..utils.application import float_param_formatter, to_decimal
@@ -212,12 +212,12 @@ class UniLpMarket(Market):
         net_value = (base_fee_sum + base_deposit_amount) * prices[self.base_token.name] + \
                     (quote_fee_sum + quote_deposit_amount) * prices[self.quote_token.name]
 
-        return LiquidityBalance(net_value=net_value,
-                                base_uncollected=UnitDecimal(base_fee_sum, self.base_token.name),
-                                quote_uncollected=UnitDecimal(quote_fee_sum, self.quote_token.name),
-                                base_in_position=UnitDecimal(base_deposit_amount, self.base_token.name),
-                                quote_in_position=UnitDecimal(quote_deposit_amount, self.quote_token.name),
-                                position_count=len(self._positions))
+        return UniLpBalance(net_value=net_value,
+                            base_uncollected=UnitDecimal(base_fee_sum, self.base_token.name),
+                            quote_uncollected=UnitDecimal(quote_fee_sum, self.quote_token.name),
+                            base_in_position=UnitDecimal(base_deposit_amount, self.base_token.name),
+                            quote_in_position=UnitDecimal(quote_deposit_amount, self.quote_token.name),
+                            position_count=len(self._positions))
 
     def tick_to_price(self, tick: int) -> Decimal:
         """

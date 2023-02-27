@@ -15,7 +15,7 @@ class Strategy(object):
 
     def __init__(self):
         self.broker: Broker = None
-        self.data: Dict[MarketInfo, pd.DataFrame] = {}
+        self.data: MarketDict[pd.DataFrame] = MarketDict()
         self.number_format = ".8g"
         self.triggers: [Trigger] = []
 
