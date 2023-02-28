@@ -313,7 +313,7 @@ class UniLpMarket(Market):
                       lower_quote_price: Decimal | float,
                       upper_quote_price: Decimal | float,
                       base_max_amount: Decimal | float = None,
-                      quote_max_amount: Decimal | float = None) -> (PositionInfo, Decimal, Decimal):
+                      quote_max_amount: Decimal | float = None) -> (PositionInfo, Decimal, Decimal, int):
         """
 
         add liquidity, then get a new position

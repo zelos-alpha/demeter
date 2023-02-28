@@ -1,10 +1,9 @@
-import unittest
-from typing import Union
 from datetime import timedelta, date
 
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, Asset, RowData, simple_moving_average, ChainType, \
-    MarketInfo, UniLpMarket, MarketDict
 import pandas as pd
+
+from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, RowData, simple_moving_average, ChainType, \
+    MarketInfo, UniLpMarket, MarketDict
 
 pd.options.display.max_columns = None
 pd.set_option('display.width', 5000)

@@ -35,7 +35,7 @@ def plot_position_return_decomposition(account_status: pd.DataFrame, price: pd.S
 
     value_ax.plot(time_ts, net_value_ts, 'g-', label="net value")
     value_ax.plot(time_ts, value_in_position, 'r-', label="value in position")
-    value_ax.plot(time_ts, value_in_account, 'b-', label=" value in broker account")
+    value_ax.plot(time_ts, value_in_account, 'b-', label="value in broker account")
     price_ax.plot(time_ts, price_ts, 'y-', label="price")
     fig.legend()
     fig.show()

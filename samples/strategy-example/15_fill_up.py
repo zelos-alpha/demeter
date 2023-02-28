@@ -6,6 +6,8 @@ from demeter import TokenInfo, UniV3Pool, Actuator, ChainType, MarketInfo, UniLp
     MarketDict, RowData
 from strategy_ploter import plot_position_return_decomposition
 
+pd.options.display.max_columns = None
+pd.set_option('display.width', 5000)
 
 class FillUp(Strategy):
 
