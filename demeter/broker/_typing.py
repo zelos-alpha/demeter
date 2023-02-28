@@ -210,8 +210,8 @@ class AssetDict(Generic[T]):
 
 @dataclass
 class AccountStatus(AccountStatusCommon):
-    asset_balances: AssetDict[Decimal] = AssetDict()
-    market_status: MarketDict[MarketBalance] = MarketDict()
+    asset_balances: AssetDict[Decimal] = field(default_factory=AssetDict)
+    market_status: MarketDict[MarketBalance] = field(default_factory=MarketDict)
 
     def to_array(self) -> List:
         result = [self.net_value]
@@ -229,7 +229,7 @@ class AccountStatus(AccountStatusCommon):
         for market, status in self.market_status.items():
             base_name = market.name
             for k, v in vars(status).items():
-                result.append(f"{base_name}.{k}")
+                result.append(f"{base_name}_{k}")
         return result
 
     @staticmethod

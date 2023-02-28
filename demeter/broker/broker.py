@@ -111,7 +111,7 @@ class Broker:
     def get_token_balance_with_unit(self, token: TokenInfo):
         return UnitDecimal(self.get_token_balance(token), token.name)
 
-    def get_account_status(self, prices: pd.Series | Dict[str, Decimal], timestamp=None):
+    def get_account_status(self, prices: pd.Series | Dict[str, Decimal], timestamp=None) -> AccountStatus:
         account_status = AccountStatus(timestamp=timestamp)
         for k, v in self.markets.items():
             account_status.market_status[k] = v.get_market_balance(prices)

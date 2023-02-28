@@ -184,26 +184,25 @@ class UniLpMarket(Market):
         if prices is None:
             pool_price = self._market_status.price
             prices = {
-                self.base_token.name: DECIMAL_1,
+                self.base_token.name: Decimal(1),
                 self.quote_token.name: self._market_status.price
             }
         else:
             pool_price = prices[self.quote_token.name] / prices[self.base_token.name]
-        base_fee_sum = DECIMAL_0
-        quote_fee_sum = DECIMAL_0
+
         sqrt_price = quote_price_to_sqrt(pool_price,
                                          self._pool.token0.decimal,
                                          self._pool.token1.decimal,
                                          self._is_token0_base)
-        deposit_amount0 = DECIMAL_0
-        deposit_amount1 = DECIMAL_0
+        base_fee_sum = Decimal(0)
+        quote_fee_sum = Decimal(0)
+        deposit_amount0 = Decimal(0)
+        deposit_amount1 = Decimal(0)
         for position_info, position in self._positions.items():
-            base_fee, quote_fee = self._convert_pair(position.pending_amount0,
-                                                     position.pending_amount1)
+            base_fee, quote_fee = self._convert_pair(position.pending_amount0, position.pending_amount1)
             base_fee_sum += base_fee
             quote_fee_sum += quote_fee
-            amount0, amount1 = V3CoreLib.get_token_amounts(self._pool, position_info, sqrt_price,
-                                                           position.liquidity)
+            amount0, amount1 = V3CoreLib.get_token_amounts(self._pool, position_info, sqrt_price, position.liquidity)
             deposit_amount0 += amount0
             deposit_amount1 += amount1
 
@@ -212,12 +211,13 @@ class UniLpMarket(Market):
         net_value = (base_fee_sum + base_deposit_amount) * prices[self.base_token.name] + \
                     (quote_fee_sum + quote_deposit_amount) * prices[self.quote_token.name]
 
-        return UniLpBalance(net_value=net_value,
-                            base_uncollected=UnitDecimal(base_fee_sum, self.base_token.name),
-                            quote_uncollected=UnitDecimal(quote_fee_sum, self.quote_token.name),
-                            base_in_position=UnitDecimal(base_deposit_amount, self.base_token.name),
-                            quote_in_position=UnitDecimal(quote_deposit_amount, self.quote_token.name),
-                            position_count=len(self._positions))
+        val = UniLpBalance(net_value=net_value,
+                           base_uncollected=UnitDecimal(base_fee_sum, self.base_token.name),
+                           quote_uncollected=UnitDecimal(quote_fee_sum, self.quote_token.name),
+                           base_in_position=UnitDecimal(base_deposit_amount, self.base_token.name),
+                           quote_in_position=UnitDecimal(quote_deposit_amount, self.quote_token.name),
+                           position_count=len(self._positions))
+        return val
 
     def tick_to_price(self, tick: int) -> Decimal:
         """

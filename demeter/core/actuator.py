@@ -337,7 +337,8 @@ class Actuator(object):
                 if first:
                     first = False
                 self._account_status_list.append(
-                    self._broker.get_account_status(self._token_prices.loc[timestamp_index], timestamp_index))
+                    self._broker.get_account_status(self._token_prices.loc[timestamp_index],
+                                                    timestamp_index))
                 # notify actions in current loop
                 self.notify(self.strategy, self._currents["actions"])
                 self._currents["actions"] = []
@@ -409,6 +410,7 @@ class Actuator(object):
         if not isinstance(self._strategy, Strategy):
             raise DemeterError("strategy must be inherit from Strategy")
         self._strategy.broker = self._broker
+        self._strategy.markets = self._broker.markets
         market_datas = MarketDict()
         for k, v in self.broker.markets.items():
             market_datas[k] = v.data

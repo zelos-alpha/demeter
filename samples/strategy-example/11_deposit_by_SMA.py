@@ -10,6 +10,7 @@ from strategy_ploter import plot_position_return_decomposition
 pd.options.display.max_columns = None
 pd.set_option('display.width', 5000)
 
+
 class AddLiquidityByMA(Strategy):
     """
     We will provide liquidity according simple moving average,
@@ -28,21 +29,21 @@ class AddLiquidityByMA(Strategy):
         self.price_width = price_width
 
     def initialize(self):
-        market: UniLpMarket = self.broker.markets[market_key]
-        self._add_column(market, "ma5",
+        lp_market: UniLpMarket = self.broker.markets[market_key]
+        self._add_column(lp_market, "ma5",
                          demeter.indicator.simple_moving_average(self.data.default.price, timedelta(hours=5)))
         self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=1),
                                            trigger_immediately=True,
                                            do=self.work))
 
     def work(self, row_data: MarketDict[RowData | pd.Series]):
-        market: UniLpMarket = self.broker.markets[market_key]
-        if len(market.positions) > 0:
-            market.remove_all_liquidity()
-            market.even_rebalance(row_data.default.price)
+        lp_market: UniLpMarket = self.broker.markets[market_key]
+        if len(lp_market.positions) > 0:
+            lp_market.remove_all_liquidity()
+            lp_market.even_rebalance(row_data.default.price)
         ma_price = row_data.default.ma5 if row_data.default.ma5 > 0 else row_data.default.price
-        market.add_liquidity(ma_price - self.price_width,
-                             ma_price + self.price_width)
+        lp_market.add_liquidity(ma_price - self.price_width,
+                                ma_price + self.price_width)
 
 
 if __name__ == "__main__":
@@ -69,4 +70,6 @@ if __name__ == "__main__":
     actuator.set_price(market.get_price_from_data())
     actuator.run()  # run test
 
-    plot_position_return_decomposition(actuator.get_account_status_dataframe(), actuator.token_prices[eth.name], market_key)
+    plot_position_return_decomposition(actuator.get_account_status_dataframe(),
+                                       actuator.token_prices[eth.name],
+                                       market_key)
