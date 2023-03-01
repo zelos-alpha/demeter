@@ -9,11 +9,22 @@ from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, RowData, ChainType
 pd.options.display.max_columns = None
 pd.set_option('display.width', 5000)
 
+"""
+* quick start
+* onbar/after bar, trigger, notify
+* perproties access
+* data and indicator
+* result 
+* actions
+
+"""
+
+"""
+This is a simple demo for strategy. In this strategy, We will provide liquidity at specific time.
+"""
 
 class MyFirstStrategy(Strategy):
-    """
-    This is a simple demo for strategy. In this strategy, We will provide liquidity at specific time.
-    """
+
 
     def initialize(self):
         """
@@ -48,10 +59,18 @@ if __name__ == "__main__":
     eth = TokenInfo(name="eth", decimal=18)  # declare token eth
     # Declare an Uniswap V3 pool. We will set the parameters according to the real pool on chain.
     pool = UniV3Pool(token0=usdc, token1=eth, fee=0.05, base_token=usdc)
+
     # Declare a market key, which will be used to find the corresponding market in broker
     market_key = MarketInfo("uni_market")
     # Declare the market,
     market = UniLpMarket(market_key, pool)
+    # load data for market. those data is prepared by download tool
+    market.data_path = "../data"  # set data path
+    market.load_data(chain=ChainType.Polygon.name,  # load data
+                     contract_addr="0x45dda9cb7c25131df268515131f647d726f50608",
+                     start_date=date(2022, 8, 20),
+                     end_date=date(2022, 8, 20))
+
     # Declare the Actuator, which controls the whole process
     actuator = Actuator()  # declare actuator
     # add market to broker
@@ -61,15 +80,10 @@ if __name__ == "__main__":
     actuator.broker.set_balance(eth, 10)
     # Set strategy to actuator
     actuator.strategy = MyFirstStrategy()  # set strategy to actuator
-    # load data for market. those data is prepared by download tool
-    market.data_path = "../data"  # set data path
-    market.load_data(ChainType.Polygon.name,  # load data
-                     "0x45dda9cb7c25131df268515131f647d726f50608",
-                     date(2022, 8, 20),
-                     date(2022, 8, 20))
     # Set price. Those price will be used in all markets.
     # Usually, you will have to find the price list from outer source.
     # Luckily, uniswap pool data contains price information. So UniLpMarket provides a function to retrieve price list.
     actuator.set_price(market.get_price_from_data())
     # run test, If you use default parameter, final fund status will be printed in console.
+
     actuator.run()

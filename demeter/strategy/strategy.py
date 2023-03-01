@@ -18,6 +18,7 @@ class Strategy(object):
         self.data: MarketDict[pd.DataFrame] = MarketDict()
         self.markets: MarketDict[Market] = MarketDict()
         self.number_format = ".8g"
+        self.prices: pd.DataFrame = None
         self.triggers: [Trigger] = []
 
     def initialize(self):

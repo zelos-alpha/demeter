@@ -27,18 +27,6 @@ class Broker:
     def assets(self) -> AssetDict[Asset]:
         return self._assets
 
-    @property
-    def assets_net_value(self):
-        return Decimal(0)
-
-    @property
-    def markets_net_value(self):
-        return Decimal(0)
-
-    @property
-    def net_value(self):
-        return self.assets_net_value + self.markets_net_value
-
     # endregion
 
     def __str__(self):

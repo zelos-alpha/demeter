@@ -416,6 +416,7 @@ class Actuator(object):
             market_datas[k] = v.data
         market_datas.set_default_key(self.broker.markets.get_default_key())
         self._strategy.data = market_datas
+        self._strategy.prices = self._token_prices
         self._strategy.account_status = self._account_status_list
         self._strategy.get_account_status_dataframe = self.get_account_status_dataframe
         for k, v in self.broker.markets.items():
