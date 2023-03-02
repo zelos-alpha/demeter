@@ -2,9 +2,7 @@ import unittest
 
 import pandas as pd
 
-from demeter import DemeterError
-from demeter.broker import LineTypeEnum
-from demeter.broker.uni_lp_data import resample, fillna
+from demeter.uniswap import LineTypeEnum, data
 
 
 class UniLpDataTest(unittest.TestCase):
@@ -28,7 +26,7 @@ class UniLpDataTest(unittest.TestCase):
                                 LineTypeEnum.inAmount0.name: series1,
                                 "s2": series2,
                                 "s3": series3}, index=index)
-        df = resample(df, "3T", agg={"s2": "sum"})
+        df = data.resample(df, "3T", agg={"s2": "sum"})
         self.assertEqual(df.iloc[0, 0], 2)
         self.assertEqual(df.iloc[1, 0], 5)
         self.assertEqual(df.iloc[0, 1], 3)
@@ -42,7 +40,7 @@ class UniLpDataTest(unittest.TestCase):
         index = pd.date_range('2022-9-6 8:0:0', periods=6, freq='T')
         series0 = pd.Series(range(6), index=index, name=LineTypeEnum.highestTick.name)  # predefined type
         df = pd.DataFrame(data=series0, index=index)
-        df = resample(df, "3T")
+        df = data.resample(df, "3T")
         print(df)
 
     def test_lines_fillna(self):
@@ -58,7 +56,7 @@ class UniLpDataTest(unittest.TestCase):
                                 "S2": series2,
                                 "S3": series3,
                                 LineTypeEnum.closeTick.name: seriesC}, index=index)
-        new_df = fillna(df, 0)
+        new_df = data.fillna(df, 0)
         print(new_df)
         self.assertEqual(new_df.iloc[2, 0], 8)
         self.assertEqual(new_df.iloc[2, 1], 0)

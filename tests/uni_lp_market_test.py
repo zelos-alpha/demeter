@@ -1,12 +1,13 @@
 import unittest
 from datetime import date
 from decimal import Decimal
+
 import pandas as pd
+
 import demeter
 from demeter import UniLpMarket, TokenInfo, UniV3Pool, UniV3PoolStatus, Broker, MarketInfo, ChainType
 
 test_market = MarketInfo("market1")
-
 
 
 class TestUniLpMarket(unittest.TestCase):
@@ -36,7 +37,7 @@ class TestUniLpMarket(unittest.TestCase):
                                                        price))
         broker.set_balance(self.eth, 1)
         broker.set_balance(self.usdc, price)
-        market.sqrt_price = demeter.broker.uni_lp_helper.tick_to_sqrtPriceX96(tick)
+        market.sqrt_price = demeter.uniswap.helper.tick_to_sqrtPriceX96(tick)
         return broker
 
     def check_type(self, broker):

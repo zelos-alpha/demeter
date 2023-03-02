@@ -1,12 +1,11 @@
+import pickle
 import unittest
 from datetime import date
-from typing import Dict
-import pickle
+
 import pandas as pd
 
 import demeter.indicator
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, Asset, UniLpMarket, MarketInfo, RowData, MarketDict
-from demeter.broker import BaseAction
+from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, UniLpMarket, MarketInfo, RowData, MarketDict
 from demeter.download import ChainType
 
 pd.options.display.max_columns = None

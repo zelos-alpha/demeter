@@ -7,7 +7,7 @@ from typing import Dict
 import pandas as pd
 from pandas import _typing as pd_typing
 
-from ._typing import Rule, RowData
+from ..broker import Rule, RowData
 
 DEFAULT_AGG_METHOD = "first"
 EMPTY_RULE = Rule(None, None, None)

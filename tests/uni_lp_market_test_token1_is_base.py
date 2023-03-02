@@ -2,10 +2,9 @@ import unittest
 
 import demeter
 from demeter import UniLpMarket, TokenInfo, UniV3Pool, UniV3PoolStatus, Broker, MarketInfo
-from pandas import Series
 from decimal import Decimal
 
-from demeter.broker.uni_lp_helper import tick_to_quote_price
+from demeter.uniswap.helper import tick_to_quote_price
 
 test_market = MarketInfo("market1")
 
@@ -33,7 +32,7 @@ class TestUniLpMarketToken1Base(unittest.TestCase):
 
         broker.set_balance(self.eth, 1)
         broker.set_balance(self.usdc, price)
-        market.sqrt_price = demeter.broker.uni_lp_helper.tick_to_sqrtPriceX96(tick)
+        market.sqrt_price = demeter.uniswap.helper.tick_to_sqrtPriceX96(tick)
 
         # https://etherscan.io/address/0x4e68ccd3e89f51c3074ca5072bbac773960dfa36#readContract
         return broker

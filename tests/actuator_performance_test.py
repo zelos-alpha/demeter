@@ -1,9 +1,9 @@
+import time
 from datetime import datetime, date
 from decimal import Decimal
 
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, Asset, ChainType, UniLpMarket, MarketInfo
-from demeter.broker.uni_lp_liquitidy_math import get_sqrt_ratio_at_tick
-import time
+from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, ChainType, UniLpMarket, MarketInfo
+from demeter.uniswap.liquitidy_math import get_sqrt_ratio_at_tick
 
 test_market = MarketInfo("uni_market")
 

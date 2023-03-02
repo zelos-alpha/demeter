@@ -5,8 +5,8 @@ from typing import Dict
 
 import pandas as pd
 
-from ._typing import BaseAction, ActionTypeEnum, MarketBalance, MarketStatus
 from .._typing import TokenInfo, DemeterError, UnitDecimal, PositionInfo
+from ..broker import BaseAction, ActionTypeEnum, MarketBalance, MarketStatus
 from ..utils import get_formatted_from_dict
 
 

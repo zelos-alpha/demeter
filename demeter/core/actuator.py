@@ -12,7 +12,8 @@ from tqdm import tqdm  # process bar
 from .evaluating_indicator import Evaluator
 from .. import Broker, RowData, Asset
 from .._typing import DemeterError, EvaluatorEnum, UnitDecimal, PositionInfo
-from ..broker import UniLpMarket, BaseAction, AccountStatus, MarketInfo, MarketDict
+from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict
+from ..uniswap import UniLpMarket
 from ..strategy import Strategy
 from ..utils import get_formatted_predefined, STYLE
 
@@ -123,8 +124,7 @@ class Actuator(object):
         """
         Broker manage assets in back testing. Including asset, positions. it also provides operations for positions,
 
-        :return: Broker
-        :rtype: UniLpMarket
+
         """
         return self._broker
 
