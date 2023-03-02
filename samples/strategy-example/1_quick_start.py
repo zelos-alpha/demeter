@@ -9,15 +9,7 @@ from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, RowData, ChainType
 pd.options.display.max_columns = None
 pd.set_option('display.width', 5000)
 
-"""
-* quick start
-* onbar/after bar, trigger, notify
-* perproties access
-* data and indicator
-* result 
-* actions
 
-"""
 
 """
 This is a simple demo for strategy. In this strategy, We will provide liquidity at specific time.
