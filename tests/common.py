@@ -2,7 +2,7 @@ def assert_equal_with_error(a, b, allowed_error=0.0005):
     if a == b == 0:
         return True
     base = a if a != 0 else b
-    error = (a - b) / base
+    error = abs((a - b) / base)
     return error < allowed_error
 
 
