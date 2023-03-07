@@ -37,10 +37,8 @@ class Broker:
         """
         Set a new market to broker,
         User should initialize market before set to broker(Because there are too many initial parameters)
-        :param market_info:
-        :type market_info:
-        :param market:
-        :type market:
+        :param market: market
+        :type market: Market
         :return:
         :rtype:
         """
@@ -123,14 +121,3 @@ class Broker:
         for market in self._markets.values():
             str_to_print += market.formatted_str() + "\n"
         return str_to_print
-        # get_formatted_from_dict({
-        #     "price": self.price.to_str(),
-        #     "fee": self.fee.to_str(),
-        #     "balance": f"{self.base_balance_after.to_str()}(-{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_change.to_str()})"
-        # })
-        # for market in self.broker.markets.values():
-        #
-        # return "Assets/n" + \
-        #
-        #     "assets: " + ",".join([f"({v})" for k, v in self._assets.items()]) + \
-        #     "; markets: " + ",".join([f"({v})" for k, v in self.markets.items()])

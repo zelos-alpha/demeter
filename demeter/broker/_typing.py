@@ -90,11 +90,11 @@ class ActionTypeEnum(Enum):
     """
     Trade types
 
-    * add_liquidity = 1,
-    * remove_liquidity = 2,
-    * buy = 3,
-    * sell = 4,
-    * collect_fee = 5
+    * add_liquidity,
+    * remove_liquidity,
+    * buy,
+    * sell,
+    * collect_fee
     """
     uni_lp_add_liquidity = "add_liquidity"
     uni_lp_remove_liquidity = "remove_liquidity"
@@ -108,7 +108,9 @@ class BaseAction(object):
     """
     Parent class of broker actions,
 
-    :param trade_type: action type
+    :param market: market
+    :type market: MarketInfo
+    :param action_type: action type
     :type action_type: ActionTypeEnum
     :param timestamp: action time
     :type timestamp: datetime

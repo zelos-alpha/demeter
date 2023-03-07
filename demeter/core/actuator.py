@@ -62,10 +62,18 @@ class Actuator(object):
     # region property
     @property
     def account_status(self) -> List[AccountStatus]:
+        """
+        account status of all market,
+        """
         return self._account_status_list
 
     @property
     def token_prices(self):
+        """
+        price of all token
+        :return:
+        :rtype:
+        """
         return self._token_prices
 
     @property
@@ -375,6 +383,17 @@ class Actuator(object):
             print(self._evaluator)
 
     def save_result(self, path: str, account=True, actions=True) -> List[str]:
+        """
+        save back test result
+        :param path: path to save
+        :type path: str
+        :param account: Save account status or not
+        :type account: bool
+        :param actions: Save actions or not
+        :type actions: bool
+        :return:
+        :rtype:
+        """
         if not self.__backtest_finished:
             raise DemeterError("Please run strategy first")
         file_name_head = "backtest-" + datetime.now().strftime('%Y%m%d-%H%M%S')

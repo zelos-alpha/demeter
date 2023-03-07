@@ -37,6 +37,11 @@ class Market:
 
     @property
     def data(self):
+        """
+        data got from uniswap pool
+        :return:
+        :rtype:
+        """
         return self._data
 
     @data.setter
@@ -55,6 +60,11 @@ class Market:
         pass
 
     def update(self):
+        """
+        update status various in markets. eg. liquidity fees of uniswap
+        :return:
+        :rtype:
+        """
         pass
 
     @property
@@ -62,12 +72,26 @@ class Market:
         return self._market_status
 
     def set_market_status(self, timestamp: datetime, data: pd.Series | MarketStatus):
+        """
+        set up market status, such as liquidity, price
+        :param timestamp: current timestamp
+        :type timestamp: datetime
+        :param data: market status
+        :type data: pd.Series | MarketStatus
+        """
         if isinstance(data, MarketStatus):
             self._market_status = data
         else:
             self._market_status = MarketStatus(timestamp)
 
     def get_market_balance(self, prices: pd.Series | Dict[str, Decimal]) -> MarketBalance:
+        """
+        get market asset balance
+        :param prices: current price of each token
+        :type prices: pd.Series | Dict[str, Decimal]
+        :return:
+        :rtype:
+        """
         return MarketBalance(DECIMAL_0)
 
     def check_before_test(self):

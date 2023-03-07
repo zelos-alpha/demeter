@@ -34,6 +34,13 @@ def __get_benchmark_asset(self, net_value, price):
 
 
 def max_draw_down(value: pd.Series):
+    """
+    get max draw down
+    :param value: value to calculate
+    :type value: pd.Series
+    :return:
+    :rtype:
+    """
     value.index = range(len(value.index))  # restruct index to access faster
     result = 0
     for index, row in value.iteritems():
@@ -44,6 +51,13 @@ def max_draw_down(value: pd.Series):
 
 
 def max_draw_down_fast(value: pd.Series):
+    """
+    get max draw down in a fast algorithm.
+    :param value: value to calculate
+    :type value:  pd.Series
+    :return:
+    :rtype:
+    """
     max_value, idx_h, idx_l = _withdraw_with_high_low(value.to_list())
     return (value.iloc[idx_h] - value.iloc[idx_l]) / value.iloc[idx_h]
 

@@ -98,7 +98,7 @@ class UniLpMarket(Market):
 
         :param position_info: position information
         :type position_info: PositionInfo
-        :return: Position
+        :return: Position entity
         :rtype: Position
         """
         return self._positions[position_info]
@@ -172,11 +172,10 @@ class UniLpMarket(Market):
         """
         get current status, including positions, balances
 
-        :param price: current price, used for calculate position value and net value, if set to None, will use price in current status
-        :type price: {TokenInfo: Decimal}
-        :param timestamp: current timestamp, default is none, this parameter is useless, unless you want to convert a DepositBalance list to Dataframe, timestamp will be used as an index
-        :type timestamp: datetime
-        :return: BrokerStatus
+        :param prices: current price, used for calculate position value and net value, if set to None, will use price in current status
+        :type prices: pd.Series | Dict[str, Decimal]
+
+        :return: MarketBalance
         """
         if prices is None:
             pool_price = self._market_status.price
