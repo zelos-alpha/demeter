@@ -55,7 +55,7 @@ class DemoStrategy(Strategy):
                                            trigger_immediately=True,
                                            do=self.rebalance))
 
-    def rebalance(self, row_data: MarketDict[RowData | pd.Series]):
+    def rebalance(self, row_data: MarketDict[RowData]):
         self.markets[market_key].even_rebalance(row_data[market_key].price)
 
     """
@@ -63,14 +63,14 @@ class DemoStrategy(Strategy):
     Here you can set conditions and execute liquidity operations 
     """
 
-    def before_bar(self, row_data: MarketDict[RowData | pd.Series]):
+    def before_bar(self, row_data: MarketDict[RowData]):
         """
         This function is called before every thing
         """
         timestamp = row_data[market_key].timestamp
         self.net_value_before_bar = self.broker.get_account_status(self.prices.loc[timestamp]).net_value
 
-    def on_bar(self, row_data: MarketDict[RowData | pd.Series]):
+    def on_bar(self, row_data: MarketDict[RowData]):
         """
         This function is called after trigger, but before market is updated(Fees will be distributed in this step).
         """
@@ -88,7 +88,7 @@ class DemoStrategy(Strategy):
             lp_market.remove_all_liquidity()
             lp_market.add_liquidity(current_price - 100, current_price)
 
-    def after_bar(self, row_data: MarketDict[RowData | pd.Series]):
+    def after_bar(self, row_data: MarketDict[RowData]):
         """
         this function is called after market has updated.
         """

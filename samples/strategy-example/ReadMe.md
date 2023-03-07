@@ -3,8 +3,8 @@
 We have prepared some examples to help you get start with demeter.
 
 * [1_quick_start.py](1_quick_start.py): quick start 
-* [2_working_with_strategy.py](2_working_with_strategy.py): show how to write a strategy.
-* perproties access
+* [2_working_with_strategy.py](2_working_with_strategy.py): show how to write a strategy, and how functions of strategy works
+* [3_proprieties_access.py](3_proprieties_access.py): Show how to access markets, data etc.
 * data and indicator
 * result 
 * actions

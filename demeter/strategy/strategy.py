@@ -1,9 +1,9 @@
-from typing import Dict
+from typing import Dict, List
 
 import pandas as pd
 
 from .trigger import Trigger
-from .. import Broker, MarketDict
+from .. import Broker, MarketDict, AccountStatus, AssetDict, Asset
 from .._typing import DemeterError
 from ..broker import MarketInfo, RowData, BaseAction, Market
 
@@ -20,6 +20,8 @@ class Strategy(object):
         self.number_format = ".8g"
         self.prices: pd.DataFrame = None
         self.triggers: [Trigger] = []
+        self.account_status: List[AccountStatus] = []
+        self.assets: AssetDict[Asset] = AssetDict()
 
     def initialize(self):
         """
@@ -28,7 +30,7 @@ class Strategy(object):
         """
         pass
 
-    def before_bar(self, row_data: MarketDict[RowData | pd.Series]):
+    def before_bar(self, row_data: MarketDict[RowData]):
         """
         called before triggers on each row, at this time, fees are not updated yet. you can add some indicator or add some actions
 
@@ -39,7 +41,7 @@ class Strategy(object):
 
         pass
 
-    def on_bar(self, row_data: MarketDict[RowData | pd.Series]):
+    def on_bar(self, row_data: MarketDict[RowData]):
         """
         called after triggers on each row, at this time, fees and account status are not updated yet. you can add some actions here
 
@@ -48,7 +50,7 @@ class Strategy(object):
         """
         pass
 
-    def after_bar(self, row_data: MarketDict[RowData | pd.Series]):
+    def after_bar(self, row_data: MarketDict[RowData]):
         """
         called after fees and account status are updated on each row. you can add some statistic logic here
 

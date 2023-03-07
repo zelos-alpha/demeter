@@ -418,6 +418,7 @@ class Actuator(object):
         self._strategy.data = market_datas
         self._strategy.prices = self._token_prices
         self._strategy.account_status = self._account_status_list
+        self._strategy.assets = self.broker.assets
         self._strategy.get_account_status_dataframe = self.get_account_status_dataframe
         for k, v in self.broker.markets.items():
             setattr(self._strategy, k.name, v)

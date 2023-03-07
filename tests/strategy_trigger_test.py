@@ -19,14 +19,14 @@ class TestStrategy(Strategy):
                                            trigger_immediately=True,
                                            price_range=100))
 
-    def on_bar(self, row_data: MarketDict[RowData | pd.Series]):
+    def on_bar(self, row_data: MarketDict[RowData]):
         pass
 
     def sell_1(self, row_data, *args, **kwargs):
         assert args[0] == args[1]
         self.broker.markets[test_market].sell(kwargs["amount"])
 
-    def adjust_position(self, row_data: MarketDict[RowData | pd.Series], *args, **kwargs):
+    def adjust_position(self, row_data: MarketDict[RowData], *args, **kwargs):
         market: UniLpMarket = self.broker.markets.uni_market
         market.remove_all_liquidity()
         market.even_rebalance(row_data.uni_market.price)

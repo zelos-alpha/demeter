@@ -21,7 +21,7 @@ test access data in different ways
 
 class WithSMA(Strategy):
 
-    def on_bar(self, row_data: MarketDict[RowData | pd.Series]):
+    def on_bar(self, row_data: MarketDict[RowData]):
         if row_data.uni_market.row_id == 2:
             # access current row, method is provided by demeter
             assert_equal(row_data.uni_market.closeTick, 2)

@@ -19,7 +19,7 @@ test_market = MarketInfo("uni_market")
 
 class WithSMA(Strategy):
 
-    def on_bar(self, row_data: MarketDict[RowData | pd.Series]):
+    def on_bar(self, row_data: MarketDict[RowData]):
         if row_data[test_market].row_id == 0:
             market: UniLpMarket = self.broker.markets[test_market]
             tick = market.price_to_tick(row_data[test_market].price)

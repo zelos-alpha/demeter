@@ -23,14 +23,14 @@ class EmptyStrategy(Strategy):
 
 
 class BuyOnSecond(Strategy):
-    def on_bar(self, row_data: MarketDict[RowData | pd.Series]):
+    def on_bar(self, row_data: MarketDict[RowData]):
         if row_data[test_market].row_id == 2:
             self.market1.buy(0.5)
             pass
 
 
 class AddLiquidity(Strategy):
-    def on_bar(self, row_data: MarketDict[RowData | pd.Series]):
+    def on_bar(self, row_data: MarketDict[RowData]):
         if row_data[test_market].row_id == 2:
             assert row_data.market1.row_id == row_data[test_market].row_id
             market: UniLpMarket = self.broker.markets[test_market]

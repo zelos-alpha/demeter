@@ -27,7 +27,7 @@ class FillUp(Strategy):
             lp_market.add_liquidity(init_price, init_price + self.a)
         self.triggers.append(PeriodTrigger(time_delta=timedelta(days=1), do=self.work))
 
-    def work(self, row_data: MarketDict[RowData | pd.Series]):
+    def work(self, row_data: MarketDict[RowData]):
         lp_market: UniLpMarket = self.broker.markets[market_key]
         lp_row_data = row_data[market_key]
 

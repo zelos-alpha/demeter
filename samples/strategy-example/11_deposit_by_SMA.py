@@ -36,7 +36,7 @@ class AddLiquidityByMA(Strategy):
                                            trigger_immediately=True,
                                            do=self.work))
 
-    def work(self, row_data: MarketDict[RowData | pd.Series]):
+    def work(self, row_data: MarketDict[RowData]):
         lp_market: UniLpMarket = self.broker.markets[market_key]
         if len(lp_market.positions) > 0:
             lp_market.remove_all_liquidity()

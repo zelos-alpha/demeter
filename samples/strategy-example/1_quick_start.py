@@ -28,7 +28,7 @@ class MyFirstStrategy(Strategy):
             do=self.work)  # This is a callback function, defines what to do at this time.
         self.triggers.append(new_trigger)  # Register our trigger
 
-    def work(self, row_data: MarketDict[RowData | pd.Series]):
+    def work(self, row_data: MarketDict[RowData]):
         """
         When time is up, work function will be called.
         """

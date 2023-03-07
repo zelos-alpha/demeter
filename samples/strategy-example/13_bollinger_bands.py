@@ -37,7 +37,7 @@ class AddByVolatility(Strategy):
                                            do=self.work))
         self.markets.default.even_rebalance(self.data[market_key].price[0])
 
-    def work(self, row_data: MarketDict[RowData | pd.Series]):
+    def work(self, row_data: MarketDict[RowData]):
         lp_market: UniLpMarket = self.broker.markets[market_key]
         lp_row_data = row_data[market_key]
         if len(lp_market.positions) > 0:

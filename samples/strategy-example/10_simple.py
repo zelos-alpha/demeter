@@ -10,7 +10,7 @@ pd.set_option('display.width', 5000)
 
 
 class MyFirstStrategy(Strategy):
-    def on_bar(self, row_data: MarketDict[RowData | pd.Series]):
+    def on_bar(self, row_data: MarketDict[RowData]):
         # show how to access data
         if row_data.default.row_id == 1000:
             market: UniLpMarket = self.broker.markets.default

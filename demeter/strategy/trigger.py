@@ -23,13 +23,13 @@ class Trigger:
         self.kwargs = kwargs
         self.args = args
 
-    def when(self, row_data: MarketDict[RowData | pd.Series]) -> bool:
+    def when(self, row_data: MarketDict[RowData]) -> bool:
         return False
 
-    def do_nothing(self, row_data: MarketDict[RowData | pd.Series], *args, **kwargs):
+    def do_nothing(self, row_data: MarketDict[RowData], *args, **kwargs):
         pass
 
-    def do(self, row_data: MarketDict[RowData | pd.Series]):
+    def do(self, row_data: MarketDict[RowData]):
         return self._do(row_data, *self.args, **self.kwargs)
 
 
@@ -38,7 +38,7 @@ class AtTimeTrigger(Trigger):
         self._time = to_minute(time)
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: MarketDict[RowData | pd.Series]) -> bool:
+    def when(self, row_data: MarketDict[RowData]) -> bool:
         return row_data.default.timestamp == self._time
 
 
@@ -47,7 +47,7 @@ class AtTimesTrigger(Trigger):
         self._time = [to_minute(t) for t in time]
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: MarketDict[RowData | pd.Series]) -> bool:
+    def when(self, row_data: MarketDict[RowData]) -> bool:
         return self._time in row_data.default.timestamp
 
 
@@ -62,7 +62,7 @@ class TimeRangeTrigger(Trigger):
         self._time_range = TimeRange(to_minute(time_range.start), to_minute(time_range.end))
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: MarketDict[RowData | pd.Series]) -> bool:
+    def when(self, row_data: MarketDict[RowData]) -> bool:
         return self._time_range.start <= row_data.default.timestamp < self._time_range.end
 
 
@@ -71,7 +71,7 @@ class TimeRangesTrigger(Trigger):
         self._time_range: [TimeRange] = [TimeRange(to_minute(t.start), to_minute(t.end)) for t in time_range]
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: MarketDict[RowData | pd.Series]) -> bool:
+    def when(self, row_data: MarketDict[RowData]) -> bool:
         for r in self._time_range:
             if r.start <= row_data.default.timestamp < r.end:
                 return True
@@ -94,7 +94,7 @@ class PeriodTrigger(Trigger):
     def reset(self):
         self._next_match = None
 
-    def when(self, row_data: MarketDict[RowData | pd.Series]) -> bool:
+    def when(self, row_data: MarketDict[RowData]) -> bool:
         if self._next_match is None:
             self._next_match = row_data.default.timestamp + self._delta
             return self._trigger_immediately
@@ -119,7 +119,7 @@ class PeriodsTrigger(Trigger):
     def reset(self):
         self._next_matches = [None for _ in self._deltas]
 
-    def when(self, row_data: MarketDict[RowData | pd.Series]) -> bool:
+    def when(self, row_data: MarketDict[RowData]) -> bool:
         if self._next_matches[0] is None:
             self._next_matches = [row_data.default.timestamp + d for d in self._deltas]
             return self._trigger_immediately
