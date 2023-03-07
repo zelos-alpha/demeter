@@ -22,6 +22,7 @@ class Strategy(object):
         self.triggers: [Trigger] = []
         self.account_status: List[AccountStatus] = []
         self.assets: AssetDict[Asset] = AssetDict()
+        self.actions: List[BaseAction] = []
 
     def initialize(self):
         """

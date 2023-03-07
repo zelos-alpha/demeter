@@ -21,10 +21,6 @@ class DemoStrategy(Strategy):
             time=datetime(2022, 8, 20, 12, 0, 0),
             do=self.work)
         self.triggers.append(new_trigger)
-        # add a indicator column, this column will be appended to corresponding market data
-        self._add_column(market=market_key,
-                         name="sma",  # name,
-                         line=simple_moving_average(self.data[market_key].price))
 
     def work(self, row_data: MarketDict[RowData]):
         # access market, all market are stored in a property, whose type is MarketDict.
@@ -50,27 +46,9 @@ class DemoStrategy(Strategy):
         # shortcut for broker.assets
         asset_usdc = self.assets[usdc]
 
-        # current row of data,
-        price = row_data[market_key].price
-        row: UniLPData = row_data[market_key]
-        price = row.price
-        price = row_data.market1.price
-        price = row_data.default.price
-        # access extra column by its name
-        ma_value = row_data[market_key].sma
-
-        # access data, data is also kept in MarketDict. and it's type is Dataframe
-        data: pd.DataFrame = self.broker.markets[market_key].data
-        data: pd.DataFrame = self.data[market_key]
-        data: pd.DataFrame = self.data.default
-        data: pd.DataFrame = self.data.market1
-        ma = self.data[market_key].sma
-
-        # account_status, it's very important as it contains net_value.
-        # it is kept in a list. if you need a dataframe. you can call get_account_status_dataframe()
-        # do not call get_account_status_dataframe in on_bar because it will slow the backtesting.
-        account_status: List[AccountStatus] = self.account_status
-        account_status_df: pd.DataFrame = self.get_account_status_dataframe()
+        # positions
+        for position_info, position in market.positions.items():
+            print(position_info, position)  # show all position
 
 
 if __name__ == "__main__":

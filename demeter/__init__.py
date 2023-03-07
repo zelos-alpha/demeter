@@ -1,4 +1,4 @@
-from ._typing import DemeterError, EthError, TokenInfo, UnitDecimal, DECIMAL_0, DECIMAL_1
+from ._typing import DemeterError, EthError, TokenInfo, UnitDecimal, DECIMAL_0, DECIMAL_1, EvaluatorEnum
 from .broker import Broker, RowData, MarketInfo, Asset, MarketDict, AssetDict, AccountStatus
 from .core import Actuator
 from .download import ChainType, DataSource

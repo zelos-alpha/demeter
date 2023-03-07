@@ -26,7 +26,7 @@ class Evaluator(object):
         if EvaluatorEnum.ALL in enables:
             enables = [x for x in EvaluatorEnum]
             enables = filter(lambda x: x.value > 0, enables)
-        result_dict: Dict[EvaluatorEnum,UnitDecimal] = {}
+        result_dict: Dict[EvaluatorEnum, UnitDecimal] = {}
         for request in enables:
             match request:
                 case EvaluatorEnum.ANNUALIZED_RETURNS:
@@ -47,5 +47,11 @@ class Evaluator(object):
         return result_dict
 
     @property
-    def result(self) -> Dict[EvaluatorEnum,UnitDecimal]:
+    def result(self) -> Dict[EvaluatorEnum, UnitDecimal]:
         return self._result
+
+    def __str__(self):
+        str_array = []
+        for k, v in self._result.items():
+            str_array.append(f"{k.name}:{v}")
+        return "; ".join(str_array)

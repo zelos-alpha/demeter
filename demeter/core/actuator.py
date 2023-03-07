@@ -295,8 +295,9 @@ class Actuator(object):
         :type print_final_status: bool
         """
         run_begin_time = time.time()
-        self._enabled_evaluator = evaluator
         self.reset()
+
+        self._enabled_evaluator = evaluator
         self._check_backtest()
         index_array: pd.DatetimeIndex = list(self._broker.markets.values())[0].data.index
         self.logger.info("init strategy...")
@@ -371,7 +372,7 @@ class Actuator(object):
         print(self._account_status_df)
         if len(self._enabled_evaluator) > 0:
             print("Evaluating indicator")
-            print(self._evaluator.result)
+            print(self._evaluator)
 
     def save_result(self, path: str, account=True, actions=True) -> List[str]:
         if not self.__backtest_finished:
@@ -418,6 +419,7 @@ class Actuator(object):
         self._strategy.data = market_datas
         self._strategy.prices = self._token_prices
         self._strategy.account_status = self._account_status_list
+        self._strategy.actions = self._action_list
         self._strategy.assets = self.broker.assets
         self._strategy.get_account_status_dataframe = self.get_account_status_dataframe
         for k, v in self.broker.markets.items():
