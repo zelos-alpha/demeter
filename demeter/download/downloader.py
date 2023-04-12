@@ -12,6 +12,11 @@ from .utils import get_file_name
 
 
 def download_from_rpc(config: DownloadParam):
+    """
+    download from rpc
+    :param config: DownloadParam
+    :return:
+    """
     if config.rpc.end_height <= config.rpc.start_height:
         raise RuntimeError("start height should less than end height")
 
@@ -39,7 +44,6 @@ def download_from_bigquery(chain: ChainType, pool_address: str, start: date, end
     :param pool_address: contract address of swap pool
     :param start: start date
     :param end: end date
-    :param data_source: which data source to download
     :param save_path: save to path
     :param save_raw_file: save raw data or not
     :param skip_exist: if file exist, skip.
@@ -69,4 +73,10 @@ def download_from_bigquery(chain: ChainType, pool_address: str, start: date, end
 
 
 def split_date_range_to_array(start: date, end: date) -> "array":
+    """
+    split date range to array
+    :param start: start date
+    :param end: end date
+    :return:
+    """
     return [start + timedelta(days=x) for x in range(0, (end - start).days)]

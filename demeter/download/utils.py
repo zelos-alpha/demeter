@@ -6,6 +6,12 @@ from ._typing import MarketData
 class TextUtil(object):
     @staticmethod
     def cut_after(text: str, symbol: str) -> 'str':
+        """
+        cut str after symbol
+        :param text:
+        :param symbol:
+        :return:
+        """
         index = text.find(symbol)
         return text[0:index]
 
@@ -13,6 +19,11 @@ class TextUtil(object):
 class TimeUtil(object):
     @staticmethod
     def get_minute(time: datetime) -> datetime:
+        """
+        datetime with minute
+        :param time:
+        :return:
+        """
         return datetime(time.year, time.month, time.day, time.hour, time.minute, 0)
 
 
@@ -28,6 +39,15 @@ class HexUtil(object):
 
 
 def get_file_name(path, chain, addr, day, raw: bool):
+    """
+    get file name
+    :param path: file path
+    :param chain: chain name
+    :param addr: address
+    :param day: day
+    :param raw: if raw data
+    :return:
+    """
     raw_str = "raw-" if raw else ""
     return f"{path}{raw_str}{chain}-{addr.lower()}-{day}.csv"
 
@@ -36,6 +56,11 @@ class DataUtil(object):
 
     @staticmethod
     def fill_missing(data_list: [MarketData]) -> list:
+        """
+        fill missing data
+        :param data_list:
+        :return:
+        """
         if len(data_list) < 1:
             return data_list
         # take the first minute in data. instead of 0:00:00

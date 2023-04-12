@@ -27,6 +27,10 @@ class Actuator(object):
     """
 
     def __init__(self, allow_negative_balance=False):
+        """
+        init Actuator
+        :param allow_negative_balance: balance can less than 0
+        """
         # all the actions during the test(buy/sell/add liquidity)
         self._action_list: List[BaseAction] = []
         self._currents = {
@@ -54,6 +58,11 @@ class Actuator(object):
         self.__backtest_finished = False
 
     def _record_action_list(self, action):
+        """
+        record action list
+        :param action: action
+        :return: None
+        """
         action.timestamp = self._currents["timestamp"]
         action.set_type()
         self._action_list.append(action)
@@ -71,8 +80,7 @@ class Actuator(object):
     def token_prices(self):
         """
         price of all token
-        :return:
-        :rtype:
+        :return: None
         """
         return self._token_prices
 
@@ -182,6 +190,10 @@ class Actuator(object):
     # endregion
 
     def get_account_status_dataframe(self) -> pd.DataFrame:
+        """
+        get account status dataframe
+        :return: dataframe
+        """
         return AccountStatus.to_dataframe(self._account_status_list)
 
     def set_assets(self, assets: List[Asset]):
@@ -195,6 +207,11 @@ class Actuator(object):
             self._broker.set_balance(asset.token_info, asset.balance)
 
     def set_price(self, prices: pd.DataFrame | pd.Series):
+        """
+        set price
+        :param prices: dataframe or series
+        :return: None
+        """
         if isinstance(prices, pd.DataFrame):
             if self._token_prices is None:
                 self._token_prices = prices
@@ -226,6 +243,10 @@ class Actuator(object):
             strategy.notify(action)
 
     def _check_backtest(self):
+        """
+        check backtest result
+        :return:
+        """
         # ensure a market exist
         if len(self._broker.markets) < 1:
             raise DemeterError("No market assigned")
@@ -264,6 +285,12 @@ class Actuator(object):
                 raise DemeterError("price list interval and data interval are not same")
 
     def __get_market_row_dict(self, index, row_id) -> MarketDict:
+        """
+        get market row dict info
+        :param index:
+        :param row_id:
+        :return: Market dict
+        """
         market_dict = MarketDict()
         for market_key, market in self._broker.markets.items():
             market_row = RowData(index.to_pydatetime(), row_id)
@@ -275,6 +302,12 @@ class Actuator(object):
         return market_dict
 
     def __set_row_to_markets(self, timestamp, market_row_dict: dict):
+        """
+        set markets row data
+        :param timestamp:
+        :param market_row_dict:
+        :return:
+        """
         for market_key, market_row_data in market_row_dict.items():
             self._broker.markets[market_key].set_market_status(timestamp, market_row_data)
 
@@ -452,6 +485,11 @@ class Actuator(object):
 
 
 def json_default(obj):
+    """
+    format json data
+    :param obj:
+    :return:
+    """
     if isinstance(obj, UnitDecimal):
         return obj.to_str()
     elif isinstance(obj, MarketInfo):

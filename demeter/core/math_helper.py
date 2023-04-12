@@ -4,6 +4,13 @@ import pandas as pd
 
 
 def annualized_returns(init_value, final_value, timespan_in_day):
+    """
+    calculated for a period of a year's data
+    :param init_value:
+    :param final_value:
+    :param timespan_in_day:
+    :return:
+    """
     return (final_value / init_value) ** Decimal(365 / timespan_in_day) - 1
 
 
@@ -27,7 +34,13 @@ def get_benchmark_returns(self, init_value: Decimal,
     return (final_value / self.init_net_value) ** Decimal(365 / timespan_in_day) - 1
 
 
-def __get_benchmark_asset(self, net_value, price):
+def __get_benchmark_asset(net_value, price):
+    """
+    get benchmark of asset
+    :param net_value: Decimal or float
+    :param price:
+    :return:
+    """
     base_amount = net_value / 2
     quote_amount = (net_value - base_amount) / price
     return base_amount, quote_amount

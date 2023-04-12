@@ -5,33 +5,72 @@ from .liquitidy_math import get_sqrt_ratio_at_tick
 
 
 def _x96_to_decimal(number: int):
+    """
+    decimal divide 2 ** 96
+    :param number:
+    :return:
+    """
     return Decimal(number) / 2 ** 96
 
 
 def decimal_to_x96(number: Decimal):
+    """
+    decimal multiple 2 ** 96
+    :param number:
+    :return:
+    """
     return int(Decimal(number) * 2 ** 96)
 
 
 def _x96_sqrt_to_decimal(sqrt_priceX96, token_decimal_diff=12):
+    """
+    sqrt_priceX96 divide token decimal
+    :param sqrt_priceX96:
+    :param token_decimal_diff:
+    :return:
+    """
     price = _x96_to_decimal(sqrt_priceX96)
     return (price ** 2) / 10 ** token_decimal_diff
 
 
 ## can round by spacing?
 def sqrt_price_to_tick(sqrt_priceX96: int) -> int:
+    """
+    convert sqrt_priceX96 to tick data
+    :param sqrt_priceX96:
+    :return:
+    """
     decimal_price = _x96_to_decimal(sqrt_priceX96)
     return pool_price_to_tick(decimal_price)
 
 
 def pool_price_to_tick(price_decimal: Decimal):
+    """
+    pool price to tick data
+    :param price_decimal:
+    :return:
+    """
     return int(math.log(price_decimal, math.sqrt(1.0001)))
 
 
 def tick_to_sqrtPriceX96(tick: int):
+    """
+    convert tick data to sqrtPriceX96
+    :param tick:
+    :return:
+    """
     return get_sqrt_ratio_at_tick(tick)
 
 
 def tick_to_quote_price(tick: int, token_0_decimal, token_1_decimal, is_token0_base: bool):
+    """
+    tick data get quote price
+    :param tick: tick data
+    :param token_0_decimal: token0 decimal
+    :param token_1_decimal: token1 decimal
+    :param is_token0_base: base on token0
+    :return: quote price
+    """
     sqrt_price = get_sqrt_ratio_at_tick(tick)
     decimal_price = _x96_to_decimal(sqrt_price) ** 2
     pool_price = decimal_price * Decimal(10 ** (token_0_decimal - token_1_decimal))
@@ -39,6 +78,14 @@ def tick_to_quote_price(tick: int, token_0_decimal, token_1_decimal, is_token0_b
 
 
 def quote_price_to_tick(based_price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token_base) -> int:
+    """
+    quote price to tick data
+    :param based_price: base price
+    :param token_0_decimal: token0 decimal
+    :param token_1_decimal: token1 decimal
+    :param is_token_base: base on token
+    :return: tick data
+    """
     # quote price->add decimal pool price->sqrt_price ->ticker
     sqrt_price = quote_price_to_sqrt(based_price, token_0_decimal, token_1_decimal, is_token_base)
     tick = sqrt_price_to_tick(sqrt_price)
@@ -46,6 +93,14 @@ def quote_price_to_tick(based_price: Decimal, token_0_decimal: int, token_1_deci
 
 
 def quote_price_to_sqrt(based_price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token_base) -> int:
+    """
+    convert quote price to sqrt
+    :param based_price: price of base token
+    :param token_0_decimal: token 0 decimal
+    :param token_1_decimal: token 1 decimal
+    :param is_token_base: if is base token
+    :return: sqrt price
+    """
     # quote price->add decimal pool price->sqrt_price ->ticker
 
     price = 1 / based_price if is_token_base else based_price
@@ -55,11 +110,28 @@ def quote_price_to_sqrt(based_price: Decimal, token_0_decimal: int, token_1_deci
 
 
 def from_wei(token_amt: int, decimal: int) -> Decimal:
+    """
+    token ** decimal
+    :param token_amt:
+    :param decimal:
+    :return:
+    """
     return Decimal(int(token_amt)) / Decimal(10 ** decimal)
 
 
 def get_delta_gamma(lower_price: float, upper_price: float, price: float,
                     liquidity: int, decimal0: int, decimal1: int, is_0_base: bool):
+    """
+    get delta gamma
+    :param lower_price: lower price
+    :param upper_price: upper price
+    :param price: price
+    :param liquidity: liquidity
+    :param decimal0: decimal 0
+    :param decimal1: decimal 1
+    :param is_0_base: check if token 0 is base
+    :return:
+    """
     lower_price_sqrtX96 = quote_price_to_sqrt(Decimal(lower_price), decimal0, decimal1, is_0_base)
     upper_price_sqrtX96 = quote_price_to_sqrt(Decimal(upper_price), decimal0, decimal1, is_0_base)
     if lower_price_sqrtX96 > upper_price_sqrtX96:

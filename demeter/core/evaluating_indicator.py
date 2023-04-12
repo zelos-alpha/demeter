@@ -13,6 +13,12 @@ class Evaluator(object):
     """
 
     def __init__(self, init_status: AccountStatus, data: pd.DataFrame | AccountStatusCommon, prices: pd.DataFrame):
+        """
+        init Evaluator
+        :param init_status:
+        :param data:
+        :param prices:
+        """
         self.init_status: AccountStatus = init_status
         self.end_status: AccountStatusCommon = data.iloc[-1]
         self.prices: pd.DataFrame = prices
@@ -23,6 +29,11 @@ class Evaluator(object):
         self._result = None
 
     def run(self, enables: List[EvaluatorEnum]):
+        """
+        run evaluator
+        :param enables:
+        :return: result_dict
+        """
         if EvaluatorEnum.ALL in enables:
             enables = [x for x in EvaluatorEnum]
             enables = filter(lambda x: x.value > 0, enables)
@@ -48,9 +59,17 @@ class Evaluator(object):
 
     @property
     def result(self) -> Dict[EvaluatorEnum, UnitDecimal]:
+        """
+        return Evaluator._result property
+        :return:
+        """
         return self._result
 
     def __str__(self):
+        """
+        Evaluator print function
+        :return:
+        """
         str_array = []
         for k, v in self._result.items():
             str_array.append(f"{k.name}:{v}")

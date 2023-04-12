@@ -12,6 +12,11 @@ class ModuleUtils(object):
 
     @staticmethod
     def get_datetime(date_str: str) -> datetime:
+        """
+        get datetime from date_str
+        :param date_str:
+        :return:
+        """
         if type(date_str) == Timestamp:
             return date_str.to_pydatetime()
         else:
@@ -20,6 +25,11 @@ class ModuleUtils(object):
 
 
 def process_raw_data(raw_data: pandas.DataFrame) -> "pandas.DataFrame":
+    """
+    get data from jrpc response raw data
+    :param raw_data:
+    :return:
+    """
     if raw_data.size <= 0:
         return raw_data
     start_time = TimeUtil.get_minute(ModuleUtils.get_datetime(raw_data.loc[0, "block_timestamp"]))
@@ -42,6 +52,12 @@ def process_raw_data(raw_data: pandas.DataFrame) -> "pandas.DataFrame":
 
 
 def sample_data_to_one_minute(current_time, minute_rows) -> MarketData:
+    """
+    aggregate data to minute data
+    :param current_time: current time
+    :param minute_rows: row data in this minute
+    :return:
+    """
     data = MarketData()
     data.timestamp = current_time
     i = 1

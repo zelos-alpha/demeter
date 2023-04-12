@@ -9,6 +9,11 @@ from ..broker import RowData
 
 
 def to_minute(time: datetime) -> datetime:
+    """
+    second with 0 datetime
+    :param time:
+    :return:
+    """
     return datetime(time.year, time.month, time.day, time.hour, time.minute)
 
 """
@@ -24,12 +29,22 @@ class Trigger:
         self.args = args
 
     def when(self, row_data: MarketDict[RowData]) -> bool:
+        """
+        when to handler data
+        :param row_data: data in row
+        :return:
+        """
         return False
 
     def do_nothing(self, row_data: MarketDict[RowData], *args, **kwargs):
         pass
 
     def do(self, row_data: MarketDict[RowData]):
+        """
+        operation to handler with row data
+        :param row_data:
+        :return:
+        """
         return self._do(row_data, *self.args, **self.kwargs)
 
 

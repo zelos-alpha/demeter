@@ -11,6 +11,9 @@ from .._typing import DemeterError, TokenInfo
 
 
 class Rule(NamedTuple):
+    """
+    Rule properties
+    """
     agg: str | None
     fillna_method: str | None
     fillna_value: int | None
@@ -18,11 +21,17 @@ class Rule(NamedTuple):
 
 @dataclass
 class RowData:
+    """
+    Row properties
+    """
     timestamp: datetime = None
     row_id: int = None
 
 
 class MarketInfo(NamedTuple):
+    """
+    MarketInfo properties
+    """
     name: str
 
 
@@ -33,12 +42,21 @@ class Asset(object):
     """
 
     def __init__(self, token: TokenInfo, init_amount=Decimal(0)):
+        """
+        initialization of Asset
+        :param token: token info
+        :param init_amount: initialization amount, default 0
+        """
         self.token_info = token
         self.name = token.name
         self.decimal = token.decimal
         self.balance = init_amount
 
     def __str__(self):
+        """
+        return Asset info
+        :return: Asset info with name && balance
+        """
         return f"{self.name}: {self.balance}"
 
     def add(self, amount=Decimal(0)):
@@ -83,6 +101,11 @@ class Asset(object):
         return self
 
     def amount_in_wei(self):
+        """
+        return balance ** decimal
+
+        :return: self.balance * 10 ** self.decimal
+        """
         return self.balance * Decimal(10 ** self.decimal)
 
 
@@ -126,17 +149,33 @@ class BaseAction(object):
 
 @dataclass
 class MarketBalance:
+    """
+    MarketBalance properties
+
+    :type net_value: Decimal
+    """
     net_value: Decimal
 
 
 @dataclass
 class AccountStatusCommon:
+    """
+    AccountStatusCommon properties
+
+    :type timestamp: datetime
+    :type net_value: Decimal, default 0
+    """
     timestamp: datetime
     net_value: Decimal = Decimal(0)
 
 
 @dataclass
 class MarketStatus:
+    """
+    MarketStatus properties
+
+    :type timestamp: datetime
+    """
     timestamp: datetime | None
 
 
@@ -144,6 +183,9 @@ T = TypeVar('T')
 
 
 class MarketDict(Generic[T]):
+    """
+    Market Dict with get/set function
+    """
     def __init__(self):
         self.data: Dict[MarketInfo, T] = {}
         self._default: MarketInfo | None = None
@@ -159,63 +201,141 @@ class MarketDict(Generic[T]):
 
     @property
     def default(self) -> T:
+        """
+        get default value in MarketDict
+        :return:
+        """
         return self.data[self._default]
 
     def get_default_key(self):
+        """
+        get default key
+        :return:
+        """
         return self._default
 
     def set_default_key(self, value: MarketInfo):
+        """
+        set default key
+        :param value:
+        :return:
+        """
         self._default = value
 
     def items(self) -> (List[MarketInfo], List[T]):
+        """
+        get dict items
+        :return:
+        """
         return self.data.items()
 
     def keys(self) -> List[MarketInfo]:
+        """
+        get dict keys
+        :return:
+        """
         return self.data.keys()
 
     def values(self) -> List[T]:
+        """
+        get dict values
+        :return:
+        """
         return self.data.values()
 
     def __contains__(self, item):
+        """
+        check if item in dict
+        :param item:
+        :return:
+        """
         return item in self.data
 
     def __len__(self):
+        """
+        len of dict
+        :return:
+        """
         return len(self.data)
 
 
 class AssetDict(Generic[T]):
     def __init__(self):
+        """
+        init AssetDict
+        """
         self.data: Dict[TokenInfo, T] = {}
 
     def __getitem__(self, item) -> T:
+        """
+        get item magic method
+        :param item:
+        :return:
+        """
         return self.data[item]
 
     def __setitem__(self, key: TokenInfo, value: T):
+        """
+        set item magic method
+        :param key:
+        :param value:
+        :return:
+        """
         self.data[key] = value
         setattr(self, key.name, value)
 
     def items(self) -> (List[TokenInfo], List[T]):
+        """
+        get items from dict
+        :return:
+        """
         return self.data.items()
 
     def keys(self) -> List[TokenInfo]:
+        """
+        get keys from dict
+        :return:
+        """
         return self.data.keys()
 
     def values(self) -> List[T]:
+        """
+        get values from dict
+        :return:
+        """
         return self.data.values()
 
     def __contains__(self, item):
+        """
+        check if item in dict
+        :param item:
+        :return:
+        """
         return item in self.data
 
     def __len__(self):
+        """
+        length of dict
+        :return:
+        """
         return len(self.data)
 
 
 @dataclass
 class AccountStatus(AccountStatusCommon):
+    """
+    Account Status
+    :param asset_balances: balance of asset
+    :param market_status:
+    """
     asset_balances: AssetDict[Decimal] = field(default_factory=AssetDict)
     market_status: MarketDict[MarketBalance] = field(default_factory=MarketDict)
 
     def to_array(self) -> List:
+        """
+        market_status value to list
+        :return:
+        """
         result = [self.net_value]
         for balance in self.asset_balances.values():
             result.append(balance)
@@ -225,6 +345,10 @@ class AccountStatus(AccountStatusCommon):
         return result
 
     def get_names(self) -> List:
+        """
+        get market_status market name
+        :return:
+        """
         result = ["net_value"]
         for asset in self.asset_balances.keys():
             result.append(asset.name)
@@ -236,6 +360,11 @@ class AccountStatus(AccountStatusCommon):
 
     @staticmethod
     def to_dataframe(status_list: []) -> pd.DataFrame:
+        """
+        status list convert to dataframe
+        :param status_list:
+        :return:
+        """
         index = [i.timestamp for i in status_list]
         if len(index) > 0:
             return pd.DataFrame(columns=status_list[0].get_names(),

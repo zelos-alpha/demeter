@@ -18,16 +18,32 @@ type_dict = {Constant.MINT_KECCAK: OnchainTxType.MINT,
 
 
 def decode_address_from_topic(topic_str):
+    """
+    decode address from topic
+    :param topic_str: contact 0x to topic address
+    :return:
+    """
     return "0x" + topic_str[26:]
 
 
 def split_topic(topic: str) -> List[str]:
+    """
+    split topic with \n or ,
+    :param topic:
+    :return:
+    """
     spliter = "\n" if "\n" in topic else ","
     topic_list = topic.strip("[]").replace("'", "").replace("\"", "").replace(" ", "").split(spliter)
     return topic_list
 
 
 def handle_event(topics_str, data_hex):
+    """
+    handle event data, receipt amount and so on
+    :param topics_str: topic info
+    :param data_hex: hex data str
+    :return:
+    """
     # proprocess topics string -> topic list
     # topics_str = topics.values[0]
     sqrtPriceX96 = receipt = amount1 = current_liquidity = current_tick = tick_lower = tick_upper = delta_liquidity = None

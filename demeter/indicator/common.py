@@ -7,6 +7,12 @@ from .._typing import DemeterError
 
 
 def get_real_n(data: pd.Series, window: timedelta):
+    """
+    get window data
+    :param data: all data
+    :param window: timed window data
+    :return:
+    """
     if data.size < 2:
         raise DemeterError("not enough data for simple_moving_average")
     timespan: Timedelta = data.index[1] - data.index[0]

@@ -95,6 +95,10 @@ class MarketData(object):
         ]
 
     def __str__(self):
+        """
+        print MarketData info
+        :return:
+        """
         return str(self.timestamp)
 
     def fill_missing_field(self, prev_data) -> bool:

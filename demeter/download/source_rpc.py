@@ -44,6 +44,12 @@ class ContractConfig:
 
 
 def save_block_dict(height_cache_path, block_dict):
+    """
+    save pickled block data
+    :param height_cache_path:
+    :param block_dict:
+    :return:
+    """
     with open(height_cache_path, 'wb') as f:
         pickle.dump(block_dict, f)
 
@@ -56,10 +62,23 @@ def save_block_dict(height_cache_path, block_dict):
 
 
 def cut(obj, sec):
+    """
+    get slice of object
+    :param obj: list of object
+    :param sec: step of slice
+    :return:
+    """
     return [obj[i:i + sec] for i in range(0, len(obj), sec)]
 
 
 def fill_block_info(log, client: EthRequestClient, block_dict):
+    """
+    fill block info with timestamp and height
+    :param log: log json data
+    :param client: client of eth
+    :param block_dict: block json data
+    :return:
+    """
     height = log['block_number']
     if height not in block_dict:
         block_dt = client.get_block_timestamp(height)
@@ -72,6 +91,17 @@ def fill_block_info(log, client: EthRequestClient, block_dict):
 def query_event_log(client: EthRequestClient, contract_config: ContractConfig, start_height: int, end_height: int,
                     save_path: str,
                     block_dict, chain):
+    """
+    query event from jrpc
+    :param client: EthRequestClient
+    :param contract_config: ContractConfig
+    :param start_height: start from block height
+    :param end_height: end with block height
+    :param save_path: save data path
+    :param block_dict: block json data
+    :param chain: the chain to get data
+    :return:
+    """
     collect_dt, log_by_day_dict, collect_start = None, OrderedDict(), None  # collect date, date log by day，collect start time
     start_tp = time.time()
     downloaded_day = []
@@ -139,6 +169,15 @@ def query_event_log(client: EthRequestClient, contract_config: ContractConfig, s
 
 
 def save_one_day(save_path, collect_dt, contract_config, one_day_data, chain: ChainType):
+    """
+    save daily data to file
+    :param save_path: save data file path
+    :param collect_dt: the date
+    :param contract_config: contract config
+    :param one_day_data: one day's data
+    :param chain: the chain to get data
+    :return: None
+    """
     with open(get_file_name(save_path, chain.name, contract_config.address, collect_dt, True), 'w') as csvfile:
         writer = csv.DictWriter(csvfile,
                                 fieldnames=['block_number', 'block_timestamp', 'transaction_hash',
@@ -150,6 +189,11 @@ def save_one_day(save_path, collect_dt, contract_config, one_day_data, chain: Ch
 
 
 def download_and_save_by_day(config: DownloadParam):
+    """
+    down and save data by day
+    :param config:
+    :return:
+    """
     chain_config = CHAINS[config.chain]
     height_cache_path = config.chain.name + height_cache_file_name
     if os.path.exists(height_cache_path):

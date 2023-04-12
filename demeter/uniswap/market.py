@@ -288,6 +288,13 @@ class UniLpMarket(Market):
 
     def __collect_fee(self, position: Position, max_collect_amount0: Decimal = None,
                       max_collect_amount1: Decimal = None):
+        """
+        collect fee
+        :param position: position
+        :param max_collect_amount0: max collect amount0
+        :param max_collect_amount1: max collect amount1
+        :return:
+        """
         token0_fee = max_collect_amount0 if \
             max_collect_amount0 is not None and max_collect_amount0 < position.pending_amount0 else \
             position.pending_amount0
@@ -658,6 +665,10 @@ class UniLpMarket(Market):
         self.logger.info("data has been prepared")
 
     def check_before_test(self):
+        """
+        prefix test
+        :return:
+        """
         super().check_before_test()
         required_columns = ["closeTick",
                             "currentLiquidity",
@@ -668,6 +679,10 @@ class UniLpMarket(Market):
             assert col in self.data.columns
 
     def formatted_str(self):
+        """
+        return formatted str info
+        :return:
+        """
         value = get_formatted_predefined(f"{self.market_info.name}({type(self).__name__})", STYLE["header3"]) + "\n"
         value += get_formatted_from_dict({
             "token0": self.pool_info.token0.name,

@@ -12,6 +12,11 @@ from ..utils import get_formatted_from_dict, get_formatted_predefined, STYLE, \
 
 class Broker:
     def __init__(self, allow_negative_balance=False, record_action_callback=None):
+        """
+        init Broker
+        :param allow_negative_balance:
+        :param record_action_callback:
+        """
         self.allow_negative_balance = allow_negative_balance
         self._assets: AssetDict[Asset] = AssetDict()
         self._markets: MarketDict[Market] = MarketDict()
@@ -21,15 +26,27 @@ class Broker:
 
     @property
     def markets(self) -> MarketDict[Market]:
+        """
+        markets property
+        :return:
+        """
         return self._markets
 
     @property
     def assets(self) -> AssetDict[Asset]:
+        """
+        asset property
+        :return:
+        """
         return self._assets
 
     # endregion
 
     def __str__(self):
+        """
+        Broker raw info
+        :return:
+        """
         return "assets: " + ",".join([f"({v})" for k, v in self._assets.items()]) + \
             "; markets: " + ",".join([f"({v})" for k, v in self.markets.items()])
 
@@ -67,12 +84,24 @@ class Broker:
 
     @float_param_formatter
     def set_balance(self, token: TokenInfo, amount: Decimal | float):
+        """
+        set the balance value
+        :param token: the token of asset
+        :param amount: amount of token
+        :return: Asset instance
+        """
         asset: Asset = self.__add_asset(token)
         asset.balance = amount
         return asset
 
     @float_param_formatter
     def subtract_from_balance(self, token: TokenInfo, amount: Decimal | float):
+        """
+
+        :param token: TokenInfo object
+        :param amount: Decimal or float type
+        :return:
+        """
         if token in self._assets:
             asset: Asset = self._assets[token]
             asset.sub(amount, allow_negative_balance=self.allow_negative_balance)
@@ -85,19 +114,40 @@ class Broker:
         return asset
 
     def __add_asset(self, token: TokenInfo) -> Asset:
+        """
+        set Asset with Token
+        :param token: TokenInfo
+        :return: Asset with TokenInfo
+        """
         self._assets[token] = Asset(token, 0)
         return self._assets[token]
 
     def get_token_balance(self, token: TokenInfo):
+        """
+        get balance of token
+        :param token:
+        :return:
+        """
         if token in self.assets:
             return self._assets[token].balance
         else:
             raise DemeterError(f"{token.name} doesn't exist in assets dict")
 
     def get_token_balance_with_unit(self, token: TokenInfo):
+        """
+        get balance of token with unit
+        :param token: TokenInfo
+        :return: UnitDecimal balance
+        """
         return UnitDecimal(self.get_token_balance(token), token.name)
 
     def get_account_status(self, prices: pd.Series | Dict[str, Decimal], timestamp=None) -> AccountStatus:
+        """
+        get account status
+        :param prices: price series
+        :param timestamp: optional timestamp
+        :return: account status
+        """
         account_status = AccountStatus(timestamp=timestamp)
         for k, v in self.markets.items():
             account_status.market_status[k] = v.get_market_balance(prices)
@@ -110,6 +160,10 @@ class Broker:
         return account_status
 
     def formatted_str(self):
+        """
+        get formatted broker info
+        :return: str info of broker
+        """
         str_to_print = get_formatted_predefined("Broker", STYLE["header1"]) + "\n"
 
         str_to_print += get_formatted_predefined("Asset amounts", STYLE["header2"]) + "\n"

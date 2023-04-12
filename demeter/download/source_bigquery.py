@@ -56,6 +56,11 @@ def download_bigquery_pool_event_oneday(chain: ChainType, contract_address: str,
 class ModuleUtils(object):
     @staticmethod
     def get_table_name(chain_type: ChainType) -> str:
+        """
+        according to ChainType return bigquery table name
+        :param chain_type:
+        :return:
+        """
         match chain_type:
             case ChainType.Polygon:
                 return "public-data-finance.crypto_polygon.logs"

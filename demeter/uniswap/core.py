@@ -10,6 +10,16 @@ class V3CoreLib(object):
     def new_position(pool: UniV3Pool,
                      token0_amount: Decimal, token1_amount: Decimal,
                      lower_tick: int, upper_tick: int, sqrt_price_x96: int):
+        """
+        create new position
+        :param pool: operation on which pool
+        :param token0_amount: token0 amount
+        :param token1_amount: token1 amount
+        :param lower_tick: lower tick
+        :param upper_tick: upper tick
+        :param sqrt_price_x96: sqrt(price) * 2^96
+        :return: token0 position, token1 position, liquid, position instance
+        """
         position_liq = get_liquidity(sqrt_price_x96, lower_tick, upper_tick,
                                      token0_amount, token1_amount,
                                      pool.token0.decimal, pool.token1.decimal)
@@ -21,10 +31,26 @@ class V3CoreLib(object):
 
     @staticmethod
     def close_position(pool: UniV3Pool, position_info: PositionInfo, liquidity, sqrt_price_x96):
+        """
+        close position
+        :param pool: operation on which pool
+        :param position_info: position info
+        :param liquidity: liquidity
+        :param sqrt_price_x96: sqrt(price) * 2^96
+        :return: token amount
+        """
         return V3CoreLib.get_token_amounts(pool, position_info, sqrt_price_x96, liquidity)
 
     @staticmethod
     def get_token_amounts(pool: UniV3Pool, pos: PositionInfo, sqrt_price_x96, liquidity) -> (Decimal, Decimal):
+        """
+        get token amount in position
+        :param pool: operation on which pool
+        :param pos: position info
+        :param sqrt_price_x96: sqrt(price) * 2^96
+        :param liquidity: liquidity
+        :return: token0 amount, token1 amount
+        """
         if liquidity == 0:  # performance improve
             return 0, 0
         amount0, amount1 = get_amounts(sqrt_price_x96,
@@ -37,6 +63,13 @@ class V3CoreLib(object):
 
     @staticmethod
     def quote_price_pair_to_tick(pool: UniV3Pool, lower_quote_price: Decimal, upper_quote_price: Decimal):
+        """
+        quote price pair to tick
+        :param pool: operation on which pool
+        :param lower_quote_price: lower quote price
+        :param upper_quote_price: upper quote price
+        :return: lower_tick, upper_tick
+        """
         lower_tick = quote_price_to_tick(lower_quote_price, pool.token0.decimal, pool.token1.decimal,
                                          pool.is_token0_base)
         upper_tick = quote_price_to_tick(upper_quote_price, pool.token0.decimal, pool.token1.decimal,
@@ -45,6 +78,14 @@ class V3CoreLib(object):
 
     @staticmethod
     def update_fee(pool: UniV3Pool, pos: PositionInfo, position: Position, state: UniV3PoolStatus):
+        """
+        update fee
+        :param pool: operation on which pool
+        :param pos: position info
+        :param position: position
+        :param state: UniV3PoolStatus
+        :return: None
+        """
         # in most cases, tick will not cross to on_bar one, which means L will not change.
         if pos.upper_tick > state.current_tick > pos.lower_tick:
             # if the simulating liquidity is above the actual liquidity, we will consider share=1

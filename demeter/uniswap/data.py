@@ -104,6 +104,24 @@ def resample(df: pd.DataFrame,
              origin: str | pd_typing.TimestampConvertibleTypes = "start_day",
              offset: pd_typing.TimedeltaConvertibleTypes | None = None,
              agg: Dict[str, str] = None) -> pd.DataFrame:
+    """
+    resample data
+    :param df: data in dataframe
+    :param rule: resample rule, see Dataframe.resample doc
+    :param axis: resample axis, see Dataframe.resample doc
+    :param closed: resample closed, see Dataframe.resample doc
+    :param label: resample label, see Dataframe.resample doc
+    :param convention: resample convention, see Dataframe.resample doc
+    :param kind: resample kind, see Dataframe.resample doc
+    :param loffset: resample loffset, see Dataframe.resample doc
+    :param base: resample base, see Dataframe.resample doc
+    :param on: resample on, see Dataframe.resample doc
+    :param level: resample level, see Dataframe.resample doc
+    :param origin: resample origin, see Dataframe.resample doc
+    :param offset: resample offset, see Dataframe.resample doc
+    :param agg: aggregate method
+    :return: aggregated dataframe
+    """
     agg = agg if agg else {}
     resampler = df.resample(rule, axis, closed, label, convention, kind, loffset, base, on, level, origin, offset)
     agg_dict = {}
