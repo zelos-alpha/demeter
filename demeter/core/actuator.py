@@ -408,12 +408,12 @@ class Actuator(object):
         """
         if not self.__backtest_finished:
             raise DemeterError("Please run strategy first")
-        print(self.broker.formatted_str())
-        print(get_formatted_predefined("Account Status", STYLE["header1"]))
-        print(self._account_status_df)
+        self.logger.info(self.broker.formatted_str())
+        self.logger.info(get_formatted_predefined("Account Status", STYLE["header1"]))
+        self.logger.info(self._account_status_df)
         if len(self._enabled_evaluator) > 0:
-            print("Evaluating indicator")
-            print(self._evaluator)
+            self.logger.info("Evaluating indicator")
+            self.logger.info(self._evaluator)
 
     def save_result(self, path: str, account=True, actions=True) -> List[str]:
         """
@@ -453,7 +453,7 @@ class Actuator(object):
             file_list.append(json_name)
             file_list.append(pkl_name)
 
-        print("files have saved to", file_list)
+        self.logger.info("files have saved to", file_list)
         return file_list
 
     def init_strategy(self):
