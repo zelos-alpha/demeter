@@ -239,6 +239,7 @@ Demeter also can add evaluator to evaluate result and analysis the result.
 And the result can save to file so you can review it later.
 
 .. code-block::
+
     actuator.save_result("./result",  # save path
                          account=True,  # save account status list as a csv file
                          actions=True)  # save actions as a json file and a pickle file
