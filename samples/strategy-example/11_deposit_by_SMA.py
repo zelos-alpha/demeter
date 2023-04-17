@@ -47,27 +47,27 @@ class AddLiquidityByMA(Strategy):
 
 
 if __name__ == "__main__":
-    usdc = TokenInfo(name="usdc", decimal=6)  # declare  token0
-    eth = TokenInfo(name="eth", decimal=18)  # declare token1
-    pool = UniV3Pool(usdc, eth, 0.05, usdc)  # declare pool
-    market_key = MarketInfo("uni_market")
+    usdc = TokenInfo(name="usdc", decimal=6)  # TokenInfo(name='usdc', decimal=6)
+    eth = TokenInfo(name="eth", decimal=18)  # TokenInfo(name='eth', decimal=18)
+    pool = UniV3Pool(usdc, eth, 0.05, usdc)  # PoolBaseInfo(Token0: TokenInfo(name='usdc', decimal=6),Token1: TokenInfo(name='eth', decimal=18),fee: 0.0500,base token: usdc)
+    market_key = MarketInfo("uni_market")  # uni_market
 
-    actuator = Actuator()  # declare actuator
-    broker = actuator.broker
-    market = UniLpMarket(market_key, pool)
+    actuator = Actuator()  # Demeter Actuator (broker:assets: (usdc: 0),(eth: 0.0649656829313074758270199536); markets: (uni_market:UniLpMarket, positions: 1, total liquidity: 376273903830523))
+    broker = actuator.broker  # assets: (usdc: 0),(eth: 0.0649656829313074758270199536); markets: (uni_market:UniLpMarket, positions: 1, total liquidity: 376273903830523)
+    market = UniLpMarket(market_key, pool)  # uni_market:UniLpMarket, positions: 1, total liquidity: 376273903830523
 
-    broker.add_market(market)
-    broker.set_balance(usdc, 2000)
-    broker.set_balance(eth, 0)
+    broker.add_market(market)  # add market
+    broker.set_balance(usdc, 2000)  # set balance
+    broker.set_balance(eth, 0)  # set balance
 
-    actuator.strategy = AddLiquidityByMA(200)
+    actuator.strategy = AddLiquidityByMA(200)  # set strategy
 
-    market.data_path = "../data"
+    market.data_path = "../data"  # set data_path
     market.load_data(ChainType.Polygon.name,
                      "0x45dda9cb7c25131df268515131f647d726f50608",
                      date(2022, 8, 5),
                      date(2022, 8, 20))
-    actuator.set_price(market.get_price_from_data())
+    actuator.set_price(market.get_price_from_data())  # set price
     actuator.run()  # run test
 
     plot_position_return_decomposition(actuator.get_account_status_dataframe(),

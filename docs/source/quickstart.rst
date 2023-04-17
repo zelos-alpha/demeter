@@ -9,7 +9,7 @@ System Requirements
 * Minimum 8G Memory
 * Operation system: Mac or Linux (Windows is not fully tested)
 
-We recommend use virtual environment application like `conda <https://docs.conda.io/projects/conda/en/latest/>`_
+We recommend use virtual environment application like `conda <https://docs.conda.io/projects/conda/en/latest/>`_ or `pyenv <https://github.com/pyenv/pyenv>`_
 
 
 Install
@@ -243,4 +243,16 @@ And the result can save to file so you can review it later.
     actuator.save_result("./result",  # save path
                          account=True,  # save account status list as a csv file
                          actions=True)  # save actions as a json file and a pickle file
+
+
+Add plot position decomposition
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use matplotlib library to plot the position decomposition.
+
+.. code-block::
+
+    plot_position_return_decomposition(actuator.get_account_status_dataframe(),
+                                       actuator.token_prices[eth.name],
+                                       market_key)
 
