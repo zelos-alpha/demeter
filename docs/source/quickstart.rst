@@ -222,3 +222,24 @@ this example shows how to add simple moving average indicator with 5 hour window
             if self.data.get_by_cursor(0).ma5 > 1500 # access by index
                 self.buy(100, row_data.price)
 
+
+Add a evaluator
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Demeter also can add evaluator to evaluate result and analysis the result.
+
+.. code-block::
+
+    actuator.run(
+        evaluator=[EvaluatorEnum.MAX_DRAW_DOWN, EvaluatorEnum.ANNUALIZED_RETURNS]
+    )
+    # get result
+    evaluating_result: Dict[EvaluatorEnum, Decimal] = actuator.evaluating_indicator
+
+And the result can save to file so you can review it later.
+
+.. code-block::
+    actuator.save_result("./result",  # save path
+                         account=True,  # save account status list as a csv file
+                         actions=True)  # save actions as a json file and a pickle file
+

@@ -56,24 +56,24 @@ class DemoStrategy(Strategy):
 
 
 if __name__ == "__main__":
-    usdc = TokenInfo(name="usdc", decimal=6)
-    eth = TokenInfo(name="eth", decimal=18)
-    pool = UniV3Pool(usdc, eth, 0.05, usdc)
+    usdc = TokenInfo(name="usdc", decimal=6)  # TokenInfo(name='usdc', decimal=6)
+    eth = TokenInfo(name="eth", decimal=18)  # TokenInfo(name='eth', decimal=18)
+    pool = UniV3Pool(usdc, eth, 0.05, usdc)  # PoolBaseInfo(Token0: TokenInfo(name='usdc', decimal=6),Token1: TokenInfo(name='eth', decimal=18),fee: 0.0500,base token: usdc)
 
-    market_key = MarketInfo("market1")
-    market = UniLpMarket(market_key, pool)
+    market_key = MarketInfo("market1")  # market1
+    market = UniLpMarket(market_key, pool)  # market1:UniLpMarket, positions: 1, total liquidity: 1118507685860856
     market.data_path = "../data"
     market.load_data(ChainType.Polygon.name,
                      "0x45dda9cb7c25131df268515131f647d726f50608",
                      date(2022, 8, 20),
                      date(2022, 8, 20))
 
-    actuator = Actuator()
-    actuator.broker.add_market(market)
-    actuator.broker.set_balance(usdc, 10000)
-    actuator.broker.set_balance(eth, 10)
-    actuator.strategy = DemoStrategy()
-    actuator.set_price(market.get_price_from_data())
+    actuator = Actuator()  # Demeter Actuator (broker:assets: (usdc: 180.989481091103662437119743),(eth: 0); markets: (market1:UniLpMarket, positions: 1, total liquidity: 1118507685860856))
+    actuator.broker.add_market(market)  # add market
+    actuator.broker.set_balance(usdc, 10000)  # set balance
+    actuator.broker.set_balance(eth, 10)  # set balance
+    actuator.strategy = DemoStrategy()  # add strategy
+    actuator.set_price(market.get_price_from_data())  # set price
 
     # if evaluator is set, evaluating indicator will run after backtest.
     # those evaluating indicator will calculate indicator of net value.
@@ -81,8 +81,8 @@ if __name__ == "__main__":
         evaluator=[EvaluatorEnum.MAX_DRAW_DOWN, EvaluatorEnum.ANNUALIZED_RETURNS]
     )
     # get result
-    evaluating_result: Dict[EvaluatorEnum, Decimal] = actuator.evaluating_indicator
-    actuator.save_result("./result", # save path
-                         account=True, # save account status list as a csv file
-                         actions=True) # save actions as a json file and a pickle file
+    evaluating_result: Dict[EvaluatorEnum, Decimal] = actuator.evaluating_indicator  # {<EvaluatorEnum.MAX_DRAW_DOWN: 3>: Decimal('0.04801148755391014037566625016'), <EvaluatorEnum.ANNUALIZED_RETURNS: 1>: Decimal('-0.9916890919693757317759809010')}
+    actuator.save_result("./result",  # save path
+                         account=True,  # save account status list as a csv file
+                         actions=True)  # save actions as a json file and a pickle file
     pass

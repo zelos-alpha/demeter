@@ -113,11 +113,11 @@ class DemoStrategy(Strategy):
 
 
 if __name__ == "__main__":
-    usdc = TokenInfo(name="usdc", decimal=6)
-    eth = TokenInfo(name="eth", decimal=18)
-    pool = UniV3Pool(usdc, eth, 0.05, usdc)
+    usdc = TokenInfo(name="usdc", decimal=6)  # TokenInfo(name='usdc', decimal=6)
+    eth = TokenInfo(name="eth", decimal=18)  # TokenInfo(name='eth', decimal=18)
+    pool = UniV3Pool(usdc, eth, 0.05, usdc)  # PoolBaseInfo(Token0: TokenInfo(name='usdc', decimal=6),Token1: TokenInfo(name='eth', decimal=18),fee: 0.0500,base token: usdc)
 
-    market_key = MarketInfo("market1")
+    market_key = MarketInfo("market1")  # market1
     market = UniLpMarket(market_key, pool)
     market.data_path = "../data"
     market.load_data(ChainType.Polygon.name,
@@ -125,11 +125,11 @@ if __name__ == "__main__":
                      date(2022, 8, 20),
                      date(2022, 8, 20))
 
-    actuator = Actuator()
-    actuator.broker.add_market(market)
-    actuator.broker.set_balance(usdc, 10000)
-    actuator.broker.set_balance(eth, 10)
-    actuator.strategy = DemoStrategy()
-    actuator.set_price(market.get_price_from_data())
+    actuator = Actuator()  # init actuator
+    actuator.broker.add_market(market)  # add market to actuator
+    actuator.broker.set_balance(usdc, 10000)  # set balance
+    actuator.broker.set_balance(eth, 10)  # set balance
+    actuator.strategy = DemoStrategy()  # set strategy
+    actuator.set_price(market.get_price_from_data())  # set actuator price
 
-    actuator.run()
+    actuator.run()  # run actuator

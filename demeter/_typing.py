@@ -75,9 +75,9 @@ class TokenInfo(NamedTuple):
     """
     token info
 
-    :param name: token symbol, will be set as unit of a token value
+    :param name: token symbol, will be set as unit of a token value, usdc
     :type name: str
-    :param decimal: decimal of this token
+    :param decimal: decimal of this token, 6
     :type decimal: int
     """
     name: str

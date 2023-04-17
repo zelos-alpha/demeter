@@ -31,6 +31,12 @@ class UniLpMarket(Market):
     """
 
     def __init__(self, market_info: MarketInfo, pool_info: UniV3Pool, data: pd.DataFrame = None):
+        """
+        init UniLpMarket
+        :param market_info: uni_market
+        :param pool_info: pool info with token0, token1, fee, base token
+        :param data: default None, dataframe data
+        """
         super().__init__(market_info=market_info, data=data)
         self._pool: UniV3Pool = pool_info
         # init balance

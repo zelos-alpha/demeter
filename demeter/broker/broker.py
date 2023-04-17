@@ -86,9 +86,9 @@ class Broker:
     def set_balance(self, token: TokenInfo, amount: Decimal | float):
         """
         set the balance value
-        :param token: the token of asset
-        :param amount: amount of token
-        :return: Asset instance
+        :param token: the token of asset, TokenInfo(name='usdc', decimal=6)
+        :param amount: amount of token, 10000
+        :return: Asset instance, usdc: 10000
         """
         asset: Asset = self.__add_asset(token)
         asset.balance = amount
@@ -145,8 +145,10 @@ class Broker:
         """
         get account status
         :param prices: price series
-        :param timestamp: optional timestamp
+        ('eth', Decimal('1610.553895752868641174609110')) ('usdc', 1)
+        :param timestamp: optional timestamp, 2022-08-20 00:00:00
         :return: account status
+        AccountStatus(timestamp=None, net_value=Decimal('26105.53895752868641174609110'), asset_balances=<demeter.broker._typing.AssetDict object at 0x11842f7c0>, market_status=<demeter.broker._typing.MarketDict object at 0x11842e020>)
         """
         account_status = AccountStatus(timestamp=timestamp)
         for k, v in self.markets.items():

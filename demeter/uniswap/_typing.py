@@ -19,12 +19,12 @@ class UniV3Pool(object):
     :param token1: Second token in  pool contract.
     :type token1: TokenInfo
     :param fee: fee rate of this pool, should be among [0.05, 0.3, 1]
-    :type fee: float
+    :type fee: float, 0.05
     :param base_token: which token will be considered as base token. eg: to a token pair of USDT/BTC, if you want price unit to be like 10000 usdt/btc, you should set usdt as base token, otherwise if price unit is 0.00001 btc/usdt, you should set btc as base token
     :type base_token: TokenInfo
     """
 
-    def __init__(self, token0: TokenInfo, token1: TokenInfo, fee: float, base_token):
+    def __init__(self, token0: TokenInfo, token1: TokenInfo, fee: float, base_token: TokenInfo):
         fee = Decimal(str(fee))
         self.token0 = token0
         self.token1 = token1

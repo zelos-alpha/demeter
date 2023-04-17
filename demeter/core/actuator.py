@@ -210,6 +210,19 @@ class Actuator(object):
         """
         set price
         :param prices: dataframe or series
+                                                       eth  usdc
+        2022-08-20 00:00:00  1610.553895752868641174609110     1
+        2022-08-20 00:01:00  1612.487623747744872677867817     1
+        2022-08-20 00:02:00  1615.715664560742874527210287     1
+        2022-08-20 00:03:00  1615.715664560742874527210287     1
+        2022-08-20 00:04:00  1615.554109149827891738036484     1
+        ...                                            ...   ...
+        2022-08-20 23:55:00  1577.086574012079067849553855     1
+        2022-08-20 23:56:00  1576.928881123966671182435611     1
+        2022-08-20 23:57:00  1576.928881123966671182435611     1
+        2022-08-20 23:58:00  1576.613542649301384412539259     1
+        2022-08-20 23:59:00  1576.613542649301384412539259     1
+        [1440 rows x 2 columns]
         :return: None
         """
         if isinstance(prices, pd.DataFrame):
@@ -258,12 +271,12 @@ class Actuator(object):
                     self.set_price(market.get_price_from_data())
             if self._token_prices is None:
                 raise DemeterError("token prices is not set")
-        for token in self._broker.assets.keys():
+        for token in self._broker.assets.keys():  # dict_keys([TokenInfo(name='usdc', decimal=6), TokenInfo(name='eth', decimal=18)])
             if token.name not in self._token_prices:
                 raise DemeterError(f"Price of {token.name} has not set yet")
         [market.check_before_test() for market in self._broker.markets.values()]
 
-        data_length = []
+        data_length = []  # [1440]
         for market in self._broker.markets.values():
             data_length.append(len(market.data.index))
             market.check_asset()  # check each market, including assets
@@ -335,7 +348,7 @@ class Actuator(object):
         :param print_final_status: enable output.
         :type print_final_status: bool
         """
-        run_begin_time = time.time()
+        run_begin_time = time.time()  # 1681718968.267463
         self.reset()
 
         self._enabled_evaluator = evaluator
@@ -351,7 +364,7 @@ class Actuator(object):
         self.init_strategy()
         row_id = 0
         data_length = len(index_array)
-        first = True
+        first = True  # todo delete
         self.logger.info("start main loop...")
         with tqdm(total=data_length, ncols=150) as pbar:
             for timestamp_index in index_array:
@@ -376,8 +389,8 @@ class Actuator(object):
 
                 self._strategy.after_bar(market_row_dict)
 
-                if first:
-                    first = False
+                if first:  # todo delete
+                    first = False  # todo delete
                 self._account_status_list.append(
                     self._broker.get_account_status(self._token_prices.loc[timestamp_index],
                                                     timestamp_index))

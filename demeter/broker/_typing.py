@@ -32,7 +32,7 @@ class MarketInfo(NamedTuple):
     """
     MarketInfo properties
     """
-    name: str
+    name: str  # uni_market
 
 
 class Asset(object):

@@ -55,7 +55,7 @@ if __name__ == "__main__":
     # Declare a market key, which will be used to find the corresponding market in broker
     market_key = MarketInfo("uni_market")
     # Declare the market,
-    market = UniLpMarket(market_key, pool)
+    market = UniLpMarket(market_key, pool)  # uni_market:UniLpMarket, positions: 0, total liquidity: 0
     # load data for market. those data is prepared by download tool
     market.data_path = "../data"  # set data path
     market.load_data(chain=ChainType.Polygon.name,  # load data
@@ -64,7 +64,7 @@ if __name__ == "__main__":
                      end_date=date(2022, 8, 20))
 
     # Declare the Actuator, which controls the whole process
-    actuator = Actuator()  # declare actuator
+    actuator = Actuator()  # declare actuator, Demeter Actuator (broker:assets: ; markets: )
     # add market to broker
     actuator.broker.add_market(market)
     # Initial some fund to broker.

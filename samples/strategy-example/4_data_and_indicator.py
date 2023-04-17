@@ -20,7 +20,7 @@ class DemoStrategy(Strategy):
         new_trigger = AtTimeTrigger(
             time=datetime(2022, 8, 20, 12, 0, 0),
             do=self.work)
-        self.triggers.append(new_trigger)
+        self.triggers.append(new_trigger)  # add new trigger at 2022-08-20 12:00:00
         # add an indicator column, this column will be appended to corresponding market data
         self._add_column(market=market_key,
                          name="sma",  # name,

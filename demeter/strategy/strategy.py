@@ -80,9 +80,23 @@ class Strategy(object):
         """
         add a column to data
 
-        :param name: column name
+        :param name: column name, sma
         :type name: str
-        :param line: data
+        :param market: market1
+        :type market: MarketInfo
+        :param line: data,
+        2022-08-20 00:00:00            NaN
+        2022-08-20 00:01:00            NaN
+        2022-08-20 00:02:00            NaN
+        2022-08-20 00:03:00            NaN
+        2022-08-20 00:04:00            NaN
+                                  ...
+        2022-08-20 23:55:00    1568.069688
+        2022-08-20 23:56:00    1568.036998
+        2022-08-20 23:57:00    1568.004837
+        2022-08-20 23:58:00    1567.990103
+        2022-08-20 23:59:00    1567.975368
+        Freq: T, Name: price, Length: 1440, dtype: float64
         :type line: Line
         """
         if not isinstance(line.index, pd.core.indexes.datetimes.DatetimeIndex):

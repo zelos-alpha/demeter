@@ -20,10 +20,16 @@ class Market:
                  market_info: MarketInfo,
                  data: pd.DataFrame = None,
                  data_path=DEFAULT_DATA_PATH):
+        """
+        init Market
+        :param market_info: uni_market
+        :param data: None or dataframe data
+        :param data_path: default ./data dir
+        """
         self._data: pd.DataFrame = data
         self._market_info: MarketInfo = market_info
         self.broker = None
-        self._record_action_callback = lambda x: x # default value, will be set by broker
+        self._record_action_callback = lambda x: x  # default value, will be set by broker
         self.data_path: str = data_path
         self.logger = logging.getLogger(__name__)
         self._market_status = MarketStatus(None)
