@@ -407,6 +407,7 @@ class UniLpMarket(Market):
                                                                                               upper_tick,
                                                                                               sqrt_price_x96)
         base_used, quote_used = self._convert_pair(token0_used, token1_used)
+        lower_tick, upper_tick = self._convert_pair(upper_tick, lower_tick)
         self.record_action(AddLiquidityAction(
             market=self.market_info,
             base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
