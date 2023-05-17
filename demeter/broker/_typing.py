@@ -3,11 +3,13 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Generic, TypeVar
-from typing import NamedTuple, List, Dict
+from typing import NamedTuple, List, Dict, TypeVar
 
 import pandas as pd
 
 from .._typing import DemeterError, TokenInfo
+
+T = TypeVar('T')
 
 
 class Rule(NamedTuple):
@@ -372,3 +374,36 @@ class AccountStatus(AccountStatusCommon):
                                 data=map(lambda d: d.to_array(), status_list))
         else:
             return pd.DataFrame()
+
+
+class PositionManager:
+    def __init__(self):
+        self.positions: Dict[str, Decimal] = {}
+        self.keys: List[T] = []
+
+    def add(self, stock: T, amount: Decimal) -> Decimal:
+        key = str(stock)
+        if key not in self.positions:
+            self.positions[key] = Decimal(0)
+            self.keys.append(stock)
+        self.positions[key] += amount
+        return self.positions[key]
+
+    def substract(self, stock: T, amount: Decimal) -> Decimal:
+        key = str(stock)
+        if key not in self.positions:
+            raise DemeterError(f"{stock} not in position")
+        if self.positions[key] < amount:
+            raise DemeterError(f"insufficient amount for {key}")
+        self.positions[key] -= amount
+        return self.positions[key]
+
+    def get(self, stock: T) -> Decimal:
+        key = str(stock)
+        if key not in self.positions:
+            raise DemeterError(f"{key} not in position")
+        return self.positions[key]
+
+    def has(self, stock: T) -> bool:
+        key = str(stock)
+        return key in self.positions

@@ -75,9 +75,9 @@ class TokenInfo(NamedTuple):
     """
     token info
 
-    :param name: token symbol, will be set as unit of a token value, usdc
+    :param name: token symbol, will be set as unit of a token value, eg: usdc
     :type name: str
-    :param decimal: decimal of this token, 6
+    :param decimal: decimal of this token, eg: 6
     :type decimal: int
     """
     name: str
@@ -102,6 +102,11 @@ class PositionInfo(NamedTuple):
 
 
 class DemeterError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+
+class TradeError(Exception):
     def __init__(self, message):
         self.message = message
 
