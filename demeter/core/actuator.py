@@ -321,8 +321,12 @@ class Actuator(object):
         :param market_row_dict:
         :return:
         """
+
+
+        # 过时的设计, 可以优化.
+        # 数据是从market中获取的. 没必要再给set回去. 直接传入一个index就可以了
         for market_key, market_row_data in market_row_dict.items():
-            self._broker.markets[market_key].set_market_status(timestamp, market_row_data)
+            self._broker.markets[market_key].set_market_status(timestamp, market_row_data, self._token_prices.loc[timestamp])
 
     def run(self,
             evaluator: List[EvaluatorEnum] = [],
@@ -360,7 +364,7 @@ class Actuator(object):
         init_row_data = self.__get_market_row_dict(index_array[0], 0)
         self.__set_row_to_markets(index_array[0], init_row_data)
         # keep initial balance for evaluating
-        init_account_status = self._broker.get_account_status(self._token_prices.iloc[0])
+        init_account_status = self._broker.get_account_status(self._token_prices.head(1).iloc[0])
         self.init_strategy()
         row_id = 0
         data_length = len(index_array)

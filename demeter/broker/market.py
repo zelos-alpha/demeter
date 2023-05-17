@@ -33,6 +33,7 @@ class Market:
         self.data_path: str = data_path
         self.logger = logging.getLogger(__name__)
         self._market_status = MarketStatus(None)
+        self._price_status: pd.Series | None = None
 
     def __str__(self):
         return f"{self._market_info.name}:{type(self).__name__}"
@@ -77,7 +78,7 @@ class Market:
     def market_status(self):
         return self._market_status
 
-    def set_market_status(self, timestamp: datetime, data: pd.Series | MarketStatus):
+    def set_market_status(self, timestamp: datetime, data: pd.Series | MarketStatus, price: pd.Series):
         """
         set up market status, such as liquidity, price
         :param timestamp: current timestamp
@@ -89,6 +90,7 @@ class Market:
             self._market_status = data
         else:
             self._market_status = MarketStatus(timestamp)
+        self._price_status = price
 
     def get_market_balance(self, prices: pd.Series | Dict[str, Decimal]) -> MarketBalance:
         """

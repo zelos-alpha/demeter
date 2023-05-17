@@ -115,7 +115,7 @@ class UniLpMarket(Market):
 
     # endregion
 
-    def set_market_status(self, timestamp: datetime | None, data: pd.Series | UniV3PoolStatus):
+    def set_market_status(self, timestamp: datetime | None, data: pd.Series | UniV3PoolStatus, price: pd.Series):
         # update price tick
         if isinstance(data, UniV3PoolStatus):
             self._market_status = data
@@ -126,6 +126,7 @@ class UniLpMarket(Market):
                                                   data.inAmount0,
                                                   data.inAmount1,
                                                   data.price)
+        self._price_status = price
 
     def get_price_from_data(self) -> pd.DataFrame:
         if self.data is None:
