@@ -3,7 +3,7 @@ from datetime import date, timedelta
 
 import pandas as pd
 
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, ChainType, PeriodTrigger, actual_volatility, \
+from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, ChainType, PeriodTrigger, realized_volatility, \
     simple_moving_average, MarketInfo, UniLpMarket, MarketDict, RowData
 
 pd.options.display.max_columns = None
@@ -29,9 +29,9 @@ class AddByVolatility(Strategy):
 
     def initialize(self):
         self._add_column(market_key, "sma_1_day", simple_moving_average(self.data[market_key].price, timedelta(days=1)))
-        self._add_column(market_key, "volatility", actual_volatility(self.data[market_key].price,
-                                                                     timedelta(days=1),
-                                                                     timedelta(days=1)))
+        self._add_column(market_key, "volatility", realized_volatility(self.data[market_key].price,
+                                                                       timedelta(days=1),
+                                                                       timedelta(days=1)))
         self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=4),
                                            trigger_immediately=True,
                                            do=self.work))

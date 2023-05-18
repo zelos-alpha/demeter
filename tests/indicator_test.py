@@ -6,7 +6,7 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 
-from demeter import simple_moving_average, exponential_moving_average, actual_volatility
+from demeter import simple_moving_average, exponential_moving_average, realized_volatility
 
 
 class TestIndicator(unittest.TestCase):
@@ -54,7 +54,7 @@ class TestIndicator(unittest.TestCase):
     def test_actual_volatility(self):
         index = pd.date_range('2022-9-6 0:0:0', periods=10, freq='T')
         series = pd.Series(data=[1, 1, 1, 1, 1, math.e, 1, 1, 1, 1], index=index)
-        series_v = actual_volatility(series, timedelta(minutes=2))
+        series_v = realized_volatility(series, timedelta(minutes=2))
         df = pd.DataFrame(index=index, data={"d1": series, "d2": series_v})
         print(df)
         self.assertTrue(math.isnan(series_v.iloc[0]))

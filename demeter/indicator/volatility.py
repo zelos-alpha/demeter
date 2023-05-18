@@ -9,9 +9,9 @@ from .._typing import DemeterError
 from .common import get_real_n
 
 
-def actual_volatility(data: pd.Series,
-                      window: timedelta = timedelta(minutes=5),
-                      timeunit: timedelta = timedelta(days=1)) -> "Series(float64)":
+def realized_volatility(data: pd.Series,
+                        window: timedelta = timedelta(minutes=5),
+                        timeunit: timedelta = timedelta(days=1)) -> pd.Series:
     """
     get actual volatility. step:
 
