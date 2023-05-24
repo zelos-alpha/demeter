@@ -650,7 +650,7 @@ class UniLpMarket(Market):
         df = pd.DataFrame()
         day = start_date
         while day <= end_date:
-            new_type_path = os.path.join(self.data_path, f"{chain}-{contract_addr}-{day.strftime('%Y-%m-%d')}.minute.csv")
+            new_type_path = os.path.join(self.data_path, f"{chain.lower()}-{contract_addr}-{day.strftime('%Y-%m-%d')}.minute.csv")
             path = new_type_path if os.path.exists(new_type_path) else os.path.join(self.data_path, f"{chain}-{contract_addr}-{day.strftime('%Y-%m-%d')}.csv")
             if not os.path.exists(path):
                 raise IOError(f"resource file {new_type_path} not found, please download with demeter-fetch: https://github.com/zelos-alpha/demeter-fetch")
