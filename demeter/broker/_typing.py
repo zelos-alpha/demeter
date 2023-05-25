@@ -59,7 +59,14 @@ class Asset(object):
         return Asset info
         :return: Asset info with name && balance
         """
-        return f"{self.name}: {self.balance}"
+        return f"{self.balance} {self.name}"
+
+    def __repr__(self):
+        """
+        return Asset info
+        :return: Asset info with name && balance
+        """
+        return f"{self.balance} {self.name}"
 
     def add(self, amount=Decimal(0)):
         """
@@ -188,6 +195,7 @@ class MarketDict(Generic[T]):
     """
     Market Dict with get/set function
     """
+
     def __init__(self):
         self.data: Dict[MarketInfo, T] = {}
         self._default: MarketInfo | None = None

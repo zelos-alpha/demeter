@@ -322,7 +322,6 @@ class Actuator(object):
         :return:
         """
 
-
         # 过时的设计, 可以优化.
         # 数据是从market中获取的. 没必要再给set回去. 直接传入一个index就可以了
         for market_key, market_row_data in market_row_dict.items():
@@ -470,7 +469,7 @@ class Actuator(object):
             file_list.append(json_name)
             file_list.append(pkl_name)
 
-        self.logger.info("files have saved to", file_list)
+        self.logger.info(f"files have saved to {','.join(file_list)}")
         return file_list
 
     def init_strategy(self):
