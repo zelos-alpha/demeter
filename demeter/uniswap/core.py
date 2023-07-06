@@ -77,7 +77,7 @@ class V3CoreLib(object):
         return lower_tick, upper_tick
 
     @staticmethod
-    def update_fee(pool: UniV3Pool, pos: PositionInfo, position: Position, state: UniV3PoolStatus):
+    def update_fee(pool: UniV3Pool, pos: PositionInfo, position: Position, state: UniV3PoolStatus, prev_current_tick: int):
         """
         update fee
         :param pool: operation on which pool
@@ -87,11 +87,17 @@ class V3CoreLib(object):
         :return: None
         """
         # in most cases, tick will not cross to on_bar one, which means L will not change.
-        if pos.upper_tick > state.current_tick > pos.lower_tick:
-            # if the simulating liquidity is above the actual liquidity, we will consider share=1
+        def calc_amounts():
             if position.liquidity >= state.current_liquidity:
                 share = Decimal(1)
             else:
                 share = Decimal(position.liquidity) / Decimal(state.current_liquidity)
             position.pending_amount0 += from_wei(state.in_amount0, pool.token0.decimal) * share * pool.fee_rate
             position.pending_amount1 += from_wei(state.in_amount1, pool.token1.decimal) * share * pool.fee_rate
+        
+        condition_in_position = pos.upper_tick > state.current_tick > pos.lower_tick
+        condition_over_position = (prev_current_tick > pos.upper_tick and state.current_tick < pos.lower_tick) or (state.current_tick > pos.upper_tick and prev_current_tick < pos.lower_tick)
+        condition_in_to_out_position = pos.upper_tick > prev_current_tick > pos.lower_tick and (state.current_tick > pos.upper_tick or state.current_tick < pos.lower_tick)
+        
+        if condition_in_position or condition_over_position or condition_in_to_out_position:
+            calc_amounts()
