@@ -116,8 +116,9 @@ class UniLpMarket(Market):
 
     # endregion
 
-    def set_market_status(self, timestamp: datetime | None, data: pd.Series | UniV3PoolStatus, price: pd.Series):
+    def set_market_status(self, timestamp: datetime | None, data: pd.Series | UniV3PoolStatus, price: pd.Series | None):
         # update price tick
+        self.prev_tick = self._market_status.current_tick
         if isinstance(data, UniV3PoolStatus):
             self._market_status = data
         else:
@@ -174,7 +175,7 @@ class UniLpMarket(Market):
         fee will be calculated by liquidity
         """
         for position_info, position in self._positions.items():
-            V3CoreLib.update_fee(self.pool_info, position_info, position, self.market_status)
+            V3CoreLib.update_fee(self.pool_info, position_info, position, self.market_status, self.prev_tick)
 
     def get_market_balance(self, prices: pd.Series | Dict[str, Decimal] = None) -> MarketBalance:
         """
