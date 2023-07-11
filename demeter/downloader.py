@@ -1,5 +1,6 @@
 import os
 import sys
+import warnings
 from datetime import datetime
 
 import toml
@@ -92,6 +93,9 @@ if __name__ == '__main__':
         print("config file not found,")
         exit(1)
     config_file = toml.load(sys.argv[1])
+    warnings.warn("This module is deprecated, please use demeter-fetch instead, visit https://github.com/zelos-alpha/demeter-fetch",
+                  DeprecationWarning,
+                  stacklevel=2)
     try:
         download_entity = Downloader(dict_to_object(config_file))
     except RuntimeError as e:

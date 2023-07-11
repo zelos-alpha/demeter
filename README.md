@@ -13,12 +13,15 @@ Feel free to make an issue or pr to help this repository.
 
 ## Design rationale 
 ### data
-Evm's event is better than graphQL. 
+
+We need log event to simulate pool status instead of graphQL as evm's event is better than graphQL. 
 Event approach is  cheaper and easier to use than subgraph approach.
 It is found that official subgraph had some bugs in some corner cases.
 
-We provide a bigquery downloader to produce daily pool csv files. Data downloading is an independent step for backtesting .You can download and clean it on you your ownself.
-More info about download can be found in [here](https://zelos-demeter.readthedocs.io/en/latest/download_tutorial.html).
+We provide an independent download tool, [demeter-fetch](https://github.com/zelos-alpha/demeter-fetch) to fetch data. It can download chain event log from rpc or google bigquery. Those logs will be resampled to minute to reduce calculation. 
+demeter-fetch can abstract the data into human friendly csv format, which it widely used in our research. 
+
+
 
 ### abstraction
 Strategy: quote/base price.
