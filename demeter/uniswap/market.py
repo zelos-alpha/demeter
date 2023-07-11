@@ -9,7 +9,7 @@ from ._typing import UniV3Pool, TokenInfo, BrokerAsset, Position, UniV3PoolStatu
     AddLiquidityAction, RemoveLiquidityAction, CollectFeeAction, BuyAction, SellAction, position_dict_to_dataframe, \
     PositionInfo
 from .core import V3CoreLib
-from .data import fillna
+from .data import fillna, UniLPData
 from .helper import tick_to_quote_price, quote_price_to_tick, quote_price_to_sqrt, tick_to_sqrtPriceX96
 from .liquitidy_math import get_sqrt_ratio_at_tick
 from .._typing import DemeterError, DECIMAL_0, UnitDecimal
@@ -116,18 +116,21 @@ class UniLpMarket(Market):
 
     # endregion
 
-    def set_market_status(self, timestamp: datetime | None, data: pd.Series | UniV3PoolStatus, price: pd.Series | None):
+    def set_market_status(self, timestamp: datetime | None, data: UniLPData | UniV3PoolStatus, price: pd.Series | None):
         # update price tick
-        self.prev_tick = self._market_status.current_tick
+        local_prev_tick = self._market_status.current_tick
         if isinstance(data, UniV3PoolStatus):
             self._market_status = data
+            if not data.last_tick:
+                self._market_status.last_tick = local_prev_tick
         else:
             self._market_status = UniV3PoolStatus(timestamp,
                                                   int(data.closeTick),
                                                   data.currentLiquidity,
                                                   data.inAmount0,
                                                   data.inAmount1,
-                                                  data.price)
+                                                  data.price,
+                                                  local_prev_tick)
         self._price_status = price
 
     def get_price_from_data(self) -> pd.DataFrame:
@@ -175,7 +178,7 @@ class UniLpMarket(Market):
         fee will be calculated by liquidity
         """
         for position_info, position in self._positions.items():
-            V3CoreLib.update_fee(self.pool_info, position_info, position, self.market_status, self.prev_tick)
+            V3CoreLib.update_fee(self.pool_info, position_info, position, self.market_status)
 
     def get_market_balance(self, prices: pd.Series | Dict[str, Decimal] = None) -> MarketBalance:
         """

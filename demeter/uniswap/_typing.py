@@ -195,6 +195,10 @@ class UniV3PoolStatus(MarketStatus):
     in_amount0: int
     in_amount1: int
     price: Decimal
+    # tick of last minute(previous minute), to compatible with old version, keep default as None
+    # note: I have to make it compatible, as someone would check out their private version,
+    # Please fill this paameter as much as possible to improve accuracy
+    last_tick: int | None = None
 
 
 @dataclass

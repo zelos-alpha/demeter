@@ -29,12 +29,14 @@ class TestUniLpMarket(unittest.TestCase):
         broker.add_market(market)
         tick = 200000
         price = market.tick_to_price(tick)
-        market.set_market_status(None, UniV3PoolStatus(None,
-                                                       tick,
-                                                       840860039126296093,
-                                                       18714189922,
-                                                       58280013108171131649,
-                                                       price))
+        market.set_market_status(None,
+                                 UniV3PoolStatus(None,
+                                                 tick,
+                                                 840860039126296093,
+                                                 18714189922,
+                                                 58280013108171131649,
+                                                 price),
+                                 None)
         broker.set_balance(self.eth, 1)
         broker.set_balance(self.usdc, price)
         market.sqrt_price = demeter.uniswap.helper.tick_to_sqrtPriceX96(tick)
@@ -206,11 +208,13 @@ class TestUniLpMarket(unittest.TestCase):
         TestUniLpMarket.print_broker(broker)
         eth_amount = 10000000000000000000
         usdc_amount = 10000000
-        market.set_market_status(None, data=UniV3PoolStatus(None, market.market_status.current_tick,
-                                                            liquidity * 100,
-                                                            usdc_amount,
-                                                            eth_amount,
-                                                            market.tick_to_price(market.market_status.current_tick)))
+        market.set_market_status(None,
+                                 UniV3PoolStatus(None, market.market_status.current_tick,
+                                                 liquidity * 100,
+                                                 usdc_amount,
+                                                 eth_amount,
+                                                 market.tick_to_price(market.market_status.current_tick)),
+                                 None)
         print("=========after a bar======================================================================")
         market.update()
         TestUniLpMarket.print_broker(broker)
@@ -293,7 +297,7 @@ class TestUniLpMarket(unittest.TestCase):
         old_net_value = price * broker.assets[self.eth].balance + broker.assets[self.usdc].balance
         print(old_net_value)
         tick = market.price_to_tick(price)
-        market.set_market_status(None, data=UniV3PoolStatus(None, tick, Decimal(0), Decimal(0), Decimal(0), price))
+        market.set_market_status(None, UniV3PoolStatus(None, tick, Decimal(0), Decimal(0), Decimal(0), price), None)
         pos = market.add_liquidity(1000, 1200)
         price_map = {
             self.usdc.name: Decimal(1),
