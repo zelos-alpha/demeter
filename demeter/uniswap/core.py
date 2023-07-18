@@ -87,11 +87,9 @@ class V3CoreLib(object):
         :return: None
         """
         # in most cases, tick will not cross to on_bar one, which means L will not change.
-        def calc_amounts():
-            in_range_lower_tick = pos.lower_tick if prev_current_tick < pos.lower_tick else prev_current_tick
-            in_range_upper_tick = pos.upper_tick if state.current_tick > pos.upper_tick else state.current_tick
+        def calc_amounts(in_range_lower_tick, in_range_upper_tick):
             pos_ticks_in_range = in_range_upper_tick - in_range_lower_tick + 1
-            swap_ticks = state.current_tick - prev_current_tick + 1
+            swap_ticks = abs(state.current_tick - prev_current_tick) + 1
             pos_tick_ratio = pos_ticks_in_range/swap_ticks
             pos_liquidity_ratio = Decimal(position.liquidity) / (Decimal(state.current_liquidity) + Decimal(position.liquidity))
             share = pos_liquidity_ratio * Decimal(pos_tick_ratio)
@@ -99,8 +97,17 @@ class V3CoreLib(object):
             position.pending_amount1 += from_wei(state.in_amount1, pool.token1.decimal) * share * pool.fee_rate
         
         if pos.upper_tick >= state.current_tick >= pos.lower_tick:
-            calc_amounts()
+            if pos.upper_tick >= prev_current_tick >= pos.lower_tick:
+                calc_amounts(min(prev_current_tick, state.current_tick), max(prev_current_tick, state.current_tick))
+            elif prev_current_tick < pos.lower_tick:
+                calc_amounts(pos.lower_tick, state.current_tick)
+            else:
+                calc_amounts(state.current_tick, pos.upper_tick)
+                
         if (prev_current_tick > pos.upper_tick and state.current_tick < pos.lower_tick) or (state.current_tick > pos.upper_tick and prev_current_tick < pos.lower_tick):
-            calc_amounts()
+            calc_amounts(pos.lower_tick, pos.upper_tick)
         if pos.upper_tick >= prev_current_tick >= pos.lower_tick and (state.current_tick > pos.upper_tick or state.current_tick < pos.lower_tick):
-            calc_amounts()  
+            if state.current_tick > pos.upper_tick:
+                calc_amounts(prev_current_tick, pos.upper_tick)
+            else:
+                calc_amounts(pos.lower_tick, prev_current_tick)
