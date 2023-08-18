@@ -154,6 +154,16 @@ def get_delta_gamma_sqrtX96(lower_price, sqrtA: int,
                             d1: int,
                             is_0_base: bool):
     """
+    Delta is calculated by integrating net worth, and gamma is calculated by integrating delta,
+    Therefore, the most important thing is to find the calculation formula of the net value (with tick range, price, and liquidity as parameters),
+    and then derive the formula after integration
+
+    The following comment indicates how to calculate net value.
+
+    * a: amount
+    * p: decimal price in base token
+
+
     k = 2 ** 96
     a0 = k * (10**(-d)) * Liquidity * (1/SqrtPrice - 1/upper_price_sqrtX96)
     a1= Liquidity / k / 10**d * (SqrtPrice - lower_price_sqrtX96)
@@ -161,9 +171,9 @@ def get_delta_gamma_sqrtX96(lower_price, sqrtA: int,
 
     if 0 base:
     SqrtPrice=k / (10 ** (d/2)) / (p**0.5)
-    net_value = a1 * p                    price <= lower, a0 is constant
+    net_value = a1 * p                    price <= lower, a1 is constant
                 a0 + a1 * p               lower < price < upper
-                a0                        price >= upper
+                a0                        price >= upper, a0 is constant
 
     a0 + a1 * p = liquidity * 10 ** (0.5 * d) / 10 ** d0 * price_float ** 0.5 - \
               k / upper_sqrt * liquidity / 10 ** d0 + \
