@@ -12,7 +12,12 @@ class Evaluator(object):
     calculate evaluator indicator for strategy.
     """
 
-    def __init__(self, init_status: AccountStatus, data: pd.DataFrame | AccountStatusCommon, prices: pd.DataFrame):
+    def __init__(
+        self,
+        init_status: AccountStatus,
+        data: pd.DataFrame | AccountStatusCommon,
+        prices: pd.DataFrame,
+    ):
         """
         init Evaluator
         :param init_status:
@@ -25,7 +30,9 @@ class Evaluator(object):
         self.data: pd.DataFrame = data
         if len(data) < 2:
             raise DemeterError("not enough data")
-        self.time_span_in_day = len(data.index) * (data.index[1] - data.index[0]).seconds / (60 * 60 * 24)
+        self.time_span_in_day = (
+            len(data.index) * (data.index[1] - data.index[0]).seconds / (60 * 60 * 24)
+        )
         self._result = None
 
     def run(self, enables: List[EvaluatorEnum]):
@@ -41,14 +48,24 @@ class Evaluator(object):
         for request in enables:
             match request:
                 case EvaluatorEnum.ANNUALIZED_RETURNS:
-                    result = UnitDecimal(annualized_returns(self.init_status.net_value,
-                                                            self.end_status.net_value,
-                                                            self.time_span_in_day), "")
+                    result = UnitDecimal(
+                        annualized_returns(
+                            self.init_status.net_value,
+                            self.end_status.net_value,
+                            self.time_span_in_day,
+                        ),
+                        "",
+                    )
                 case EvaluatorEnum.BENCHMARK_RETURNS:
-                    result = UnitDecimal(get_benchmark_returns(self.init_status.net_value,
-                                                               self.prices.iloc[0],
-                                                               self.prices.iloc[-1],
-                                                               self.time_span_in_day), "")
+                    result = UnitDecimal(
+                        get_benchmark_returns(
+                            self.init_status.net_value,
+                            self.prices.iloc[0],
+                            self.prices.iloc[-1],
+                            self.time_span_in_day,
+                        ),
+                        "",
+                    )
                 case EvaluatorEnum.MAX_DRAW_DOWN:
                     result = UnitDecimal(max_draw_down_fast(self.data.net_value), "")
                 case _:

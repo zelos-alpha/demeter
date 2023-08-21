@@ -14,8 +14,13 @@ def annualized_returns(init_value, final_value, timespan_in_day):
     return (final_value / init_value) ** Decimal(365 / timespan_in_day) - 1
 
 
-def get_benchmark_returns(self, init_value: Decimal,
-                          init_price: pd.Series, final_price: pd.Series, timespan_in_day: Decimal):
+def get_benchmark_returns(
+    self,
+    init_value: Decimal,
+    init_price: pd.Series,
+    final_price: pd.Series,
+    timespan_in_day: Decimal,
+):
     """
     Annualized benchmark return rate
     algorithm: swap token balance to 1:1, and hold those position to the end.
@@ -85,7 +90,7 @@ def _withdraw_with_high_low(arr: list):
     i_high = 0  # 遍历时，0 ~ i - 1 中最高的点的索引，注意是索引
 
     # 全局最大回撤和对应的最高点和最低点的索引，注意是索引
-    g_withdraw, g_high, g_low = float('-inf'), -1, -1
+    g_withdraw, g_high, g_low = float("-inf"), -1, -1
 
     for i in range(1, len(arr)):
         if arr[i_high] < arr[i - 1]:  # 若 0 ~ i - 1 中最高的点小于当前点

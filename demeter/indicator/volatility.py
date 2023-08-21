@@ -9,9 +9,11 @@ from .._typing import DemeterError
 from .common import get_real_n
 
 
-def realized_volatility(data: pd.Series,
-                        window: timedelta = timedelta(minutes=5),
-                        timeunit: timedelta = timedelta(days=1)) -> pd.Series:
+def realized_volatility(
+    data: pd.Series,
+    window: timedelta = timedelta(minutes=5),
+    timeunit: timedelta = timedelta(days=1),
+) -> pd.Series:
     """
     get actual volatility. step:
 
@@ -32,8 +34,10 @@ def realized_volatility(data: pd.Series,
     real_n = get_real_n(data, window)
 
     if real_n * 2 - 1 >= len(data.index):
-        raise DemeterError(f"data length is {len(data.index)}, but window size is {real_n}, "
-                           f"data length should be greater than {real_n * 2 - 1} to avoid all NAN")
+        raise DemeterError(
+            f"data length is {len(data.index)}, but window size is {real_n}, "
+            f"data length should be greater than {real_n * 2 - 1} to avoid all NAN"
+        )
 
     if data.dtypes == "object":
         shifted = data.shift(periods=real_n, fill_value=Decimal(float("nan")))

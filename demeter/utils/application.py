@@ -30,7 +30,9 @@ def dict_to_object(dict_entity):
     :param dict_entity:
     :return:
     """
-    return json.loads(json.dumps(dict_entity), object_hook=lambda d: SimpleNamespace(**d))
+    return json.loads(
+        json.dumps(dict_entity), object_hook=lambda d: SimpleNamespace(**d)
+    )
 
 
 def float_param_formatter(func):
@@ -39,6 +41,7 @@ def float_param_formatter(func):
     :param func:
     :return:
     """
+
     @wraps(func)
     def wrapper_func(*args, **kwargs):
         new_args = ()
@@ -61,4 +64,6 @@ def get_enum_by_name(me, name):
     for e in me:
         if e.name.lower() == name.lower():
             return e
-    raise RuntimeError(f"cannot found {name} in {me}, allow value is " + str([x.name for x in me]))
+    raise RuntimeError(
+        f"cannot found {name} in {me}, allow value is " + str([x.name for x in me])
+    )

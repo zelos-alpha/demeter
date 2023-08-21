@@ -33,10 +33,7 @@ class Actuator(object):
         """
         # all the actions during the test(buy/sell/add liquidity)
         self._action_list: List[BaseAction] = []
-        self._currents = {
-            "actions": [],
-            "timestamp": None
-        }
+        self._currents = {"actions": [], "timestamp": None}
         # broker status in every bar, use array for performance
         self._account_status_list: List[AccountStatus] = []
         self._account_status_df: pd.DataFrame = None
@@ -51,7 +48,9 @@ class Actuator(object):
         self._evaluator: Evaluator = None
         self._enabled_evaluator: [] = []
         # logging
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+        )
         self.logger = logging.getLogger(__name__)
 
         # internal var
@@ -271,7 +270,11 @@ class Actuator(object):
                     self.set_price(market.get_price_from_data())
             if self._token_prices is None:
                 raise DemeterError("token prices is not set")
-        for token in self._broker.assets.keys():  # dict_keys([TokenInfo(name='usdc', decimal=6), TokenInfo(name='eth', decimal=18)])
+        for (
+            token
+        ) in (
+            self._broker.assets.keys()
+        ):  # dict_keys([TokenInfo(name='usdc', decimal=6), TokenInfo(name='eth', decimal=18)])
             if token.name not in self._token_prices:
                 raise DemeterError(f"Price of {token.name} has not set yet")
         [market.check_before_test() for market in self._broker.markets.values()]
@@ -325,11 +328,11 @@ class Actuator(object):
         # 过时的设计, 可以优化.
         # 数据是从market中获取的. 没必要再给set回去. 直接传入一个index就可以了
         for market_key, market_row_data in market_row_dict.items():
-            self._broker.markets[market_key].set_market_status(timestamp, market_row_data, self._token_prices.loc[timestamp])
+            self._broker.markets[market_key].set_market_status(
+                timestamp, market_row_data, self._token_prices.loc[timestamp]
+            )
 
-    def run(self,
-            evaluator: List[EvaluatorEnum] = [],
-            output: bool = True):
+    def run(self, evaluator: List[EvaluatorEnum] = [], output: bool = True):
         """
         start back test, the whole process including:
 
@@ -356,14 +359,18 @@ class Actuator(object):
 
         self._enabled_evaluator = evaluator
         self._check_backtest()
-        index_array: pd.DatetimeIndex = list(self._broker.markets.values())[0].data.index
+        index_array: pd.DatetimeIndex = list(self._broker.markets.values())[
+            0
+        ].data.index
         self.logger.info("init strategy...")
 
         # set initial status for strategy, so user can run some calculation in initial function.
         init_row_data = self.__get_market_row_dict(index_array[0], 0)
         self.__set_row_to_markets(index_array[0], init_row_data)
         # keep initial balance for evaluating
-        init_account_status = self._broker.get_account_status(self._token_prices.head(1).iloc[0])
+        init_account_status = self._broker.get_account_status(
+            self._token_prices.head(1).iloc[0]
+        )
         self.init_strategy()
         row_id = 0
         data_length = len(index_array)
@@ -395,8 +402,10 @@ class Actuator(object):
                 if first:  # todo delete
                     first = False  # todo delete
                 self._account_status_list.append(
-                    self._broker.get_account_status(self._token_prices.loc[timestamp_index],
-                                                    timestamp_index))
+                    self._broker.get_account_status(
+                        self._token_prices.loc[timestamp_index], timestamp_index
+                    )
+                )
                 # notify actions in current loop
                 self.notify(self.strategy, self._currents["actions"])
                 self._currents["actions"] = []
@@ -408,7 +417,9 @@ class Actuator(object):
 
         if len(self._enabled_evaluator) > 0:
             self.logger.info("Start calculate evaluating indicator...")
-            self._evaluator = Evaluator(init_account_status, self._account_status_df, self._token_prices)
+            self._evaluator = Evaluator(
+                init_account_status, self._account_status_df, self._token_prices
+            )
             self._evaluator.run(self._enabled_evaluator)
             self.logger.info("Evaluating indicator has finished it's job.")
         self._strategy.finalize()
@@ -416,7 +427,9 @@ class Actuator(object):
         if output:
             self.output()
 
-        self.logger.info(f"Backtesting finished, execute time {time.time() - run_begin_time}s")
+        self.logger.info(
+            f"Backtesting finished, execute time {time.time() - run_begin_time}s"
+        )
 
     def output(self):
         """
@@ -445,7 +458,7 @@ class Actuator(object):
         """
         if not self.__backtest_finished:
             raise DemeterError("Please run strategy first")
-        file_name_head = "backtest-" + datetime.now().strftime('%Y%m%d-%H%M%S')
+        file_name_head = "backtest-" + datetime.now().strftime("%Y%m%d-%H%M%S")
         if not os.path.exists(path):
             os.mkdir(path)
         file_list = []
@@ -459,9 +472,9 @@ class Actuator(object):
             with open(pkl_name, "wb") as outfile1:
                 pickle.dump(self._action_list, outfile1)
             # save json to read
-            actions_json_str = orjson.dumps(self._action_list,
-                                            option=orjson.OPT_INDENT_2,
-                                            default=json_default)
+            actions_json_str = orjson.dumps(
+                self._action_list, option=orjson.OPT_INDENT_2, default=json_default
+            )
             json_name = os.path.join(path, file_name_head + ".action.json")
             with open(json_name, "wb") as outfile:
                 outfile.write(actions_json_str)
@@ -511,7 +524,6 @@ def json_default(obj):
     elif isinstance(obj, MarketInfo):
         return {"name": obj.name}
     elif isinstance(obj, PositionInfo):
-        return {"lower_tick": obj.lower_tick,
-                "upper_tick": obj.upper_tick}
+        return {"lower_tick": obj.lower_tick, "upper_tick": obj.upper_tick}
     else:
         raise TypeError

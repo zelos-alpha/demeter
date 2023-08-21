@@ -24,11 +24,13 @@ class UniV3Pool(object):
     :type base_token: TokenInfo
     """
 
-    def __init__(self, token0: TokenInfo, token1: TokenInfo, fee: float, base_token: TokenInfo):
+    def __init__(
+        self, token0: TokenInfo, token1: TokenInfo, fee: float, base_token: TokenInfo
+    ):
         fee = Decimal(str(fee))
         self.token0 = token0
         self.token1 = token1
-        self.is_token0_base = (base_token == token0)
+        self.is_token0_base = base_token == token0
         self.base_token = base_token
         self.tickSpacing = int(fee * 200)
         self.fee: Decimal = fee * Decimal(10000)
@@ -40,10 +42,14 @@ class UniV3Pool(object):
         :return:
         :rtype:
         """
-        return "PoolBaseInfo(Token0: {},".format(self.token0) + \
-            "Token1: {},".format(self.token1) + \
-            "fee: {},".format(self.fee_rate * Decimal(100)) + \
-            "base token: {})".format(self.token0.name if self.is_token0_base else self.token1.name)
+        return (
+            "PoolBaseInfo(Token0: {},".format(self.token0)
+            + "Token1: {},".format(self.token1)
+            + "fee: {},".format(self.fee_rate * Decimal(100))
+            + "base token: {})".format(
+                self.token0.name if self.is_token0_base else self.token1.name
+            )
+        )
 
 
 @dataclass
@@ -67,6 +73,7 @@ class UniLpBalance(MarketBalance):
     :type price: UnitDecimal
 
     """
+
     base_uncollected: UnitDecimal
     quote_uncollected: UnitDecimal
     base_in_position: UnitDecimal
@@ -79,12 +86,14 @@ class UniLpBalance(MarketBalance):
         :return: formatted string
         :rtype: str
         """
-        return get_formatted_from_dict({
-            "total capital": self.pool_net_value.to_str(),
-            "uncollect fee": f"{self.base_uncollected.to_str()},{self.quote_uncollected.to_str()}",
-            "in position amount": f"{self.base_in_position.to_str()},{self.quote_in_position.to_str()}",
-            "position count": self.position_count.to_str()
-        })
+        return get_formatted_from_dict(
+            {
+                "total capital": self.pool_net_value.to_str(),
+                "uncollect fee": f"{self.base_uncollected.to_str()},{self.quote_uncollected.to_str()}",
+                "in position amount": f"{self.base_in_position.to_str()},{self.quote_in_position.to_str()}",
+                "position count": self.position_count.to_str(),
+            }
+        )
 
     def to_array(self):
         return [
@@ -92,7 +101,7 @@ class UniLpBalance(MarketBalance):
             self.quote_uncollected,
             self.base_in_position,
             self.quote_in_position,
-            self.position_count
+            self.position_count,
         ]
 
 
@@ -146,15 +155,17 @@ class BrokerAsset(object):
             if abs((self.balance - amount) / base) < 0.00001:
                 self.balance = Decimal(0)
             elif self.balance - amount < Decimal(0):
-                raise DemeterError(f"Insufficient balance, balance is {self.balance}{self.name}, "
-                                   f"but sub amount is {amount}{self.name}")
+                raise DemeterError(
+                    f"Insufficient balance, balance is {self.balance}{self.name}, "
+                    f"but sub amount is {amount}{self.name}"
+                )
             else:
                 self.balance -= amount
 
         return self
 
     def amount_in_wei(self):
-        return self.balance * Decimal(10 ** self.decimal)
+        return self.balance * Decimal(10**self.decimal)
 
 
 @dataclass
@@ -174,7 +185,7 @@ def position_dict_to_dataframe(positions: Dict[PositionInfo, Position]) -> pd.Da
         "upper_tick": [],
         "pending0": [],
         "pending1": [],
-        "liquidity": []
+        "liquidity": [],
     }
     for k, v in positions.items():
         pos_dict["lower_tick"].append(k.lower_tick)
@@ -190,6 +201,7 @@ class UniV3PoolStatus(MarketStatus):
     """
     current status of a pool, actuators can notify current status to broker by filling this entity
     """
+
     current_tick: int
     current_liquidity: int
     in_amount0: int
@@ -241,6 +253,7 @@ class AddLiquidityAction(UniLpBaseAction):
     :param liquidity: liquidity added
     :type liquidity: int
     """
+
     base_amount_max: UnitDecimal
     quote_amount_max: UnitDecimal
     lower_quote_price: UnitDecimal
@@ -259,14 +272,15 @@ class AddLiquidityAction(UniLpBaseAction):
         :return: formatted string
         :rtype: str
         """
-        return f"""\033[1;31m{"Add liquidity":<20}\033[0m""" + \
-            get_formatted_from_dict({
+        return f"""\033[1;31m{"Add liquidity":<20}\033[0m""" + get_formatted_from_dict(
+            {
                 "max amount": f"{self.base_amount_max.to_str()},{self.quote_amount_max.to_str()}",
                 "price": f"{self.lower_quote_price.to_str()},{self.upper_quote_price.to_str()}",
                 "position": self.position,
                 "liquidity": self.liquidity,
-                "balance": f"{self.base_balance_after.to_str()}(-{self.base_amount_actual.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_amount_actual.to_str()})"
-            })
+                "balance": f"{self.base_balance_after.to_str()}(-{self.base_amount_actual.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_amount_actual.to_str()})",
+            }
+        )
 
 
 @dataclass
@@ -282,6 +296,7 @@ class CollectFeeAction(UniLpBaseAction):
     :type quote_amount: UnitDecimal
 
     """
+
     position: PositionInfo
     base_amount: UnitDecimal
     quote_amount: UnitDecimal
@@ -295,11 +310,12 @@ class CollectFeeAction(UniLpBaseAction):
         :return: formatted string
         :rtype: str
         """
-        return f"""\033[1;33m{"Collect fee":<20}\033[0m""" + \
-            get_formatted_from_dict({
+        return f"""\033[1;33m{"Collect fee":<20}\033[0m""" + get_formatted_from_dict(
+            {
                 "position": self.position,
-                "balance": f"{self.base_balance_after.to_str()}(+{self.base_amount.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_amount.to_str()})"
-            })
+                "balance": f"{self.base_balance_after.to_str()}(+{self.base_amount.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_amount.to_str()})",
+            }
+        )
 
 
 @dataclass
@@ -319,6 +335,7 @@ class RemoveLiquidityAction(UniLpBaseAction):
     :type remain_liquidity: int
 
     """
+
     position: PositionInfo
     base_amount: UnitDecimal
     quote_amount: UnitDecimal
@@ -334,14 +351,15 @@ class RemoveLiquidityAction(UniLpBaseAction):
         :return: formatted string
         :rtype: str
         """
-        return f"""\033[1;32m{"Remove liquidity":<20}\033[0m""" + \
-            get_formatted_from_dict({
+        return f"""\033[1;32m{"Remove liquidity":<20}\033[0m""" + get_formatted_from_dict(
+            {
                 "position": self.position,
                 "balance": f"{self.base_balance_after.to_str()}(+0), {self.quote_balance_after.to_str()}(+0)",
                 "token_got": f"{self.base_amount.to_str()},{self.quote_amount.to_str()}",
                 "removed liquidity": self.removed_liquidity,
-                "remain liquidity": self.remain_liquidity
-            })
+                "remain liquidity": self.remain_liquidity,
+            }
+        )
 
 
 @dataclass
@@ -361,6 +379,7 @@ class BuyAction(UniLpBaseAction):
     :type quote_change: UnitDecimal
 
     """
+
     amount: UnitDecimal
     price: UnitDecimal
     fee: UnitDecimal
@@ -376,12 +395,13 @@ class BuyAction(UniLpBaseAction):
         :return: formatted string
         :rtype: str
         """
-        return f"""\033[1;36m{"Buy":<20}\033[0m""" + \
-            get_formatted_from_dict({
+        return f"""\033[1;36m{"Buy":<20}\033[0m""" + get_formatted_from_dict(
+            {
                 "price": self.price.to_str(),
                 "fee": self.fee.to_str(),
-                "balance": f"{self.base_balance_after.to_str()}(-{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_change.to_str()})"
-            })
+                "balance": f"{self.base_balance_after.to_str()}(-{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_change.to_str()})",
+            }
+        )
 
 
 @dataclass
@@ -401,6 +421,7 @@ class SellAction(UniLpBaseAction):
     :type quote_change: UnitDecimal
 
     """
+
     amount: UnitDecimal
     price: UnitDecimal
     fee: UnitDecimal
@@ -411,9 +432,10 @@ class SellAction(UniLpBaseAction):
         self.action_type = ActionTypeEnum.uni_lp_sell
 
     def get_output_str(self):
-        return f"""\033[1;37m{"Sell":<20}\033[0m""" + \
-            get_formatted_from_dict({
+        return f"""\033[1;37m{"Sell":<20}\033[0m""" + get_formatted_from_dict(
+            {
                 "price": self.price.to_str(),
                 "fee": self.fee.to_str(),
-                "balance": f"{self.base_balance_after.to_str()}(+{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_change.to_str()})"
-            })
+                "balance": f"{self.base_balance_after.to_str()}(+{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_change.to_str()})",
+            }
+        )

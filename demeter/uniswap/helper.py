@@ -10,7 +10,7 @@ def _x96_to_decimal(number: int):
     :param number:
     :return:
     """
-    return Decimal(number) / 2 ** 96
+    return Decimal(number) / 2**96
 
 
 def decimal_to_x96(number: Decimal):
@@ -19,7 +19,7 @@ def decimal_to_x96(number: Decimal):
     :param number:
     :return:
     """
-    return int(Decimal(number) * 2 ** 96)
+    return int(Decimal(number) * 2**96)
 
 
 def _x96_sqrt_to_decimal(sqrt_priceX96, token_decimal_diff=12):
@@ -30,7 +30,7 @@ def _x96_sqrt_to_decimal(sqrt_priceX96, token_decimal_diff=12):
     :return:
     """
     price = _x96_to_decimal(sqrt_priceX96)
-    return (price ** 2) / 10 ** token_decimal_diff
+    return (price**2) / 10**token_decimal_diff
 
 
 ## can round by spacing?
@@ -62,7 +62,9 @@ def tick_to_sqrtPriceX96(tick: int):
     return get_sqrt_ratio_at_tick(tick)
 
 
-def tick_to_quote_price(tick: int, token_0_decimal, token_1_decimal, is_token0_base: bool):
+def tick_to_quote_price(
+    tick: int, token_0_decimal, token_1_decimal, is_token0_base: bool
+):
     """
     tick data get quote price
     :param tick: tick data
@@ -77,7 +79,9 @@ def tick_to_quote_price(tick: int, token_0_decimal, token_1_decimal, is_token0_b
     return Decimal(1 / pool_price) if is_token0_base else pool_price
 
 
-def quote_price_to_tick(based_price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token_base) -> int:
+def quote_price_to_tick(
+    based_price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token_base
+) -> int:
     """
     quote price to tick data
     :param based_price: base price
@@ -87,12 +91,16 @@ def quote_price_to_tick(based_price: Decimal, token_0_decimal: int, token_1_deci
     :return: tick data
     """
     # quote price->add decimal pool price->sqrt_price ->ticker
-    sqrt_price = quote_price_to_sqrt(based_price, token_0_decimal, token_1_decimal, is_token_base)
+    sqrt_price = quote_price_to_sqrt(
+        based_price, token_0_decimal, token_1_decimal, is_token_base
+    )
     tick = sqrt_price_to_tick(sqrt_price)
     return tick
 
 
-def quote_price_to_sqrt(based_price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token_base) -> int:
+def quote_price_to_sqrt(
+    based_price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token_base
+) -> int:
     """
     convert quote price to sqrt
     :param based_price: price of base token
@@ -116,11 +124,18 @@ def from_wei(token_amt: int, decimal: int) -> Decimal:
     :param decimal:
     :return:
     """
-    return Decimal(int(token_amt)) / Decimal(10 ** decimal)
+    return Decimal(int(token_amt)) / Decimal(10**decimal)
 
 
-def get_delta_gamma(lower_price: float, upper_price: float, price: float,
-                    liquidity: int, decimal0: int, decimal1: int, is_0_base: bool):
+def get_delta_gamma(
+    lower_price: float,
+    upper_price: float,
+    price: float,
+    liquidity: int,
+    decimal0: int,
+    decimal1: int,
+    is_0_base: bool,
+):
     """
     get delta gamma
     :param lower_price: lower price
@@ -132,27 +147,41 @@ def get_delta_gamma(lower_price: float, upper_price: float, price: float,
     :param is_0_base: check if token 0 is base
     :return:
     """
-    lower_price_sqrtX96 = quote_price_to_sqrt(Decimal(lower_price), decimal0, decimal1, is_0_base)
-    upper_price_sqrtX96 = quote_price_to_sqrt(Decimal(upper_price), decimal0, decimal1, is_0_base)
+    lower_price_sqrtX96 = quote_price_to_sqrt(
+        Decimal(lower_price), decimal0, decimal1, is_0_base
+    )
+    upper_price_sqrtX96 = quote_price_to_sqrt(
+        Decimal(upper_price), decimal0, decimal1, is_0_base
+    )
     if lower_price_sqrtX96 > upper_price_sqrtX96:
-        (lower_price_sqrtX96, upper_price_sqrtX96) = (upper_price_sqrtX96, lower_price_sqrtX96)
-    return get_delta_gamma_sqrtX96(lower_price,
-                                   lower_price_sqrtX96,
-                                   upper_price,
-                                   upper_price_sqrtX96,
-                                   price,
-                                   liquidity,
-                                   decimal0, decimal1,
-                                   is_0_base)
+        (lower_price_sqrtX96, upper_price_sqrtX96) = (
+            upper_price_sqrtX96,
+            lower_price_sqrtX96,
+        )
+    return get_delta_gamma_sqrtX96(
+        lower_price,
+        lower_price_sqrtX96,
+        upper_price,
+        upper_price_sqrtX96,
+        price,
+        liquidity,
+        decimal0,
+        decimal1,
+        is_0_base,
+    )
 
 
-def get_delta_gamma_sqrtX96(lower_price, sqrtA: int,
-                            upper_price, sqrtB: int,
-                            price,
-                            liquidity: int,
-                            d0: int,
-                            d1: int,
-                            is_0_base: bool):
+def get_delta_gamma_sqrtX96(
+    lower_price,
+    sqrtA: int,
+    upper_price,
+    sqrtB: int,
+    price,
+    liquidity: int,
+    d0: int,
+    d1: int,
+    is_0_base: bool,
+):
     """
     Delta is calculated by integrating net worth, and gamma is calculated by integrating delta,
     Therefore, the most important thing is to find the calculation formula of the net value (with tick range, price, and liquidity as parameters),
@@ -198,31 +227,35 @@ def get_delta_gamma_sqrtX96(lower_price, sqrtA: int,
     a0 + p * a1 =  Liquidity / 10**(d/2) / p**(1/2) + Liquidity * p**(1.5) / 10 ** (1.5*d) -
                    Liquidity * lower_price_sqrtX96 * p / 2**96 / 10**d
     """
-    k = 2 ** 96
+    k = 2**96
     d = d0 - d1
     if is_0_base:
         if price <= lower_price:
-            delta = liquidity / 2 ** 96 / 10 ** d1 * (sqrtB - sqrtA)
+            delta = liquidity / 2**96 / 10**d1 * (sqrtB - sqrtA)
             gamma = 0
         elif lower_price < price < upper_price:
             m = 10 ** (0.5 * d)
-            delta = liquidity * (0.5 * m / price ** 0.5 / 10 ** d0 + \
-                                 0.5 / 10 ** d1 / m / price ** 0.5 - \
-                                 sqrtA / k / 10 ** d1)
-            gamma = -0.25 * liquidity / price ** 1.5 * (m / 10 ** d0 + 1 / 10 ** d1 / m)
+            delta = liquidity * (
+                0.5 * m / price**0.5 / 10**d0
+                + 0.5 / 10**d1 / m / price**0.5
+                - sqrtA / k / 10**d1
+            )
+            gamma = -0.25 * liquidity / price**1.5 * (m / 10**d0 + 1 / 10**d1 / m)
         else:
             delta = 0
             gamma = 0
     else:
         if price <= lower_price:
-            delta = liquidity / 10 ** d0 * (k / sqrtA - k / sqrtB)
+            delta = liquidity / 10**d0 * (k / sqrtA - k / sqrtB)
             gamma = 0
         elif lower_price < price < upper_price:
             m = 10 ** (0.5 * d)
-            delta = liquidity * (0.5 * m / price ** 0.5 / 10 ** d0 + \
-                                 0.5 / 10 ** d1 / m / price ** 0.5 - \
-                                 k / sqrtB / 10 ** d0)
-            gamma = -0.25 * liquidity / price ** 1.5 * (m / 10 ** d0 + 1 / m / 10 ** d1)
+            delta = liquidity * (
+                0.5 * m / price**0.5 / 10**d0
+                + 0.5 / 10**d1 / m / price**0.5
+                - k / sqrtB / 10**d0
+            )
+            gamma = -0.25 * liquidity / price**1.5 * (m / 10**d0 + 1 / m / 10**d1)
         else:
             delta = 0
             gamma = 0

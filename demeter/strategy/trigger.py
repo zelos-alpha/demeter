@@ -16,6 +16,7 @@ def to_minute(time: datetime) -> datetime:
     """
     return datetime(time.year, time.month, time.day, time.hour, time.minute)
 
+
 """
 Note: in current version, all the market data should have the same index, which means the same timestamp range and
  interval, so we choose timestamp in default market to trigger actions. 
@@ -52,6 +53,7 @@ class AtTimeTrigger(Trigger):
     """
     trigger action at a specific time
     """
+
     def __init__(self, time: datetime, do, *args, **kwargs):
         self._time = to_minute(time)
         super().__init__(do, *args, **kwargs)
@@ -64,6 +66,7 @@ class AtTimesTrigger(Trigger):
     """
     trigger action at some specific time
     """
+
     def __init__(self, time: [datetime], do, *args, **kwargs):
         self._time = [to_minute(t) for t in time]
         super().__init__(do, *args, **kwargs)
@@ -82,20 +85,28 @@ class TimeRangeTrigger(Trigger):
     """
     trigger action at a time range
     """
+
     def __init__(self, time_range: TimeRange, do, *args, **kwargs):
-        self._time_range = TimeRange(to_minute(time_range.start), to_minute(time_range.end))
+        self._time_range = TimeRange(
+            to_minute(time_range.start), to_minute(time_range.end)
+        )
         super().__init__(do, *args, **kwargs)
 
     def when(self, row_data: MarketDict[RowData]) -> bool:
-        return self._time_range.start <= row_data.default.timestamp < self._time_range.end
+        return (
+            self._time_range.start <= row_data.default.timestamp < self._time_range.end
+        )
 
 
 class TimeRangesTrigger(Trigger):
     """
     trigger action at some time range
     """
+
     def __init__(self, time_range: [TimeRange], do, *args, **kwargs):
-        self._time_range: [TimeRange] = [TimeRange(to_minute(t.start), to_minute(t.end)) for t in time_range]
+        self._time_range: [TimeRange] = [
+            TimeRange(to_minute(t.start), to_minute(t.end)) for t in time_range
+        ]
         super().__init__(do, *args, **kwargs)
 
     def when(self, row_data: MarketDict[RowData]) -> bool:
@@ -114,7 +125,10 @@ class PeriodTrigger(Trigger):
     """
     trigger period action
     """
-    def __init__(self, time_delta: timedelta, do, trigger_immediately=False, *args, **kwargs):
+
+    def __init__(
+        self, time_delta: timedelta, do, trigger_immediately=False, *args, **kwargs
+    ):
         self._next_match = None
         self._delta = time_delta
         self._trigger_immediately = trigger_immediately
@@ -140,7 +154,10 @@ class PeriodsTrigger(Trigger):
     """
     trigger some period actions
     """
-    def __init__(self, time_delta: [timedelta], do, trigger_immediately=False, *args, **kwargs):
+
+    def __init__(
+        self, time_delta: [timedelta], do, trigger_immediately=False, *args, **kwargs
+    ):
         self._next_matches = [None for _ in time_delta]
         self._deltas = time_delta
         self._trigger_immediately = trigger_immediately

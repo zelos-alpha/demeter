@@ -14,6 +14,7 @@ class TimeUnitEnum(Enum):
     * hour
     * day
     """
+
     minute = 1
     hour = 60
     day = 60 * 24
@@ -33,13 +34,18 @@ class UnitDecimal(Decimal):
     :param output_format: output format, follow the document here: https://python-reference.readthedocs.io/en/latest/docs/functions/format.html
     :type output_format: str
     """
+
     __integral = Decimal(1)
     default_output_format = ".8g"
 
     def __new__(cls, value, unit: str = "", output_format=None):
         obj = Decimal.__new__(cls, value)
         obj._unit = unit
-        obj.output_format: str = output_format if output_format is not None else UnitDecimal.default_output_format
+        obj.output_format: str = (
+            output_format
+            if output_format is not None
+            else UnitDecimal.default_output_format
+        )
         return obj
 
     def to_str(self):
@@ -49,7 +55,11 @@ class UnitDecimal(Decimal):
         :return: formatted string
         :rtype: str
         """
-        dec = self.quantize(DECIMAL_1) if (self == self.to_integral() and self < 1e+29) else self.normalize()
+        dec = (
+            self.quantize(DECIMAL_1)
+            if (self == self.to_integral() and self < 1e29)
+            else self.normalize()
+        )
         return "{:{}} {}".format(dec, self.output_format, self._unit)
 
     @property
@@ -80,6 +90,7 @@ class TokenInfo(NamedTuple):
     :param decimal: decimal of this token, eg: 6
     :type decimal: int
     """
+
     name: str
     decimal: int
 
@@ -94,6 +105,7 @@ class PositionInfo(NamedTuple):
     :type upper_tick: int
 
     """
+
     lower_tick: int
     upper_tick: int
 
