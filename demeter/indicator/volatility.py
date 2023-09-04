@@ -35,8 +35,7 @@ def realized_volatility(
 
     if real_n * 2 - 1 >= len(data.index):
         raise DemeterError(
-            f"data length is {len(data.index)}, but window size is {real_n}, "
-            f"data length should be greater than {real_n * 2 - 1} to avoid all NAN"
+            f"data length is {len(data.index)}, but window size is {real_n}, " f"data length should be greater than {real_n * 2 - 1} to avoid all NAN"
         )
 
     if data.dtypes == "object":

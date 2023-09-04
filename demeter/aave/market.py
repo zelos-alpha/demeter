@@ -73,9 +73,7 @@ class AaveV3Market(Market):
     def market_status(self):
         return self._market_status
 
-    def set_market_status(
-        self, timestamp: datetime, data: pd.Series | MarketStatus, price: pd.Series
-    ):
+    def set_market_status(self, timestamp: datetime, data: pd.Series | MarketStatus, price: pd.Series):
         """
         set up market status, such as liquidity, price
         :param timestamp: current timestamp
@@ -89,9 +87,7 @@ class AaveV3Market(Market):
             self._market_status = MarketStatus(timestamp)
         self._price_status = price
 
-    def get_market_balance(
-        self, prices: pd.Series | Dict[str, Decimal]
-    ) -> MarketBalance:
+    def get_market_balance(self, prices: pd.Series | Dict[str, Decimal]) -> MarketBalance:
         """
         get market asset balance
         :param prices: current price of each token

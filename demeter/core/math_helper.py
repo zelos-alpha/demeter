@@ -15,7 +15,6 @@ def annualized_returns(init_value, final_value, timespan_in_day):
 
 
 def get_benchmark_returns(
-    self,
     init_value: Decimal,
     init_price: pd.Series,
     final_price: pd.Series,
@@ -36,7 +35,7 @@ def get_benchmark_returns(
     for price in final_price:
         final_value += amounts[i] * price
         i += 1
-    return (final_value / self.init_net_value) ** Decimal(365 / timespan_in_day) - 1
+    return (final_value / init_value) ** Decimal(365 / timespan_in_day) - 1
 
 
 def __get_benchmark_asset(net_value, price):

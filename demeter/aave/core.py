@@ -8,9 +8,7 @@ class AaveV3CoreLib(object):
 
     @staticmethod
     def rate_to_apy(rate: Decimal) -> Decimal:
-        return (
-            1 + rate / AaveV3CoreLib.SECONDS_IN_A_YEAR
-        ) ** AaveV3CoreLib.SECONDS_IN_A_YEAR - 1
+        return (1 + rate / AaveV3CoreLib.SECONDS_IN_A_YEAR) ** AaveV3CoreLib.SECONDS_IN_A_YEAR - 1
 
     @staticmethod
     def net_value_current(
@@ -20,9 +18,7 @@ class AaveV3CoreLib(object):
         return net_value_in_pool * current_liquidity_rate
 
     @staticmethod
-    def net_value_in_pool(
-        amount: Decimal, pool_initial_liquidity_rate: Decimal
-    ) -> Decimal:
+    def net_value_in_pool(amount: Decimal, pool_initial_liquidity_rate: Decimal) -> Decimal:
         return amount / pool_initial_liquidity_rate
 
     @staticmethod

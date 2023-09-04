@@ -95,17 +95,13 @@ def get_formatted(
 
 
 def get_formatted_predefined(string: str, style):
-    return get_formatted(
-        string, style["mode"], style["fore"], style["back"], style["width"]
-    )
+    return get_formatted(string, style["mode"], style["fore"], style["back"], style["width"])
 
 
 def get_formatted_from_dict(values: Dict[str, str]) -> str:
     str_array = []
     for k, v in values.items():
-        str_array.append(
-            f"{get_formatted_predefined(k, STYLE['key'])}:{get_formatted_predefined(str(v), STYLE['value'])}"
-        )
+        str_array.append(f"{get_formatted_predefined(k, STYLE['key'])}:{get_formatted_predefined(str(v), STYLE['value'])}")
     return "".join(str_array)
 
 

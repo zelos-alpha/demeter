@@ -29,9 +29,7 @@ Created on Mon Jun 14 18:53:09 2021
 def get_amount0(sqrtA: int, sqrtB: int, liquidity: int, decimals: int) -> Decimal:
     if sqrtA > sqrtB:
         (sqrtA, sqrtB) = (sqrtB, sqrtA)
-    amount0 = (
-        Decimal(liquidity * 2**96 * (sqrtB - sqrtA)) / sqrtB / sqrtA
-    ) / 10**decimals
+    amount0 = (Decimal(liquidity * 2**96 * (sqrtB - sqrtA)) / sqrtB / sqrtA) / 10**decimals
     return amount0
 
 
@@ -78,9 +76,7 @@ def get_amounts(
 
 # Use this formula to calculate amount of t0 based on amount of t1 (required before calculate liquidity)
 # relation = t1/t0
-def amounts_relation(
-    tick: int, tickA: int, tickB: int, decimals0: int, decimals1: int
-) -> Decimal:
+def amounts_relation(tick: int, tickA: int, tickB: int, decimals0: int, decimals1: int) -> Decimal:
     sqrt = (1.0001**tick / 10 ** (decimals1 - decimals0)) ** (1 / 2)
     sqrtA = (1.0001**tickA / 10 ** (decimals1 - decimals0)) ** (1 / 2)
     sqrtB = (1.0001**tickB / 10 ** (decimals1 - decimals0)) ** (1 / 2)
@@ -161,11 +157,7 @@ def get_sqrt_ratio_at_tick(tick: int) -> int:
     assert abs_tick <= 887272
 
     # 这些魔数分别表示 1/sqrt(1.0001)^1, 1/sqrt(1.0001)^2, 1/sqrt(1.0001)^4....
-    ratio: int = (
-        0xFFFCB933BD6FAD37AA2D162D1A594001
-        if abs_tick & 0x1 != 0
-        else 0x100000000000000000000000000000000
-    )
+    ratio: int = 0xFFFCB933BD6FAD37AA2D162D1A594001 if abs_tick & 0x1 != 0 else 0x100000000000000000000000000000000
     if abs_tick & 0x2 != 0:
         ratio = (ratio * 0xFFF97272373D413259A46990580E213A) >> 128
     if abs_tick & 0x4 != 0:
@@ -207,10 +199,7 @@ def get_sqrt_ratio_at_tick(tick: int) -> int:
 
     if tick > 0:
         # type(uint256).max
-        ratio = int(
-            115792089237316195423570985008687907853269984665640564039457584007913129639935
-            // ratio
-        )
+        ratio = int(115792089237316195423570985008687907853269984665640564039457584007913129639935 // ratio)
 
     # this divides by 1<<32 rounding up to go from a Q128.128 to a Q128.96.
     # we then downcast because we know the result always fits within 160 bits due to our tick input constraint

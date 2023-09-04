@@ -30,9 +30,7 @@ class Evaluator(object):
         self.data: pd.DataFrame = data
         if len(data) < 2:
             raise DemeterError("not enough data")
-        self.time_span_in_day = (
-            len(data.index) * (data.index[1] - data.index[0]).seconds / (60 * 60 * 24)
-        )
+        self.time_span_in_day = len(data.index) * (data.index[1] - data.index[0]).seconds / (60 * 60 * 24)
         self._result = None
 
     def run(self, enables: List[EvaluatorEnum]):

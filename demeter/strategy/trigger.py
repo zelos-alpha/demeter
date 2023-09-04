@@ -87,15 +87,11 @@ class TimeRangeTrigger(Trigger):
     """
 
     def __init__(self, time_range: TimeRange, do, *args, **kwargs):
-        self._time_range = TimeRange(
-            to_minute(time_range.start), to_minute(time_range.end)
-        )
+        self._time_range = TimeRange(to_minute(time_range.start), to_minute(time_range.end))
         super().__init__(do, *args, **kwargs)
 
     def when(self, row_data: MarketDict[RowData]) -> bool:
-        return (
-            self._time_range.start <= row_data.default.timestamp < self._time_range.end
-        )
+        return self._time_range.start <= row_data.default.timestamp < self._time_range.end
 
 
 class TimeRangesTrigger(Trigger):
@@ -104,9 +100,7 @@ class TimeRangesTrigger(Trigger):
     """
 
     def __init__(self, time_range: [TimeRange], do, *args, **kwargs):
-        self._time_range: [TimeRange] = [
-            TimeRange(to_minute(t.start), to_minute(t.end)) for t in time_range
-        ]
+        self._time_range: [TimeRange] = [TimeRange(to_minute(t.start), to_minute(t.end)) for t in time_range]
         super().__init__(do, *args, **kwargs)
 
     def when(self, row_data: MarketDict[RowData]) -> bool:
@@ -126,9 +120,7 @@ class PeriodTrigger(Trigger):
     trigger period action
     """
 
-    def __init__(
-        self, time_delta: timedelta, do, trigger_immediately=False, *args, **kwargs
-    ):
+    def __init__(self, time_delta: timedelta, do, trigger_immediately=False, *args, **kwargs):
         self._next_match = None
         self._delta = time_delta
         self._trigger_immediately = trigger_immediately
@@ -155,9 +147,7 @@ class PeriodsTrigger(Trigger):
     trigger some period actions
     """
 
-    def __init__(
-        self, time_delta: [timedelta], do, trigger_immediately=False, *args, **kwargs
-    ):
+    def __init__(self, time_delta: [timedelta], do, trigger_immediately=False, *args, **kwargs):
         self._next_matches = [None for _ in time_delta]
         self._deltas = time_delta
         self._trigger_immediately = trigger_immediately

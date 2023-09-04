@@ -6,8 +6,7 @@ import pandas as pd
 from ._typing import Asset, TokenInfo, AccountStatus, MarketDict, AssetDict
 from .market import Market
 from .._typing import DemeterError, UnitDecimal
-from ..utils import get_formatted_from_dict, get_formatted_predefined, STYLE, \
-    float_param_formatter
+from ..utils import get_formatted_from_dict, get_formatted_predefined, STYLE, float_param_formatter
 
 
 class Broker:
@@ -47,8 +46,9 @@ class Broker:
         Broker raw info
         :return:
         """
-        return "assets: " + ",".join([f"({v})" for k, v in self._assets.items()]) + \
-            "; markets: " + ",".join([f"({v})" for k, v in self.markets.items()])
+        return (
+            "assets: " + ",".join([f"({v})" for k, v in self._assets.items()]) + "; markets: " + ",".join([f"({v})" for k, v in self.markets.items()])
+        )
 
     def add_market(self, market: Market):
         """

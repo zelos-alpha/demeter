@@ -16,10 +16,7 @@ class Market:
     note: only get properties are allow in this base class
     """
 
-    def __init__(self,
-                 market_info: MarketInfo,
-                 data: pd.DataFrame = None,
-                 data_path=DEFAULT_DATA_PATH):
+    def __init__(self, market_info: MarketInfo, data: pd.DataFrame = None, data_path=DEFAULT_DATA_PATH):
         """
         init Market
         :param market_info: uni_market

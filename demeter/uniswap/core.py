@@ -7,9 +7,14 @@ from .liquitidy_math import get_amounts, get_liquidity
 
 class V3CoreLib(object):
     @staticmethod
-    def new_position(pool: UniV3Pool,
-                     token0_amount: Decimal, token1_amount: Decimal,
-                     lower_tick: int, upper_tick: int, sqrt_price_x96: int):
+    def new_position(
+        pool: UniV3Pool,
+        token0_amount: Decimal,
+        token1_amount: Decimal,
+        lower_tick: int,
+        upper_tick: int,
+        sqrt_price_x96: int,
+    ):
         """
         create new position
         :param pool: operation on which pool
@@ -20,14 +25,30 @@ class V3CoreLib(object):
         :param sqrt_price_x96: sqrt(price) * 2^96
         :return: token0 position, token1 position, liquid, position instance
         """
-        position_liq = get_liquidity(sqrt_price_x96, lower_tick, upper_tick,
-                                     token0_amount, token1_amount,
-                                     pool.token0.decimal, pool.token1.decimal)
-        token0_in_position, token1_in_position = get_amounts(sqrt_price_x96, lower_tick, upper_tick,
-                                                             position_liq, pool.token0.decimal, pool.token1.decimal)
-        new_position_entity = PositionInfo(lower_tick=lower_tick,
-                                           upper_tick=upper_tick)
-        return token0_in_position, token1_in_position, int(position_liq), new_position_entity
+        position_liq = get_liquidity(
+            sqrt_price_x96,
+            lower_tick,
+            upper_tick,
+            token0_amount,
+            token1_amount,
+            pool.token0.decimal,
+            pool.token1.decimal,
+        )
+        token0_in_position, token1_in_position = get_amounts(
+            sqrt_price_x96,
+            lower_tick,
+            upper_tick,
+            position_liq,
+            pool.token0.decimal,
+            pool.token1.decimal,
+        )
+        new_position_entity = PositionInfo(lower_tick=lower_tick, upper_tick=upper_tick)
+        return (
+            token0_in_position,
+            token1_in_position,
+            int(position_liq),
+            new_position_entity,
+        )
 
     @staticmethod
     def close_position(pool: UniV3Pool, position_info: PositionInfo, liquidity, sqrt_price_x96):
@@ -53,12 +74,14 @@ class V3CoreLib(object):
         """
         if liquidity == 0:  # performance improve
             return 0, 0
-        amount0, amount1 = get_amounts(sqrt_price_x96,
-                                       pos.lower_tick,
-                                       pos.upper_tick,
-                                       liquidity,
-                                       pool.token0.decimal,
-                                       pool.token1.decimal)
+        amount0, amount1 = get_amounts(
+            sqrt_price_x96,
+            pos.lower_tick,
+            pos.upper_tick,
+            liquidity,
+            pool.token0.decimal,
+            pool.token1.decimal,
+        )
         return amount0, amount1
 
     @staticmethod
@@ -70,10 +93,18 @@ class V3CoreLib(object):
         :param upper_quote_price: upper quote price
         :return: lower_tick, upper_tick
         """
-        lower_tick = quote_price_to_tick(lower_quote_price, pool.token0.decimal, pool.token1.decimal,
-                                         pool.is_token0_base)
-        upper_tick = quote_price_to_tick(upper_quote_price, pool.token0.decimal, pool.token1.decimal,
-                                         pool.is_token0_base)
+        lower_tick = quote_price_to_tick(
+            lower_quote_price,
+            pool.token0.decimal,
+            pool.token1.decimal,
+            pool.is_token0_base,
+        )
+        upper_tick = quote_price_to_tick(
+            upper_quote_price,
+            pool.token0.decimal,
+            pool.token1.decimal,
+            pool.is_token0_base,
+        )
         return lower_tick, upper_tick
 
     @staticmethod
@@ -96,10 +127,12 @@ class V3CoreLib(object):
 
         condition_in_position = pos.upper_tick >= state.current_tick >= pos.lower_tick
         if state.last_tick:
-            condition_over_position = (state.last_tick > pos.upper_tick and state.current_tick < pos.lower_tick) or \
-                                      (state.current_tick > pos.upper_tick and state.last_tick < pos.lower_tick)
-            condition_in_to_out_position = pos.upper_tick >= state.last_tick >= pos.lower_tick and \
-                                           (state.current_tick > pos.upper_tick or state.current_tick < pos.lower_tick)
+            condition_over_position = (state.last_tick > pos.upper_tick and state.current_tick < pos.lower_tick) or (
+                state.current_tick > pos.upper_tick and state.last_tick < pos.lower_tick
+            )
+            condition_in_to_out_position = pos.upper_tick >= state.last_tick >= pos.lower_tick and (
+                state.current_tick > pos.upper_tick or state.current_tick < pos.lower_tick
+            )
         else:
             condition_in_to_out_position = condition_over_position = False
 

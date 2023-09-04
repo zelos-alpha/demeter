@@ -24,9 +24,7 @@ class UniV3Pool(object):
     :type base_token: TokenInfo
     """
 
-    def __init__(
-        self, token0: TokenInfo, token1: TokenInfo, fee: float, base_token: TokenInfo
-    ):
+    def __init__(self, token0: TokenInfo, token1: TokenInfo, fee: float, base_token: TokenInfo):
         fee = Decimal(str(fee))
         self.token0 = token0
         self.token1 = token1
@@ -46,9 +44,7 @@ class UniV3Pool(object):
             "PoolBaseInfo(Token0: {},".format(self.token0)
             + "Token1: {},".format(self.token1)
             + "fee: {},".format(self.fee_rate * Decimal(100))
-            + "base token: {})".format(
-                self.token0.name if self.is_token0_base else self.token1.name
-            )
+            + "base token: {})".format(self.token0.name if self.is_token0_base else self.token1.name)
         )
 
 
@@ -155,10 +151,7 @@ class BrokerAsset(object):
             if abs((self.balance - amount) / base) < 0.00001:
                 self.balance = Decimal(0)
             elif self.balance - amount < Decimal(0):
-                raise DemeterError(
-                    f"Insufficient balance, balance is {self.balance}{self.name}, "
-                    f"but sub amount is {amount}{self.name}"
-                )
+                raise DemeterError(f"Insufficient balance, balance is {self.balance}{self.name}, " f"but sub amount is {amount}{self.name}")
             else:
                 self.balance -= amount
 
