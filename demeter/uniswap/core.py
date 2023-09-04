@@ -90,10 +90,7 @@ class V3CoreLib(object):
 
         # in most cases, tick will not cross to on_bar one, which means L will not change.
         def calc_amounts():
-            if position.liquidity >= state.current_liquidity:
-                share = Decimal(1)
-            else:
-                share = Decimal(position.liquidity) / Decimal(state.current_liquidity)
+            share = Decimal(position.liquidity) / Decimal(state.current_liquidity)
             position.pending_amount0 += from_wei(state.in_amount0, pool.token0.decimal) * share * pool.fee_rate
             position.pending_amount1 += from_wei(state.in_amount1, pool.token1.decimal) * share * pool.fee_rate
 

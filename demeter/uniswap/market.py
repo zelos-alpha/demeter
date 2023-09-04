@@ -119,14 +119,16 @@ class UniLpMarket(Market):
     def set_market_status(self, timestamp: datetime | None, data: UniLPData | UniV3PoolStatus, price: pd.Series | None):
         # update price tick
         local_prev_tick = self._market_status.current_tick
+        total_virtual_liq = sum([p.liquidity for p in self._positions.values()])
         if isinstance(data, UniV3PoolStatus):
             self._market_status = data
+            self._market_status.current_liquidity += total_virtual_liq
             if not data.last_tick:
                 self._market_status.last_tick = local_prev_tick
         else:
             self._market_status = UniV3PoolStatus(timestamp,
                                                   int(data.closeTick),
-                                                  data.currentLiquidity,
+                                                  data.currentLiquidity + total_virtual_liq,
                                                   data.inAmount0,
                                                   data.inAmount1,
                                                   data.price,
