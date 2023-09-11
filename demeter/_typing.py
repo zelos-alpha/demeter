@@ -119,3 +119,16 @@ class EthError(Exception):
     def __init__(self, code, message):
         self.code = code
         self.message = message
+
+
+class ChainType(str, Enum):
+    ethereum = "ethereum"
+    polygon = "polygon"
+    optimism = "optimism"
+    arbitrum = "arbitrum"
+    celo = "celo"
+    bsc = "bsc"
+    base = "base"
+    avalanche = "avalanche"
+    fantom = "fantom"
+    harmony = "harmony"

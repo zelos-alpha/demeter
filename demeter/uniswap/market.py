@@ -72,7 +72,6 @@ class UniLpMarket(Market):
         self._market_status = UniV3PoolStatus(None, 0, 0, 0, 0, DECIMAL_0)
         # In order to distinguish price in pool and to u, we call former one "pool price"
         self._pool_price_unit = f"{self.base_token.name}/{self.quote_token.name}"
-        self.history_recorder = None
         # internal temporary variable
         # self.action_buffer = []
 

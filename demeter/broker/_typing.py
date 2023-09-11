@@ -9,13 +9,14 @@ import pandas as pd
 
 from .._typing import DemeterError, TokenInfo
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class Rule(NamedTuple):
     """
     Rule properties
     """
+
     agg: str | None
     fillna_method: str | None
     fillna_value: int | None
@@ -26,15 +27,23 @@ class RowData:
     """
     Row properties
     """
+
     timestamp: datetime = None
     row_id: int = None
+
+
+class MarketTypeEnum(Enum):
+    uniswap = 1
+    aave_v3 = 2
 
 
 class MarketInfo(NamedTuple):
     """
     MarketInfo properties
     """
+
     name: str  # uni_market
+    type: MarketTypeEnum = MarketTypeEnum.uniswap
 
 
 class Asset(object):
@@ -102,8 +111,7 @@ class Asset(object):
             if abs((self.balance - amount) / base) < 0.00001:
                 self.balance = Decimal(0)
             elif self.balance - amount < Decimal(0):
-                raise DemeterError(f"insufficient balance, balance is {self.balance}{self.name}, "
-                                   f"but sub amount is {amount}{self.name}")
+                raise DemeterError(f"insufficient balance, balance is {self.balance}{self.name}, " f"but sub amount is {amount}{self.name}")
             else:
                 self.balance -= amount
 
@@ -115,7 +123,7 @@ class Asset(object):
 
         :return: self.balance * 10 ** self.decimal
         """
-        return self.balance * Decimal(10 ** self.decimal)
+        return self.balance * Decimal(10**self.decimal)
 
 
 class ActionTypeEnum(Enum):
@@ -128,6 +136,7 @@ class ActionTypeEnum(Enum):
     * sell,
     * collect_fee
     """
+
     uni_lp_add_liquidity = "add_liquidity"
     uni_lp_remove_liquidity = "remove_liquidity"
     uni_lp_buy = "buy"
@@ -148,6 +157,7 @@ class BaseAction(object):
     :type timestamp: datetime
 
     """
+
     market: MarketInfo
     action_type: ActionTypeEnum = field(default=False, init=False)
     timestamp: datetime = field(default=False, init=False)
@@ -163,6 +173,7 @@ class MarketBalance:
 
     :type net_value: Decimal
     """
+
     net_value: Decimal
 
 
@@ -174,6 +185,7 @@ class AccountStatusCommon:
     :type timestamp: datetime
     :type net_value: Decimal, default 0
     """
+
     timestamp: datetime
     net_value: Decimal = Decimal(0)
 
@@ -185,10 +197,11 @@ class MarketStatus:
 
     :type timestamp: datetime
     """
+
     timestamp: datetime | None
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class MarketDict(Generic[T]):
@@ -338,6 +351,7 @@ class AccountStatus(AccountStatusCommon):
     :param asset_balances: balance of asset
     :param market_status:
     """
+
     asset_balances: AssetDict[Decimal] = field(default_factory=AssetDict)
     market_status: MarketDict[MarketBalance] = field(default_factory=MarketDict)
 
@@ -377,9 +391,7 @@ class AccountStatus(AccountStatusCommon):
         """
         index = [i.timestamp for i in status_list]
         if len(index) > 0:
-            return pd.DataFrame(columns=status_list[0].get_names(),
-                                index=index,
-                                data=map(lambda d: d.to_array(), status_list))
+            return pd.DataFrame(columns=status_list[0].get_names(), index=index, data=map(lambda d: d.to_array(), status_list))
         else:
             return pd.DataFrame()
 
