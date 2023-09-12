@@ -15,34 +15,34 @@ class InterestRateMode(Enum):
 
 @dataclass
 class SupplyInfo:
-    pool_amount: Decimal
+    base_amount: Decimal
     collateral: bool
 
 
 @dataclass
 class Supply:
     token: TokenInfo
-    pool_amount: Decimal
+    base_amount: Decimal
     collateral: bool
     amount: Decimal
     apy: Decimal
-    token_base_amount: Decimal
+    value: Decimal
 
 
 @dataclass
 class BorrowInfo:
-    pool_amount: Decimal
+    base_amount: Decimal
     interest_rate_mode: InterestRateMode
 
 
 @dataclass
 class Borrow:
     token: TokenInfo
-    pool_amount: Decimal
+    base_amount: Decimal
     interest_rate_mode: InterestRateMode
     amount: Decimal
     apy: Decimal
-    token_base_amount: Decimal
+    value: Decimal
 
 
 @dataclass

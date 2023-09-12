@@ -22,3 +22,4 @@ class TestBigQuery(unittest.TestCase):
         a1 = AccountStatus(None)
         a2 = AccountStatus(None)
         self.assertNotEqual(id(a1.market_status), id(a2.market_status))
+

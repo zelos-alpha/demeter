@@ -1,4 +1,5 @@
 import os
+from _decimal import Decimal
 from typing import Dict
 
 import pandas as pd
@@ -34,7 +35,8 @@ def load_risk_parameter(chain: ChainType, token_setting_path) -> pd.DataFrame | 
             "borrowableInIsolation",
         ]
     ]
-    rp["LTV"] = rp["LTV"].str.rstrip("%").astype(float) / 100
-    rp["liqThereshold"] = rp["liqThereshold"].str.rstrip("%").astype(float) / 100
 
+    rp["LTV"] = rp["LTV"].str.rstrip("%").apply(lambda x: Decimal(x)) / 100
+    rp["liqThereshold"] = rp["liqThereshold"].str.rstrip("%").apply(lambda x: Decimal(x)) / 100
+    rp = rp.set_index("symbol")
     return rp
