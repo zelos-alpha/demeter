@@ -53,14 +53,13 @@ class AaveBalance(MarketBalance):
     total_borrows: Decimal
     total_supplies: Decimal
     collateral: Decimal
-    net_worth: Decimal
 
     health_factor: Decimal
     current_ltv: Decimal
     liquidation_threshold: Decimal
 
     supply_apy: Decimal
-    delt_apy: Decimal
+    borrow_apy: Decimal
     net_apy: Decimal
 
 
