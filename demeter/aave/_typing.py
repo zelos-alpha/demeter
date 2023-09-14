@@ -50,9 +50,9 @@ class AaveBalance(MarketBalance):
     supplys: Dict[TokenInfo, Supply]
     borrows: Dict[TokenInfo, Borrow]
 
-    total_borrows: Decimal
-    total_supplies: Decimal
-    collateral: Decimal
+    borrow_balance: Decimal
+    supply_balance: Decimal
+    collateral_balance: Decimal
 
     health_factor: Decimal
     current_ltv: Decimal

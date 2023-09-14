@@ -3,7 +3,10 @@ def assert_equal_with_error(a, b, allowed_error=0.0005):
         return True
     base = a if a != 0 else b
     error = abs((a - b) / base)
-    return error < allowed_error
+    if error < allowed_error:
+        return True
+    else:
+        raise RuntimeError(f"{a} != {b}, error is {a-b} / {error}, allow is {allowed_error}")
 
 
 def assert_equal(a, b, msg=""):

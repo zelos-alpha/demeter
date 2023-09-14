@@ -29,20 +29,13 @@ class AaveV3CoreLib(object):
         return AaveV3CoreLib.safe_div(a, b)
 
     @staticmethod
-    def total_apy():
-        # (token_amount0 * apy0 + token_amount1 * apy1 + ...) / (token_amount0 + token_amount1)
-        pass
-
-    @staticmethod
-    def current_ltv(supplies: Dict[TokenInfo, Decimal], borrows: Dict[TokenInfo, Decimal], risk_parameters):
-        # (token_amount0 * ltv0 + token_amount1 * ltv1 + ...) / (token_amount0 + token_amount1)
-        all_borrows = DECIMAL_0
-        for t, b in borrows.items():
-            all_borrows += b * risk_parameters.loc[t.name].LTV
+    def current_ltv(supplies: Dict[TokenInfo, Decimal], risk_parameters):
         all_supplies = DECIMAL_0
         for t, s in supplies.items():
             all_supplies += s * risk_parameters.loc[t.name].LTV
-        AaveV3CoreLib.safe_div(all_borrows, all_supplies)
+
+        amount = sum(supplies.values())
+        return AaveV3CoreLib.safe_div(all_supplies, amount)
 
     @staticmethod
     def total_liquidation_threshold(supplies: Dict[TokenInfo, Decimal], risk_parameters):
@@ -50,7 +43,7 @@ class AaveV3CoreLib(object):
 
         sum_amount = DECIMAL_0
         rate = DECIMAL_0
-        for t,s in supplies.items():
+        for t, s in supplies.items():
             sum_amount += s
             rate += s * risk_parameters.loc[t.name].liqThereshold
 
@@ -59,7 +52,7 @@ class AaveV3CoreLib(object):
     @staticmethod
     def safe_div(a: Decimal, b: Decimal) -> Decimal:
         if b == 0:
-            return Decimal("Infinity")
+            return Decimal(0)  # Consistent with the contract
         else:
             return a / b
 
