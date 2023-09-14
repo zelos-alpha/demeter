@@ -86,6 +86,9 @@ class TokenInfo(NamedTuple):
     name: str
     decimal: int
 
+    def __str__(self):
+        return self.name
+
 
 class PositionInfo(NamedTuple):
     """

@@ -2,6 +2,7 @@ from _decimal import Decimal
 from typing import Dict
 
 from demeter import DECIMAL_0, TokenInfo
+from demeter.aave._typing import SupplyKey, ActionKey, BorrowKey
 
 
 class AaveV3CoreLib(object):
@@ -22,30 +23,30 @@ class AaveV3CoreLib(object):
         return amount / pool_liquidity_rate
 
     @staticmethod
-    def health_factor(supplies: Dict[TokenInfo, Decimal], borrows: Dict[TokenInfo, Decimal], risk_parameters):
+    def health_factor(supplies: Dict[SupplyKey, Decimal], borrows: Dict[BorrowKey, Decimal], risk_parameters):
         # (all supplies * liqThereshold) / all borrows
-        a = sum([s * risk_parameters.loc[token_info.name].liqThereshold for token_info, s in supplies.items()])
+        a = sum([s * risk_parameters.loc[key.token.name].liqThereshold for key, s in supplies.items()])
         b = sum(borrows.values())
         return AaveV3CoreLib.safe_div(a, b)
 
     @staticmethod
-    def current_ltv(supplies: Dict[TokenInfo, Decimal], risk_parameters):
+    def current_ltv(supplies: Dict[SupplyKey, Decimal], risk_parameters):
         all_supplies = DECIMAL_0
         for t, s in supplies.items():
-            all_supplies += s * risk_parameters.loc[t.name].LTV
+            all_supplies += s * risk_parameters.loc[t.token.name].LTV
 
         amount = sum(supplies.values())
         return AaveV3CoreLib.safe_div(all_supplies, amount)
 
     @staticmethod
-    def total_liquidation_threshold(supplies: Dict[TokenInfo, Decimal], risk_parameters):
+    def total_liquidation_threshold(supplies: Dict[SupplyKey, Decimal], risk_parameters):
         # (token_amount0 * LT0 + token_amount1 * LT1 + ...) / (token_amount0 + token_amount1)
 
         sum_amount = DECIMAL_0
         rate = DECIMAL_0
         for t, s in supplies.items():
             sum_amount += s
-            rate += s * risk_parameters.loc[t.name].liqThereshold
+            rate += s * risk_parameters.loc[t.token.name].liqThereshold
 
         return AaveV3CoreLib.safe_div(rate, sum_amount)
 
@@ -57,7 +58,7 @@ class AaveV3CoreLib(object):
             return a / b
 
     @staticmethod
-    def get_apy(amounts: Dict[TokenInfo, Decimal], rate_dict: Dict[TokenInfo, Decimal]):
-        a = sum([amounts[token] * AaveV3CoreLib.rate_to_apy(rate_dict[token]) for token, amount in amounts.items()])
+    def get_apy(amounts: Dict[ActionKey, Decimal], rate_dict: Dict[TokenInfo, Decimal]):
+        a = sum([amounts[key] * AaveV3CoreLib.rate_to_apy(rate_dict[key.token]) for key, amount in amounts.items()])
         b = sum(amounts.values())
         return AaveV3CoreLib.safe_div(a, b)

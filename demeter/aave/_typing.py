@@ -1,16 +1,36 @@
-from dataclasses import dataclass
 from _decimal import Decimal
+from dataclasses import dataclass
 from enum import Enum
 from typing import Dict
 
-from .core import AaveV3CoreLib
-from .. import MarketInfo, DECIMAL_0, DemeterError, TokenInfo
+from .. import TokenInfo
 from ..broker import MarketBalance, MarketStatus
 
 
 class InterestRateMode(Enum):
     variable = 1
     stable = 2
+
+
+@dataclass
+class ActionKey:
+    token: TokenInfo
+
+    def __str__(self):
+        return self.token.name
+
+
+@dataclass
+class BorrowKey(ActionKey):
+    interest_rate_mode: InterestRateMode
+
+    def __str__(self):
+        return f"{self.token.name}({self.interest_rate_mode.name})"
+
+
+@dataclass
+class SupplyKey(ActionKey):
+    pass
 
 
 @dataclass
@@ -32,7 +52,6 @@ class Supply:
 @dataclass
 class BorrowInfo:
     base_amount: Decimal
-    interest_rate_mode: InterestRateMode
 
 
 @dataclass
@@ -47,8 +66,8 @@ class Borrow:
 
 @dataclass
 class AaveBalance(MarketBalance):
-    supplys: Dict[TokenInfo, Supply]
-    borrows: Dict[TokenInfo, Borrow]
+    supplys: Dict[SupplyKey, Supply]
+    borrows: Dict[BorrowKey, Borrow]
 
     borrow_balance: Decimal
     supply_balance: Decimal

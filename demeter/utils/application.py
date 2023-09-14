@@ -3,6 +3,8 @@ from decimal import Decimal
 from types import SimpleNamespace
 from functools import wraps
 
+from demeter import DemeterError
+
 OUTPUT_WIDTH = 30
 
 
@@ -63,3 +65,8 @@ def get_enum_by_name(me, name):
         if e.name.lower() == name.lower():
             return e
     raise RuntimeError(f"cannot found {name} in {me}, allow value is " + str([x.name for x in me]))
+
+
+def require(condition: bool, error_msg: str):
+    if not condition:
+        raise DemeterError(error_msg)
