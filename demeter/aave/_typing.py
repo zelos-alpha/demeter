@@ -19,6 +19,9 @@ class ActionKey:
     def __str__(self):
         return self.token.name
 
+    def __hash__(self):
+        return self.token.__hash__()
+
 
 @dataclass
 class BorrowKey(ActionKey):
@@ -26,11 +29,20 @@ class BorrowKey(ActionKey):
 
     def __str__(self):
         return f"{self.token.name}({self.interest_rate_mode.name})"
+    def __repr__(self):
+        return f"{self.token.name}({self.interest_rate_mode.name})"
+    def __hash__(self):
+        return hash((self.token, self.interest_rate_mode))
 
 
 @dataclass
 class SupplyKey(ActionKey):
-    pass
+    def __str__(self):
+        return self.token.name
+    def __repr__(self):
+        return self.token.name
+    def __hash__(self):
+        return self.token.__hash__()
 
 
 @dataclass
