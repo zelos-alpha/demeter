@@ -111,7 +111,7 @@ class Asset(object):
             if abs((self.balance - amount) / base) < 0.00001:
                 self.balance = Decimal(0)
             elif self.balance - amount < Decimal(0):
-                raise DemeterError(f"insufficient balance, balance is {self.balance}{self.name}, " f"but sub amount is {amount}{self.name}")
+                raise AssertionError(f"insufficient balance, balance is {self.balance}{self.name}, " f"but sub amount is {amount}{self.name}")
             else:
                 self.balance -= amount
 

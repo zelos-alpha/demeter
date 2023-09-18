@@ -1,9 +1,8 @@
 import json
 from decimal import Decimal
-from types import SimpleNamespace
 from functools import wraps
+from types import SimpleNamespace
 
-from demeter import DemeterError
 
 OUTPUT_WIDTH = 30
 
@@ -69,4 +68,4 @@ def get_enum_by_name(me, name):
 
 def require(condition: bool, error_msg: str):
     if not condition:
-        raise DemeterError(error_msg)
+        raise AssertionError(error_msg)
