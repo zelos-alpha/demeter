@@ -335,7 +335,7 @@ class AaveV3Market(Market):
             raise DemeterError("health factor lower than liquidation threshold")
         return key
 
-    def withdraw(self, supply_key: SupplyKey = None, token: TokenInfo = None, amount: Decimal = None):
+    def withdraw(self, supply_key: SupplyKey = None, token: TokenInfo = None, amount: Decimal = None): # TODO: amount should changed to Decimal| float
         key, token = AaveV3Market.__get_supply_key(supply_key, token)
 
         supply = self.get_supply(key)

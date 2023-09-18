@@ -73,7 +73,7 @@ class EvaluatorEnum(Enum):
         return self.name
 
 
-class TokenInfo(NamedTuple):
+class TokenInfo:
     """
     token info
 
@@ -86,11 +86,35 @@ class TokenInfo(NamedTuple):
     name: str
     decimal: int
 
+    def __init__(self, name: str, decimal: int):
+        self.name = name.upper()
+        self.decimal = decimal
+
     def __str__(self):
         return self.name
 
     def __repr__(self):
         return self.name
+
+    def __eq__(self, other):
+        if isinstance(other, TokenInfo):
+            return self.name == other.name
+        else:
+            return False
+
+    def __hash__(self):
+        return self.name.__hash__()
+
+
+# class TokenInfo(NamedTuple):
+#     name: str
+#     decimal: int
+#
+#     def __str__(self):
+#         return self.name
+#
+#     def __repr__(self):
+#         return self.name
 
 
 class PositionInfo(NamedTuple):
