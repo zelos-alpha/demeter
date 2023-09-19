@@ -18,22 +18,25 @@ class MyFirstStrategy(Strategy):
         pass
 
     def on_bar(self, row_data: MarketDict[RowData]):
-        balance: AaveBalance = market.get_market_balance()
+        # row_data[market_key].
+        balance: AaveBalance = aave_market.get_market_balance()
+        local_market_var: AaveV3Market = self.broker.markets[market_key]
+
         if balance.supply_balance > Decimal(0):
-            key1 = market.supply(usdc, Decimal(200))
+            key1 = aave_market.supply(usdc, Decimal(200))
         if balance.health_factor > 0.8:
-            key2 = market.supply(usdc, Decimal(200), collateral=True)
+            key2 = aave_market.supply(usdc, Decimal(200), collateral=True)
 
         print(balance.supply_balance)
         print(balance.supplys)
 
         if balance.supplys[key1].apy < 0.1:  # 10%
-            market.withdraw(token=usdc, amount=Decimal(10))
+            aave_market.withdraw(token=usdc, amount=Decimal(10))
 
-        key_borrow = market.borrow(usdc, Decimal(10), InterestRateMode.variable)
+        key_borrow = aave_market.borrow(usdc, Decimal(10), InterestRateMode.variable)
 
-        if market.borrows[key_borrow].apy < Decimal(0.1) or market.get_borrow(key_borrow).apy < Decimal(0.1):
-            market.repay(amount=None, key=key_borrow)
+        if aave_market.borrows[key_borrow].apy < Decimal(0.1) or aave_market.get_borrow(key_borrow).apy < Decimal(0.1):
+            aave_market.repay(amount=None, key=key_borrow)
 
 
 if __name__ == "__main__":
@@ -41,11 +44,11 @@ if __name__ == "__main__":
     eth = TokenInfo(name="eth", decimal=18)  # declare token eth
 
     market_key = MarketInfo("aave_market", MarketTypeEnum.aave_v3)
-    market = AaveV3Market(market_info=market_key, chain=ChainType.polygon, token_setting_path="../../tests/aave_risk_parameters", tokens=[usdc, eth])
-    market.load_data()
+    aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="../../tests/aave_risk_parameters/polygon.csv", tokens=[usdc, eth])
+    aave_market.load_data()
 
     actuator = Actuator()  # declare actuator, Demeter Actuator (broker:assets: ; markets: )
-    actuator.broker.add_market(market)
+    actuator.broker.add_market(aave_market)
     actuator.broker.set_balance(usdc, 10000)
     actuator.broker.set_balance(eth, 10)
     actuator.strategy = MyFirstStrategy()

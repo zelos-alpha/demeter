@@ -9,10 +9,10 @@ from demeter.aave._typing import RiskParameter
 
 
 def load_risk_parameter(chain: ChainType, token_setting_path) -> pd.DataFrame | Dict[str, RiskParameter]:
-    path = os.path.join(token_setting_path, chain.value + ".csv")
+    path = os.path.join(token_setting_path)
     if not os.path.exists(path):
         raise DemeterError(
-            f"risk parameter file {path} not exist, please download csv in https://www.config.fyi/ and save as file name [chain name].csv"
+            f"risk parameter file {path} not exist, please download csv from https://www.config.fyi/"
         )
     rp = pd.read_csv(path, sep=";")
     rp = rp[

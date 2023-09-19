@@ -8,32 +8,24 @@ from . import helper
 from ._typing import AaveBalance, SupplyInfo, BorrowInfo, AaveV3PoolStatus, Supply, Borrow, InterestRateMode, RiskParameter, SupplyKey, BorrowKey
 from .core import AaveV3CoreLib
 from .. import MarketInfo, DemeterError, TokenInfo
-from .._typing import ChainType, DECIMAL_0
+from .._typing import DECIMAL_0
 from ..broker import Market, MarketStatus
 from ..utils.application import require
 
 DEFAULT_DATA_PATH = "./data"
 
+# TODO:
+# 1. load data
+# 2. price
 
 class AaveV3Market(Market):
-    def __init__(self, market_info: MarketInfo, chain: ChainType, token_setting_path: str = "./aave_risk_parameters", tokens: List[TokenInfo] = []):
+    def __init__(self, market_info: MarketInfo, risk_parameters_path: str, tokens: List[TokenInfo] = []):
         super().__init__(market_info=market_info)
         self._supplies: Dict[SupplyKey, SupplyInfo] = {}
         self._borrows: Dict[BorrowKey, BorrowInfo] = {}
         self._market_status: pd.Series | AaveV3PoolStatus = AaveV3PoolStatus(None, {})
 
-        if chain not in [
-            ChainType.arbitrum,
-            ChainType.avalanche,
-            ChainType.ethereum,
-            ChainType.fantom,
-            ChainType.harmony,
-            ChainType.optimism,
-            ChainType.polygon,
-        ]:
-            raise DemeterError(f"chain {chain} is not supported in aave")
-
-        self._risk_parameters: pd.DataFrame | Dict[str, RiskParameter] = helper.load_risk_parameter(chain, token_setting_path)
+        self._risk_parameters: pd.DataFrame | Dict[str, RiskParameter] = helper.load_risk_parameter(risk_parameters_path)
 
         self._collateral_cache = None
         self._supply_amount_cache = None
@@ -335,7 +327,9 @@ class AaveV3Market(Market):
             raise DemeterError("health factor lower than liquidation threshold")
         return key
 
-    def withdraw(self, supply_key: SupplyKey = None, token: TokenInfo = None, amount: Decimal = None): # TODO: amount should changed to Decimal| float
+    def withdraw(
+        self, supply_key: SupplyKey = None, token: TokenInfo = None, amount: Decimal = None
+    ):  # TODO: amount should changed to Decimal| float
         key, token = AaveV3Market.__get_supply_key(supply_key, token)
 
         supply = self.get_supply(key)
@@ -393,7 +387,7 @@ class AaveV3Market(Market):
             # ignore pool amount check, I don't have pool amount
 
         # do borrow
-        base_amount = amount / self._market_status.tokens[token].variable_borrow_index # TODO : update this, consider decimal and ceiling/floor
+        base_amount = amount / self._market_status.tokens[token].variable_borrow_index  # TODO : update this, consider decimal and ceiling/floor
 
         if key not in self._borrows:
             self._borrows[key] = BorrowInfo(DECIMAL_0)
@@ -432,6 +426,10 @@ class AaveV3Market(Market):
         pass
 
     def _liquidate(self):
+        if self.health_factor < AaveV3Market.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
+            return
+
+
         self._borrows_amount_cache = None
         self._supply_amount_cache = None
         self._collateral_cache = None

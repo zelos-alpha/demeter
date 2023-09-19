@@ -2,11 +2,11 @@
 
 We have prepared some examples to help you get start with demeter.
 
-* [1_quick_start.py](1_quick_start.py): quick start 
-* [2_working_with_strategy.py](2_working_with_strategy.py): show how to write a strategy, and how functions of strategy works
-* [3_proprieties_access.py](3_proprieties_access.py): Show how to access markets, data etc.
-* [4_data_and_indicator.py](4_data_and_indicator.py): data and indicator
-* [5_result.py](5_result.py): How to get and save backtest result. 
+* [1_quick_start.py](01_quick_start.py): quick start 
+* [2_working_with_strategy.py](02_working_with_strategy.py): show how to write a strategy, and how functions of strategy works
+* [3_proprieties_access.py](03_proprieties_access.py): Show how to access markets, data etc.
+* [4_data_and_indicator.py](04_data_and_indicator.py): data and indicator
+* [5_result.py](05_result.py): How to get and save backtest result. 
 
 Also, you can find some demo to see how a strategy work.
 
