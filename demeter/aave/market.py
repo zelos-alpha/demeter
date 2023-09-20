@@ -1,8 +1,10 @@
+import token
 from _decimal import Decimal
 from datetime import datetime
 from typing import Dict, List, Set
 
 import pandas as pd
+
 
 from . import helper
 from ._typing import AaveBalance, SupplyInfo, BorrowInfo, AaveV3PoolStatus, Supply, Borrow, InterestRateMode, RiskParameter, SupplyKey, BorrowKey
@@ -11,12 +13,14 @@ from .. import MarketInfo, DemeterError, TokenInfo
 from .._typing import DECIMAL_0
 from ..broker import Market, MarketStatus
 from ..utils.application import require
+import random
 
 DEFAULT_DATA_PATH = "./data"
 
 # TODO:
 # 1. load data
 # 2. price
+
 
 class AaveV3Market(Market):
     def __init__(self, market_info: MarketInfo, risk_parameters_path: str, tokens: List[TokenInfo] = []):
@@ -33,8 +37,13 @@ class AaveV3Market(Market):
 
         self._tokens: Set[TokenInfo] = set()
         self.add_token(tokens)
+        # may not be liquidated immediately, User can choose a chance for every loop.
+        self.liquidation_probability = 1
 
     HEALTH_FACTOR_LIQUIDATION_THRESHOLD = Decimal(1)
+    DEFAULT_LIQUIDATION_CLOSE_FACTOR = Decimal(0.5)
+    MAX_LIQUIDATION_CLOSE_FACTOR = Decimal(1)
+    CLOSE_FACTOR_HF_THRESHOLD = Decimal(0.95)
 
     def __str__(self):
         pass
@@ -199,8 +208,8 @@ class AaveV3Market(Market):
         return Borrow(
             token=borrow_key.token,
             base_amount=borrow_info.base_amount,
-            interest_rate_mode=borrow_info.interest_rate_mode,
-            amount=self.borrows_value[borrow_key] / self._price_status.loc[key.token.name],
+            interest_rate_mode=borrow_key.interest_rate_mode,
+            amount=self.borrows_value[borrow_key] / self._price_status.loc[borrow_key.token.name],
             apy=AaveV3CoreLib.rate_to_apy(
                 self.market_status.tokens[borrow_key.token].variable_borrow_rate
                 if borrow_key.interest_rate_mode == InterestRateMode.variable
@@ -371,7 +380,7 @@ class AaveV3Market(Market):
 
         require(self.health_factor > AaveV3Market.HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "health factor lower than liquidation threshold")
 
-        value = amount * self._price_status[token.name]
+        value = amount * self._price_status.loc[token.name]
         collateral_needed = sum(self.borrows.values()) + value / current_ltv
         require(collateral_needed <= collateral_balance, "collateral cannot cover new borrow")
 
@@ -425,13 +434,98 @@ class AaveV3Market(Market):
             del self._borrows[key]
         pass
 
+    def __sub_borrow_amount(self, key: BorrowKey, amount):
+        self._borrows[key].base_amount -= amount / self._market_status.tokens[key.token].variable_borrow_index
+        if self._borrows[key].base_amount == 0:
+            del self._borrows[key]
+
     def _liquidate(self):
-        if self.health_factor < AaveV3Market.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
+        if random.random() <= self.liquidation_probability:
             return
 
+        health_factor = self.health_factor
+        has_liquidated:List[BorrowKey]=[]
+        while health_factor < AaveV3Market.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
+            # choose which token and how much to liquidate
+            # choose the smallest delt
+            borrows = self.borrows
+            supplys = self.supplies
+
+            min_borrow_key = None
+            min_borrow_value = Decimal(10e21)
+            for k, v in borrows.items():
+                if min_borrow_value <= v.value and (k not in has_liquidated):
+                    min_borrow_value = v.value
+                    min_borrow_key = k
+            # choose the biggest collateral
+            max_supply_key = None
+            max_supply_value = Decimal(0)
+            for k, v in supplys.items():
+                if v.collateral and max_supply_value >= v.value:
+                    max_supply_value = v.value
+                    max_supply_key = k
+            # if a token has liquidated, but health_factor still < 1, it should not be liquidated again.
+            # because if 0.95 < health_factor < 1, only half of this token will be liquidated. if liquidate this token again, will only liquidate 1/4
+            # so health_factor will never go above 1
+
+            has_liquidated.append(min_borrow_key)
+
+            try:
+                self._do_liquidate(max_supply_key.token, min_borrow_key.token, min_borrow_value, health_factor)
+            except AssertionError as e:
+                # if a liquidated is rejected, choose another delt token to liquidate
+                pass
+            health_factor = self.health_factor
+
+    def _do_liquidate(self, collateral_token: TokenInfo, delt_token: TokenInfo, delt_to_cover: Decimal, health_factor: Decimal):
+        stable_key = BorrowKey(delt_token, InterestRateMode.stable)
+        variable_key = BorrowKey(delt_token, InterestRateMode.variable)
+        collateral_key = SupplyKey(collateral_token)
+        liquidation_bonus = self._risk_parameters[collateral_token.name].liqBonus
+
+        # _calculateDebt
+        stable_delt = self.get_borrow(stable_key).amount if stable_key in self._borrows else Decimal(0)
+        variable_delt = self.get_borrow(variable_key).amount if variable_key in self._borrows else Decimal(0)
+        total_debt = stable_delt + variable_delt
+        close_factor = (
+            AaveV3Market.DEFAULT_LIQUIDATION_CLOSE_FACTOR
+            if health_factor > AaveV3Market.CLOSE_FACTOR_HF_THRESHOLD
+            else AaveV3Market.MAX_LIQUIDATION_CLOSE_FACTOR
+        )
+        max_liquidatable_debt = total_debt * close_factor
+        actual_debt_to_liquidate = max_liquidatable_debt if delt_to_cover > max_liquidatable_debt else delt_to_cover
+
+        # validate delt
+        is_collateral_enabled = self._risk_parameters[collateral_token.name].liqThereshold != 0 and self._supplies[collateral_key].collateral
+
+        require(is_collateral_enabled, "collateral cannot be liquidated")
+        require(total_debt != Decimal(0), "specified currency not borrowed by user")
+
+        user_collateral_balance = self.get_supply(token=collateral_token).amount
+
+        # calculate actuall amount
+        base_collateral = self._price_status.loc[delt_token.name] * actual_debt_to_liquidate / self._price_status.loc[collateral_token.name]
+        max_collateral_to_liquidate = base_collateral * (1 - liquidation_bonus)
+
+        if max_collateral_to_liquidate > user_collateral_balance:
+            actual_collateral_to_liquidate = user_collateral_balance
+            actual_debt_to_liquidate = (
+                self._price_status.loc[collateral_token.name] * actual_collateral_to_liquidate / self._price_status.loc[delt_token.name]
+            )
+        else:
+            actual_collateral_to_liquidate = max_collateral_to_liquidate
+            actual_debt_to_liquidate = actual_debt_to_liquidate
+
+        self._supplies[collateral_key].base_amount -= actual_collateral_to_liquidate / self._market_status.tokens[collateral_token].liquidity_index
+        if self._supplies[collateral_key].base_amount == 0:
+            del self._supplies[collateral_key]
+
+        if variable_delt > actual_debt_to_liquidate:
+            self.__sub_borrow_amount(variable_key, actual_debt_to_liquidate)
+        else:
+            self.__sub_borrow_amount(variable_key, variable_delt)
+            self.__sub_borrow_amount(stable_key, actual_debt_to_liquidate - variable_delt)
 
         self._borrows_amount_cache = None
         self._supply_amount_cache = None
         self._collateral_cache = None
-
-        pass
