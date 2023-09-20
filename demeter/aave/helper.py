@@ -4,11 +4,11 @@ from typing import Dict
 
 import pandas as pd
 
-from demeter import ChainType, DemeterError
+from demeter import DemeterError
 from demeter.aave._typing import RiskParameter
 
 
-def load_risk_parameter(chain: ChainType, token_setting_path) -> pd.DataFrame | Dict[str, RiskParameter]:
+def load_risk_parameter(token_setting_path) -> pd.DataFrame | Dict[str, RiskParameter]:
     path = os.path.join(token_setting_path)
     if not os.path.exists(path):
         raise DemeterError(

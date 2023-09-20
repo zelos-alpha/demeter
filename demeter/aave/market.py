@@ -20,10 +20,12 @@ DEFAULT_DATA_PATH = "./data"
 # TODO:
 # 1. load data
 # 2. price
+# 3. expend row_data in strategy.on_bar to (row_data, price)
 
 
 class AaveV3Market(Market):
-    def __init__(self, market_info: MarketInfo, risk_parameters_path: str, tokens: List[TokenInfo] = []):
+    def __init__(self, market_info: MarketInfo, risk_parameters_path: str, tokens: List[TokenInfo] = None):
+        tokens = tokens if token is not None else []
         super().__init__(market_info=market_info)
         self._supplies: Dict[SupplyKey, SupplyInfo] = {}
         self._borrows: Dict[BorrowKey, BorrowInfo] = {}
@@ -444,9 +446,10 @@ class AaveV3Market(Market):
             return
 
         health_factor = self.health_factor
-        has_liquidated:List[BorrowKey]=[]
+        has_liquidated: List[BorrowKey] = []
         while health_factor < AaveV3Market.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
             # choose which token and how much to liquidate
+
             # choose the smallest delt
             borrows = self.borrows
             supplys = self.supplies
