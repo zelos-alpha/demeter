@@ -19,8 +19,8 @@ class AaveV3CoreLib(object):
         return Decimal(net_value_in_pool) * Decimal(current_liquidity_rate)
 
     @staticmethod
-    def get_base_amount(amount: Decimal, pool_liquidity_rate: Decimal) -> Decimal:
-        return amount / pool_liquidity_rate
+    def get_base_amount(amount: Decimal, pool_liquidity_index: Decimal) -> Decimal:
+        return amount / pool_liquidity_index
 
     @staticmethod
     def health_factor(supplies: Dict[SupplyKey, Decimal], borrows: Dict[BorrowKey, Decimal], risk_parameters):

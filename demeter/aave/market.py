@@ -12,15 +12,14 @@ from .core import AaveV3CoreLib
 from .. import MarketInfo, DemeterError, TokenInfo
 from .._typing import DECIMAL_0
 from ..broker import Market, MarketStatus
-from ..utils.application import require
+from ..utils.application import require, float_param_formatter
 import random
 
 DEFAULT_DATA_PATH = "./data"
 
-# TODO:
-# 1. load data
-# 2. price
-# 3. expend row_data in strategy.on_bar to (row_data, price)
+# TODO: load data
+# TODO: price
+# TODO: expend row_data in strategy.on_bar to (row_data, price)
 
 
 class AaveV3Market(Market):
@@ -291,8 +290,8 @@ class AaveV3Market(Market):
         return ""
 
     # endregion
-
-    def supply(self, token_info: TokenInfo, amount: Decimal, collateral: bool = True) -> SupplyKey:
+    @float_param_formatter
+    def supply(self, token_info: TokenInfo, amount: Decimal | float, collateral: bool = True) -> SupplyKey:
         if collateral:
             require(self._risk_parameters[token_info.name].canCollateral, "Can not supplied as collateral")
         #  calc in pool value
@@ -338,9 +337,8 @@ class AaveV3Market(Market):
             raise DemeterError("health factor lower than liquidation threshold")
         return key
 
-    def withdraw(
-        self, supply_key: SupplyKey = None, token_info: TokenInfo = None, amount: Decimal = None
-    ):  # TODO: amount should changed to Decimal| float
+    @float_param_formatter
+    def withdraw(self, supply_key: SupplyKey = None, token_info: TokenInfo = None, amount: Decimal | float = None):
         key, token_info = AaveV3Market.__get_supply_key(supply_key, token_info)
 
         supply = self.get_supply(key)
@@ -349,7 +347,7 @@ class AaveV3Market(Market):
         require(amount != 0, "invalid amount")
         require(amount <= supply.amount, "not enough available user balance")
 
-        base_amount = amount / self._market_status.tokens[token_info].liquidity_index
+        base_amount = AaveV3CoreLib.get_base_amount(amount, self._market_status.tokens[token_info].liquidity_index)
 
         old_balance = self._supplies[key].base_amount
 
@@ -369,7 +367,8 @@ class AaveV3Market(Market):
 
         pass
 
-    def borrow(self, token_info: TokenInfo, amount: Decimal, interest_rate_mode: InterestRateMode) -> BorrowKey:
+    @float_param_formatter
+    def borrow(self, token_info: TokenInfo, amount: Decimal | float, interest_rate_mode: InterestRateMode) -> BorrowKey:
         key = BorrowKey(token_info, interest_rate_mode)
 
         # check
@@ -400,7 +399,7 @@ class AaveV3Market(Market):
             # ignore pool amount check, I don't have pool amount
 
         # do borrow
-        base_amount = amount / self._market_status.tokens[token_info].variable_borrow_index  # TODO : update this, consider decimal and ceiling/floor
+        base_amount = AaveV3CoreLib.get_base_amount(amount, self._market_status.tokens[token_info].variable_borrow_index)
 
         if key not in self._borrows:
             self._borrows[key] = BorrowInfo(DECIMAL_0)
@@ -411,7 +410,8 @@ class AaveV3Market(Market):
         self._borrows_amount_cache = None
         return key
 
-    def repay(self, amount: Decimal = None, key: BorrowKey = None, token_info: TokenInfo = None, interest_rate_mode: InterestRateMode = None):
+    @float_param_formatter
+    def repay(self, amount: Decimal | float = None, key: BorrowKey = None, token_info: TokenInfo = None, interest_rate_mode: InterestRateMode = None):
         if key is None:
             if token_info is None:
                 raise DemeterError("either key or token should be filled")
@@ -423,7 +423,7 @@ class AaveV3Market(Market):
 
         if amount is None:
             amount = borrow.amount
-        base_amount = amount / self._market_status.tokens[token_info].variable_borrow_index
+        base_amount = AaveV3CoreLib.get_base_amount(amount, self._market_status.tokens[token_info].variable_borrow_index)
 
         require(base_amount != 0, "invalid amount")
         require(self._borrows[key] != 0, "no debt of selected type")
@@ -435,8 +435,8 @@ class AaveV3Market(Market):
         self._borrows_amount_cache = None
         pass
 
-    def __sub_borrow_amount(self, key: BorrowKey, amount):
-        self._borrows[key].base_amount -= amount / self._market_status.tokens[key.token].variable_borrow_index
+    def __sub_borrow_amount(self, key: BorrowKey, amount: Decimal):
+        self._borrows[key].base_amount -= AaveV3CoreLib.get_base_amount(amount, self._market_status.tokens[key.token].variable_borrow_index)
         if self._borrows[key].base_amount == DECIMAL_0:
             del self._borrows[key]
 
@@ -518,7 +518,9 @@ class AaveV3Market(Market):
             actual_collateral_to_liquidate = max_collateral_to_liquidate
             actual_debt_to_liquidate = actual_debt_to_liquidate
 
-        self._supplies[collateral_key].base_amount -= actual_collateral_to_liquidate / self._market_status.tokens[collateral_token].liquidity_index
+        self._supplies[collateral_key].base_amount -= AaveV3CoreLib.get_base_amount(
+            actual_collateral_to_liquidate, self._market_status.tokens[collateral_token].liquidity_index
+        )
         if self._supplies[collateral_key].base_amount == 0:
             del self._supplies[collateral_key]
 
