@@ -110,7 +110,7 @@ class Actuator(object):
         self._account_status_list = []
         self.__backtest_finished = False
 
-        self._account_status_df: pd.DataFrame  | None= None
+        self._account_status_df: pd.DataFrame | None = None
 
     @property
     def actions(self) -> [BaseAction]:
@@ -324,7 +324,7 @@ class Actuator(object):
         for market_key, market_row_data in market_row_dict.items():
             self._broker.markets[market_key].set_market_status(timestamp, market_row_data, self._token_prices.loc[timestamp])
 
-    def run(self, evaluator: List[EvaluatorEnum] = [], output: bool = True):
+    def run(self, evaluator: List[EvaluatorEnum] | None = None, output: bool = True):
         """
         start back test, the whole process including:
 
@@ -339,13 +339,12 @@ class Actuator(object):
         * run evaluator indicator
         * run strategy.finalize()
 
-        :param enable_notify: notify when new action happens
-        :type enable_notify: bool
-        :param enable_evaluating: enable evaluating indicator. if not enabled, no evaluating will be calculated
-        :type enable_evaluating: bool
-        :param print_final_status: enable output.
-        :type print_final_status: bool
+        :param evaluator: enable evaluating indicator.
+        :type evaluator: List[EvaluatorEnum]
+        :param output: enable output.
+        :type output: bool
         """
+        evaluator = evaluator if evaluator is not None else []
         run_begin_time = time.time()  # 1681718968.267463
         self.reset()
 
@@ -372,20 +371,20 @@ class Actuator(object):
                 self.__set_row_to_markets(timestamp_index, market_row_dict)
                 # execute strategy, and some calculate
                 self._currents["timestamp"] = timestamp_index.to_pydatetime()
-                self._strategy.before_bar(market_row_dict)
+                self._strategy.before_bar(market_row_dict, self._token_prices.loc[timestamp_index])
 
                 if self._strategy.triggers:
                     for trigger in self._strategy.triggers:
                         if trigger.when(market_row_dict):
                             trigger.do(market_row_dict)
-                self._strategy.on_bar(market_row_dict)
+                self._strategy.on_bar(market_row_dict, self._token_prices.loc[timestamp_index])
 
                 # update broker status, eg: re-calculate fee
                 # and read the latest status from broker
                 for market in self._broker.markets.values():
                     market.update()
 
-                self._strategy.after_bar(market_row_dict)
+                self._strategy.after_bar(market_row_dict, self._token_prices.loc[timestamp_index])
 
                 if first:  # todo delete
                     first = False  # todo delete

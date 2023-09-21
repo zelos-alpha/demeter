@@ -20,7 +20,7 @@ DEFAULT_DATA_PATH = "./data"
 # TODO: load data
 # TODO: price
 # TODO: expend row_data in strategy.on_bar to (row_data, price)
-
+# TODO: check before test
 
 class AaveV3Market(Market):
     def __init__(self, market_info: MarketInfo, risk_parameters_path: str, tokens: List[TokenInfo] = None):
@@ -41,6 +41,11 @@ class AaveV3Market(Market):
         # may not be liquidated immediately, User can choose a chance for every loop.
         self.liquidation_probability = 1
 
+    """
+    if CLOSE_FACTOR_HF_THRESHOLD < health factor <  DEFAULT_LIQUIDATION_CLOSE_FACTOR
+    only DEFAULT_LIQUIDATION_CLOSE_FACTOR(50%) will be liquidated,
+    otherwise HEALTH_FACTOR_LIQUIDATION_THRESHOLD(100%) will be liquidated
+    """
     HEALTH_FACTOR_LIQUIDATION_THRESHOLD = Decimal(1)
     DEFAULT_LIQUIDATION_CLOSE_FACTOR = Decimal(0.5)
     MAX_LIQUIDATION_CLOSE_FACTOR = Decimal(1)

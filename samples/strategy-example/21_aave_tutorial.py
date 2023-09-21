@@ -20,9 +20,9 @@ class MyFirstStrategy(Strategy):
         local_market_var: AaveV3Market = self.broker.markets[market_key]
 
         if balance.supply_balance > Decimal(0):
-            key1 = aave_market.supply(usdc, Decimal(200))
+            key1 = aave_market.supply(usdc, 200)
         if balance.health_factor > 0.8:
-            key2 = aave_market.supply(usdc, Decimal(200), collateral=True)
+            key2 = aave_market.supply(usdc, 200, collateral=True)
 
         print(balance.supply_balance)
         print(balance.supplys)

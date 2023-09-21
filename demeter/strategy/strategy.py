@@ -14,11 +14,11 @@ class Strategy(object):
     """
 
     def __init__(self):
-        self.broker: Broker|None = None
+        self.broker: Broker | None = None
         self.data: MarketDict[pd.DataFrame] = MarketDict()
         self.markets: MarketDict[Market] = MarketDict()
         self.number_format = ".8g"
-        self.prices: pd.DataFrame|None = None
+        self.prices: pd.DataFrame | None = None
         self.triggers: [Trigger] = []
         self.account_status: List[AccountStatus] = []
         self.assets: AssetDict[Asset] = AssetDict()
@@ -31,32 +31,37 @@ class Strategy(object):
         """
         pass
 
-    def before_bar(self, row_data: MarketDict[RowData]):
+    def before_bar(self, row_data: MarketDict[RowData], price: pd.Series):
         """
         called before triggers on each row, at this time, fees are not updated yet. you can add some indicator or add some actions
 
         :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
         :type row_data: Union[{MarketInfo:RowData}, pd.Series]
-
+        :param price: current price of all tokens
+        :type price: pd.Series
         """
 
         pass
 
-    def on_bar(self, row_data: MarketDict[RowData]):
+    def on_bar(self, row_data: MarketDict[RowData], price: pd.Series):
         """
         called after triggers on each row, at this time, fees and account status are not updated yet. you can add some actions here
 
         :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
         :type row_data: Union[{MarketInfo:RowData}, pd.Series]
+        :param price: current price of all tokens
+        :type price: pd.Series
         """
         pass
 
-    def after_bar(self, row_data: MarketDict[RowData]):
+    def after_bar(self, row_data: MarketDict[RowData], price: pd.Series):
         """
         called after fees and account status are updated on each row. you can add some statistic logic here
 
         :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
         :type row_data: Union[{MarketInfo:RowData}, pd.Series]
+        :param price: current price of all tokens
+        :type price: pd.Series
         """
         pass
 
