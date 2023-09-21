@@ -60,8 +60,11 @@ class Market:
             self._record_action_callback(action)
 
     # region for subclass to override
-    def check_asset(self):
-        pass
+    def check_market(self):
+        if not isinstance(self.data, pd.DataFrame):
+            raise DemeterError("data must be type of data frame")
+        if not isinstance(self.data.index, pd.core.indexes.datetimes.DatetimeIndex):
+            raise DemeterError("date index must be datetime")
 
     def update(self):
         """
@@ -98,17 +101,6 @@ class Market:
         :rtype:
         """
         return MarketBalance(DECIMAL_0)
-
-    def check_before_test(self):
-        """
-        do some check for this market before back test start
-        :return:
-        :rtype:
-        """
-        if not isinstance(self.data, pd.DataFrame):
-            raise DemeterError("data must be type of data frame")
-        if not isinstance(self.data.index, pd.core.indexes.datetimes.DatetimeIndex):
-            raise DemeterError("date index must be datetime")
 
     def formatted_str(self):
         return ""

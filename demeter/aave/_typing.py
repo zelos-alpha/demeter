@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict
 
+import pandas as pd
+
 from .. import TokenInfo
 from ..broker import MarketBalance, MarketStatus
 
@@ -65,6 +67,25 @@ class Supply:
     value: Decimal
 
 
+def supply_to_dataframe(supplies: Dict[SupplyKey, Supply]) -> pd.DataFrame:
+    pos_dict = {
+        "token": [],
+        "base_amount": [],
+        "collateral": [],
+        "amount": [],
+        "apy": [],
+        "value": [],
+    }
+    for k, v in supplies.items():
+        pos_dict["token"].append(v.token.name)
+        pos_dict["base_amount"].append(v.base_amount)
+        pos_dict["collateral"].append(v.collateral)
+        pos_dict["amount"].append(v.amount)
+        pos_dict["apy"].append(v.apy)
+        pos_dict["value"].append(v.value)
+    return pd.DataFrame(pos_dict)
+
+
 @dataclass
 class BorrowInfo:
     base_amount: Decimal
@@ -78,6 +99,25 @@ class Borrow:
     amount: Decimal
     apy: Decimal
     value: Decimal
+
+
+def borrow_to_dataframe(supplies: Dict[BorrowKey, Borrow]) -> pd.DataFrame:
+    pos_dict = {
+        "token": [],
+        "base_amount": [],
+        "interest_rate_mode": [],
+        "amount": [],
+        "apy": [],
+        "value": [],
+    }
+    for k, v in supplies.items():
+        pos_dict["token"].append(v.token.name)
+        pos_dict["base_amount"].append(v.base_amount)
+        pos_dict["interest_rate_mode"].append(v.interest_rate_mode.name)
+        pos_dict["amount"].append(v.amount)
+        pos_dict["apy"].append(v.apy)
+        pos_dict["value"].append(v.value)
+    return pd.DataFrame(pos_dict)
 
 
 @dataclass

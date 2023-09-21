@@ -271,12 +271,12 @@ class Actuator(object):
         for token in self._broker.assets.keys():  # dict_keys([TokenInfo(name='usdc', decimal=6), TokenInfo(name='eth', decimal=18)])
             if token.name not in self._token_prices:
                 raise DemeterError(f"Price of {token.name} has not set yet")
-        [market.check_before_test() for market in self._broker.markets.values()]
 
         data_length = []  # [1440]
         for market in self._broker.markets.values():
             data_length.append(len(market.data.index))
-            market.check_asset()  # check each market, including assets
+            market.check_data_before_test()
+            market.check_market()  # check each market, including assets
         # ensure data length same
         if List.count(data_length, data_length[0]) != len(data_length):
             raise DemeterError("data length among markets are not same")
@@ -361,7 +361,6 @@ class Actuator(object):
         self.init_strategy()
         row_id = 0
         data_length = len(index_array)
-        first = True  # todo delete
         self.logger.info("start main loop...")
         with tqdm(total=data_length, ncols=150) as pbar:
             for timestamp_index in index_array:
@@ -386,8 +385,6 @@ class Actuator(object):
 
                 self._strategy.after_bar(market_row_dict, self._token_prices.loc[timestamp_index])
 
-                if first:  # todo delete
-                    first = False  # todo delete
                 self._account_status_list.append(self._broker.get_account_status(self._token_prices.loc[timestamp_index], timestamp_index))
                 # notify actions in current loop
                 self.notify(self.strategy, self._currents["actions"])

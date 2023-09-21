@@ -85,10 +85,12 @@ class TokenInfo:
 
     name: str
     decimal: int
+    address: str
 
-    def __init__(self, name: str, decimal: int):
+    def __init__(self, name: str, decimal: int, address: str = ""):
         self.name = name.upper()
         self.decimal = decimal
+        self.address = address.lower()
 
     def __str__(self):
         return self.name

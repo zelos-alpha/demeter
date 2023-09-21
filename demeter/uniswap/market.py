@@ -186,8 +186,18 @@ class UniLpMarket(Market):
         """
         return (any0, any1) if self._is_token0_base else (any1, any0)
 
-    def check_asset(self):
-        """ """
+    def check_market(self):
+        super().check_market()
+        required_columns = [
+            "closeTick",
+            "currentLiquidity",
+            "inAmount0",
+            "inAmount1",
+            "price",
+        ]
+        for col in required_columns:
+            assert col in self.data.columns
+
         if not self._pool:
             raise DemeterError("set up pool info first")
         if self.base_token not in self.broker.assets:
@@ -772,21 +782,6 @@ class UniLpMarket(Market):
         self.data = df
         self.logger.info("data has been prepared")
 
-    def check_before_test(self):
-        """
-        prefix test
-        :return:
-        """
-        super().check_before_test()
-        required_columns = [
-            "closeTick",
-            "currentLiquidity",
-            "inAmount0",
-            "inAmount1",
-            "price",
-        ]
-        for col in required_columns:
-            assert col in self.data.columns
 
     def formatted_str(self):
         """
@@ -808,7 +803,7 @@ class UniLpMarket(Market):
         value += get_formatted_predefined("positions", STYLE["key"]) + "\n"
         df = position_dict_to_dataframe(self.positions)
         if len(df.index) > 0:
-            value += position_dict_to_dataframe(self.positions).to_string()
+            value += df.to_string()
         else:
-            value += "Empty DataFrame"
+            value += "Empty DataFrame\n"
         return value

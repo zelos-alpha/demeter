@@ -1,29 +1,44 @@
+import os
 import token
 from _decimal import Decimal
-from datetime import datetime
+from datetime import datetime, date
 from typing import Dict, List, Set
 
 import pandas as pd
 
 
 from . import helper
-from ._typing import AaveBalance, SupplyInfo, BorrowInfo, AaveV3PoolStatus, Supply, Borrow, InterestRateMode, RiskParameter, SupplyKey, BorrowKey
+from ._typing import (
+    AaveBalance,
+    SupplyInfo,
+    BorrowInfo,
+    AaveV3PoolStatus,
+    Supply,
+    Borrow,
+    InterestRateMode,
+    RiskParameter,
+    SupplyKey,
+    BorrowKey,
+    supply_to_dataframe,
+    borrow_to_dataframe,
+)
 from .core import AaveV3CoreLib
 from .. import MarketInfo, DemeterError, TokenInfo
 from .._typing import DECIMAL_0
 from ..broker import Market, MarketStatus
-from ..utils.application import require, float_param_formatter
+from ..utils import get_formatted_predefined, STYLE, get_formatted_from_dict
+from ..utils.application import require, float_param_formatter, to_decimal
 import random
 
 DEFAULT_DATA_PATH = "./data"
 
-# TODO: load data
-# TODO: price
-# TODO: expend row_data in strategy.on_bar to (row_data, price)
-# TODO: check before test
 
+# TODO: price
+# TODO: notify when liquidate
+# TODO: price/data trigger.
+# TODO: function comment
 class AaveV3Market(Market):
-    def __init__(self, market_info: MarketInfo, risk_parameters_path: str, tokens: List[TokenInfo] = None):
+    def __init__(self, market_info: MarketInfo, risk_parameters_path: str, tokens: List[TokenInfo] = None, data_path=DEFAULT_DATA_PATH):
         tokens = tokens if token is not None else []
         super().__init__(market_info=market_info)
         self._supplies: Dict[SupplyKey, SupplyInfo] = {}
@@ -31,6 +46,7 @@ class AaveV3Market(Market):
         self._market_status: pd.Series | AaveV3PoolStatus = AaveV3PoolStatus(None, {})
 
         self._risk_parameters: pd.DataFrame | Dict[str, RiskParameter] = helper.load_risk_parameter(risk_parameters_path)
+        self.data_path: str = data_path
 
         self._collateral_cache = None
         self._supply_amount_cache = None
@@ -50,16 +66,23 @@ class AaveV3Market(Market):
     DEFAULT_LIQUIDATION_CLOSE_FACTOR = Decimal(0.5)
     MAX_LIQUIDATION_CLOSE_FACTOR = Decimal(1)
     CLOSE_FACTOR_HF_THRESHOLD = Decimal(0.95)
+    REQUIRED_DATA_COLUMN = [
+        "liquidity_rate",
+        "stable_borrow_rate",
+        "variable_borrow_rate",
+        "liquidity_index",
+        "variable_borrow_index",
+    ]
 
     def __str__(self):
-        pass
+        return f"{self._market_info.name}:{type(self).__name__}, supplies:{len(self._supplies)}, borrows: {len(self._borrows)}"
 
     @property
     def market_info(self) -> MarketInfo:
         return self._market_info
 
     @property
-    def data(self):
+    def data(self) -> pd.DataFrame:
         """
         environment data
         :return:
@@ -67,7 +90,7 @@ class AaveV3Market(Market):
         """
         return self._data
 
-    def set_data(self, token_info: TokenInfo, value: pd.DataFrame):
+    def set_token_data(self, token_info: TokenInfo, value: pd.DataFrame):
         if isinstance(value, pd.DataFrame):
             value = value / (10**27)
             value.columns = pd.MultiIndex.from_tuples([(token_info.name, c) for c in value.columns])
@@ -75,9 +98,35 @@ class AaveV3Market(Market):
         else:
             raise ValueError()
 
+    def load_data(self, chain: str, token_info_list: List[TokenInfo], start_date: date, end_date: date):
+        self.logger.info(f"start load files from {start_date} to {end_date}...")
+        for token_info in token_info_list:
+            day = start_date
+            df = pd.DataFrame()
+            if token_info.address == "":
+                raise DemeterError(f"address of {token_info.name} not set")
+            while day <= end_date:
+                path = os.path.join(
+                    self.data_path,
+                    f"{chain.lower()}-aave_v3-{token_info.address}-{day.strftime('%Y-%m-%d')}.minute.csv",
+                )
+                if not os.path.exists(path):
+                    raise IOError(f"resource file {path} not found, please download with demeter-fetch: https://github.com/zelos-alpha/demeter-fetch")
+                csv_converters = {n: to_decimal for n in AaveV3Market.REQUIRED_DATA_COLUMN}
+                day_df = pd.read_csv(
+                    path,
+                    converters=csv_converters,
+                    index_col=0,
+                    parse_dates=True,
+                )
+
+                df = pd.concat([df, day_df])
+            self.set_token_data(token_info, df)
+        self.logger.info("data has been prepared")
+
     @data.setter
     def data(self, value):
-        raise NotImplementedError("Aave market doesn't support set data with setter, please use set_data instead")
+        raise NotImplementedError("Aave market doesn't support set data with setter, please use set_token_data instead")
 
     @property
     def tokens(self) -> Set[TokenInfo]:
@@ -263,14 +312,16 @@ class AaveV3Market(Market):
         )
 
     # region for subclass to override
-    def check_asset(self):
-        pass
+    def check_market(self):
+        super().check_market()
+        require(len(self.tokens) > 0, "should set tokens")
+        for t in self.tokens:
+            for col in AaveV3Market.REQUIRED_DATA_COLUMN:
+                require((t.name, col) in self.data.columns, f"{t.name}.{col} not found in data")
 
     def update(self):
         """
-        update status various in markets. eg. liquidity fees of uniswap
-        :return:
-        :rtype:
+        just got nothing to update
         """
         pass
 
@@ -278,21 +329,33 @@ class AaveV3Market(Market):
     def market_status(self):
         return self._market_status
 
-    def check_before_test(self):
-        """
-        do some check for this market before back test start
-
-        检查: market数据和price中是否包含了self._tokens定义的所有token
-        :return:
-        :rtype:
-        """
-        if not isinstance(self.data, pd.DataFrame):
-            raise DemeterError("data must be type of data frame")
-        if not isinstance(self.data.index, pd.core.indexes.datetimes.DatetimeIndex):
-            raise DemeterError("date index must be datetime")
-
     def formatted_str(self):
-        return ""
+        value = get_formatted_predefined(f"{self.market_info.name}({type(self).__name__})", STYLE["header3"]) + "\n"
+        token_dict = {"tokens": ",".join([t.name for t in self._tokens])}
+        value += get_formatted_from_dict(token_dict) + "\n"
+        balance = self.get_market_balance()
+        value += (
+            get_formatted_from_dict(
+                {
+                    "net_value": "{:.2f}".format(balance.net_value),
+                    "health_factor": "{:.2f}".format(balance.health_factor),
+                    "borrow_balance": "{:.2f}".format(balance.borrow_balance),
+                    "supply_balance": "{:.2f}".format(balance.supply_balance),
+                    "collateral_balance": "{:.2f}".format(balance.collateral_balance),
+                    "supply_apy": "{:.2f}".format(balance.supply_apy),
+                    "borrow_apy": "{:.2f}".format(balance.borrow_apy),
+                    "net_apy": "{:.2f}".format(balance.net_apy),
+                }
+            )
+            + "\n"
+        )
+        value += get_formatted_predefined("supplies", STYLE["key"]) + "\n"
+        supply_df = supply_to_dataframe(self.supplies)
+        value += supply_df.to_string() if len(supply_df.index) > 0 else "Empty DataFrame\n"
+        borrow_df = borrow_to_dataframe(self.borrows)
+        value += borrow_df.to_string() if len(borrow_df.index) > 0 else "Empty DataFrame\n"
+
+        return value
 
     # endregion
     @float_param_formatter
