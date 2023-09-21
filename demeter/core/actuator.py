@@ -36,16 +36,16 @@ class Actuator(object):
         self._currents = {"actions": [], "timestamp": None}
         # broker status in every bar, use array for performance
         self._account_status_list: List[AccountStatus] = []
-        self._account_status_df: pd.DataFrame = None
+        self._account_status_df: pd.DataFrame | None = None
 
         # broker
         self._broker: Broker = Broker(allow_negative_balance, self._record_action_list)
         # strategy
         self._strategy: Strategy = Strategy()
-        self._token_prices: pd.DataFrame = None
+        self._token_prices: pd.DataFrame | None = None
         # path of source data, which is saved by downloader
         # evaluating indicator calculator
-        self._evaluator: Evaluator = None
+        self._evaluator: Evaluator | None = None
         self._enabled_evaluator: [] = []
         # logging
         logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -102,7 +102,7 @@ class Actuator(object):
         reset all the status variables
 
         """
-        self._evaluator: Evaluator = None
+        self._evaluator: Evaluator | None = None
         self._enabled_evaluator: [] = []
 
         self._action_list = []
@@ -110,7 +110,7 @@ class Actuator(object):
         self._account_status_list = []
         self.__backtest_finished = False
 
-        self._account_status_df: pd.DataFrame = None
+        self._account_status_df: pd.DataFrame  | None= None
 
     @property
     def actions(self) -> [BaseAction]:

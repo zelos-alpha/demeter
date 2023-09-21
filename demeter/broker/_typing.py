@@ -1,3 +1,4 @@
+from collections.abc import dict_keys, dict_values
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -252,14 +253,14 @@ class MarketDict(Generic[T]):
         """
         return self.data.items()
 
-    def keys(self) -> List[MarketInfo]:
+    def keys(self) -> dict_keys[MarketInfo, T]:
         """
         get dict keys
         :return:
         """
         return self.data.keys()
 
-    def values(self) -> List[T]:
+    def values(self) -> dict_values[MarketInfo, T]:
         """
         get dict values
         :return:
@@ -314,14 +315,14 @@ class AssetDict(Generic[T]):
         """
         return self.data.items()
 
-    def keys(self) -> List[TokenInfo]:
+    def keys(self) -> dict_keys[TokenInfo, T]:
         """
         get keys from dict
         :return:
         """
         return self.data.keys()
 
-    def values(self) -> List[T]:
+    def values(self) -> dict_values[TokenInfo, T]:
         """
         get values from dict
         :return:

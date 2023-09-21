@@ -1,12 +1,9 @@
 from _decimal import Decimal
-from datetime import date, datetime
 
 import pandas as pd
 
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, RowData, ChainType, MarketInfo, UniLpMarket, MarketDict, AtTimeTrigger
-from demeter.aave._typing import AaveBalance, InterestRateMode
-from demeter.aave.market import AaveV3Market
-from demeter.broker._typing import MarketTypeEnum
+from demeter import TokenInfo, Actuator, Strategy, RowData, MarketInfo, MarketDict, MarketTypeEnum
+from demeter.aave import AaveBalance, InterestRateMode, AaveV3Market
 
 # To print all the columns of dataframe, we should set up display option.
 pd.options.display.max_columns = None
@@ -31,7 +28,7 @@ class MyFirstStrategy(Strategy):
         print(balance.supplys)
 
         if balance.supplys[key1].apy < 0.1:  # 10%
-            aave_market.withdraw(token=usdc, amount=Decimal(10))
+            aave_market.withdraw(token_info=usdc, amount=Decimal(10))
 
         key_borrow = aave_market.borrow(usdc, Decimal(10), InterestRateMode.variable)
 

@@ -14,11 +14,11 @@ class Strategy(object):
     """
 
     def __init__(self):
-        self.broker: Broker = None
+        self.broker: Broker|None = None
         self.data: MarketDict[pd.DataFrame] = MarketDict()
         self.markets: MarketDict[Market] = MarketDict()
         self.number_format = ".8g"
-        self.prices: pd.DataFrame = None
+        self.prices: pd.DataFrame|None = None
         self.triggers: [Trigger] = []
         self.account_status: List[AccountStatus] = []
         self.assets: AssetDict[Asset] = AssetDict()

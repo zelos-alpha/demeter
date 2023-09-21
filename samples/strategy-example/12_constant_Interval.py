@@ -2,12 +2,11 @@ from datetime import date
 
 import pandas as pd
 
-from demeter import UniV3Pool, Actuator, MarketInfo, UniLpMarket, TokenInfo, Strategy
-from demeter.download import ChainType
+from demeter import UniV3Pool, Actuator, MarketInfo, UniLpMarket, TokenInfo, Strategy, ChainType
 from strategy_ploter import plot_position_return_decomposition
 
 pd.options.display.max_columns = None
-pd.set_option('display.width', 5000)
+pd.set_option("display.width", 5000)
 
 
 class ConstantInterval(Strategy):
@@ -42,13 +41,8 @@ if __name__ == "__main__":
     actuator.strategy = ConstantInterval(200)
 
     market.data_path = "../data"
-    market.load_data(ChainType.Polygon.name,
-                     "0x45dda9cb7c25131df268515131f647d726f50608",
-                     date(2022, 8, 5),
-                     date(2022, 8, 15))
+    market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2022, 8, 5), date(2022, 8, 15))
     actuator.set_price(market.get_price_from_data())
     actuator.run()  # run test
 
-    plot_position_return_decomposition(actuator.get_account_status_dataframe(),
-                                       actuator.token_prices[eth.name],
-                                       market_key)
+    plot_position_return_decomposition(actuator.get_account_status_dataframe(), actuator.token_prices[eth.name], market_key)

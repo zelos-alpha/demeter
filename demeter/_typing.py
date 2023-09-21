@@ -41,7 +41,7 @@ class UnitDecimal(Decimal):
     def __new__(cls, value, unit: str = "", output_format=None):
         obj = Decimal.__new__(cls, value)
         obj._unit = unit
-        obj.output_format: str = output_format if output_format is not None else UnitDecimal.default_output_format
+        obj.output_format = output_format if output_format is not None else UnitDecimal.default_output_format
         return obj
 
     def to_str(self):

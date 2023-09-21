@@ -11,6 +11,7 @@ from ._typing import (
     ActionTypeEnum,
     MarketStatus,
     Rule,
+    MarketTypeEnum,
 )
 from .broker import Broker
 from .market import Market

@@ -25,8 +25,8 @@ class AaveV3CoreLib(object):
     @staticmethod
     def health_factor(supplies: Dict[SupplyKey, Decimal], borrows: Dict[BorrowKey, Decimal], risk_parameters):
         # (all supplies * liqThereshold) / all borrows
-        a = sum([s * risk_parameters.loc[key.token.name].liqThereshold for key, s in supplies.items()])
-        b = sum(borrows.values())
+        a = Decimal(sum([s * risk_parameters.loc[key.token.name].liqThereshold for key, s in supplies.items()]))
+        b = Decimal(sum(borrows.values()))
         return AaveV3CoreLib.safe_div(a, b)
 
     @staticmethod
@@ -36,7 +36,7 @@ class AaveV3CoreLib(object):
             all_supplies += s * risk_parameters.loc[t.token.name].LTV
 
         amount = sum(supplies.values())
-        return AaveV3CoreLib.safe_div(all_supplies, amount)
+        return AaveV3CoreLib.safe_div(all_supplies, Decimal(amount))
 
     @staticmethod
     def total_liquidation_threshold(supplies: Dict[SupplyKey, Decimal], risk_parameters):
@@ -59,6 +59,6 @@ class AaveV3CoreLib(object):
 
     @staticmethod
     def get_apy(amounts: Dict[ActionKey, Decimal], rate_dict: Dict[TokenInfo, Decimal]):
-        a = sum([amounts[key] * AaveV3CoreLib.rate_to_apy(rate_dict[key.token]) for key, amount in amounts.items()])
-        b = sum(amounts.values())
+        a = Decimal(sum([amounts[key] * AaveV3CoreLib.rate_to_apy(rate_dict[key.token]) for key, amount in amounts.items()]))
+        b = Decimal(sum(amounts.values()))
         return AaveV3CoreLib.safe_div(a, b)
