@@ -5,8 +5,8 @@ from typing import Dict
 
 import pandas as pd
 
-from .. import TokenInfo
-from ..broker import MarketBalance, MarketStatus
+from .. import TokenInfo, UnitDecimal
+from ..broker import MarketBalance, MarketStatus, BaseAction, ActionTypeEnum
 
 
 class InterestRateMode(Enum):
@@ -173,3 +173,64 @@ class RiskParameter:
     eModeLiquidationThereshold: float
     eModeLiquidationBonus: float
     borrowableInIsolation: float
+
+
+@dataclass
+class SupplyAction(BaseAction):
+    token: TokenInfo
+    amount: UnitDecimal
+    collateral: bool
+    deposit_after: UnitDecimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.aave_supply
+
+
+@dataclass
+class WithdrawAction(BaseAction):
+    token: TokenInfo
+    amount: UnitDecimal
+    deposit_after: UnitDecimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.aave_withdraw
+
+
+@dataclass
+class BorrowAction(BaseAction):
+    token: TokenInfo
+    interest_rate_mode: InterestRateMode
+    amount: UnitDecimal
+    debt_after: UnitDecimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.aave_borrow
+
+
+@dataclass
+class RepayAction(BaseAction):
+    token: TokenInfo
+    interest_rate_mode: InterestRateMode
+    amount: UnitDecimal
+    debt_after: UnitDecimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.aave_repay
+
+
+@dataclass
+class LiquidationAction(BaseAction):
+    collateral_token: TokenInfo
+    debt_token: TokenInfo
+    delt_to_cover: UnitDecimal
+    collateral_used: UnitDecimal
+    variable_delt_liquidated: UnitDecimal
+    stable_delt_liquidated: UnitDecimal
+    health_factor_before: Decimal
+    health_factor_after: Decimal
+    collateral_after:UnitDecimal
+    variable_debt_after: UnitDecimal
+    stable_delt_after: UnitDecimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.aave_repay

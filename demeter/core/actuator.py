@@ -61,6 +61,7 @@ class Actuator(object):
         :return: None
         """
         action.timestamp = self._currents.timestamp
+        action.set_type()
         self._action_list.append(action)
         self._currents.actions.append(action)
 

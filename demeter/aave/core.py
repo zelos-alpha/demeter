@@ -15,12 +15,12 @@ class AaveV3CoreLib(object):
         return (1 + rate / AaveV3CoreLib.SECONDS_IN_A_YEAR) ** AaveV3CoreLib.SECONDS_IN_A_YEAR - 1
 
     @staticmethod
-    def get_current_amount(net_value_in_pool: Decimal, current_liquidity_rate: Decimal) -> Decimal:
-        return Decimal(net_value_in_pool) * Decimal(current_liquidity_rate)
+    def get_amount(base_amount: Decimal, liquidity_index: Decimal) -> Decimal:
+        return Decimal(base_amount) * Decimal(liquidity_index)
 
     @staticmethod
-    def get_base_amount(amount: Decimal, pool_liquidity_index: Decimal) -> Decimal:
-        return amount / pool_liquidity_index
+    def get_base_amount(amount: Decimal, liquidity_index: Decimal) -> Decimal:
+        return amount / liquidity_index
 
     @staticmethod
     def health_factor(supplies: Dict[SupplyKey, Decimal], borrows: Dict[BorrowKey, Decimal], risk_parameters):

@@ -143,6 +143,11 @@ class ActionTypeEnum(Enum):
     uni_lp_buy = "buy"
     uni_lp_sell = "sell"
     uni_lp_collect = "collect"
+    aave_supply = "supply"
+    aave_withdraw = "withdraw"
+    aave_borrow = "borrow"
+    aave_repay = "repay"
+    aave_liquidation = "liquidation"
 
 
 @dataclass
@@ -165,6 +170,9 @@ class BaseAction(object):
 
     def get_output_str(self):
         return str(self)
+
+    def set_type(self):
+        pass
 
 
 @dataclass
