@@ -37,6 +37,7 @@ DEFAULT_DATA_PATH = "./data"
 # TODO: notify when liquidate
 # TODO: price/data trigger.
 # TODO: function comment
+# TODO: _record_action_callback
 class AaveV3Market(Market):
     def __init__(self, market_info: MarketInfo, risk_parameters_path: str, tokens: List[TokenInfo] = None, data_path=DEFAULT_DATA_PATH):
         tokens = tokens if token is not None else []

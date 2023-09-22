@@ -4,7 +4,7 @@ import pickle
 import time
 from datetime import datetime
 from typing import List, Dict
-
+from dataclasses import dataclass, field
 import orjson
 import pandas as pd
 from tqdm import tqdm  # process bar
@@ -33,7 +33,7 @@ class Actuator(object):
         """
         # all the actions during the test(buy/sell/add liquidity)
         self._action_list: List[BaseAction] = []
-        self._currents = {"actions": [], "timestamp": None}
+        self._currents = Currents()
         # broker status in every bar, use array for performance
         self._account_status_list: List[AccountStatus] = []
         self._account_status_df: pd.DataFrame | None = None
@@ -54,16 +54,15 @@ class Actuator(object):
         # internal var
         self.__backtest_finished = False
 
-    def _record_action_list(self, action):
+    def _record_action_list(self, action: BaseAction):
         """
         record action list
         :param action: action
         :return: None
         """
-        action.timestamp = self._currents["timestamp"]
-        action.set_type()
+        action.timestamp = self._currents.timestamp
         self._action_list.append(action)
-        self._currents["actions"].append(action)
+        self._currents.actions.append(action)
 
     # region property
     @property
@@ -106,14 +105,14 @@ class Actuator(object):
         self._enabled_evaluator: [] = []
 
         self._action_list = []
-        self._currents = {"actions": [], "timestamp": None}
+        self._currents = Currents()
         self._account_status_list = []
         self.__backtest_finished = False
 
         self._account_status_df: pd.DataFrame | None = None
 
     @property
-    def actions(self) -> [BaseAction]:
+    def actions(self) -> List[BaseAction]:
         """
         all the actions during the test(buy/sell/add liquidity)
 
@@ -369,7 +368,7 @@ class Actuator(object):
                 row_id += 1
                 self.__set_row_to_markets(timestamp_index, market_row_dict)
                 # execute strategy, and some calculate
-                self._currents["timestamp"] = timestamp_index.to_pydatetime()
+                self._currents.timestamp = timestamp_index.to_pydatetime()
                 self._strategy.before_bar(market_row_dict, self._token_prices.loc[timestamp_index])
 
                 if self._strategy.triggers:
@@ -387,8 +386,8 @@ class Actuator(object):
 
                 self._account_status_list.append(self._broker.get_account_status(self._token_prices.loc[timestamp_index], timestamp_index))
                 # notify actions in current loop
-                self.notify(self.strategy, self._currents["actions"])
-                self._currents["actions"] = []
+                self.notify(self.strategy, self._currents.actions)
+                self._currents.actions = []
                 # move forward for process bar and index
                 pbar.update()
 
@@ -485,6 +484,12 @@ class Actuator(object):
 
     def __str__(self):
         return f"Demeter Actuator (broker:{self._broker})\n"
+
+
+@dataclass
+class Currents:
+    actions: List[BaseAction] = field(default_factory=list)
+    timestamp: datetime = None
 
 
 def json_default(obj):

@@ -1,16 +1,16 @@
 from decimal import Decimal
-from typing import Dict
+from typing import Dict, Callable
 
 import pandas as pd
 
-from ._typing import Asset, TokenInfo, AccountStatus, MarketDict, AssetDict
+from ._typing import Asset, TokenInfo, AccountStatus, MarketDict, AssetDict, BaseAction
 from .market import Market
 from .._typing import DemeterError, UnitDecimal
 from ..utils import get_formatted_from_dict, get_formatted_predefined, STYLE, float_param_formatter
 
 
 class Broker:
-    def __init__(self, allow_negative_balance=False, record_action_callback=None):
+    def __init__(self, allow_negative_balance=False, record_action_callback: Callable[[BaseAction], None] = None):
         """
         init Broker
         :param allow_negative_balance:
@@ -19,7 +19,7 @@ class Broker:
         self.allow_negative_balance = allow_negative_balance
         self._assets: AssetDict[Asset] = AssetDict()
         self._markets: MarketDict[Market] = MarketDict()
-        self._record_action_callback = record_action_callback
+        self._record_action_callback: Callable[[BaseAction], None] = record_action_callback
 
     # region properties
 

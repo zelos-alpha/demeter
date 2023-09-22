@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict
+from typing import Dict, Callable
 
 import pandas as pd
 
@@ -26,7 +26,7 @@ class Market:
         self._data: pd.DataFrame = data
         self._market_info: MarketInfo = market_info
         self.broker = None
-        self._record_action_callback = lambda x: x  # default value, will be set by broker
+        self._record_action_callback: Callable[[BaseAction], None] = None
         self.data_path: str = data_path
         self.logger = logging.getLogger(__name__)
         self._market_status = MarketStatus(None)
