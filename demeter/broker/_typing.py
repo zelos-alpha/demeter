@@ -1,10 +1,8 @@
-from collections.abc import dict_keys, dict_values
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Generic, TypeVar
-from typing import NamedTuple, List, Dict, TypeVar
+from typing import Generic, NamedTuple, List, Dict, TypeVar
 
 import pandas as pd
 
@@ -261,14 +259,14 @@ class MarketDict(Generic[T]):
         """
         return self.data.items()
 
-    def keys(self) -> dict_keys[MarketInfo, T]:
+    def keys(self) -> List[MarketInfo]:
         """
         get dict keys
         :return:
         """
         return self.data.keys()
 
-    def values(self) -> dict_values[MarketInfo, T]:
+    def values(self) -> List[T]:
         """
         get dict values
         :return:
@@ -323,14 +321,14 @@ class AssetDict(Generic[T]):
         """
         return self.data.items()
 
-    def keys(self) -> dict_keys[TokenInfo, T]:
+    def keys(self) -> List[TokenInfo]:
         """
         get keys from dict
         :return:
         """
         return self.data.keys()
 
-    def values(self) -> dict_values[TokenInfo, T]:
+    def values(self) -> List[T]:
         """
         get values from dict
         :return:

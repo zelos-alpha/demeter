@@ -17,7 +17,9 @@ from demeter.aave import (
     AaveV3Market,
 )
 from tests.common import assert_equal_with_error
-
+usdt = TokenInfo("USDT", 6)
+dai = TokenInfo("DAI", 6)
+matic = TokenInfo("WMATIC", 18)
 
 def to_decimal(v: int) -> Decimal:
     return Decimal(v / 10**27)
@@ -25,18 +27,21 @@ def to_decimal(v: int) -> Decimal:
 
 class UniLpDataTest(unittest.TestCase):
     def test_load_risk_parameter(self):
-        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), ChainType.polygon)
-        pass
+        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "./aave_risk_parameters/polygon.csv")
+        self.assertTrue("WETH" in market.risk_parameters.index)
+        self.assertTrue("liqThereshold" in market.risk_parameters.columns)
 
     def test_apy_to_rate(self):
-        print(AaveV3CoreLib.rate_to_apy(0.054385544255370350575778874))
+        self.assertEqual(Decimal("0.055891616586562119114037984"), AaveV3CoreLib.rate_to_apy(Decimal("0.054385544255370350575778874")))
+        self.assertEqual(Decimal("1.718281785360970821236766882"), AaveV3CoreLib.rate_to_apy(Decimal("1")))
+        self.assertEqual(Decimal("0"), AaveV3CoreLib.rate_to_apy(Decimal("0")))
 
     def test_status_calc(self):
         usdt = TokenInfo("USDT", 6)
         dai = TokenInfo("DAI", 6)
         matic = TokenInfo("WMATIC", 18)
 
-        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), ChainType.polygon, tokens=[usdt, dai, matic])
+        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "./aave_risk_parameters/polygon.csv", tokens=[usdt, dai, matic])
         timestamp = datetime(2023, 9, 12, 15)
 
         price = pd.DataFrame(data={"USDT": Decimal(0.999990), "DAI": Decimal(1), "WMATIC": Decimal(0.509952)}, index=[timestamp])
@@ -107,3 +112,9 @@ class UniLpDataTest(unittest.TestCase):
         self.assertTrue(assert_equal_with_error(stat.net_value, Decimal("102.64"), 0.001))
 
         # net_apy=Decimal('0.01683792283834931728886791969'))
+
+    def test_data(self):
+        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "./aave_risk_parameters/polygon.csv")
+        df_index= pd.date_range(datetime(2023,10,1,0,0), datetime(2023,10,1,0,9),freq="1T")
+        usdt_df = pd.DataFrame(index=df_index,columns=[])
+        # market.set_token_data(usdt, )

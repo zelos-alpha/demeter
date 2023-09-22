@@ -275,7 +275,6 @@ class Actuator(object):
         data_length = []  # [1440]
         for market in self._broker.markets.values():
             data_length.append(len(market.data.index))
-            market.check_data_before_test()
             market.check_market()  # check each market, including assets
         # ensure data length same
         if List.count(data_length, data_length[0]) != len(data_length):
@@ -364,28 +363,29 @@ class Actuator(object):
         self.logger.info("start main loop...")
         with tqdm(total=data_length, ncols=150) as pbar:
             for timestamp_index in index_array:
+                current_price = self._token_prices.loc[timestamp_index]
                 # prepare data of a row
                 market_row_dict = self.__get_market_row_dict(timestamp_index, row_id)
                 row_id += 1
                 self.__set_row_to_markets(timestamp_index, market_row_dict)
                 # execute strategy, and some calculate
                 self._currents.timestamp = timestamp_index.to_pydatetime()
-                self._strategy.before_bar(market_row_dict, self._token_prices.loc[timestamp_index])
+                self._strategy.before_bar(market_row_dict, current_price)
 
                 if self._strategy.triggers:
                     for trigger in self._strategy.triggers:
-                        if trigger.when(market_row_dict):
-                            trigger.do(market_row_dict)
-                self._strategy.on_bar(market_row_dict, self._token_prices.loc[timestamp_index])
+                        if trigger.when(market_row_dict, current_price):
+                            trigger.do(market_row_dict, current_price)
+                self._strategy.on_bar(market_row_dict, current_price)
 
                 # update broker status, eg: re-calculate fee
                 # and read the latest status from broker
                 for market in self._broker.markets.values():
                     market.update()
 
-                self._strategy.after_bar(market_row_dict, self._token_prices.loc[timestamp_index])
+                self._strategy.after_bar(market_row_dict, current_price)
 
-                self._account_status_list.append(self._broker.get_account_status(self._token_prices.loc[timestamp_index], timestamp_index))
+                self._account_status_list.append(self._broker.get_account_status(current_price, timestamp_index))
                 # notify actions in current loop
                 self.notify(self.strategy, self._currents.actions)
                 self._currents.actions = []

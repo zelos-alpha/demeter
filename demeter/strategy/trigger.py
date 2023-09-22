@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Callable, Any
 
 import pandas as pd
 
@@ -24,12 +25,12 @@ Note: in current version, all the market data should have the same index, which 
 
 
 class Trigger:
-    def __init__(self, do, *args, **kwargs):
+    def __init__(self, do: Callable[[MarketDict[RowData], pd.Series], Any], *args, **kwargs):
         self._do = do if do is not None else self.do_nothing
         self.kwargs = kwargs
         self.args = args
 
-    def when(self, row_data: MarketDict[RowData]) -> bool:
+    def when(self, row_data: MarketDict[RowData], prices: pd.Series) -> bool:
         """
         when to handler data
         :param row_data: data in row
@@ -40,13 +41,13 @@ class Trigger:
     def do_nothing(self, row_data: MarketDict[RowData], *args, **kwargs):
         pass
 
-    def do(self, row_data: MarketDict[RowData]):
+    def do(self, row_data: MarketDict[RowData], price: pd.Series):
         """
         operation to handler with row data
         :param row_data:
         :return:
         """
-        return self._do(row_data, *self.args, **self.kwargs)
+        return self._do(row_data, price, *self.args, **self.kwargs)
 
 
 class AtTimeTrigger(Trigger):
@@ -58,7 +59,7 @@ class AtTimeTrigger(Trigger):
         self._time = to_minute(time)
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: MarketDict[RowData]) -> bool:
+    def when(self, row_data: MarketDict[RowData], prices: pd.Series) -> bool:
         return row_data.default.timestamp == self._time
 
 
@@ -71,7 +72,7 @@ class AtTimesTrigger(Trigger):
         self._time = [to_minute(t) for t in time]
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: MarketDict[RowData]) -> bool:
+    def when(self, row_data: MarketDict[RowData], prices: pd.Series) -> bool:
         return self._time in row_data.default.timestamp
 
 
@@ -90,7 +91,7 @@ class TimeRangeTrigger(Trigger):
         self._time_range = TimeRange(to_minute(time_range.start), to_minute(time_range.end))
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: MarketDict[RowData]) -> bool:
+    def when(self, row_data: MarketDict[RowData], prices: pd.Series) -> bool:
         return self._time_range.start <= row_data.default.timestamp < self._time_range.end
 
 
@@ -103,7 +104,7 @@ class TimeRangesTrigger(Trigger):
         self._time_range: [TimeRange] = [TimeRange(to_minute(t.start), to_minute(t.end)) for t in time_range]
         super().__init__(do, *args, **kwargs)
 
-    def when(self, row_data: MarketDict[RowData]) -> bool:
+    def when(self, row_data: MarketDict[RowData], prices: pd.Series) -> bool:
         for r in self._time_range:
             if r.start <= row_data.default.timestamp < r.end:
                 return True
@@ -130,7 +131,7 @@ class PeriodTrigger(Trigger):
     def reset(self):
         self._next_match = None
 
-    def when(self, row_data: MarketDict[RowData]) -> bool:
+    def when(self, row_data: MarketDict[RowData], prices: pd.Series) -> bool:
         if self._next_match is None:
             self._next_match = row_data.default.timestamp + self._delta
             return self._trigger_immediately
@@ -159,7 +160,7 @@ class PeriodsTrigger(Trigger):
     def reset(self):
         self._next_matches = [None for _ in self._deltas]
 
-    def when(self, row_data: MarketDict[RowData]) -> bool:
+    def when(self, row_data: MarketDict[RowData], prices: pd.Series) -> bool:
         if self._next_matches[0] is None:
             self._next_matches = [row_data.default.timestamp + d for d in self._deltas]
             return self._trigger_immediately
@@ -170,3 +171,16 @@ class PeriodsTrigger(Trigger):
                 return True
 
         return False
+
+
+class PriceTrigger(Trigger):
+    """
+    trigger when price match a condition
+    """
+
+    def __init__(self, condition: Callable[[pd.Series], bool], do, *args, **kwargs):
+        self._condition = condition
+        super().__init__(do, *args, **kwargs)
+
+    def when(self, row_data: MarketDict[RowData], prices: pd.Series) -> bool:
+        return self._condition(prices)

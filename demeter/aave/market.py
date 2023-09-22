@@ -39,7 +39,6 @@ DEFAULT_DATA_PATH = "./data"
 
 
 # TODO: price
-# TODO: price/data trigger.
 # TODO: function comment
 class AaveV3Market(Market):
     def __init__(self, market_info: MarketInfo, risk_parameters_path: str, tokens: List[TokenInfo] = None, data_path=DEFAULT_DATA_PATH):
@@ -93,6 +92,10 @@ class AaveV3Market(Market):
         :rtype:
         """
         return self._data
+
+    @property
+    def risk_parameters(self) -> pd.DataFrame:
+        return self._risk_parameters
 
     def set_token_data(self, token_info: TokenInfo, value: pd.DataFrame):
         if isinstance(value, pd.DataFrame):

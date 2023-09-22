@@ -1,57 +1,59 @@
-from datetime import date, datetime, timedelta
+import unittest
+from datetime import datetime, timedelta
 
 import pandas as pd
+import numpy as np
+from demeter import TokenInfo, PriceTrigger, RowData, MarketDict, MarketInfo, AtTimeTrigger, PeriodTrigger
 
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, RowData, ChainType, AtTimeTrigger, PeriodTrigger, \
-    UniLpMarket, MarketInfo, MarketDict
-
-
-class TestStrategy(Strategy):
-
-    def initialize(self):
-        self.triggers.append(AtTimeTrigger(datetime(2022, 8, 19, 0, 30),  # trigger time
-                                           self.sell_1,  # action
-                                           5, 5,  # *arg
-                                           amount=0.01  # **kwargs
-                                           ))
-        self.triggers.append(PeriodTrigger(timedelta(hours=6),
-                                           self.adjust_position,
-                                           trigger_immediately=True,
-                                           price_range=100))
-
-    def on_bar(self, row_data: MarketDict[RowData]):
-        pass
-
-    def sell_1(self, row_data, *args, **kwargs):
-        assert args[0] == args[1]
-        self.broker.markets[test_market].sell(kwargs["amount"])
-
-    def adjust_position(self, row_data: MarketDict[RowData], *args, **kwargs):
-        market: UniLpMarket = self.broker.markets.uni_market
-        market.remove_all_liquidity()
-        market.even_rebalance(row_data.uni_market.price)
-        market.add_liquidity(market.market_status.price - kwargs["price_range"],
-                             market.market_status.price + kwargs["price_range"])
+eth = TokenInfo(name="eth", decimal=18)
+usdc = TokenInfo(name="usdc", decimal=6)
 
 
-if __name__ == "__main__":
-    eth = TokenInfo(name="eth", decimal=18)
-    usdc = TokenInfo(name="usdc", decimal=6)
-    pool = UniV3Pool(usdc, eth, 0.05, usdc)
+class UniLpCoreTest(unittest.TestCase):
+    @staticmethod
+    def __get_moke_row_data(timestamp) -> MarketDict[RowData]:
+        d = MarketDict()
+        d[MarketInfo("m")] = RowData(timestamp=timestamp)
+        return d
 
-    actuator_instance = Actuator()
-    broker = actuator_instance.broker
-    test_market = MarketInfo("uni_market")
+    @staticmethod
+    def __get_price_df() -> pd.DataFrame:
+        return pd.DataFrame(
+            index=pd.date_range(datetime(2023, 5, 1), datetime(2023, 5, 1, 23, 59, 59), freq="1T"),
+            data={"eth": np.arange(1700, 1700 + (1440 - 1) / 100, step=0.01)},
+        )
 
-    market = UniLpMarket(test_market, pool)
-    broker.add_market(market)
-    actuator_instance.strategy = TestStrategy()
-    broker.set_balance(usdc, 5000)
-    broker.set_balance(eth, 3)
-    market.data_path = "../data"
-    market.load_data(ChainType.Polygon.name,
-                     "0x45dda9cb7c25131df268515131f647d726f50608",
-                     date(2022, 8, 19),
-                     date(2022, 8, 19))
-    actuator_instance.set_price(market.get_price_from_data())
-    actuator_instance.run()
+    def __run(self, price_df, trigger):
+        for idx, v in price_df.iterrows():
+            if trigger.when(UniLpCoreTest.__get_moke_row_data(idx), v):
+                trigger.do(UniLpCoreTest.__get_moke_row_data(idx), v)
+
+    def test_price_trigger(self):
+        match_price = []
+        price_df = UniLpCoreTest.__get_price_df()
+        pt = PriceTrigger(condition=lambda p: p["eth"] > 1714.35, do=lambda market_status, prices: match_price.append(prices["eth"]))
+        self.__run(price_df, pt)
+        self.assertEqual(len(match_price), 4)
+
+    def test_at_time_trigger(self):
+        match_price = []
+        price_df = UniLpCoreTest.__get_price_df()
+        pt = AtTimeTrigger(time=datetime(2023, 5, 1, 23, 59, 0), do=lambda market_status, prices: match_price.append(prices["eth"]))
+        self.__run(price_df, pt)
+        self.assertEqual("{:.2f}".format(match_price[0]), "1714.39")
+
+    def test_period_trigger(self):
+        match_price = []
+        price_df = UniLpCoreTest.__get_price_df()
+        pt = PeriodTrigger(time_delta=timedelta(hours=1), do=lambda market_status, prices: match_price.append(prices["eth"]))
+        self.__run(price_df, pt)
+        self.assertEqual(len(match_price), 23)
+
+    def test_period_trigger_immdiately(self):
+        match_price = []
+        price_df = UniLpCoreTest.__get_price_df()
+        pt = PeriodTrigger(
+            time_delta=timedelta(hours=1), trigger_immediately=True, do=lambda market_status, prices: match_price.append(prices["eth"])
+        )
+        self.__run(price_df, pt)
+        self.assertEqual(len(match_price), 24)
