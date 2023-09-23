@@ -1,5 +1,5 @@
 import unittest
-from demeter import UnitDecimal, Strategy, AccountStatus
+from demeter import UnitDecimal, Strategy, AccountStatus, TokenInfo
 
 
 class TestBigQuery(unittest.TestCase):
@@ -23,3 +23,8 @@ class TestBigQuery(unittest.TestCase):
         a2 = AccountStatus(None)
         self.assertNotEqual(id(a1.market_status), id(a2.market_status))
 
+    def test_token_info(self):
+        t = TokenInfo("usdt", 6)
+        # lower case to upper case
+        self.assertEqual(t.name, "USDT")
+        self.assertEqual(str(t), "USDT")

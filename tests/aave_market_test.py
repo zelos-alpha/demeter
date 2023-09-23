@@ -1,7 +1,8 @@
 import unittest
 from _decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timedelta
 
+import numpy as np
 import pandas as pd
 
 from demeter import MarketInfo, ChainType, TokenInfo, MarketTypeEnum
@@ -17,9 +18,11 @@ from demeter.aave import (
     AaveV3Market,
 )
 from tests.common import assert_equal_with_error
+
 usdt = TokenInfo("USDT", 6)
 dai = TokenInfo("DAI", 6)
 matic = TokenInfo("WMATIC", 18)
+
 
 def to_decimal(v: int) -> Decimal:
     return Decimal(v / 10**27)
@@ -115,6 +118,24 @@ class UniLpDataTest(unittest.TestCase):
 
     def test_data(self):
         market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "./aave_risk_parameters/polygon.csv")
-        df_index= pd.date_range(datetime(2023,10,1,0,0), datetime(2023,10,1,0,9),freq="1T")
-        usdt_df = pd.DataFrame(index=df_index,columns=[])
-        # market.set_token_data(usdt, )
+        start = datetime(2023, 10, 1, 0, 0)
+        data_size = 10
+        df_index = pd.date_range(start, start + timedelta(minutes=data_size - 1), freq="1T")
+        token_data = {
+            "liquidity_rate": np.zeros(shape=data_size),
+            "stable_borrow_rate": np.zeros(shape=data_size),
+            "variable_borrow_rate": np.zeros(shape=data_size),
+            "liquidity_index": np.zeros(shape=data_size),
+            "variable_borrow_index": np.zeros(shape=data_size),
+        }
+        token_df = pd.DataFrame(index=df_index, data=token_data)
+
+        market.set_token_data(usdt, token_df)
+        market.set_token_data(matic, token_df)
+
+        self.assertEqual(len(market.data.columns), 10)
+        self.assertEqual(len(market.data.index), 10)
+        self.assertTrue(("USDT", "liquidity_rate") in market.data.columns)
+        self.assertEqual(market.data[usdt.name]["liquidity_rate"].iloc[0], 0)
+        pass
+
