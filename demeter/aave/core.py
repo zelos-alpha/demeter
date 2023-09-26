@@ -53,7 +53,7 @@ class AaveV3CoreLib(object):
     @staticmethod
     def safe_div(a: Decimal, b: Decimal) -> Decimal:
         if b == 0:
-            return Decimal(0)  # Consistent with the contract
+            return Decimal("inf")
         else:
             return a / b
 

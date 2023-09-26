@@ -153,19 +153,26 @@ class UniLpDataTest(unittest.TestCase):
         # market.data_path = "../samples/data"
         # market.load_data("polygon", [weth], date(2023, 8, 14), date(2023, 8, 17))
         t = datetime(2023, 8, 1)
-        price_series = pd.Series(data=[Decimal(1000)], index=[weth.name])
+        price_series = pd.Series(data=[Decimal(1000), Decimal(1)], index=[weth.name, dai.name])
         market.set_market_status(
             timestamp=t,
             data=AaveV3PoolStatus(
                 timestamp=t,
                 tokens={
                     weth: AaveTokenStatus(
-                        liquidity_rate=Decimal("1"),
+                        liquidity_rate=Decimal("0.05"),
                         stable_borrow_rate=Decimal("0.1"),
                         variable_borrow_rate=Decimal("0.08"),
                         liquidity_index=Decimal("1.6"),
-                        variable_borrow_index=Decimal("0.05"),
-                    )
+                        variable_borrow_index=Decimal("1"),
+                    ),
+                    dai: AaveTokenStatus(
+                        liquidity_rate=Decimal("0.08"),
+                        stable_borrow_rate=Decimal("0.12"),
+                        variable_borrow_rate=Decimal("0.1"),
+                        liquidity_index=Decimal("1.6"),
+                        variable_borrow_index=Decimal("1.6"),
+                    ),
                 },
             ),
             price=price_series,
@@ -189,6 +196,7 @@ class UniLpDataTest(unittest.TestCase):
         self.assertEqual(suppplies[supply_key].amount, amount)
         self.assertEqual(suppplies[supply_key].value, amount * price_series[weth.name])
         self.assertEqual(suppplies[supply_key].collateral, False)
+        self.assertEqual(market.total_supply_value, amount * price_series[weth.name])
         pass
 
     def test_supply_to_the_same(self):
@@ -203,7 +211,109 @@ class UniLpDataTest(unittest.TestCase):
         pass
 
     def test_collateral(self):
-        pass
+        market_key, market, broker, price_series = self.get_test_market()
+        amount = broker.get_token_balance(weth)
+
+        supply_key = market.supply(weth, amount, True)
+
+        self.assertEqual(len(market._supplies), 1)
+        self.assertEqual(market._supplies[supply_key].base_amount, Decimal(5) / market.market_status.tokens[weth].liquidity_index)
+        self.assertEqual(market._supplies[supply_key].collateral, True)
+
+        self.assertEqual(broker.get_token_balance(weth), 0)
+
+        collaterals = market.collateral_value
+        value = Decimal(5) * price_series[weth.name]
+        self.assertEqual(collaterals[supply_key], value)
+        self.assertEqual(market.total_collateral_value, value)
 
     def test_different_collateral(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        try:
+            supply_key = market.supply(weth, Decimal(1), True)
+            supply_key = market.supply(weth, Decimal(1), False)
+        except AssertionError as e:
+            self.assertTrue("Collateral different from existing supply" in str(e))
+
+    def test_supply_with_float(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        supply_key = market.supply(weth, 1.2345, True)
+        self.assertEqual(market.supplies[supply_key].amount, Decimal("1.2345"))
+
+    def test_repay(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        amount = broker.get_token_balance(weth)
+
+        supply_key = market.supply(weth, amount, True)
+        market.withdraw(supply_key, 5)
+        self.assertEqual(broker.get_token_balance(weth), amount)
+        self.assertTrue(supply_key not in market._supplies)
+
+        supply_key = market.supply(weth, amount, True)
+        market.withdraw(supply_key, 2)
+        self.assertEqual(broker.get_token_balance(weth), Decimal(2))
+        self.assertEqual(market.supplies[supply_key].amount, Decimal(3))
+        self.assertEqual(market.supplies[supply_key].base_amount, Decimal("1.875"))
+        pass
+
+    def test_repay_too_much(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        amount = broker.get_token_balance(weth)
+
+        supply_key = market.supply(weth, amount, True)
+        try:
+            market.withdraw(supply_key, 6)
+        except AssertionError as e:
+            self.assertIn("not enough available user balance", str(e))
+
+    def test_borrow(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        amount = broker.get_token_balance(weth)
+
+        supply_key = market.supply(weth, amount, True)
+        borrow_key = market.borrow(dai, 1000, InterestRateMode.variable)
+
+        borrows = market.borrows
+
+        self.assertEqual(borrows[borrow_key].amount, 1000)
+        self.assertEqual(borrows[borrow_key].base_amount, 625)
+        self.assertEqual(market.health_factor, Decimal(4.25))
+        self.assertEqual(market.current_ltv, Decimal(0.8))
+        pass
+
+    def test_borrow_too_much(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        amount = broker.get_token_balance(weth)
+
+        supply_key = market.supply(weth, amount, True)
+        try:
+            borrow_key = market.borrow(dai, 5000, InterestRateMode.variable)
+        except AssertionError as e:
+            self.assertIn("collateral cannot cover new borrow", str(e))
+
+    def test_borrow_stable(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        amount = broker.get_token_balance(weth)
+
+        supply_key = market.supply(weth, amount, True)
+        try:
+            borrow_key = market.borrow(weth, 0.1, InterestRateMode.stable)
+        except AssertionError as e:
+            self.assertIn("stable borrowing not enabled", str(e))
+
+        borrow_key = market.borrow(dai, 1000, InterestRateMode.stable)
+
+        borrows = market.borrows[borrow_key]
+        self.assertEqual(borrows.amount, 1000)
+        self.assertEqual(borrows.base_amount, 625)
+        self.assertEqual(market.health_factor, Decimal("4.125"))
+        self.assertEqual(market.current_ltv, Decimal("0.8"))
+
+        pass
+
+
+    def test_health_factor(self):
         pass

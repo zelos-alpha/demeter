@@ -366,7 +366,7 @@ class AaveV3Market(Market):
     @float_param_formatter
     def supply(self, token_info: TokenInfo, amount: Decimal | float, collateral: bool = True) -> SupplyKey:
         if collateral:
-            require(self._risk_parameters[token_info.name].canCollateral, "Can not supplied as collateral")
+            require(self._risk_parameters.loc[token_info.name].canCollateral, "Can not supplied as collateral")
         token_status = self._market_status.tokens[token_info]
         #  calc in pool value
         pool_amount = AaveV3CoreLib.get_base_amount(amount, token_status.liquidity_index)
@@ -421,7 +421,12 @@ class AaveV3Market(Market):
         return key
 
     @float_param_formatter
-    def withdraw(self, supply_key: SupplyKey = None, token_info: TokenInfo = None, amount: Decimal | float = None):
+    def withdraw(
+        self,
+        supply_key: SupplyKey = None,
+        amount: Decimal | float = None,
+        token_info: TokenInfo = None,
+    ):
         key, token_info = AaveV3Market.__get_supply_key(supply_key, token_info)
         token_status = self._market_status.tokens[token_info]
         supply = self.get_supply(key)
@@ -440,7 +445,7 @@ class AaveV3Market(Market):
         # revert
         if self._supplies[key].collateral:
             self._collateral_cache.reset()
-            if self.health_factor > AaveV3Market.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
+            if self.health_factor < AaveV3Market.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
                 self._supplies[key].base_amount += old_balance
                 raise DemeterError("health factor lower than liquidation threshold")
 
@@ -458,7 +463,12 @@ class AaveV3Market(Market):
         pass
 
     @float_param_formatter
-    def borrow(self, token_info: TokenInfo, amount: Decimal | float, interest_rate_mode: InterestRateMode) -> BorrowKey:
+    def borrow(
+        self,
+        token_info: TokenInfo,
+        amount: Decimal | float,
+        interest_rate_mode: InterestRateMode,
+    ) -> BorrowKey:
         key = BorrowKey(token_info, interest_rate_mode)
 
         # check
@@ -483,7 +493,7 @@ class AaveV3Market(Market):
 
             require(
                 (not is_using_as_collateral)
-                or self._risk_parameters[token_info.name, "LTV"] == 0
+                or self._risk_parameters.loc[token_info.name, "LTV"] == 0
                 or amount > self.broker.get_token_balance(token_info),
                 "collateral same as borrowing currency",
             )
@@ -513,7 +523,13 @@ class AaveV3Market(Market):
         return key
 
     @float_param_formatter
-    def repay(self, amount: Decimal | float = None, key: BorrowKey = None, token_info: TokenInfo = None, interest_rate_mode: InterestRateMode = None):
+    def repay(
+        self,
+        key: BorrowKey = None,
+        amount: Decimal | float = None,
+        token_info: TokenInfo = None,
+        interest_rate_mode: InterestRateMode = None,
+    ):
         if key is None:
             if token_info is None:
                 raise DemeterError("either key or token should be filled")
@@ -600,7 +616,7 @@ class AaveV3Market(Market):
         stable_key = BorrowKey(delt_token, InterestRateMode.stable)
         variable_key = BorrowKey(delt_token, InterestRateMode.variable)
         collateral_key = SupplyKey(collateral_token)
-        liquidation_bonus = self._risk_parameters[collateral_token.name].liqBonus
+        liquidation_bonus = self._risk_parameters.loc[collateral_token.name].liqBonus
 
         # _calculateDebt
         stable_delt = self.get_borrow(stable_key).amount if stable_key in self._borrows else DECIMAL_0
@@ -615,7 +631,7 @@ class AaveV3Market(Market):
         actual_debt_to_liquidate = max_liquidatable_debt if delt_to_cover > max_liquidatable_debt else delt_to_cover
 
         # validate delt
-        is_collateral_enabled = self._risk_parameters[collateral_token.name].liqThereshold != 0 and self._supplies[collateral_key].collateral
+        is_collateral_enabled = self._risk_parameters.loc[collateral_token.name].liqThereshold != 0 and self._supplies[collateral_key].collateral
 
         require(is_collateral_enabled, "collateral cannot be liquidated")
         require(total_debt != DECIMAL_0, "specified currency not borrowed by user")
