@@ -1,11 +1,10 @@
 import unittest
 from _decimal import Decimal
-from datetime import datetime, timedelta
-
+from datetime import datetime, timedelta, date, timezone
 import numpy as np
 import pandas as pd
 
-from demeter import MarketInfo, ChainType, TokenInfo, MarketTypeEnum
+from demeter import MarketInfo, ChainType, TokenInfo, MarketTypeEnum, Broker
 from demeter.aave import (
     AaveV3PoolStatus,
     AaveTokenStatus,
@@ -22,6 +21,7 @@ from tests.common import assert_equal_with_error
 usdt = TokenInfo("USDT", 6)
 dai = TokenInfo("DAI", 6)
 matic = TokenInfo("WMATIC", 18)
+weth = TokenInfo("weth", 18, "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619")
 
 
 def to_decimal(v: int) -> Decimal:
@@ -40,10 +40,6 @@ class UniLpDataTest(unittest.TestCase):
         self.assertEqual(Decimal("0"), AaveV3CoreLib.rate_to_apy(Decimal("0")))
 
     def test_status_calc(self):
-        usdt = TokenInfo("USDT", 6)
-        dai = TokenInfo("DAI", 6)
-        matic = TokenInfo("WMATIC", 18)
-
         market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "./aave_risk_parameters/polygon.csv", tokens=[usdt, dai, matic])
         timestamp = datetime(2023, 9, 12, 15)
 
@@ -139,3 +135,75 @@ class UniLpDataTest(unittest.TestCase):
         self.assertEqual(market.data[usdt.name]["liquidity_rate"].iloc[0], 0)
         pass
 
+    def test_load_data(self):
+        market_key = MarketInfo("aave_test", MarketTypeEnum.aave_v3)
+        market = AaveV3Market(market_key, "./aave_risk_parameters/polygon.csv")
+        market.data_path = "../samples/data"
+        market.load_data("polygon", [weth], date(2023, 8, 14), date(2023, 8, 17))
+        self.assertEqual(len(market.data.index), 1440 * 4)
+        self.assertEqual(market.data.index[0].to_pydatetime(), datetime(2023, 8, 14, 0, 0, tzinfo=timezone.utc))
+        self.assertEqual(market.data.index[1440 * 4 - 1].to_pydatetime(), datetime(2023, 8, 17, 23, 59, tzinfo=timezone.utc))
+        self.assertIn(("WETH", "stable_borrow_rate"), market.data)
+        self.assertTrue(1 < market.data.iloc[0][weth.name]["liquidity_index"] < 1.1)
+        pass
+
+    def get_test_market(self):
+        market_key = MarketInfo("aave_test", MarketTypeEnum.aave_v3)
+        market = AaveV3Market(market_key, "./aave_risk_parameters/polygon.csv", tokens=[weth])
+        # market.data_path = "../samples/data"
+        # market.load_data("polygon", [weth], date(2023, 8, 14), date(2023, 8, 17))
+        t = datetime(2023, 8, 1)
+        price_series = pd.Series(data=[Decimal(1000)], index=[weth.name])
+        market.set_market_status(
+            timestamp=t,
+            data=AaveV3PoolStatus(
+                timestamp=t,
+                tokens={
+                    weth: AaveTokenStatus(
+                        liquidity_rate=Decimal("1"),
+                        stable_borrow_rate=Decimal("0.1"),
+                        variable_borrow_rate=Decimal("0.08"),
+                        liquidity_index=Decimal("1.6"),
+                        variable_borrow_index=Decimal("0.05"),
+                    )
+                },
+            ),
+            price=price_series,
+        )
+        amount = Decimal(5)
+        broker = Broker()
+        broker.set_balance(weth, amount)
+        market.broker = broker
+        return market_key, market, broker, price_series
+
+    def test_supply(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        amount = broker.get_token_balance(weth)
+        supply_key = market.supply(weth, amount, False)
+
+        self.assertEqual(len(market._supplies), 1)
+        self.assertEqual(market._supplies[supply_key].base_amount, amount / market.market_status.tokens[weth].liquidity_index)
+        self.assertEqual(broker.get_token_balance(weth), 0)
+
+        suppplies = market.supplies
+        self.assertEqual(suppplies[supply_key].amount, amount)
+        self.assertEqual(suppplies[supply_key].value, amount * price_series[weth.name])
+        self.assertEqual(suppplies[supply_key].collateral, False)
+        pass
+
+    def test_supply_to_the_same(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        supply_key = market.supply(weth, Decimal(1), False)
+        supply_key = market.supply(weth, Decimal(4), False)
+
+        self.assertEqual(len(market._supplies), 1)
+        self.assertEqual(market._supplies[supply_key].base_amount, Decimal(5) / market.market_status.tokens[weth].liquidity_index)
+        self.assertEqual(broker.get_token_balance(weth), 0)
+
+        pass
+
+    def test_collateral(self):
+        pass
+
+    def test_different_collateral(self):
+        pass

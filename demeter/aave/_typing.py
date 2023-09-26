@@ -2,11 +2,15 @@ from _decimal import Decimal
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict
+from typing import TypeVar
 
 import pandas as pd
 
 from .. import TokenInfo, UnitDecimal
 from ..broker import MarketBalance, MarketStatus, BaseAction, ActionTypeEnum
+
+T = TypeVar("T")
+K = TypeVar("K")
 
 
 class InterestRateMode(Enum):
@@ -30,10 +34,10 @@ class BorrowKey(ActionKey):
     interest_rate_mode: InterestRateMode
 
     def __str__(self):
-        return f"{self.token.name}({self.interest_rate_mode.name})"
+        return f"Borrow_{self.token.name}({self.interest_rate_mode.name})"
 
     def __repr__(self):
-        return f"{self.token.name}({self.interest_rate_mode.name})"
+        return f"Borrow_{self.token.name}({self.interest_rate_mode.name})"
 
     def __hash__(self):
         return hash((self.token, self.interest_rate_mode))
@@ -42,10 +46,10 @@ class BorrowKey(ActionKey):
 @dataclass
 class SupplyKey(ActionKey):
     def __str__(self):
-        return self.token.name
+        return "Supply_" + self.token.name
 
     def __repr__(self):
-        return self.token.name
+        return "Supply_" + self.token.name
 
     def __hash__(self):
         return self.token.__hash__()
@@ -228,9 +232,27 @@ class LiquidationAction(BaseAction):
     stable_delt_liquidated: UnitDecimal
     health_factor_before: Decimal
     health_factor_after: Decimal
-    collateral_after:UnitDecimal
+    collateral_after: UnitDecimal
     variable_debt_after: UnitDecimal
     stable_delt_after: UnitDecimal
 
     def set_type(self):
         self.action_type = ActionTypeEnum.aave_repay
+
+
+class DictCache:
+    def __init__(self):
+        self.empty = True
+        self._data: Dict[K, T] = {}
+
+    @property
+    def data(self) -> Dict[K, T]:
+        return self._data
+
+    def reset(self):
+        self._data: Dict[K, T] = {}
+        self.empty = True
+
+    def set(self, k: K, v: T):
+        self._data[k] = v
+        self.empty = False
