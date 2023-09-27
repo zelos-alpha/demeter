@@ -410,11 +410,11 @@ class AaveV3Market(Market):
         self._supplies[key].collateral = collateral
         self._collaterals_amount_cache.reset()
 
-        if (not collateral) and self.health_factor > AaveV3CoreLib.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
-            # rollback
+        if (not collateral) and self.health_factor < AaveV3CoreLib.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
+            # revert
             self._supplies[SupplyKey(token_info)].collateral = old_collateral
             self._collaterals_amount_cache.reset()
-            raise DemeterError("health factor lower than liquidation threshold")
+            raise AssertionError("health factor lower than liquidation threshold")
         return key
 
     @float_param_formatter

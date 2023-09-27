@@ -362,5 +362,25 @@ class UniLpDataTest(unittest.TestCase):
         except AssertionError as e:
             self.assertIn("collateral cannot cover new borrow", str(e))
 
-    def test_health_factor(self):
-        pass
+    def test_change_collateral(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+
+        supply_key = market.supply(weth, Decimal(3), False)
+        market.change_collateral(False, supply_key)
+        self.assertEqual(market._supplies[supply_key].collateral, False)
+
+        market.change_collateral(True, supply_key)
+        self.assertEqual(market._supplies[supply_key].collateral, True)
+
+        borrow_key = market.borrow(dai, 1000, InterestRateMode.variable)
+        hf_old = market.health_factor
+        try:
+            market.change_collateral(False, supply_key)
+        except AssertionError as e:
+            self.assertIn("health factor lower than liquidation threshold", str(e))
+        self.assertEqual(hf_old, market.health_factor)
+
+        market.repay(borrow_key, 1000)
+        market.change_collateral(False, supply_key)
+        self.assertEqual(market._supplies[supply_key].collateral, False)
