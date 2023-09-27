@@ -320,10 +320,7 @@ class AaveV3Market(Market):
                 require((t.name, col) in self.data.columns, f"{t.name}.{col} not found in data")
 
     def update(self):
-        """
-        just got nothing to update
-        """
-        pass
+        self._liquidate()
 
     @property
     def market_status(self):
@@ -591,7 +588,7 @@ class AaveV3Market(Market):
             return self._borrows[key].base_amount
 
     def _liquidate(self):
-        if random.random() <= self.liquidation_probability:
+        if random.random() <= 1 - self.liquidation_probability:
             return
 
         health_factor = self.health_factor
@@ -606,14 +603,14 @@ class AaveV3Market(Market):
             min_borrow_key = None
             min_borrow_value = Decimal(10e21)  # a very large number
             for k, v in borrows.items():
-                if min_borrow_value <= v.value and (k not in has_liquidated):
+                if min_borrow_value >= v.value and (k not in has_liquidated):
                     min_borrow_value = v.value
                     min_borrow_key = k
             # choose the biggest collateral
             max_supply_key = None
             max_supply_value = Decimal(0)
             for k, v in supplys.items():
-                if v.collateral and max_supply_value >= v.value:
+                if v.collateral and max_supply_value <= v.value:
                     max_supply_value = v.value
                     max_supply_key = k
             # if a token has liquidated, but health_factor still < 1, it should not be liquidated again.

@@ -384,3 +384,30 @@ class UniLpDataTest(unittest.TestCase):
         market.repay(borrow_key, 1000)
         market.change_collateral(False, supply_key)
         self.assertEqual(market._supplies[supply_key].collateral, False)
+
+    def test_liquidate_half(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        supply_key = market.supply(weth, Decimal("4.2"), True)
+        borrow_key = market.borrow(dai, 3300, InterestRateMode.variable)
+        self.assertEqual(market.health_factor, Decimal("1.05"))
+        market.update()  # trigger liquidate, nothing will happen as hf > 1
+
+        t = datetime(2023, 8, 1, 1)
+        price_series = pd.Series(data=[Decimal(920), Decimal(1)], index=[weth.name, dai.name])
+        old_market_status = market.market_status
+        market.set_market_status(
+            timestamp=t,
+            data=AaveV3PoolStatus(timestamp=t, tokens=old_market_status.tokens),
+            price=price_series,
+        )
+        self.assertEqual(market.health_factor, Decimal("0.966"))
+        market.update()  # trigger again
+
+        self.assertEqual(market.health_factor, Decimal("1.06575"))
+        # 920 * (4.2 - 1650/920*1.05)
+        # collateral_price * collateral_amount  - half_debt_amount * delt_price * (1 + liq_bones))
+        self.assertEqual(market.supplies[supply_key].value, Decimal("2131.5"))
+        self.assertEqual(market.borrows[borrow_key].value, Decimal("1650"))  # 3300 - 3300/2, delt - liquidated
+
+        pass
