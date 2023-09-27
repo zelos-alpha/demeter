@@ -192,10 +192,9 @@ class UniLpDataTest(unittest.TestCase):
         self.assertEqual(market._supplies[supply_key].base_amount, amount / market.market_status.tokens[weth].liquidity_index)
         self.assertEqual(broker.get_token_balance(weth), 0)
 
-        suppplies = market.supplies
-        self.assertEqual(suppplies[supply_key].amount, amount)
-        self.assertEqual(suppplies[supply_key].value, amount * price_series[weth.name])
-        self.assertEqual(suppplies[supply_key].collateral, False)
+        self.assertEqual(market.supplies[supply_key].amount, amount)
+        self.assertEqual(market.supplies[supply_key].value, amount * price_series[weth.name])
+        self.assertEqual(market.supplies[supply_key].collateral, False)
         self.assertEqual(market.total_supply_value, amount * price_series[weth.name])
         pass
 
@@ -240,7 +239,7 @@ class UniLpDataTest(unittest.TestCase):
         supply_key = market.supply(weth, 1.2345, True)
         self.assertEqual(market.supplies[supply_key].amount, Decimal("1.2345"))
 
-    def test_repay(self):
+    def test_withdraw(self):
         market_key, market, broker, price_series = self.get_test_market()
         amount = broker.get_token_balance(weth)
 
@@ -256,7 +255,18 @@ class UniLpDataTest(unittest.TestCase):
         self.assertEqual(market.supplies[supply_key].base_amount, Decimal("1.875"))
         pass
 
-    def test_repay_too_much(self):
+    def test_max_withdraw(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        supply_key = market.supply(weth, Decimal("5"), True)
+        borrow_key = market.borrow(dai, 3300, InterestRateMode.variable)
+        max_withdraw = market.get_max_withdraw_amount(supply_key)
+        self.assertEqual(max_withdraw, Decimal(1))
+        market.withdraw(supply_key, max_withdraw)
+        self.assertEqual(market.health_factor, Decimal(1))
+        pass
+
+    def test_withdraw_too_much(self):
         market_key, market, broker, price_series = self.get_test_market()
         amount = broker.get_token_balance(weth)
 
@@ -266,6 +276,14 @@ class UniLpDataTest(unittest.TestCase):
         except AssertionError as e:
             self.assertIn("not enough available user balance", str(e))
 
+        borrow_key = market.borrow(dai, 3300, InterestRateMode.variable)
+        max_withdraw = market.get_max_withdraw_amount(supply_key)
+        try:
+            market.withdraw(supply_key, max_withdraw * Decimal(1.01))
+        except AssertionError as e:
+            self.assertIn("health factor lower than liquidation threshold", str(e))
+            self.assertEqual(market.supplies[supply_key].amount, amount)
+
     def test_borrow(self):
         market_key, market, broker, price_series = self.get_test_market()
         market: AaveV3Market = market
@@ -274,12 +292,10 @@ class UniLpDataTest(unittest.TestCase):
         supply_key = market.supply(weth, amount, True)
         borrow_key = market.borrow(dai, 1000, InterestRateMode.variable)
 
-        borrows = market.borrows
-
-        self.assertEqual(borrows[borrow_key].amount, 1000)
-        self.assertEqual(borrows[borrow_key].base_amount, 625)
-        self.assertEqual(market.health_factor, Decimal(4.25))
-        self.assertEqual(market.current_ltv, Decimal(0.8))
+        self.assertEqual(market.borrows[borrow_key].amount, 1000)
+        self.assertEqual(market.borrows[borrow_key].base_amount, 625)
+        self.assertEqual(market.health_factor, Decimal("4.125"))
+        self.assertEqual(market.current_ltv, Decimal("0.8"))
         pass
 
     def test_borrow_too_much(self):
@@ -314,6 +330,37 @@ class UniLpDataTest(unittest.TestCase):
 
         pass
 
+    def test_repay(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        amount = broker.get_token_balance(weth)
+
+        supply_key = market.supply(weth, amount, True)
+        borrow_key = market.borrow(dai, 1000, InterestRateMode.variable)
+        self.assertEqual(broker.get_token_balance(dai), Decimal(1000))
+        repay_amount = market.get_max_repay_amount(borrow_key)
+
+        try:
+            market.repay(borrow_key, repay_amount + 1)
+        except AssertionError as e:
+            self.assertIn("amount exceed debt", str(e))
+
+        market.repay(borrow_key, repay_amount)
+        self.assertEqual(len(market._borrows), Decimal(0))
+        self.assertEqual(broker.get_token_balance(dai), Decimal(0))
+        pass
+
+    def test_max_borrow(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+
+        supply_key = market.supply(weth, Decimal(1), True)
+        max_borrow = market.get_max_borrow_amount(weth)
+        self.assertEqual(max_borrow, Decimal("0.792"))
+        try:
+            borrow_key = market.borrow(weth, max_borrow / Decimal(0.99), InterestRateMode.variable)
+        except AssertionError as e:
+            self.assertIn("collateral cannot cover new borrow", str(e))
 
     def test_health_factor(self):
         pass

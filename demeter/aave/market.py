@@ -52,24 +52,17 @@ class AaveV3Market(Market):
         self._risk_parameters: pd.DataFrame | Dict[str, RiskParameter] = helper.load_risk_parameter(risk_parameters_path)
         self.data_path: str = data_path
 
-        self._collateral_cache = DictCache()
-        self._supply_amount_cache = DictCache()
+        self._collaterals_amount_cache = DictCache()
+        self._supplies_amount_cache = DictCache()
+        self._supplies_cache = DictCache()
         self._borrows_amount_cache = DictCache()
+        self._borrows_cache = DictCache()
 
         self._tokens: Set[TokenInfo] = set()
         self.add_token(tokens)
         # may not be liquidated immediately, User can choose a chance for every loop.
         self.liquidation_probability = 1
 
-    """
-    if CLOSE_FACTOR_HF_THRESHOLD < health factor <  DEFAULT_LIQUIDATION_CLOSE_FACTOR
-    only DEFAULT_LIQUIDATION_CLOSE_FACTOR(50%) will be liquidated,
-    otherwise HEALTH_FACTOR_LIQUIDATION_THRESHOLD(100%) will be liquidated
-    """
-    HEALTH_FACTOR_LIQUIDATION_THRESHOLD = Decimal(1)
-    DEFAULT_LIQUIDATION_CLOSE_FACTOR = Decimal(0.5)
-    MAX_LIQUIDATION_CLOSE_FACTOR = Decimal(1)
-    CLOSE_FACTOR_HF_THRESHOLD = Decimal(0.95)
     REQUIRED_DATA_COLUMN = [
         "liquidity_rate",
         "stable_borrow_rate",
@@ -142,12 +135,12 @@ class AaveV3Market(Market):
 
     @property
     def supplies_value(self) -> Dict[SupplyKey, Decimal]:
-        if self._supply_amount_cache.empty:
+        if self._supplies_amount_cache.empty:
             for k, v in self._supplies.items():
-                self._supply_amount_cache.set(
+                self._supplies_amount_cache.set(
                     k, AaveV3CoreLib.get_amount(v.base_amount, self._market_status.tokens[k.token].liquidity_index) * self._price_status[k.token.name]
                 )
-        return self._supply_amount_cache.data
+        return self._supplies_amount_cache.data
 
     @property
     def total_supply_value(self) -> Decimal:
@@ -155,11 +148,11 @@ class AaveV3Market(Market):
 
     @property
     def collateral_value(self) -> Dict[SupplyKey, Decimal]:
-        if self._collateral_cache.empty:
+        if self._collaterals_amount_cache.empty:
             for k, v in self._supplies.items():
                 if v.collateral:
-                    self._collateral_cache.set(k, self.supplies_value[k])
-        return self._collateral_cache.data
+                    self._collaterals_amount_cache.set(k, self.supplies_value[k])
+        return self._collaterals_amount_cache.data
 
     @property
     def total_collateral_value(self) -> Decimal:
@@ -182,17 +175,17 @@ class AaveV3Market(Market):
 
     @property
     def supplies(self) -> Dict[SupplyKey, Supply]:
-        supply_dict: Dict[SupplyKey, Supply] = {}
-        for key in self._supplies.keys():
-            supply_dict[key] = self.get_supply(supply_key=key)
-        return supply_dict
+        if self._supplies_cache.empty:
+            for key in self._supplies.keys():
+                self._supplies_cache.set(key, self.get_supply(supply_key=key))
+        return self._supplies_cache.data
 
     @property
     def borrows(self) -> Dict[BorrowKey, Borrow]:
-        borrow_dict: Dict[BorrowKey, Borrow] = {}
-        for key in self._borrows.keys():
-            borrow_dict[key] = self.get_borrow(key)
-        return borrow_dict
+        if self._borrows_cache.empty:
+            for key in self._borrows.keys():
+                self._borrows_cache.set(key, self.get_borrow(key))
+        return self._borrows_cache.data
 
     def set_market_status(self, timestamp: datetime, data: pd.Series | AaveV3PoolStatus, price: pd.Series):
         """
@@ -208,8 +201,10 @@ class AaveV3Market(Market):
             self._market_status = MarketStatus(timestamp)
         self._price_status: pd.Series = price
         self._borrows_amount_cache.reset()
-        self._supply_amount_cache.reset()
-        self._collateral_cache.reset()
+        self._supplies_amount_cache.reset()
+        self._collaterals_amount_cache.reset()
+        self._borrows_cache.reset()
+        self._supplies_cache.reset()
 
     @property
     def liquidation_threshold(self) -> Decimal:
@@ -380,8 +375,9 @@ class AaveV3Market(Market):
             require(self._supplies[key].collateral == collateral, "Collateral different from existing supply")
         self._supplies[key].base_amount += pool_amount
 
-        self._supply_amount_cache.reset()
-        self._collateral_cache.reset()
+        self._supplies_amount_cache.reset()
+        self._supplies_cache.reset()
+        self._collaterals_amount_cache.reset()
 
         self.record_action(
             SupplyAction(
@@ -412,11 +408,12 @@ class AaveV3Market(Market):
             return key
 
         self._supplies[key].collateral = collateral
-        self._collateral_cache.reset()
+        self._collaterals_amount_cache.reset()
 
-        if (not collateral) and self.health_factor > AaveV3Market.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
+        if (not collateral) and self.health_factor > AaveV3CoreLib.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
             # rollback
             self._supplies[SupplyKey(token_info)].collateral = old_collateral
+            self._collaterals_amount_cache.reset()
             raise DemeterError("health factor lower than liquidation threshold")
         return key
 
@@ -440,14 +437,17 @@ class AaveV3Market(Market):
         old_balance = self._supplies[key].base_amount
 
         self._supplies[key].base_amount -= base_amount
-        self._supply_amount_cache.reset()
+        self._supplies_amount_cache.reset()
+        self._supplies_cache.reset()
 
         # revert
         if self._supplies[key].collateral:
-            self._collateral_cache.reset()
-            if self.health_factor < AaveV3Market.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
-                self._supplies[key].base_amount += old_balance
-                raise DemeterError("health factor lower than liquidation threshold")
+            self._collaterals_amount_cache.reset()
+            if self.health_factor < AaveV3CoreLib.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
+                self._supplies[key].base_amount = old_balance
+                self._supplies_amount_cache.reset()
+                self._supplies_cache.reset()
+                raise AssertionError("health factor lower than liquidation threshold")
 
         self.broker.add_to_balance(token_info, amount)
         self.record_action(
@@ -461,6 +461,16 @@ class AaveV3Market(Market):
         if self._supplies[key].base_amount == DECIMAL_0:
             del self._supplies[key]
         pass
+
+    def get_max_withdraw_amount(self, supply_key: SupplyKey = None, token_info: TokenInfo = None) -> Decimal:
+        key, token_info = AaveV3Market.__get_supply_key(supply_key, token_info)
+        return self.supplies[key].amount - AaveV3CoreLib.get_min_withdraw_kept_amount(
+            token_info, self.supplies_value, self.borrows_value, self._risk_parameters, self._price_status[token_info.name]
+        )
+
+    def get_max_borrow_amount(self, token_info: TokenInfo):
+        value = AaveV3CoreLib.get_max_borrow_value(self.collateral_value, self.borrows_value, self.risk_parameters)
+        return value / self._price_status[token_info.name]
 
     @float_param_formatter
     def borrow(
@@ -480,7 +490,7 @@ class AaveV3Market(Market):
         current_ltv = self.current_ltv
         require(current_ltv != 0, "ltv validation failed")
 
-        require(self.health_factor > AaveV3Market.HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "health factor lower than liquidation threshold")
+        require(self.health_factor > AaveV3CoreLib.HEALTH_FACTOR_LIQUIDATION_THRESHOLD, "health factor lower than liquidation threshold")
 
         value = amount * self._price_status.loc[token_info.name]
         collateral_needed = sum(self.borrows.values()) + value / current_ltv
@@ -509,6 +519,7 @@ class AaveV3Market(Market):
         self.broker.add_to_balance(token_info, amount)
 
         self._borrows_amount_cache.reset()
+        self._borrows_cache.reset()
 
         self.record_action(
             BorrowAction(
@@ -522,6 +533,20 @@ class AaveV3Market(Market):
 
         return key
 
+    def get_max_repay_amount(self, key: BorrowKey = None, token_info: TokenInfo = None, interest_rate_mode: InterestRateMode = None) -> Decimal:
+        (key, _, _) = AaveV3Market.__get_borrow_key(key, token_info, interest_rate_mode)
+        return AaveV3CoreLib.get_amount(self._borrows[key].base_amount, self.market_status.tokens[key.token].variable_borrow_index)
+
+    @staticmethod
+    def __get_borrow_key(key: BorrowKey = None, token_info: TokenInfo = None, interest_rate_mode: InterestRateMode = None):
+        if key is None:
+            if token_info is None:
+                raise DemeterError("either key or token should be filled")
+            key = BorrowKey(token_info, interest_rate_mode)
+        token_info = key.token
+        interest_rate_mode = key.interest_rate_mode
+        return key, token_info, interest_rate_mode
+
     @float_param_formatter
     def repay(
         self,
@@ -530,14 +555,8 @@ class AaveV3Market(Market):
         token_info: TokenInfo = None,
         interest_rate_mode: InterestRateMode = None,
     ):
-        if key is None:
-            if token_info is None:
-                raise DemeterError("either key or token should be filled")
-            key = BorrowKey(token_info, interest_rate_mode)
-        token_info = key.token
-        # interest_rate_mode = key.interest_rate_mode
+        (key, token_info, interest_rate_mode) = AaveV3Market.__get_borrow_key(key, token_info, interest_rate_mode)
         token_status = self._market_status.tokens[token_info]
-
         borrow = self.get_borrow(key)
 
         if amount is None:
@@ -551,6 +570,7 @@ class AaveV3Market(Market):
         self.broker.subtract_from_balance(token_info, amount)
         debt = self.__sub_borrow_amount(key, amount)
         self._borrows_amount_cache.reset()
+        self._borrows_cache.reset()
         self.record_action(
             RepayAction(
                 market=self.market_info,
@@ -576,7 +596,7 @@ class AaveV3Market(Market):
 
         health_factor = self.health_factor
         has_liquidated: List[BorrowKey] = []
-        while health_factor < AaveV3Market.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
+        while health_factor < AaveV3CoreLib.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
             # choose which token and how much to liquidate
 
             # choose the smallest delt
@@ -623,9 +643,9 @@ class AaveV3Market(Market):
         variable_delt = self.get_borrow(variable_key).amount if variable_key in self._borrows else DECIMAL_0
         total_debt = stable_delt + variable_delt
         close_factor = (
-            AaveV3Market.DEFAULT_LIQUIDATION_CLOSE_FACTOR
-            if health_factor > AaveV3Market.CLOSE_FACTOR_HF_THRESHOLD
-            else AaveV3Market.MAX_LIQUIDATION_CLOSE_FACTOR
+            AaveV3CoreLib.DEFAULT_LIQUIDATION_CLOSE_FACTOR
+            if health_factor > AaveV3CoreLib.CLOSE_FACTOR_HF_THRESHOLD
+            else AaveV3CoreLib.MAX_LIQUIDATION_CLOSE_FACTOR
         )
         max_liquidatable_debt = total_debt * close_factor
         actual_debt_to_liquidate = max_liquidatable_debt if delt_to_cover > max_liquidatable_debt else delt_to_cover
@@ -668,8 +688,10 @@ class AaveV3Market(Market):
             stable_debt_remaining_base = self.__sub_borrow_amount(stable_key, stable_debt_liquidated)
 
         self._borrows_amount_cache.reset()
-        self._supply_amount_cache.reset()
-        self._collateral_cache.reset()
+        self._borrows_cache.reset()
+        self._supplies_amount_cache.reset()
+        self._supplies_cache.reset()
+        self._collaterals_amount_cache.reset()
 
         self.record_action(
             LiquidationAction(

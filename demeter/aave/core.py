@@ -3,12 +3,20 @@ from typing import Dict
 
 from demeter import DECIMAL_0, TokenInfo
 from demeter.aave._typing import SupplyKey, ActionKey, BorrowKey
+import pandas as pd
 
 
 class AaveV3CoreLib(object):
-    pass
-
     SECONDS_IN_A_YEAR = 31536000
+    """
+    if CLOSE_FACTOR_HF_THRESHOLD < health factor <  DEFAULT_LIQUIDATION_CLOSE_FACTOR
+    only DEFAULT_LIQUIDATION_CLOSE_FACTOR(50%) will be liquidated,
+    otherwise HEALTH_FACTOR_LIQUIDATION_THRESHOLD(100%) will be liquidated
+    """
+    HEALTH_FACTOR_LIQUIDATION_THRESHOLD = Decimal(1)
+    DEFAULT_LIQUIDATION_CLOSE_FACTOR = Decimal(0.5)
+    MAX_LIQUIDATION_CLOSE_FACTOR = Decimal(1)
+    CLOSE_FACTOR_HF_THRESHOLD = Decimal(0.95)
 
     @staticmethod
     def rate_to_apy(rate: Decimal) -> Decimal:
@@ -23,6 +31,37 @@ class AaveV3CoreLib(object):
         return amount / liquidity_index
 
     @staticmethod
+    def get_max_borrow_value(
+        collaterals: Dict[SupplyKey, Decimal],
+        borrows: Dict[BorrowKey, Decimal],
+        risk_parameters: pd.DataFrame,
+    ) -> Decimal:
+        ltv = AaveV3CoreLib.current_ltv(collaterals, risk_parameters)
+        total_borrow = Decimal(sum(borrows.values()))
+        total_collateral = Decimal(sum(collaterals.values()))
+
+        return (total_collateral * ltv - total_borrow) * Decimal("0.99")  # because dapp web ui will multiply 0.99
+
+    @staticmethod
+    def get_min_withdraw_kept_amount(
+        token: TokenInfo,
+        supplies: Dict[SupplyKey, Decimal],
+        borrows: Dict[BorrowKey, Decimal],
+        risk_parameters: pd.DataFrame,
+        price: Decimal,
+    ) -> Decimal:
+        supplies_liq_threshold = Decimal(0)
+        for s, v in supplies.items():
+            if s.token != token:
+                supplies_liq_threshold += risk_parameters.loc[s.token.name].liqThereshold * v
+
+        amount = (AaveV3CoreLib.HEALTH_FACTOR_LIQUIDATION_THRESHOLD * Decimal(sum(borrows.values())) - supplies_liq_threshold) / risk_parameters.loc[
+            token.name
+        ].liqThereshold
+
+        return amount / price
+
+    @staticmethod
     def health_factor(supplies: Dict[SupplyKey, Decimal], borrows: Dict[BorrowKey, Decimal], risk_parameters):
         # (all supplies * liqThereshold) / all borrows
         a = Decimal(sum([s * risk_parameters.loc[key.token.name].liqThereshold for key, s in supplies.items()]))
@@ -30,12 +69,12 @@ class AaveV3CoreLib(object):
         return AaveV3CoreLib.safe_div(a, b)
 
     @staticmethod
-    def current_ltv(supplies: Dict[SupplyKey, Decimal], risk_parameters):
+    def current_ltv(collaterals: Dict[SupplyKey, Decimal], risk_parameters):
         all_supplies = DECIMAL_0
-        for t, s in supplies.items():
+        for t, s in collaterals.items():
             all_supplies += s * risk_parameters.loc[t.token.name].LTV
 
-        amount = sum(supplies.values())
+        amount = sum(collaterals.values())
         return AaveV3CoreLib.safe_div(all_supplies, Decimal(amount))
 
     @staticmethod
