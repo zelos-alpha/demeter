@@ -580,6 +580,11 @@ class AaveV3Market(Market):
         pass
 
     def __sub_borrow_amount(self, key: BorrowKey, amount: Decimal) -> Decimal:
+        if key not in self._borrows:
+            if amount == Decimal(0):
+                return Decimal(0)
+            else:
+                raise DemeterError(f"{key} not exist in borrows")
         self._borrows[key].base_amount -= AaveV3CoreLib.get_base_amount(amount, self._market_status.tokens[key.token].variable_borrow_index)
         if self._borrows[key].base_amount == DECIMAL_0:
             del self._borrows[key]
@@ -593,7 +598,8 @@ class AaveV3Market(Market):
 
         health_factor = self.health_factor
         has_liquidated: List[BorrowKey] = []
-        while health_factor < AaveV3CoreLib.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
+        # health_factor !=0 means there are still some collateral to liquidate
+        while health_factor != 0 and health_factor < AaveV3CoreLib.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
             # choose which token and how much to liquidate
 
             # choose the smallest delt
@@ -661,8 +667,8 @@ class AaveV3Market(Market):
 
         if max_collateral_to_liquidate > user_collateral_balance:
             actual_collateral_to_liquidate = user_collateral_balance
-            actual_debt_to_liquidate = (
-                self._price_status.loc[collateral_token.name] * actual_collateral_to_liquidate / self._price_status.loc[delt_token.name]
+            actual_debt_to_liquidate = (self._price_status.loc[collateral_token.name] * actual_collateral_to_liquidate) / (
+                self._price_status.loc[delt_token.name] * (1 + liquidation_bonus)
             )
         else:
             actual_collateral_to_liquidate = max_collateral_to_liquidate

@@ -411,3 +411,55 @@ class UniLpDataTest(unittest.TestCase):
         self.assertEqual(market.borrows[borrow_key].value, Decimal("1650"))  # 3300 - 3300/2, delt - liquidated
 
         pass
+
+    def test_liquidate_all(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        supply_key = market.supply(weth, Decimal("4.2"), True)
+        borrow_key = market.borrow(dai, 3300, InterestRateMode.variable)
+        self.assertEqual(market.health_factor, Decimal("1.05"))
+        market.update()  # trigger liquidate, nothing will happen as hf > 1
+
+        t = datetime(2023, 8, 1, 1)
+        price_series = pd.Series(data=[Decimal(900), Decimal(1)], index=[weth.name, dai.name])
+        old_market_status = market.market_status
+        market.set_market_status(
+            timestamp=t,
+            data=AaveV3PoolStatus(timestamp=t, tokens=old_market_status.tokens),
+            price=price_series,
+        )
+        self.assertEqual(market.health_factor, Decimal("0.945"))
+        market.update()  # trigger again
+
+        self.assertEqual(market.health_factor, Decimal("inf"))
+
+        self.assertEqual(market.supplies[supply_key].value, Decimal("315"))
+        self.assertEqual(len(market.borrows), 0)
+
+        pass
+
+    def test_liquidate_all_collateral_but_still_have_delt(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        supply_key = market.supply(weth, Decimal("4.2"), True)
+        borrow_key = market.borrow(dai, 3300, InterestRateMode.variable)
+        self.assertEqual(market.health_factor, Decimal("1.05"))
+        market.update()  # trigger liquidate, nothing will happen as hf > 1
+
+        t = datetime(2023, 8, 1, 1)
+        price_series = pd.Series(data=[Decimal(800), Decimal(1)], index=[weth.name, dai.name])
+        old_market_status = market.market_status
+        market.set_market_status(
+            timestamp=t,
+            data=AaveV3PoolStatus(timestamp=t, tokens=old_market_status.tokens),
+            price=price_series,
+        )
+        self.assertEqual(market.health_factor, Decimal("0.84"))
+        market.update()  # trigger again
+
+        self.assertEqual(market.health_factor, Decimal("0"))
+
+        self.assertNotIn(supply_key, market.supplies)
+        self.assertEqual(market.borrows[borrow_key].value, Decimal("100"))  # 3300 - 3300/2, delt - liquidated
+
+        pass
