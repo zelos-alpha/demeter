@@ -165,6 +165,7 @@ class UniLpMarket(Market):
                 local_prev_tick,
             )
         self._price_status = price
+        self.has_update = False
 
     def get_price_from_data(self) -> pd.DataFrame:
         if self.data is None:
@@ -337,6 +338,7 @@ class UniLpMarket(Market):
             self._positions[position_info] = Position(DECIMAL_0, DECIMAL_0, liquidity)
         self.broker.subtract_from_balance(self.token0, token0_used)
         self.broker.subtract_from_balance(self.token1, token1_used)
+        self.has_update = True
         return position_info, token0_used, token1_used, liquidity
 
     def __remove_liquidity(self, position: PositionInfo, liquidity: int = None, sqrt_price_x96: int = -1):
@@ -349,6 +351,7 @@ class UniLpMarket(Market):
         self._positions[position].liquidity = self.positions[position].liquidity - delta_liquidity
         self._positions[position].pending_amount0 += token0_get
         self._positions[position].pending_amount1 += token1_get
+        self.has_update = True
 
         return token0_get, token1_get, delta_liquidity
 
@@ -377,6 +380,7 @@ class UniLpMarket(Market):
         # add un_collect fee to current balance
         self.broker.add_to_balance(self.token0, token0_fee)
         self.broker.add_to_balance(self.token1, token1_fee)
+        self.has_update = True
         return token0_fee, token1_fee
 
     # action for strategy
@@ -781,7 +785,6 @@ class UniLpMarket(Market):
         self.add_statistic_column(df)
         self.data = df
         self.logger.info("data has been prepared")
-
 
     def formatted_str(self):
         """

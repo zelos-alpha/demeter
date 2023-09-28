@@ -31,18 +31,6 @@ class Strategy(object):
         """
         pass
 
-    def before_bar(self, row_data: MarketDict[RowData], price: pd.Series):
-        """
-        called before triggers on each row, at this time, fees are not updated yet. you can add some indicator or add some actions
-
-        :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
-        :type row_data: Union[{MarketInfo:RowData}, pd.Series]
-        :param price: current price of all tokens
-        :type price: pd.Series
-        """
-
-        pass
-
     def on_bar(self, row_data: MarketDict[RowData], price: pd.Series):
         """
         called after triggers on each row, at this time, fees and account status are not updated yet. you can add some actions here

@@ -205,6 +205,7 @@ class AaveV3Market(Market):
         self._collaterals_amount_cache.reset()
         self._borrows_cache.reset()
         self._supplies_cache.reset()
+        self.has_update = False
 
     @property
     def liquidation_threshold(self) -> Decimal:
@@ -385,6 +386,8 @@ class AaveV3Market(Market):
                 deposit_after=UnitDecimal(AaveV3CoreLib.get_amount(self._supplies[key].base_amount, token_status.liquidity_index), token_info.name),
             )
         )
+        self.has_update = True
+
         return key
 
     @staticmethod
@@ -412,6 +415,8 @@ class AaveV3Market(Market):
             self._supplies[SupplyKey(token_info)].collateral = old_collateral
             self._collaterals_amount_cache.reset()
             raise AssertionError("health factor lower than liquidation threshold")
+        self.has_update = True
+
         return key
 
     @float_param_formatter
@@ -457,6 +462,8 @@ class AaveV3Market(Market):
         )
         if self._supplies[key].base_amount == DECIMAL_0:
             del self._supplies[key]
+        self.has_update = True
+
         pass
 
     def get_max_withdraw_amount(self, supply_key: SupplyKey = None, token_info: TokenInfo = None) -> Decimal:
@@ -527,6 +534,7 @@ class AaveV3Market(Market):
                 debt_after=UnitDecimal(AaveV3CoreLib.get_amount(self._borrows[key].base_amount, token_status.variable_borrow_index), token_info.name),
             )
         )
+        self.has_update = True
 
         return key
 
@@ -577,6 +585,8 @@ class AaveV3Market(Market):
                 debt_after=UnitDecimal(AaveV3CoreLib.get_amount(debt, token_status.variable_borrow_index), token_info.name),
             )
         )
+        self.has_update = True
+
         pass
 
     def __sub_borrow_amount(self, key: BorrowKey, amount: Decimal) -> Decimal:
@@ -631,6 +641,7 @@ class AaveV3Market(Market):
                 # if a liquidated is rejected, choose another delt token to liquidate
                 pass
             health_factor = self.health_factor
+        self.has_update = True
 
     def _do_liquidate(self, collateral_token: TokenInfo, delt_token: TokenInfo, delt_to_cover: Decimal, health_factor: Decimal):
         borrow_index = self._market_status.tokens[delt_token].variable_borrow_index

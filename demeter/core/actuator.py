@@ -310,18 +310,20 @@ class Actuator(object):
         market_dict.set_default_key(self.broker.markets.get_default_key())
         return market_dict
 
-    def __set_row_to_markets(self, timestamp, market_row_dict: dict):
+    def __set_row_to_markets(self, timestamp, market_row_dict: dict, update: bool = False):
         """
         set markets row data
         :param timestamp:
         :param market_row_dict:
+        :param update: enable or disable has_update flag in markets, if set to false, will always update, if set to true, just update when necessary
         :return:
         """
 
         # 过时的设计, 可以优化.
         # 数据是从market中获取的. 没必要再给set回去. 直接传入一个index就可以了
         for market_key, market_row_data in market_row_dict.items():
-            self._broker.markets[market_key].set_market_status(timestamp, market_row_data, self._token_prices.loc[timestamp])
+            if (not update) or (update and self._broker.markets[market_key].has_update):
+                self._broker.markets[market_key].set_market_status(timestamp, market_row_data, self._token_prices.loc[timestamp])
 
     def run(self, evaluator: List[EvaluatorEnum] | None = None, output: bool = True):
         """
@@ -354,7 +356,7 @@ class Actuator(object):
 
         # set initial status for strategy, so user can run some calculation in initial function.
         init_row_data = self.__get_market_row_dict(index_array[0], 0)
-        self.__set_row_to_markets(index_array[0], init_row_data)
+        self.__set_row_to_markets(index_array[0], init_row_data,False)
         # keep initial balance for evaluating
         init_account_status = self._broker.get_account_status(self._token_prices.head(1).iloc[0])
         self.init_strategy()
@@ -367,16 +369,19 @@ class Actuator(object):
                 # prepare data of a row
                 market_row_dict = self.__get_market_row_dict(timestamp_index, row_id)
                 row_id += 1
-                self.__set_row_to_markets(timestamp_index, market_row_dict)
+                self.__set_row_to_markets(timestamp_index, market_row_dict, False)
                 # execute strategy, and some calculate
                 self._currents.timestamp = timestamp_index.to_pydatetime()
-                self._strategy.before_bar(market_row_dict, current_price)
 
                 if self._strategy.triggers:
                     for trigger in self._strategy.triggers:
                         if trigger.when(market_row_dict, current_price):
                             trigger.do(market_row_dict, current_price)
                 self._strategy.on_bar(market_row_dict, current_price)
+
+                # important, take uniswap market for example,
+                # if liquidity has changed in the head of this minute, this will add the new liquidity to total_liquidity in current minute.
+                self.__set_row_to_markets(timestamp_index, market_row_dict, True)
 
                 # update broker status, eg: re-calculate fee
                 # and read the latest status from broker
