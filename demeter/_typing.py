@@ -119,24 +119,6 @@ class TokenInfo:
 #         return self.name
 
 
-class PositionInfo(NamedTuple):
-    """
-    position information, including tick range and liquidity. It's the immute properties of a position
-
-    :param lower_tick: lower tick
-    :type lower_tick: int
-    :param upper_tick: upper tick
-    :type upper_tick: int
-
-    """
-
-    lower_tick: int
-    upper_tick: int
-
-    def __str__(self):
-        return f"""tick:{self.lower_tick},{self.upper_tick}"""
-
-
 class DemeterError(Exception):
     def __init__(self, message):
         self.message = message

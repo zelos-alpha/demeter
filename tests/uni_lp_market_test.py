@@ -5,7 +5,8 @@ from decimal import Decimal
 import pandas as pd
 
 import demeter
-from demeter import UniLpMarket, TokenInfo, UniV3Pool, UniV3PoolStatus, Broker, MarketInfo, ChainType
+from demeter import UniLpMarket, TokenInfo, Broker, MarketInfo, ChainType
+from demeter.uniswap import UniV3Pool, UniV3PoolStatus
 
 test_market = MarketInfo("market1")
 
@@ -302,4 +303,3 @@ class TestUniLpMarket(unittest.TestCase):
         self.assertEqual(prices.iloc[100]["USDC"], 1)
         print("test_get_price")
         print(prices)
-

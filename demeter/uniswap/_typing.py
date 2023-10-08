@@ -5,9 +5,27 @@ from typing import Dict, NamedTuple
 
 import pandas as pd
 
-from .._typing import TokenInfo, DemeterError, UnitDecimal, PositionInfo
+from .._typing import TokenInfo, DemeterError, UnitDecimal
 from ..broker import BaseAction, ActionTypeEnum, MarketBalance, MarketStatus
 from ..utils import get_formatted_from_dict
+
+
+class PositionInfo(NamedTuple):
+    """
+    position information, including tick range and liquidity. It's the immute properties of a position
+
+    :param lower_tick: lower tick
+    :type lower_tick: int
+    :param upper_tick: upper tick
+    :type upper_tick: int
+
+    """
+
+    lower_tick: int
+    upper_tick: int
+
+    def __str__(self):
+        return f"""tick:{self.lower_tick},{self.upper_tick}"""
 
 
 class UniDescription(NamedTuple):
@@ -108,64 +126,64 @@ class UniLpBalance(MarketBalance):
         ]
 
 
-@DeprecationWarning
-class BrokerAsset(object):
-    """
-    Wallet of broker, manage balance of an asset.
-    It will prevent excess usage on asset.
-    """
-
-    def __init__(self, token: TokenInfo, init_amount=Decimal(0)):
-        self.token_info = token
-        self.name = token.name
-        self.decimal = token.decimal
-        self.balance = init_amount
-
-    def __str__(self):
-        return f"{self.balance} {self.name}"
-
-    def add(self, amount=Decimal(0)):
-        """
-        add amount to balance
-        :param amount: amount to add
-        :type amount: Decimal
-        :return: entity itself
-        :rtype: BrokerAsset
-        """
-        self.balance += amount
-        return self
-
-    def sub(self, amount=Decimal(0), allow_negative_balance=False):
-        """
-        subtract amount from balance. if balance is not enough, an error will be raised.
-
-        :param amount: amount to subtract
-        :type amount: Decimal
-        :param allow_negative_balance: allow balance is negative
-        :type allow_negative_balance: bool
-        :return:
-        :rtype:
-        """
-        base = self.balance if self.balance != Decimal(0) else Decimal(amount)
-
-        if base == Decimal(0):  # amount and balance is both 0
-            return self
-        if allow_negative_balance:
-            self.balance -= amount
-        else:
-            # if difference between amount and balance is below 0.01%, will deduct all the balance
-            # That's because, the amount calculated by v3_core, has some acceptable error.
-            if abs((self.balance - amount) / base) < 0.00001:
-                self.balance = Decimal(0)
-            elif self.balance - amount < Decimal(0):
-                raise DemeterError(f"Insufficient balance, balance is {self.balance}{self.name}, " f"but sub amount is {amount}{self.name}")
-            else:
-                self.balance -= amount
-
-        return self
-
-    def amount_in_wei(self):
-        return self.balance * Decimal(10**self.decimal)
+# @DeprecationWarning
+# class BrokerAsset(object):
+#     """
+#     Wallet of broker, manage balance of an asset.
+#     It will prevent excess usage on asset.
+#     """
+#
+#     def __init__(self, token: TokenInfo, init_amount=Decimal(0)):
+#         self.token_info = token
+#         self.name = token.name
+#         self.decimal = token.decimal
+#         self.balance = init_amount
+#
+#     def __str__(self):
+#         return f"{self.balance} {self.name}"
+#
+#     def add(self, amount=Decimal(0)):
+#         """
+#         add amount to balance
+#         :param amount: amount to add
+#         :type amount: Decimal
+#         :return: entity itself
+#         :rtype: BrokerAsset
+#         """
+#         self.balance += amount
+#         return self
+#
+#     def sub(self, amount=Decimal(0), allow_negative_balance=False):
+#         """
+#         subtract amount from balance. if balance is not enough, an error will be raised.
+#
+#         :param amount: amount to subtract
+#         :type amount: Decimal
+#         :param allow_negative_balance: allow balance is negative
+#         :type allow_negative_balance: bool
+#         :return:
+#         :rtype:
+#         """
+#         base = self.balance if self.balance != Decimal(0) else Decimal(amount)
+#
+#         if base == Decimal(0):  # amount and balance is both 0
+#             return self
+#         if allow_negative_balance:
+#             self.balance -= amount
+#         else:
+#             # if difference between amount and balance is below 0.01%, will deduct all the balance
+#             # That's because, the amount calculated by v3_core, has some acceptable error.
+#             if abs((self.balance - amount) / base) < 0.00001:
+#                 self.balance = Decimal(0)
+#             elif self.balance - amount < Decimal(0):
+#                 raise DemeterError(f"Insufficient balance, balance is {self.balance}{self.name}, " f"but sub amount is {amount}{self.name}")
+#             else:
+#                 self.balance -= amount
+#
+#         return self
+#
+#     def amount_in_wei(self):
+#         return self.balance * Decimal(10**self.decimal)
 
 
 @dataclass

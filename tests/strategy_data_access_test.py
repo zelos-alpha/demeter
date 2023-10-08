@@ -1,10 +1,12 @@
 import unittest
-from typing import Union
 from datetime import timedelta
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, Asset, RowData, UniLpMarket, MarketInfo, MarketDict
+
 import pandas as pd
-from .utils import get_mock_data
+
+from demeter import TokenInfo, Actuator, Strategy, RowData, UniLpMarket, MarketInfo, MarketDict
+from demeter.uniswap import UniV3Pool
 from .common import assert_equal
+from .utils import get_mock_data
 
 eth = TokenInfo(name="eth", decimal=18)
 usdc = TokenInfo(name="usdc", decimal=6)

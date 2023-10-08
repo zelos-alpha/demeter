@@ -1,8 +1,8 @@
 import unittest
 from decimal import Decimal
 
-from demeter import TokenInfo, UniV3Pool
-from demeter.uniswap import V3CoreLib
+from demeter import TokenInfo
+from demeter.uniswap import V3CoreLib, UniV3Pool
 from tests.common import assert_equal_with_error
 
 eth = TokenInfo(name="eth", decimal=18)

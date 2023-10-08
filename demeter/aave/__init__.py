@@ -10,6 +10,11 @@ from ._typing import (
     Supply,
     Borrow,
     RiskParameter,
+    LiquidationAction,
+    RepayAction,
+    BorrowAction,
+    WithdrawAction,
+    SupplyAction,
 )
 from .core import AaveV3CoreLib
 from .market import AaveV3Market

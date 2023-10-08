@@ -6,8 +6,8 @@ from datetime import date, datetime
 import pandas as pd
 
 import demeter.indicator
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, UniLpMarket, MarketInfo, RowData, MarketDict, ChainType
-from demeter._typing import PositionInfo
+from demeter import TokenInfo, Actuator, Strategy, UniLpMarket, MarketInfo, RowData, MarketDict, ChainType
+from demeter.uniswap import PositionInfo, UniV3Pool
 
 pd.options.display.max_columns = None
 # pd.options.display.max_rows = None

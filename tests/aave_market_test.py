@@ -1,10 +1,11 @@
 import unittest
 from _decimal import Decimal
 from datetime import datetime, timedelta, date, timezone
+
 import numpy as np
 import pandas as pd
 
-from demeter import MarketInfo, ChainType, TokenInfo, MarketTypeEnum, Broker
+from demeter import MarketInfo, TokenInfo, MarketTypeEnum, Broker
 from demeter.aave import (
     AaveV3PoolStatus,
     AaveTokenStatus,
