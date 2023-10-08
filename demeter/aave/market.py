@@ -1,11 +1,12 @@
+import json
 import os
+import random
 import token
 from _decimal import Decimal
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Set
 
 import pandas as pd
-
 
 from . import helper
 from ._typing import (
@@ -27,6 +28,7 @@ from ._typing import (
     RepayAction,
     LiquidationAction,
     DictCache,
+    AaveMarketDescription,
 )
 from .core import AaveV3CoreLib
 from .. import MarketInfo, DemeterError, TokenInfo
@@ -34,7 +36,6 @@ from .._typing import DECIMAL_0, UnitDecimal
 from ..broker import Market, MarketStatus
 from ..utils import get_formatted_predefined, STYLE, get_formatted_from_dict
 from ..utils.application import require, float_param_formatter, to_decimal
-import random
 
 DEFAULT_DATA_PATH = "./data"
 
@@ -72,7 +73,10 @@ class AaveV3Market(Market):
     ]
 
     def __str__(self):
-        return f"{self._market_info.name}:{type(self).__name__}, supplies:{len(self._supplies)}, borrows: {len(self._borrows)}"
+        return json.dumps(self.description()._asdict())
+
+    def description(self):
+        return AaveMarketDescription(type(self).__name__, self._market_info.name, len(self._supplies), len(self._borrows))
 
     @property
     def market_info(self) -> MarketInfo:

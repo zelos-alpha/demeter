@@ -356,7 +356,7 @@ class Actuator(object):
 
         # set initial status for strategy, so user can run some calculation in initial function.
         init_row_data = self.__get_market_row_dict(index_array[0], 0)
-        self.__set_row_to_markets(index_array[0], init_row_data,False)
+        self.__set_row_to_markets(index_array[0], init_row_data, False)
         # keep initial balance for evaluating
         init_account_status = self._broker.get_account_status(self._token_prices.head(1).iloc[0])
         self.init_strategy()
@@ -418,12 +418,13 @@ class Actuator(object):
         """
         if not self.__backtest_finished:
             raise DemeterError("Please run strategy first")
-        self.logger.info(self.broker.formatted_str())
-        self.logger.info(get_formatted_predefined("Account Status", STYLE["header1"]))
-        self.logger.info(self._account_status_df)
+        self.logger.info(f"Print actuator summary")
+        print(self.broker.formatted_str())
+        print(get_formatted_predefined("Account Status", STYLE["header1"]))
+        print(self._account_status_df)
         if len(self._enabled_evaluator) > 0:
-            self.logger.info("Evaluating indicator")
-            self.logger.info(self._evaluator)
+            print("Evaluating indicator")
+            print(self._evaluator)
 
     def save_result(self, path: str, account=True, actions=True) -> List[str]:
         """
@@ -489,7 +490,14 @@ class Actuator(object):
         self._strategy.initialize()
 
     def __str__(self):
-        return f"Demeter Actuator (broker:{self._broker})\n"
+        return '{{"broker":{}, "action_count":{}, "timestamp":"{}", "strategy":"{}", "price_df_rows":{}, "price_assets":{} }}'.format(
+            str(self.broker),
+            len(self._action_list),
+            self._currents.timestamp,
+            type(self._strategy).__name__,
+            len(self._token_prices.index) if self._token_prices is not None else 0,
+            "[" + ",".join(f'"{x}"' for x in self._token_prices.columns) + "]" if self._token_prices is not None else str([]),
+        )
 
 
 @dataclass

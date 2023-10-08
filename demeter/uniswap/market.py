@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime, date, timedelta
 from decimal import Decimal
@@ -19,6 +20,7 @@ from ._typing import (
     SellAction,
     position_dict_to_dataframe,
     PositionInfo,
+    UniDescription,
 )
 from .core import V3CoreLib
 from .data import fillna, UniLPData
@@ -78,10 +80,10 @@ class UniLpMarket(Market):
     # region properties
 
     def __str__(self):
-        return (
-            f"{self._market_info.name}:{type(self).__name__}, positions: {len(self._positions)}, "
-            f"total liquidity: {sum([p.liquidity for p in self._positions.values()])}"
-        )
+        return json.dumps(self.description()._asdict())
+
+    def description(self):
+        return UniDescription(type(self).__name__, self._market_info.name, len(self._positions), sum([p.liquidity for p in self._positions.values()]))
 
     @property
     def positions(self) -> Dict[PositionInfo, Position]:

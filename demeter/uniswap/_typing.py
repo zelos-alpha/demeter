@@ -1,13 +1,20 @@
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict
+from typing import Dict, NamedTuple
 
 import pandas as pd
 
 from .._typing import TokenInfo, DemeterError, UnitDecimal, PositionInfo
 from ..broker import BaseAction, ActionTypeEnum, MarketBalance, MarketStatus
 from ..utils import get_formatted_from_dict
+
+
+class UniDescription(NamedTuple):
+    type: str
+    name: str
+    position_count: int
+    total_liquidity: int
 
 
 class UniV3Pool(object):

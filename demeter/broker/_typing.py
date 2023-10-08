@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -45,6 +46,11 @@ class MarketInfo(NamedTuple):
     type: MarketTypeEnum = MarketTypeEnum.uniswap
 
 
+class AssetDescription(NamedTuple):
+    name: str
+    value: float
+
+
 class Asset(object):
     """
     Wallet of broker, manage balance of an asset.
@@ -67,7 +73,7 @@ class Asset(object):
         return Asset info
         :return: Asset info with name && balance
         """
-        return f"{self.balance} {self.name}"
+        return json.dumps(self.description()._asdict())
 
     def __repr__(self):
         """
@@ -123,6 +129,9 @@ class Asset(object):
         :return: self.balance * 10 ** self.decimal
         """
         return self.balance * Decimal(10**self.decimal)
+
+    def description(self) -> AssetDescription:
+        return AssetDescription(self.name, float(self.balance))
 
 
 class ActionTypeEnum(Enum):

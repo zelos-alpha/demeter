@@ -1,7 +1,7 @@
 from _decimal import Decimal
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict
+from typing import Dict, NamedTuple
 from typing import TypeVar
 
 import pandas as pd
@@ -256,3 +256,10 @@ class DictCache:
     def set(self, k: K, v: T):
         self._data[k] = v
         self.empty = False
+
+
+class AaveMarketDescription(NamedTuple):
+    type: str
+    name: str
+    supplies_count: int
+    borrows_count: int

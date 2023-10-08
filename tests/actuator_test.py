@@ -5,12 +5,11 @@ from datetime import date
 import pandas as pd
 
 import demeter.indicator
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, UniLpMarket, MarketInfo, RowData, MarketDict
-from demeter.download import ChainType
+from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, UniLpMarket, MarketInfo, RowData, MarketDict, ChainType
 
 pd.options.display.max_columns = None
 # pd.options.display.max_rows = None
-pd.set_option('display.width', 5000)
+pd.set_option("display.width", 5000)
 pd.options.display.max_colwidth = 100
 
 eth = TokenInfo(name="eth", decimal=18)
@@ -48,14 +47,16 @@ class WithSMA(Strategy):
 
 class TestActuator(unittest.TestCase):
     def __init__(self, *args, **kwargs):
-        self.pool = UniV3Pool(usdc, eth, 0.05, usdc)
         super(TestActuator, self).__init__(*args, **kwargs)
 
-    def test_new(self):
-        actuator = Actuator(self.pool)
+    def test_empty_actuator(self):
+        actuator = Actuator()
         print(actuator)
+        self.assertTrue(len(actuator.broker.markets) == 0)
+        self.assertTrue(len(actuator.broker.assets) == 0)
 
-    def get_one_actuator(self) -> Actuator:
+    @staticmethod
+    def get_actuator_with_uni_market() -> Actuator:
         pool = UniV3Pool(usdc, eth, 0.05, usdc)
         market = UniLpMarket(test_market, pool)
         actuator: Actuator = Actuator()  # declare actuator
@@ -66,32 +67,31 @@ class TestActuator(unittest.TestCase):
 
         actuator.strategy = EmptyStrategy()  # set strategy to actuator
 
-        market.data_path = "../data"
-        market.load_data(ChainType.Polygon.name,
-                         "0x45dda9cb7c25131df268515131f647d726f50608",
-                         date(2022, 7, 1),
-                         date(2022, 7, 1))
+        market.data_path = "data"
+        market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 14), date(2023, 8, 14))
         # actuator.output()  # print final status
 
         return actuator
 
-    def test_simple_run(self):
-        actuator = self.get_one_actuator()
-        actuator.run()
-        print(actuator)
-
     def test_run_empty_strategy(self):
-        actuator = self.get_one_actuator()
-        actuator.run()
+        actuator = TestActuator.get_actuator_with_uni_market()
+        actuator.run()  # Observe the format and content of the output log
+        print(actuator)
+        self.assertEqual(
+            str(actuator),
+            """{"broker":{"assets":[{"name": "USDC", "value": 1067.0},{"name": "ETH", "value": 1.0}],"markets":[{"type": "UniLpMarket", "name": "market1", "position_count": 0, "total_liquidity": 0}]}, "action_count":0, "timestamp":"2023-08-14 23:59:00", "strategy":"EmptyStrategy", "price_df_rows":1439, "price_assets":["ETH","USDC"] }""",
+        )
 
+
+    # TODO
     def test_run_buy_on_second(self):
-        actuator = self.get_one_actuator()
+        actuator = TestActuator.get_actuator_with_uni_market()
         actuator.strategy = BuyOnSecond()
         actuator.run()
         self.assertEqual(len(actuator.actions), 1)
 
     def test_run_empty_with_indicator(self):
-        actuator = self.get_one_actuator()
+        actuator = TestActuator.get_actuator_with_uni_market()
         actuator.strategy = WithSMA()
         actuator.run()
 
@@ -103,24 +103,21 @@ class TestActuator(unittest.TestCase):
         broker.add_market(market)
 
         market.data_path = "../data"
-        market.load_data(ChainType.Polygon.name,
-                         "0x45dda9cb7c25131df268515131f647d726f50608",
-                         date(2022, 7, 23),
-                         date(2022, 7, 24))
+        market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2022, 7, 23), date(2022, 7, 24))
 
     def test_add_liquidity(self):
-        actuator = self.get_one_actuator()
+        actuator = TestActuator.get_actuator_with_uni_market()
         actuator.strategy = AddLiquidity()
         actuator.run()
 
     def test_save_result(self):
-        actuator = self.get_one_actuator()
+        actuator = TestActuator.get_actuator_with_uni_market()
         actuator.strategy = AddLiquidity()
         actuator.run()
         actuator.save_result("./result", account=False)
 
     def test_load_pkl(self):
-        actuator = self.get_one_actuator()
+        actuator = TestActuator.get_actuator_with_uni_market()
         actuator.strategy = AddLiquidity()
         actuator.run()
         files = actuator.save_result("./result", account=False)

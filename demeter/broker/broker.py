@@ -46,8 +46,8 @@ class Broker:
         Broker raw info
         :return:
         """
-        return (
-            "assets: " + ",".join([f"({v})" for k, v in self._assets.items()]) + "; markets: " + ",".join([f"({v})" for k, v in self.markets.items()])
+        return '{{"assets":[{}],"markets":[{}]}}'.format(
+            ",".join(f"{asset}" for asset in self._assets.values()), ",".join(f"{v}" for k, v in self.markets.items())
         )
 
     def add_market(self, market: Market):
