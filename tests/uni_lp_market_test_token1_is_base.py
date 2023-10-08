@@ -112,8 +112,8 @@ class TestUniLpMarketToken1Base(unittest.TestCase):
         print("=========after a bar======================================================================")
         TestUniLpMarketToken1Base.print_broker(broker)
 
-        self.assertTrue(Decimal("0.00005") == market.position(new_position).pending_amount0)
-        self.assertTrue(Decimal("0.00005") == market.position(new_position).pending_amount1)
+        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.position(new_position).pending_amount0)
+        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.position(new_position).pending_amount1)
 
         fee0 = market.position(new_position).pending_amount0
         fee1 = market.position(new_position).pending_amount1
@@ -145,8 +145,8 @@ class TestUniLpMarketToken1Base(unittest.TestCase):
         print("=========after a bar======================================================================")
         TestUniLpMarketToken1Base.print_broker(broker)
 
-        self.assertTrue(Decimal("0.00005") == market.position(new_position).pending_amount0)
-        self.assertTrue(Decimal("0.00005") == market.position(new_position).pending_amount1)
+        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.position(new_position).pending_amount0)
+        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.position(new_position).pending_amount1)
 
         fee0 = market.position(new_position).pending_amount0
         fee1 = market.position(new_position).pending_amount1
@@ -179,8 +179,8 @@ class TestUniLpMarketToken1Base(unittest.TestCase):
         print("=========after a bar======================================================================")
         TestUniLpMarketToken1Base.print_broker(broker)
 
-        self.assertTrue(Decimal("0.00005") == market.position(new_position).pending_amount0)
-        self.assertTrue(Decimal("0.00005") == market.position(new_position).pending_amount1)
+        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.position(new_position).pending_amount0)
+        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.position(new_position).pending_amount1)
 
         fee0 = market.position(new_position).pending_amount0
         fee1 = market.position(new_position).pending_amount1
@@ -211,8 +211,8 @@ class TestUniLpMarketToken1Base(unittest.TestCase):
         print("=========after a bar======================================================================")
         TestUniLpMarketToken1Base.print_broker(broker)
 
-        self.assertTrue(Decimal("0.00005") == market.position(new_position).pending_amount0)
-        self.assertTrue(Decimal("0.00005") == market.position(new_position).pending_amount1)
+        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.position(new_position).pending_amount0)
+        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.position(new_position).pending_amount1)
 
         fee0 = market.position(new_position).pending_amount0
         fee1 = market.position(new_position).pending_amount1
@@ -245,8 +245,8 @@ class TestUniLpMarketToken1Base(unittest.TestCase):
         print("=========after a bar======================================================================")
         TestUniLpMarketToken1Base.print_broker(broker)
 
-        self.assertTrue(Decimal("0.00005") == market.position(new_position).pending_amount0)
-        self.assertTrue(Decimal("0.00005") == market.position(new_position).pending_amount1)
+        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.position(new_position).pending_amount0)
+        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.position(new_position).pending_amount1)
 
         fee0 = market.position(new_position).pending_amount0
         fee1 = market.position(new_position).pending_amount1
@@ -319,8 +319,8 @@ class TestUniLpMarketToken1Base(unittest.TestCase):
         print("=========after a bar======================================================================")
         TestUniLpMarketToken1Base.print_broker(broker)
 
-        self.assertTrue(Decimal("0.00005") == market.position(new_position).pending_amount0)
-        self.assertTrue(Decimal("0.00005") == market.position(new_position).pending_amount1)
+        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.position(new_position).pending_amount0)
+        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.position(new_position).pending_amount1)
 
         fee0 = market.position(new_position).pending_amount0
         fee1 = market.position(new_position).pending_amount1

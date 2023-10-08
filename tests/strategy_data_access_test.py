@@ -12,7 +12,7 @@ test_market = MarketInfo("uni_market")
 
 pd.options.display.max_columns = None
 pd.options.display.max_rows = None
-pd.set_option('display.width', 5000)
+pd.set_option("display.width", 5000)
 
 """
 test access data in different ways
@@ -20,8 +20,7 @@ test access data in different ways
 
 
 class WithSMA(Strategy):
-
-    def on_bar(self, row_data: MarketDict[RowData]):
+    def on_bar(self, row_data: MarketDict[RowData], price):
         if row_data.uni_market.row_id == 2:
             # access current row, method is provided by demeter
             assert_equal(row_data.uni_market.closeTick, 2)
@@ -56,10 +55,6 @@ class TestActuator(unittest.TestCase):
         broker.set_balance(eth, 1)
 
         tick = market.price_to_tick(1000)  # 207243
-        market.data = get_mock_data(market,
-                                    tick,
-                                    1000 * 10 ** usdc.decimal,
-                                    1 * 10 ** eth.decimal,
-                                     "10000000000000000")
+        market.data = get_mock_data(market, tick, 1000 * 10**usdc.decimal, 1 * 10**eth.decimal, "10000000000000000")
         market.data["closeTick"] = pd.Series(data=range(5), index=market.data.index)
         actuator.run()
