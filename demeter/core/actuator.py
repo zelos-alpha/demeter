@@ -11,9 +11,9 @@ from tqdm import tqdm  # process bar
 
 from .evaluating_indicator import Evaluator
 from .. import Broker, RowData, Asset
-from .._typing import DemeterError, EvaluatorEnum, UnitDecimal, PositionInfo
+from .._typing import DemeterError, EvaluatorEnum, UnitDecimal
 from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict
-from ..uniswap import UniLpMarket
+from ..uniswap import UniLpMarket, PositionInfo
 from ..strategy import Strategy
 from ..utils import get_formatted_predefined, STYLE
 

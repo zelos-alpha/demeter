@@ -2,7 +2,7 @@ import unittest
 from demeter import UnitDecimal, Strategy, AccountStatus, TokenInfo
 
 
-class TestBigQuery(unittest.TestCase):
+class UtilsTest(unittest.TestCase):
     def test_init_from_number(self):
         xx = UnitDecimal(23345.4, "WETH")
         self.assertEqual(xx.to_str(), "23345.400 WETH")

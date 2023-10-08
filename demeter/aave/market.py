@@ -31,9 +31,9 @@ from ._typing import (
     AaveMarketDescription,
 )
 from .core import AaveV3CoreLib
-from .. import MarketInfo, DemeterError, TokenInfo
+from .. import DemeterError, TokenInfo
 from .._typing import DECIMAL_0, UnitDecimal
-from ..broker import Market, MarketStatus
+from ..broker import Market, MarketStatus, MarketInfo
 from ..utils import get_formatted_predefined, STYLE, get_formatted_from_dict
 from ..utils.application import require, float_param_formatter, to_decimal
 
