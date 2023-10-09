@@ -4,8 +4,8 @@ from decimal import Decimal
 import pandas as pd
 
 import utils
-from demeter import TokenInfo, Actuator, Strategy, MarketDict, RowData, MarketInfo, UniLpMarket
-from demeter.uniswap import UniLpBalance, UniV3Pool, V3CoreLib
+from demeter import TokenInfo, Actuator, Strategy, MarketDict, RowData, MarketInfo
+from demeter.uniswap import UniLpBalance, UniV3Pool, V3CoreLib, UniLpMarket
 from demeter.uniswap.liquitidy_math import get_sqrt_ratio_at_tick
 
 pd.options.display.max_columns = None

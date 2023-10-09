@@ -2,9 +2,8 @@ import unittest
 from decimal import Decimal
 
 import demeter
-from demeter import UniLpMarket, TokenInfo, Broker, MarketInfo
-from demeter.uniswap import UniV3Pool, UniV3PoolStatus
-from demeter.uniswap.helper import tick_to_quote_price
+from demeter import TokenInfo, Broker, MarketInfo
+from demeter.uniswap import UniLpMarket, UniV3Pool, UniV3PoolStatus, helper
 
 test_market = MarketInfo("market1")
 

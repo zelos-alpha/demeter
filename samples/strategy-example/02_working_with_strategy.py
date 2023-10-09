@@ -2,12 +2,12 @@ from datetime import timedelta, date
 
 import pandas as pd
 import math
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, RowData, simple_moving_average, ChainType, \
-    MarketInfo, UniLpMarket, MarketDict, PeriodTrigger
+from demeter import TokenInfo, Actuator, Strategy, RowData, simple_moving_average, ChainType, MarketInfo, UniLpMarket, MarketDict, PeriodTrigger
+from demeter.uniswap import UniV3Pool
 from demeter.broker import BaseAction
 
 pd.options.display.max_columns = None
-pd.set_option('display.width', 5000)
+pd.set_option("display.width", 5000)
 
 """
 This demo will show how to work with strategy, including how to trigger actions and get notified.
@@ -46,14 +46,10 @@ class DemoStrategy(Strategy):
 
         # Add a simple moving average line for backtesting data. In backtesting,
         # we will add/remove liquidity according to this line.
-        self._add_column(market_key,
-                         "sma",
-                         simple_moving_average(self.data[market_key].price, window=timedelta(hours=1)))
+        self._add_column(market_key, "sma", simple_moving_average(self.data[market_key].price, window=timedelta(hours=1)))
 
         # Register a trigger, every day, we split both assets into two shares of equal value
-        self.triggers.append(PeriodTrigger(time_delta=timedelta(days=1),
-                                           trigger_immediately=True,
-                                           do=self.rebalance))
+        self.triggers.append(PeriodTrigger(time_delta=timedelta(days=1), trigger_immediately=True, do=self.rebalance))
 
     def rebalance(self, row_data: MarketDict[RowData]):
         self.markets[market_key].even_rebalance(row_data[market_key].price)
@@ -115,15 +111,14 @@ class DemoStrategy(Strategy):
 if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)  # TokenInfo(name='usdc', decimal=6)
     eth = TokenInfo(name="eth", decimal=18)  # TokenInfo(name='eth', decimal=18)
-    pool = UniV3Pool(usdc, eth, 0.05, usdc)  # PoolBaseInfo(Token0: TokenInfo(name='usdc', decimal=6),Token1: TokenInfo(name='eth', decimal=18),fee: 0.0500,base token: usdc)
+    pool = UniV3Pool(
+        usdc, eth, 0.05, usdc
+    )  # PoolBaseInfo(Token0: TokenInfo(name='usdc', decimal=6),Token1: TokenInfo(name='eth', decimal=18),fee: 0.0500,base token: usdc)
 
     market_key = MarketInfo("market1")  # market1
     market = UniLpMarket(market_key, pool)
     market.data_path = "../data"
-    market.load_data(ChainType.Polygon.name,
-                     "0x45dda9cb7c25131df268515131f647d726f50608",
-                     date(2022, 8, 20),
-                     date(2022, 8, 20))
+    market.load_data(ChainType.Polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2022, 8, 20), date(2022, 8, 20))
 
     actuator = Actuator()  # init actuator
     actuator.broker.add_market(market)  # add market to actuator

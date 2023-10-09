@@ -2,8 +2,8 @@ from datetime import date, datetime
 
 import pandas as pd
 
-from demeter import TokenInfo, Actuator, Strategy, RowData, ChainType, MarketInfo, UniLpMarket, MarketDict, AtTimeTrigger
-from demeter.uniswap import UniV3Pool
+from demeter import TokenInfo, Actuator, Strategy, RowData, ChainType, MarketInfo, MarketDict, AtTimeTrigger
+from demeter.uniswap import UniV3Pool, UniLpMarket
 
 # To print all the columns of dataframe, we should set up display option.
 pd.options.display.max_columns = None
@@ -38,10 +38,10 @@ class MyFirstStrategy(Strategy):
 if __name__ == "__main__":
     """
     Here shows how to start a back test. Demeter has 4 components.
-    * Actuator: It controls the whole test process, and keeps test result.
-    * Broker: Broker manage assets and markets. When you declare an actuator, you will have a default broker inside.
-    * Market: Market is the place you execute transactions. There are various market type, and we support Uniswap Liquid Provider market now. We can do different actions like add/remove liquidity in market.
-    * Strategy: It's a class developed by user, User can simulate different actions in a strategy,
+    * Actuator: It controls the whole test process, and keeps backtest result.
+    * Broker: Broker manage assets(token balance in wallet) and markets(eg. uniswap or aave). When you declare an actuator, you will have a default broker inside.
+    * Market: Market is the place you execute transactions. There are various market type, and we support Uniswap V3 Liquid Provider market and AAVE now.
+    * Strategy: It's a class designed for test different market making strategies. Users need to inherit the strategy class and test returns of different strategies through on_bar processing or triggers.
     """
 
     # Declare a token, and it's name will be used as unit of amounts.

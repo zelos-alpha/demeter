@@ -5,8 +5,8 @@ from decimal import Decimal
 import pandas as pd
 
 import demeter
-from demeter import UniLpMarket, TokenInfo, Broker, MarketInfo, ChainType
-from demeter.uniswap import UniV3Pool, UniV3PoolStatus
+from demeter import TokenInfo, Broker, MarketInfo, ChainType
+from demeter.uniswap import UniLpMarket, UniV3Pool, UniV3PoolStatus
 
 test_market = MarketInfo("market1")
 

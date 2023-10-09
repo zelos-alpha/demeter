@@ -3,8 +3,8 @@ from datetime import timedelta
 
 import pandas as pd
 
-from demeter import TokenInfo, Actuator, Strategy, RowData, UniLpMarket, MarketInfo, MarketDict
-from demeter.uniswap import UniV3Pool
+from demeter import TokenInfo, Actuator, Strategy, RowData, MarketInfo, MarketDict
+from demeter.uniswap import UniV3Pool, UniLpMarket
 from .common import assert_equal
 from .utils import get_mock_data
 

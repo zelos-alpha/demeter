@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pandas as pd
 
-from demeter import UniLpMarket
+from demeter.uniswap import UniLpMarket
 
 
 def get_mock_data(market: UniLpMarket, tick, amount0=0, amount1=0, total_l=Decimal(0)):

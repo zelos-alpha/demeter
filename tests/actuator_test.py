@@ -6,8 +6,8 @@ from datetime import date, datetime
 import pandas as pd
 
 import demeter.indicator
-from demeter import TokenInfo, Actuator, Strategy, UniLpMarket, MarketInfo, RowData, MarketDict, ChainType
-from demeter.uniswap import PositionInfo, UniV3Pool
+from demeter import TokenInfo, Actuator, Strategy, MarketInfo, RowData, MarketDict, ChainType
+from demeter.uniswap import PositionInfo, UniV3Pool, UniLpMarket
 
 pd.options.display.max_columns = None
 # pd.options.display.max_rows = None
@@ -105,18 +105,6 @@ class TestActuator(unittest.TestCase):
 
         market.data_path = "data"
         market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 13), date(2023, 8, 14))
-        self.assertEqual(market.data.loc[datetime(2023, 8, 14, 0, 0, 0)]["netAmount0"], 0)
-
-    #TODO
-    def test_uniswap_load_missing_data_start(self):
-        pool = UniV3Pool(usdc, eth, 0.05, usdc)
-        market = UniLpMarket(test_market, pool)
-        actuator: Actuator = Actuator()  # declare actuator
-        broker = actuator.broker
-        broker.add_market(market)
-
-        market.data_path = "data"
-        market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 14), date(2023, 8, 14))
         self.assertEqual(market.data.loc[datetime(2023, 8, 14, 0, 0, 0)]["netAmount0"], 0)
 
     def test_add_liquidity(self):
