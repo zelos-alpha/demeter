@@ -22,14 +22,14 @@ class Rule(NamedTuple):
     fillna_value: int | None
 
 
-@dataclass
-class RowData:
-    """
-    Row properties
-    """
-
-    timestamp: datetime = None
-    row_id: int = None
+# @dataclass
+# class RowData:
+#     """
+#     Row properties
+#     """
+#
+#     timestamp: datetime = None
+#     row_id: int = None
 
 
 class MarketTypeEnum(Enum):
@@ -215,6 +215,7 @@ class MarketStatus:
     """
 
     timestamp: datetime | None
+    data: pd.Series = None
 
 
 T = TypeVar("T")

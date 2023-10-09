@@ -7,15 +7,16 @@ from typing import List, Dict
 from dataclasses import dataclass, field
 import orjson
 import pandas as pd
+from pandas import Timestamp
 from tqdm import tqdm  # process bar
 
 from .evaluating_indicator import Evaluator
-from .. import Broker, RowData, Asset
+from .. import Broker, Asset
 from .._typing import DemeterError, EvaluatorEnum, UnitDecimal
-from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict
+from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus
 from ..uniswap import UniLpMarket, PositionInfo
 from ..strategy import Strategy
-from ..utils import get_formatted_predefined, STYLE
+from ..utils import get_formatted_predefined, STYLE, to_decimal
 
 
 class Actuator(object):
@@ -222,6 +223,7 @@ class Actuator(object):
         [1440 rows x 2 columns]
         :return: None
         """
+        prices = prices.applymap(lambda y: to_decimal(y))
         if isinstance(prices, pd.DataFrame):
             if self._token_prices is None:
                 self._token_prices = prices
@@ -279,8 +281,12 @@ class Actuator(object):
         # ensure data length same
         if List.count(data_length, data_length[0]) != len(data_length):
             raise DemeterError("data length among markets are not same")
-        if len(self._token_prices.index) != data_length[0]:
-            raise DemeterError("price length and data length are not same")
+        default_market_data = self._broker.markets.default.data
+        if (
+            self._token_prices.head(1).index[0] > default_market_data.head(1).index[0]
+            or self._token_prices.tail(1).index[0] < default_market_data.tail(1).index[0]
+        ):
+            raise DemeterError("Time range of price doesn't cover market data")
         length = data_length[0]
         # ensure data interval same
         data_interval = []
@@ -293,24 +299,30 @@ class Actuator(object):
             if price_interval != data_interval[0]:
                 raise DemeterError("price list interval and data interval are not same")
 
-    def __get_market_row_dict(self, index, row_id) -> MarketDict:
-        """
-        get market row dict info
-        :param index:
-        :param row_id:
-        :return: Market dict
-        """
+    # def __get_market_row_dict(self, index, row_id) -> MarketDict:
+    #     """
+    #     get market row dict info
+    #     :param index:
+    #     :param row_id:
+    #     :return: Market dict
+    #     """
+    #     market_dict = MarketDict()
+    #     for market_key, market in self._broker.markets.items():
+    #         market_row = RowData(index.to_pydatetime(), row_id)
+    #         df_row = market.data.loc[index]
+    #         for column_name in df_row.index:
+    #             setattr(market_row, column_name, df_row[column_name])
+    #         market_dict[market_key] = market_row
+    #     market_dict.set_default_key(self.broker.markets.get_default_key())
+    #     return market_dict
+    def __get_market_status(self) -> MarketDict:
         market_dict = MarketDict()
-        for market_key, market in self._broker.markets.items():
-            market_row = RowData(index.to_pydatetime(), row_id)
-            df_row = market.data.loc[index]
-            for column_name in df_row.index:
-                setattr(market_row, column_name, df_row[column_name])
-            market_dict[market_key] = market_row
+        for market_info, market in self.broker.markets.items():
+            market_dict[market_info] = market.market_status.data
         market_dict.set_default_key(self.broker.markets.get_default_key())
         return market_dict
 
-    def __set_row_to_markets(self, timestamp, market_row_dict: dict, update: bool = False):
+    def __set_row_to_markets(self, timestamp: Timestamp, update: bool = False):
         """
         set markets row data
         :param timestamp:
@@ -319,11 +331,10 @@ class Actuator(object):
         :return:
         """
 
-        # 过时的设计, 可以优化.
-        # 数据是从market中获取的. 没必要再给set回去. 直接传入一个index就可以了
-        for market_key, market_row_data in market_row_dict.items():
+        for market_key in self.broker.markets.keys():
             if (not update) or (update and self._broker.markets[market_key].has_update):
-                self._broker.markets[market_key].set_market_status(timestamp, market_row_data, self._token_prices.loc[timestamp])
+                ms = MarketStatus(timestamp, None)
+                self._broker.markets[market_key].set_market_status(ms, self._token_prices.loc[timestamp])
 
     def run(self, evaluator: List[EvaluatorEnum] | None = None, output: bool = True):
         """
@@ -354,9 +365,11 @@ class Actuator(object):
         index_array: pd.DatetimeIndex = list(self._broker.markets.values())[0].data.index
         self.logger.info("init strategy...")
 
+        for market in self.broker.markets.values():
+            market.data["timestamp"] = market.data.index
+
         # set initial status for strategy, so user can run some calculation in initial function.
-        init_row_data = self.__get_market_row_dict(index_array[0], 0)
-        self.__set_row_to_markets(index_array[0], init_row_data, False)
+        self.__set_row_to_markets(index_array[0], False)
         # keep initial balance for evaluating
         init_account_status = self._broker.get_account_status(self._token_prices.head(1).iloc[0])
         self.init_strategy()
@@ -367,28 +380,28 @@ class Actuator(object):
             for timestamp_index in index_array:
                 current_price = self._token_prices.loc[timestamp_index]
                 # prepare data of a row
-                market_row_dict = self.__get_market_row_dict(timestamp_index, row_id)
-                row_id += 1
-                self.__set_row_to_markets(timestamp_index, market_row_dict, False)
+
+                self.__set_row_to_markets(timestamp_index, False)
                 # execute strategy, and some calculate
                 self._currents.timestamp = timestamp_index.to_pydatetime()
-
+                status_dict = self.__get_market_status()
                 if self._strategy.triggers:
                     for trigger in self._strategy.triggers:
-                        if trigger.when(market_row_dict, current_price):
-                            trigger.do(market_row_dict, current_price)
-                self._strategy.on_bar(market_row_dict, current_price)
+                        if trigger.when(status_dict, current_price, timestamp_index):
+                            trigger.do(status_dict, current_price, timestamp_index)
+                self._strategy.on_bar(status_dict, current_price, timestamp_index)
 
                 # important, take uniswap market for example,
                 # if liquidity has changed in the head of this minute, this will add the new liquidity to total_liquidity in current minute.
-                self.__set_row_to_markets(timestamp_index, market_row_dict, True)
+                self.__set_row_to_markets(timestamp_index, True)
 
                 # update broker status, eg: re-calculate fee
                 # and read the latest status from broker
                 for market in self._broker.markets.values():
                     market.update()
 
-                self._strategy.after_bar(market_row_dict, current_price)
+                status_dict = self.__get_market_status()
+                self._strategy.after_bar(status_dict, current_price, timestamp_index)
 
                 self._account_status_list.append(self._broker.get_account_status(current_price, timestamp_index))
                 # notify actions in current loop
@@ -396,6 +409,7 @@ class Actuator(object):
                 self._currents.actions = []
                 # move forward for process bar and index
                 pbar.update()
+                row_id += 1
 
         self.logger.info("main loop finished")
         self._account_status_df: pd.DataFrame = self.get_account_status_dataframe()

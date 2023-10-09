@@ -215,20 +215,33 @@ def position_dict_to_dataframe(positions: Dict[PositionInfo, Position]) -> pd.Da
 
 
 @dataclass
-class UniV3PoolStatus(MarketStatus):
+class UniV3PoolStatus:
     """
     current status of a pool, actuators can notify current status to broker by filling this entity
     """
 
-    current_tick: int
-    current_liquidity: int
-    in_amount0: int
-    in_amount1: int
     price: Decimal
     # tick of last minute(previous minute), to compatible with old version, keep default as None
     # note: I have to make it compatible, as someone would check out their private version,
     # Please fill this paameter as much as possible to improve accuracy
     last_tick: int | None = None
+    # required by market class
+    currentLiquidity: int = None
+    inAmount0: int = None
+    inAmount1: int = None
+    closeTick: int = None
+
+    # useless. just pass poperity to
+    netAmount0: int = None
+    netAmount1: int = None
+    openTick: int = None
+    lowestTick: int = None
+    highestTick: int = None
+    open: Decimal = None
+    low: Decimal = None
+    high: Decimal = None
+    volume0: Decimal = None
+    volume1: Decimal = None
 
 
 @dataclass

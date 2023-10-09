@@ -1,5 +1,4 @@
 from ._typing import (
-    RowData,
     BaseAction,
     MarketBalance,
     AccountStatus,

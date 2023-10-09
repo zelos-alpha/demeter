@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Dict, List
 
 import pandas as pd
@@ -5,7 +6,7 @@ import pandas as pd
 from .trigger import Trigger
 from .. import Broker, MarketDict, AccountStatus, AssetDict, Asset
 from .._typing import DemeterError
-from ..broker import MarketInfo, RowData, BaseAction, Market
+from ..broker import MarketInfo, MarketStatus, BaseAction, Market
 
 
 class Strategy(object):
@@ -31,23 +32,23 @@ class Strategy(object):
         """
         pass
 
-    def on_bar(self, row_data: MarketDict[RowData], price: pd.Series):
+    def on_bar(self, row_data: MarketDict[MarketStatus], price: pd.Series, timestamp: datetime):
         """
         called after triggers on each row, at this time, fees and account status are not updated yet. you can add some actions here
 
         :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
-        :type row_data: Union[{MarketInfo:RowData}, pd.Series]
+        :type row_data: Union[{MarketInfo:MarketStatus}, pd.Series]
         :param price: current price of all tokens
         :type price: pd.Series
         """
         pass
 
-    def after_bar(self, row_data: MarketDict[RowData], price: pd.Series):
+    def after_bar(self, row_data: MarketDict[MarketStatus], price: pd.Series, timestamp: datetime):
         """
         called after fees and account status are updated on each row. you can add some statistic logic here
 
         :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
-        :type row_data: Union[{MarketInfo:RowData}, pd.Series]
+        :type row_data: Union[{MarketInfo:MarketStatus}, pd.Series]
         :param price: current price of all tokens
         :type price: pd.Series
         """

@@ -22,7 +22,7 @@ from ._typing import (
     UniDescription,
 )
 from .core import V3CoreLib
-from .data import fillna, UniLPData
+from .data import fillna
 from .helper import (
     tick_to_quote_price,
     quote_price_to_tick,
@@ -31,7 +31,7 @@ from .helper import (
 )
 from .liquitidy_math import get_sqrt_ratio_at_tick
 from .._typing import DemeterError, DECIMAL_0, UnitDecimal
-from ..broker import MarketBalance, Market, MarketInfo
+from ..broker import MarketBalance, Market, MarketInfo, MarketStatus
 from ..utils import (
     get_formatted_from_dict,
     get_formatted_predefined,
@@ -70,7 +70,6 @@ class UniLpMarket(Market):
         self.base_token, self.quote_token = self._convert_pair(self.pool_info.token0, self.pool_info.token1)
         # status
         self._positions: Dict[PositionInfo, Position] = {}
-        self._market_status = UniV3PoolStatus(None, 0, 0, 0, 0, DECIMAL_0)
         # In order to distinguish price in pool and to u, we call former one "pool price"
         self._pool_price_unit = f"{self.base_token.name}/{self.quote_token.name}"
         # internal temporary variable
@@ -136,36 +135,31 @@ class UniLpMarket(Market):
         return self._positions[position_info]
 
     @property
-    def market_status(self) -> UniV3PoolStatus:
+    def market_status(self) -> MarketStatus:
         return self._market_status
 
     # endregion
 
     def set_market_status(
         self,
-        timestamp: datetime | None,
-        data: UniLPData | UniV3PoolStatus,
+        data: MarketStatus | None,
         price: pd.Series | None,
     ):
         # update price tick
-        local_prev_tick = self._market_status.current_tick
+        local_prev_tick = self._market_status.data.closeTick
         total_virtual_liq = sum([p.liquidity for p in self._positions.values()])
-        if isinstance(data, UniV3PoolStatus):
-            self._market_status = data
-            self._market_status.current_liquidity += total_virtual_liq
-            if not data.last_tick:
-                self._market_status.last_tick = local_prev_tick
-        else:
-            self._market_status = UniV3PoolStatus(
-                timestamp,
-                int(data.closeTick),
-                data.currentLiquidity + total_virtual_liq,
-                data.inAmount0,
-                data.inAmount1,
-                data.price,
-                local_prev_tick,
-            )
+
+        if data.data is None:
+            data.data = self.data.loc[data.timestamp].copy()
+        if "last_tick" not in data.data.index:
+            data.data["last_tick"] = local_prev_tick
+        data.data["currentLiquidity"] = data.data["currentLiquidity"] + total_virtual_liq
+        data.data["last_tick"] = data.data["currentLiquidity"] + total_virtual_liq
+
+        self._market_status = data
+
         self._price_status = price
+
         self.has_update = False
 
     def get_price_from_data(self) -> pd.DataFrame:
@@ -232,10 +226,10 @@ class UniLpMarket(Market):
         :return: MarketBalance
         """
         if prices is None:
-            pool_price = self._market_status.price
+            pool_price = self._market_status.data.price
             prices = {
                 self.base_token.name: Decimal(1),
-                self.quote_token.name: self._market_status.price,
+                self.quote_token.name: self._market_status.data.price,
             }
         else:
             pool_price = prices[self.quote_token.name] / prices[self.base_token.name]
@@ -321,7 +315,7 @@ class UniLpMarket(Market):
 
         if sqrt_price_x96 == -1:
             # self.current_tick must be initialed
-            sqrt_price_x96 = get_sqrt_ratio_at_tick(self.market_status.current_tick)
+            sqrt_price_x96 = get_sqrt_ratio_at_tick(self.market_status.closeTick)
         if lower_tick > upper_tick:
             raise DemeterError("lower tick should be less than upper tick")
 
@@ -343,7 +337,7 @@ class UniLpMarket(Market):
         return position_info, token0_used, token1_used, liquidity
 
     def __remove_liquidity(self, position: PositionInfo, liquidity: int = None, sqrt_price_x96: int = -1):
-        sqrt_price_x96 = int(sqrt_price_x96) if sqrt_price_x96 != -1 else get_sqrt_ratio_at_tick(self.market_status.current_tick)
+        sqrt_price_x96 = int(sqrt_price_x96) if sqrt_price_x96 != -1 else get_sqrt_ratio_at_tick(self.market_status.closeTick)
         delta_liquidity = (
             liquidity if (liquidity is not None) and liquidity < self.positions[position].liquidity else self.positions[position].liquidity
         )
@@ -678,7 +672,7 @@ class UniLpMarket(Market):
         :rtype: (Decimal, Decimal, Decimal)
         """
         if price is None:
-            price = self._market_status.price
+            price = self._market_status.data.price
 
         total_capital = self.broker.get_token_balance(self.base_token) + self.broker.get_token_balance(self.quote_token) * price
         target_base_amount = total_capital / 2

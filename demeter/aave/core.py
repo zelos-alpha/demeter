@@ -91,13 +91,14 @@ class AaveV3CoreLib(object):
 
     @staticmethod
     def safe_div(a: Decimal, b: Decimal) -> Decimal:
-        if b == 0:
-            return Decimal("inf")
-        else:
-            return a / b
+        return a / b if b != 0 else Decimal("inf")
+
+    @staticmethod
+    def safe_div_zero(a: Decimal, b: Decimal) -> Decimal:
+        return a / b if b != 0 else Decimal(0)
 
     @staticmethod
     def get_apy(amounts: Dict[ActionKey, Decimal], rate_dict: Dict[TokenInfo, Decimal]):
         a = Decimal(sum([amounts[key] * AaveV3CoreLib.rate_to_apy(rate_dict[key.token]) for key, amount in amounts.items()]))
         b = Decimal(sum(amounts.values()))
-        return AaveV3CoreLib.safe_div(a, b)
+        return AaveV3CoreLib.safe_div_zero(a, b)  # if total amount is 0, apy should be 0

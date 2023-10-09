@@ -1,6 +1,5 @@
 from decimal import Decimal
 from enum import Enum
-from typing import NamedTuple
 
 DECIMAL_0 = Decimal(0)
 DECIMAL_1 = Decimal(1)

@@ -109,7 +109,7 @@ class TestUniLpMarket(unittest.TestCase):
         # should use all the balance
         market: UniLpMarket = broker.markets[test_market]
         (new_position, base_used, quote_used, liquidity) = market._add_liquidity_by_tick(
-            market.market_status.price / 2, Decimal(0.5), market.market_status.current_tick - 100, market.market_status.current_tick + 100
+            market.market_status.price / 2, Decimal(0.5), market.market_status.closeTick - 100, market.market_status.closeTick + 100
         )
         TestUniLpMarket.print_broker(broker)
         self.assertEqual(0.5, round(broker.assets[self.eth].balance, 4))
@@ -119,12 +119,12 @@ class TestUniLpMarket(unittest.TestCase):
         market: UniLpMarket = broker.markets[test_market]
         # should use all the balance
         (new_position1, base_used1, quote_used1, liquidity1) = market._add_liquidity_by_tick(
-            market.market_status.price / 2, Decimal(0.5), market.market_status.current_tick - 100, market.market_status.current_tick + 100
+            market.market_status.price / 2, Decimal(0.5), market.market_status.closeTick - 100, market.market_status.closeTick + 100
         )
         TestUniLpMarket.print_broker(broker)
         self.assertEqual(0.5, round(broker.assets[self.eth].balance, 4))
         (new_position2, base_used2, quote_used2, liquidity2) = market._add_liquidity_by_tick(
-            market.market_status.price / 2, Decimal(0.5), market.market_status.current_tick - 100, market.market_status.current_tick + 100
+            market.market_status.price / 2, Decimal(0.5), market.market_status.closeTick - 100, market.market_status.closeTick + 100
         )
         TestUniLpMarket.print_broker(broker)
         self.assertEqual(base_used1, base_used2)
@@ -144,7 +144,7 @@ class TestUniLpMarket(unittest.TestCase):
         market: UniLpMarket = broker.markets[test_market]
         # should use all the balance
         market._add_liquidity_by_tick(
-            market.market_status.price, Decimal(1), market.market_status.current_tick - 1000, market.market_status.current_tick + 1000
+            market.market_status.price, Decimal(1), market.market_status.closeTick - 1000, market.market_status.closeTick + 1000
         )
 
         print(broker.formatted_str())
@@ -154,7 +154,7 @@ class TestUniLpMarket(unittest.TestCase):
         market: UniLpMarket = broker.markets.market1
         # should use all the balance
         (new_position, base_used, quote_used, liquidity) = market._add_liquidity_by_tick(
-            market.market_status.price, Decimal(1), market.market_status.current_tick - 1000, market.market_status.current_tick + 1000
+            market.market_status.price, Decimal(1), market.market_status.closeTick - 1000, market.market_status.closeTick + 1000
         )
 
         # print(new_position, base_used, quote_used, liquidity)
@@ -172,7 +172,7 @@ class TestUniLpMarket(unittest.TestCase):
         token0_amt = broker.assets[self.usdc].balance
         token1_amt = broker.assets[self.eth].balance
         (new_position, base_used, quote_used, liquidity) = market.add_liquidity_by_tick(
-            market.market_status.current_tick - 100, market.market_status.current_tick + 100, token0_amt, token1_amt
+            market.market_status.closeTick - 100, market.market_status.closeTick + 100, token0_amt, token1_amt
         )
         TestUniLpMarket.print_broker(broker)
         market.remove_liquidity(new_position)
@@ -187,7 +187,7 @@ class TestUniLpMarket(unittest.TestCase):
         market: UniLpMarket = broker.markets[test_market]
         # should use all the balance
         (new_position, base_used, quote_used, liquidity) = market._add_liquidity_by_tick(
-            market.market_status.price, Decimal(1), market.market_status.current_tick - 10, market.market_status.current_tick + 10
+            market.market_status.price, Decimal(1), market.market_status.closeTick - 10, market.market_status.closeTick + 10
         )
         TestUniLpMarket.print_broker(broker)
         eth_amount = 10000000000000000000
@@ -196,11 +196,11 @@ class TestUniLpMarket(unittest.TestCase):
             None,
             UniV3PoolStatus(
                 None,
-                market.market_status.current_tick,
+                market.market_status.closeTick,
                 liquidity * 100,
                 usdc_amount,
                 eth_amount,
-                market.tick_to_price(market.market_status.current_tick),
+                market.tick_to_price(market.market_status.closeTick),
             ),
             None,
         )

@@ -151,13 +151,13 @@ class AaveTokenStatus:
     variable_borrow_index: Decimal
 
 
-@dataclass
-class AaveV3PoolStatus(MarketStatus):
-    """
-    current status of a pool, actuators can notify current status to broker by filling this entity
-    """
-
-    tokens: Dict[TokenInfo, AaveTokenStatus]
+# @dataclass
+# class AaveV3PoolStatus:
+#     """
+#     current status of a pool, actuators can notify current status to broker by filling this entity
+#     """
+#
+#     tokens: Dict[TokenInfo, AaveTokenStatus]
 
 
 class RiskParameter:
