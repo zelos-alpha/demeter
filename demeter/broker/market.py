@@ -5,7 +5,7 @@ from typing import Dict, Callable
 
 import pandas as pd
 
-from ._typing import BaseAction, MarketBalance, MarketStatus, MarketInfo, RowData
+from ._typing import BaseAction, MarketBalance, MarketStatus, MarketInfo
 from .._typing import DECIMAL_0, DemeterError
 
 DEFAULT_DATA_PATH = "./data"
@@ -29,7 +29,7 @@ class Market:
         self._record_action_callback: Callable[[BaseAction], None] = None
         self.data_path: str = data_path
         self.logger = logging.getLogger(__name__)
-        self._market_status: MarketStatus = MarketStatus(None, 0, pd.Series())
+        self._market_status: MarketStatus = MarketStatus(None, pd.Series())
         self._price_status: pd.Series | None = None
         # if some var that related to market status has changed, should set this to True, then the second set_market_status in every minute will be triggerd
         # eg: At uniswap market, when add liquidity in the head of the minute, this flag will be set to True,

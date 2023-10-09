@@ -7,7 +7,7 @@ from typing import Dict
 import pandas as pd
 from pandas import _typing as pd_typing
 
-from ..broker import Rule, RowData
+from ..broker import Rule
 
 DEFAULT_AGG_METHOD = "first"
 EMPTY_RULE = Rule(None, None, None)
@@ -32,7 +32,7 @@ class UniLPDataRaw:
 
 
 @dataclass
-class UniLPData(RowData):
+class UniLPData:
     """
     data type used in back test, extended from  UniLPDataRaw
     """
