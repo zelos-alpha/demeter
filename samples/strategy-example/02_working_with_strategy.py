@@ -2,9 +2,8 @@ from datetime import timedelta, date
 
 import pandas as pd
 import math
-from demeter import TokenInfo, Actuator, Strategy, RowData, simple_moving_average, ChainType, MarketInfo, UniLpMarket, MarketDict, PeriodTrigger
-from demeter.uniswap import UniV3Pool
-from demeter.broker import BaseAction
+from demeter import TokenInfo, Actuator, Strategy, RowData, simple_moving_average, ChainType, MarketInfo, MarketDict, PeriodTrigger, BaseAction
+from demeter.uniswap import UniV3Pool, UniLpMarket
 
 pd.options.display.max_columns = None
 pd.set_option("display.width", 5000)
@@ -51,7 +50,7 @@ class DemoStrategy(Strategy):
         # Register a trigger, every day, we split both assets into two shares of equal value
         self.triggers.append(PeriodTrigger(time_delta=timedelta(days=1), trigger_immediately=True, do=self.rebalance))
 
-    def rebalance(self, row_data: MarketDict[RowData]):
+    def rebalance(self, row_data: MarketDict[RowData], price: pd.Series):
         self.markets[market_key].even_rebalance(row_data[market_key].price)
 
     """
@@ -59,14 +58,7 @@ class DemoStrategy(Strategy):
     Here you can set conditions and execute liquidity operations 
     """
 
-    def before_bar(self, row_data: MarketDict[RowData]):
-        """
-        This function is called before every thing
-        """
-        timestamp = row_data[market_key].timestamp
-        self.net_value_before_bar = self.broker.get_account_status(self.prices.loc[timestamp]).net_value
-
-    def on_bar(self, row_data: MarketDict[RowData]):
+    def on_bar(self, row_data: MarketDict[RowData], price: pd.Series):
         """
         This function is called after trigger, but before market is updated(Fees will be distributed in this step).
         """
@@ -84,7 +76,7 @@ class DemoStrategy(Strategy):
             lp_market.remove_all_liquidity()
             lp_market.add_liquidity(current_price - 100, current_price)
 
-    def after_bar(self, row_data: MarketDict[RowData]):
+    def after_bar(self, row_data: MarketDict[RowData], price: pd.Series):
         """
         this function is called after market has updated.
         """
@@ -118,7 +110,7 @@ if __name__ == "__main__":
     market_key = MarketInfo("market1")  # market1
     market = UniLpMarket(market_key, pool)
     market.data_path = "../data"
-    market.load_data(ChainType.Polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2022, 8, 20), date(2022, 8, 20))
+    market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 15), date(2023, 8, 15))
 
     actuator = Actuator()  # init actuator
     actuator.broker.add_market(market)  # add market to actuator

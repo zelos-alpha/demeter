@@ -743,6 +743,8 @@ class UniLpMarket(Market):
         self.logger.info(f"start load files from {start_date} to {end_date}...")
         df = pd.DataFrame()
         day = start_date
+        if start_date > end_date:
+            raise DemeterError(f"start date {start_date} should eariler than end date {end_date}")
         while day <= end_date:
             new_type_path = os.path.join(
                 self.data_path,

@@ -3,11 +3,22 @@ from datetime import date, timedelta
 
 import pandas as pd
 
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, ChainType, PeriodTrigger, realized_volatility, \
-    simple_moving_average, MarketInfo, UniLpMarket, MarketDict, RowData
+from demeter import (
+    TokenInfo,
+    Actuator,
+    Strategy,
+    ChainType,
+    PeriodTrigger,
+    realized_volatility,
+    simple_moving_average,
+    MarketInfo,
+    MarketDict,
+    RowData,
+)
+from demeter.uniswap import UniV3Pool, UniLpMarket
 
 pd.options.display.max_columns = None
-pd.set_option('display.width', 5000)
+pd.set_option("display.width", 5000)
 c = 2
 
 
@@ -29,25 +40,20 @@ class AddByVolatility(Strategy):
 
     def initialize(self):
         self._add_column(market_key, "sma_1_day", simple_moving_average(self.data[market_key].price, timedelta(days=1)))
-        self._add_column(market_key, "volatility", realized_volatility(self.data[market_key].price,
-                                                                       timedelta(days=1),
-                                                                       timedelta(days=1)))
-        self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=4),
-                                           trigger_immediately=True,
-                                           do=self.work))
+        self._add_column(market_key, "volatility", realized_volatility(self.data[market_key].price, timedelta(days=1), timedelta(days=1)))
+        self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=4), trigger_immediately=True, do=self.work))
         self.markets.default.even_rebalance(self.data[market_key].price[0])
 
-    def work(self, row_data: MarketDict[RowData]):
+    def work(self, row_data: MarketDict[RowData], price:pd.Series):
         lp_market: UniLpMarket = self.broker.markets[market_key]
         lp_row_data = row_data[market_key]
         if len(lp_market.positions) > 0:
             lp_market.remove_all_liquidity()
-            lp_market.even_rebalance(lp_row_data.price)
+            lp_market.even_rebalance(price[eth.name])
         if math.isnan(lp_row_data.volatility):
             return
-        limit = c * float(lp_row_data.price) * lp_row_data.volatility
-        lp_market.add_liquidity(lp_row_data.sma_1_day - limit,
-                                lp_row_data.sma_1_day + limit)
+        limit = c * float(price[eth.name]) * lp_row_data.volatility
+        lp_market.add_liquidity(lp_row_data.sma_1_day - limit, lp_row_data.sma_1_day + limit)
 
 
 if __name__ == "__main__":
@@ -67,9 +73,6 @@ if __name__ == "__main__":
     actuator.strategy = AddByVolatility()
 
     market.data_path = "../data"
-    market.load_data(ChainType.Polygon.name,
-                     "0x45dda9cb7c25131df268515131f647d726f50608",
-                     date(2022, 8, 5),
-                     date(2022, 8, 10))
+    market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 13), date(2023, 8, 17))
     actuator.set_price(market.get_price_from_data())
     actuator.run()  # run test

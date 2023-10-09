@@ -3,12 +3,11 @@ from typing import List
 
 import pandas as pd
 
-from demeter import TokenInfo, UniV3Pool, Actuator, Strategy, RowData, ChainType, \
-    MarketInfo, UniLpMarket, MarketDict, AtTimeTrigger, simple_moving_average, AccountStatus
-from demeter.uniswap import UniLPData
+from demeter import TokenInfo, Actuator, Strategy, RowData, ChainType, MarketInfo, MarketDict, AtTimeTrigger, simple_moving_average, AccountStatus
+from demeter.uniswap import UniLPData, UniV3Pool, UniLpMarket
 
 pd.options.display.max_columns = None
-pd.set_option('display.width', 5000)
+pd.set_option("display.width", 5000)
 
 
 class DemoStrategy(Strategy):
@@ -17,22 +16,22 @@ class DemoStrategy(Strategy):
     """
 
     def initialize(self):
-        new_trigger = AtTimeTrigger(
-            time=datetime(2022, 8, 20, 12, 0, 0),
-            do=self.work)
-        self.triggers.append(new_trigger)  # add new trigger at 2022-08-20 12:00:00
+        new_trigger = AtTimeTrigger(time=datetime(2023, 8, 15, 12, 0, 0), do=self.work)
+        self.triggers.append(new_trigger)  # add new trigger at 2023-8-15 12:00:00
         # add an indicator column, this column will be appended to corresponding market data
-        self._add_column(market=market_key,
-                         name="sma",  # name,
-                         line=simple_moving_average(self.data[market_key].price))
+        self._add_column(market=market_key, name="sma", line=simple_moving_average(self.data[market_key].price))  # name,
 
-    def work(self, row_data: MarketDict[RowData]):
+    def work(self, row_data: MarketDict[RowData], price: pd.Series):
+        # price set to actuator
+        eth_price_external = price["ETH"]
+        eth_price_external = price[eth.name]
+
         # current data row,
-        price = row_data[market_key].price
+        eth_price_in_uniswap = row_data[market_key].price
         row: UniLPData = row_data[market_key]
-        price = row.price
-        price = row_data.market1.price
-        price = row_data.default.price
+        eth_price_in_uniswap = row.price
+        eth_price_in_uniswap = row_data.market1.price
+        eth_price_in_uniswap = row_data.default.price
         # access extra column by its name
         ma_value = row_data[market_key].sma
 
@@ -44,11 +43,9 @@ class DemoStrategy(Strategy):
         # access current row
         assert data.loc[row_data.default.timestamp].netAmount0 == data.iloc[row_data.default.row_id].netAmount0
         # access one minute before
-        assert data.loc[row_data.default.timestamp - timedelta(minutes=1)].price == \
-               data.iloc[row_data.default.row_id - 1].price
+        assert data.loc[row_data.default.timestamp - timedelta(minutes=1)].price == data.iloc[row_data.default.row_id - 1].price
         # access extra column by its name
         ma = self.data[market_key].sma
-
 
         # account_status, it's very important as it contains net_value.
         # it is kept in a list. if you need a dataframe. you can call get_account_status_dataframe()
@@ -65,10 +62,7 @@ if __name__ == "__main__":
     market_key = MarketInfo("market1")
     market = UniLpMarket(market_key, pool)
     market.data_path = "../data"
-    market.load_data(ChainType.Polygon.name,
-                     "0x45dda9cb7c25131df268515131f647d726f50608",
-                     date(2022, 8, 20),
-                     date(2022, 8, 20))
+    market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 15), date(2023, 8, 15))
 
     actuator = Actuator()
     actuator.broker.add_market(market)

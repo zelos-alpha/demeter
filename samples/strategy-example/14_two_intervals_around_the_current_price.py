@@ -2,12 +2,12 @@ from datetime import timedelta, date
 
 import pandas as pd
 
-from demeter import TokenInfo, UniV3Pool, Actuator, ChainType, MarketInfo, UniLpMarket, Strategy, PeriodTrigger, \
-    MarketDict, RowData
+from demeter import TokenInfo, Actuator, ChainType, MarketInfo, Strategy, PeriodTrigger, MarketDict, RowData
+from demeter.uniswap import UniV3Pool, UniLpMarket
 from strategy_ploter import plot_position_return_decomposition
 
 pd.options.display.max_columns = None
-pd.set_option('display.width', 5000)
+pd.set_option("display.width", 5000)
 
 
 class TwoIntervalsAroundtheCurrentPrice(Strategy):
@@ -27,20 +27,17 @@ class TwoIntervalsAroundtheCurrentPrice(Strategy):
             lp_market.add_liquidity(init_price, init_price + self.b)
         self.triggers.append(PeriodTrigger(time_delta=timedelta(days=1), do=self.work))
 
-    def work(self, row_data: MarketDict[RowData]):
+    def work(self, row_data: MarketDict[RowData], price: pd.Series):
         lp_market: UniLpMarket = self.broker.markets[market_key]
-        lp_row_data = row_data[market_key]
 
         if len(lp_market.positions) > 0:
             lp_market.remove_all_liquidity()
-            lp_market.even_rebalance(lp_row_data.price)
-
-        current_price = lp_market.market_status.price
+            lp_market.even_rebalance(price[eth.name])
 
         if self.broker.assets[market.base_token].balance > 0:
-            lp_market.add_liquidity(current_price - self.b, current_price)
+            lp_market.add_liquidity(price[eth.name] - self.b, price[eth.name])
         else:
-            lp_market.add_liquidity(current_price, current_price + current_price + self.b)
+            lp_market.add_liquidity(price[eth.name], price[eth.name] + price[eth.name] + self.b)
 
 
 if __name__ == "__main__":
@@ -60,12 +57,7 @@ if __name__ == "__main__":
     actuator.strategy = TwoIntervalsAroundtheCurrentPrice(400, 200)
 
     market.data_path = "../data"
-    market.load_data(ChainType.Polygon.name,
-                     "0x45dda9cb7c25131df268515131f647d726f50608",
-                     date(2022, 8, 5),
-                     date(2022, 8, 20))
+    market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 13), date(2023, 8, 17))
     actuator.set_price(market.get_price_from_data())
     actuator.run()  # run test
-    plot_position_return_decomposition(actuator.get_account_status_dataframe(),
-                                       actuator.token_prices[eth.name],
-                                       market_key)
+    plot_position_return_decomposition(actuator.get_account_status_dataframe(), actuator.token_prices[eth.name], market_key)
