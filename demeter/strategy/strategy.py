@@ -4,7 +4,7 @@ from typing import Dict, List
 import pandas as pd
 
 from .trigger import Trigger
-from .. import Broker, MarketDict, AccountStatus, AssetDict, Asset
+from .. import Broker, MarketDict, AccountStatus, AssetDict, Asset, RowData
 from .._typing import DemeterError
 from ..broker import MarketInfo, MarketStatus, BaseAction, Market
 
@@ -32,7 +32,7 @@ class Strategy(object):
         """
         pass
 
-    def on_bar(self, row_data: MarketDict[MarketStatus], price: pd.Series, timestamp: datetime):
+    def on_bar(self, row_data: RowData):
         """
         called after triggers on each row, at this time, fees and account status are not updated yet. you can add some actions here
 
@@ -43,7 +43,7 @@ class Strategy(object):
         """
         pass
 
-    def after_bar(self, row_data: MarketDict[MarketStatus], price: pd.Series, timestamp: datetime):
+    def after_bar(self, row_data: RowData):
         """
         called after fees and account status are updated on each row. you can add some statistic logic here
 

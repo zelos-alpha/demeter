@@ -13,7 +13,7 @@ from tqdm import tqdm  # process bar
 from .evaluating_indicator import Evaluator
 from .. import Broker, Asset
 from .._typing import DemeterError, EvaluatorEnum, UnitDecimal
-from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus
+from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
 from ..uniswap import UniLpMarket, PositionInfo
 from ..strategy import Strategy
 from ..utils import get_formatted_predefined, STYLE, to_decimal
@@ -315,12 +315,12 @@ class Actuator(object):
     #         market_dict[market_key] = market_row
     #     market_dict.set_default_key(self.broker.markets.get_default_key())
     #     return market_dict
-    def __get_market_status(self) -> MarketDict:
-        market_dict = MarketDict()
+    def __get_row_data(self, timestamp, row_id, current_price) -> RowData:
+        row_data = RowData(timestamp.to_pydatetime(), row_id, current_price)
         for market_info, market in self.broker.markets.items():
-            market_dict[market_info] = market.market_status.data
-        market_dict.set_default_key(self.broker.markets.get_default_key())
-        return market_dict
+            row_data.market_status[market_info] = market.market_status.data
+        row_data.market_status.set_default_key(self.broker.markets.get_default_key())
+        return row_data
 
     def __set_row_to_markets(self, timestamp: Timestamp, update: bool = False):
         """
@@ -365,9 +365,6 @@ class Actuator(object):
         index_array: pd.DatetimeIndex = list(self._broker.markets.values())[0].data.index
         self.logger.info("init strategy...")
 
-        for market in self.broker.markets.values():
-            market.data["timestamp"] = market.data.index
-
         # set initial status for strategy, so user can run some calculation in initial function.
         self.__set_row_to_markets(index_array[0], False)
         # keep initial balance for evaluating
@@ -384,12 +381,12 @@ class Actuator(object):
                 self.__set_row_to_markets(timestamp_index, False)
                 # execute strategy, and some calculate
                 self._currents.timestamp = timestamp_index.to_pydatetime()
-                status_dict = self.__get_market_status()
+                row_data = self.__get_row_data(timestamp_index, row_id, current_price)
                 if self._strategy.triggers:
                     for trigger in self._strategy.triggers:
-                        if trigger.when(status_dict, current_price, timestamp_index):
-                            trigger.do(status_dict, current_price, timestamp_index)
-                self._strategy.on_bar(status_dict, current_price, timestamp_index)
+                        if trigger.when(row_data):
+                            trigger.do(row_data)
+                self._strategy.on_bar(row_data)
 
                 # important, take uniswap market for example,
                 # if liquidity has changed in the head of this minute, this will add the new liquidity to total_liquidity in current minute.
@@ -400,8 +397,8 @@ class Actuator(object):
                 for market in self._broker.markets.values():
                     market.update()
 
-                status_dict = self.__get_market_status()
-                self._strategy.after_bar(status_dict, current_price, timestamp_index)
+                row_data = self.__get_row_data(timestamp_index, row_id, current_price)
+                self._strategy.after_bar(row_data)
 
                 self._account_status_list.append(self._broker.get_account_status(current_price, timestamp_index))
                 # notify actions in current loop

@@ -13,7 +13,6 @@ from ._typing import (
     AaveBalance,
     SupplyInfo,
     BorrowInfo,
-    AaveV3PoolStatus,
     Supply,
     Borrow,
     InterestRateMode,

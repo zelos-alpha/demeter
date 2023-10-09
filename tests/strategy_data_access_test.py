@@ -1,9 +1,9 @@
 import unittest
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 import pandas as pd
 
-from demeter import TokenInfo, Actuator, Strategy, RowData, MarketInfo, MarketDict
+from demeter import TokenInfo, Actuator, Strategy, MarketInfo, MarketDict, MarketStatus, RowData
 from demeter.uniswap import UniV3Pool, UniLpMarket
 from .common import assert_equal
 from .utils import get_mock_data
@@ -22,8 +22,8 @@ test access data in different ways
 
 
 class WithSMA(Strategy):
-    def on_bar(self, row_data: MarketDict[RowData], price):
-        if row_data.uni_market.row_id == 2:
+    def on_bar(self, row_data: RowData):
+        if row_data.timestamp == datetime(2022, 10, 8, 8, 0, 1):
             # access current row, method is provided by demeter
             assert_equal(row_data.uni_market.closeTick, 2)
             assert_equal(id(self.data.uni_market), id(self.data[test_market]))
@@ -37,7 +37,7 @@ class WithSMA(Strategy):
             assert_equal(self.data[test_market]["closeTick"].iloc[0], 0)
 
             # access previous or after row
-            assert_equal(self.data[test_market].iloc[row_data[test_market].row_id - 2].closeTick, 0)
+            assert_equal(self.data.default.iloc[row_data.row_id - 2].closeTick, 0)
             assert_equal(self.data.default.loc[row_data.default.timestamp - timedelta(minutes=2)].closeTick, 0)
             assert_equal(self.data.default.loc[row_data.default.timestamp + timedelta(minutes=2)].closeTick, 4)
 

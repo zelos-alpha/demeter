@@ -1,5 +1,4 @@
 from ._typing import (
-    AaveV3PoolStatus,
     AaveTokenStatus,
     SupplyInfo,
     BorrowInfo,

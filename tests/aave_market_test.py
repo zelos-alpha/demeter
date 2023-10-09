@@ -5,9 +5,8 @@ from datetime import datetime, timedelta, date, timezone
 import numpy as np
 import pandas as pd
 
-from demeter import MarketInfo, TokenInfo, MarketTypeEnum, Broker
+from demeter import MarketInfo, TokenInfo, MarketTypeEnum, Broker, MarketStatus
 from demeter.aave import (
-    AaveV3PoolStatus,
     AaveTokenStatus,
     SupplyInfo,
     BorrowInfo,
@@ -26,7 +25,7 @@ weth = TokenInfo("weth", 18, "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619")
 
 
 def to_decimal(v: int) -> Decimal:
-    return Decimal(v / 10**27)
+    return Decimal(v) / Decimal(10**27)
 
 
 class UniLpDataTest(unittest.TestCase):
@@ -46,33 +45,39 @@ class UniLpDataTest(unittest.TestCase):
 
         price = pd.DataFrame(data={"USDT": Decimal(0.999990), "DAI": Decimal(1), "WMATIC": Decimal(0.509952)}, index=[timestamp])
 
-        pool_stat = AaveV3PoolStatus(timestamp, {})
-        pool_stat.tokens[dai] = AaveTokenStatus(
-            liquidity_rate=to_decimal(20721780596069986118711585),
-            stable_borrow_rate=to_decimal(54183967335086321747448589),
-            variable_borrow_rate=to_decimal(33471738680690573979588711),
-            liquidity_index=to_decimal(1024896375683851651969973538),
-            variable_borrow_index=to_decimal(1043477569752596545043775819),
+        iterables = [
+            [dai.name, usdt.name, matic.name],
+            ["liquidity_rate", "stable_borrow_rate", "variable_borrow_rate", "liquidity_index", "variable_borrow_index"],
+        ]
+
+        index = pd.MultiIndex.from_product(iterables)
+        pool_stat = MarketStatus(timestamp)
+        pool_stat.data = pd.Series(
+            index=index,
+            data=[
+                to_decimal(20721780596069986118711585),
+                to_decimal(54183967335086321747448589),
+                to_decimal(33471738680690573979588711),
+                to_decimal(1024896375683851651969973538),
+                to_decimal(1043477569752596545043775819),
+                to_decimal(19374318747418950359017069),
+                to_decimal(54385544255370350575778874),
+                to_decimal(31166051358525919566436671),
+                to_decimal(1046424838969468347281558168),
+                to_decimal(1061829096134252340370625412),
+                to_decimal(34590050812934499694395450),
+                to_decimal(81000000000000000000000000),
+                to_decimal(59301392614184653189709969),
+                to_decimal(1033989834711222334753899684),
+                to_decimal(1091266512915678985090375114),
+            ],
         )
-        pool_stat.tokens[usdt] = AaveTokenStatus(
-            liquidity_rate=to_decimal(19374318747418950359017069),
-            stable_borrow_rate=to_decimal(54385544255370350575778874),
-            variable_borrow_rate=to_decimal(31166051358525919566436671),
-            liquidity_index=to_decimal(1046424838969468347281558168),
-            variable_borrow_index=to_decimal(1061829096134252340370625412),
-        )
-        pool_stat.tokens[matic] = AaveTokenStatus(
-            liquidity_rate=to_decimal(34590050812934499694395450),
-            stable_borrow_rate=to_decimal(81000000000000000000000000),
-            variable_borrow_rate=to_decimal(59301392614184653189709969),
-            liquidity_index=to_decimal(1033989834711222334753899684),
-            variable_borrow_index=to_decimal(1091266512915678985090375114),
-        )
+
         s_dai = SupplyKey(dai)
         s_matic = SupplyKey(matic)
         b_matic_v = BorrowKey(matic, InterestRateMode.variable)
         b_usdt_s = BorrowKey(usdt, InterestRateMode.stable)
-        market.set_market_status(timestamp=timestamp, data=pool_stat, price=price.iloc[0])
+        market.set_market_status(data=pool_stat, price=price.iloc[0])
         market._supplies[s_dai] = SupplyInfo(Decimal(97.56471188217428), True)
         market._supplies[s_matic] = SupplyInfo(Decimal(19.35174760735758), True)
         market._borrows[b_matic_v] = BorrowInfo(Decimal(4.583153411559582))
@@ -153,29 +158,29 @@ class UniLpDataTest(unittest.TestCase):
         market = AaveV3Market(market_key, "./aave_risk_parameters/polygon.csv", tokens=[weth])
         t = datetime(2023, 8, 1)
         price_series = pd.Series(data=[Decimal(1000), Decimal(1)], index=[weth.name, dai.name])
-        market.set_market_status(
-            timestamp=t,
-            data=AaveV3PoolStatus(
-                timestamp=t,
-                tokens={
-                    weth: AaveTokenStatus(
-                        liquidity_rate=Decimal("0.05"),
-                        stable_borrow_rate=Decimal("0.1"),
-                        variable_borrow_rate=Decimal("0.08"),
-                        liquidity_index=Decimal("1.6"),
-                        variable_borrow_index=Decimal("1"),
-                    ),
-                    dai: AaveTokenStatus(
-                        liquidity_rate=Decimal("0.08"),
-                        stable_borrow_rate=Decimal("0.12"),
-                        variable_borrow_rate=Decimal("0.1"),
-                        liquidity_index=Decimal("1.6"),
-                        variable_borrow_index=Decimal("1.6"),
-                    ),
-                },
-            ),
-            price=price_series,
+        iterables = [
+            [weth.name, dai.name],
+            ["liquidity_rate", "stable_borrow_rate", "variable_borrow_rate", "liquidity_index", "variable_borrow_index"],
+        ]
+
+        index = pd.MultiIndex.from_product(iterables)
+        pool_stat = MarketStatus(t)
+        pool_stat.data = pd.Series(
+            index=index,
+            data=[
+                Decimal("0.05"),
+                Decimal("0.1"),
+                Decimal("0.08"),
+                Decimal("1.6"),
+                Decimal("1"),
+                Decimal("0.08"),
+                Decimal("0.12"),
+                Decimal("0.1"),
+                Decimal("1.6"),
+                Decimal("1.6"),
+            ],
         )
+        market.set_market_status(data=pool_stat, price=price_series)
         amount = Decimal(5)
         broker = Broker()
         broker.set_balance(weth, amount)
@@ -188,7 +193,7 @@ class UniLpDataTest(unittest.TestCase):
         supply_key = market.supply(weth, amount, False)
 
         self.assertEqual(len(market._supplies), 1)
-        self.assertEqual(market._supplies[supply_key].base_amount, amount / market.market_status.tokens[weth].liquidity_index)
+        self.assertEqual(market._supplies[supply_key].base_amount, amount / market.market_status.data[weth.name].liquidity_index)
         self.assertEqual(broker.get_token_balance(weth), 0)
 
         self.assertEqual(market.supplies[supply_key].amount, amount)
@@ -203,7 +208,7 @@ class UniLpDataTest(unittest.TestCase):
         supply_key = market.supply(weth, Decimal(4), False)
 
         self.assertEqual(len(market._supplies), 1)
-        self.assertEqual(market._supplies[supply_key].base_amount, Decimal(5) / market.market_status.tokens[weth].liquidity_index)
+        self.assertEqual(market._supplies[supply_key].base_amount, Decimal(5) / market.market_status.data[weth.name].liquidity_index)
         self.assertEqual(broker.get_token_balance(weth), 0)
 
         pass
@@ -215,7 +220,7 @@ class UniLpDataTest(unittest.TestCase):
         supply_key = market.supply(weth, amount, True)
 
         self.assertEqual(len(market._supplies), 1)
-        self.assertEqual(market._supplies[supply_key].base_amount, Decimal(5) / market.market_status.tokens[weth].liquidity_index)
+        self.assertEqual(market._supplies[supply_key].base_amount, Decimal(5) / market.market_status.data[weth.name].liquidity_index)
         self.assertEqual(market._supplies[supply_key].collateral, True)
 
         self.assertEqual(broker.get_token_balance(weth), 0)
@@ -396,8 +401,7 @@ class UniLpDataTest(unittest.TestCase):
         price_series = pd.Series(data=[Decimal(920), Decimal(1)], index=[weth.name, dai.name])
         old_market_status = market.market_status
         market.set_market_status(
-            timestamp=t,
-            data=AaveV3PoolStatus(timestamp=t, tokens=old_market_status.tokens),
+            data=MarketStatus(timestamp=t, data=old_market_status.data),
             price=price_series,
         )
         self.assertEqual(market.health_factor, Decimal("0.966"))
@@ -423,8 +427,7 @@ class UniLpDataTest(unittest.TestCase):
         price_series = pd.Series(data=[Decimal(900), Decimal(1)], index=[weth.name, dai.name])
         old_market_status = market.market_status
         market.set_market_status(
-            timestamp=t,
-            data=AaveV3PoolStatus(timestamp=t, tokens=old_market_status.tokens),
+            data=MarketStatus(timestamp=t, data=old_market_status.data),
             price=price_series,
         )
         self.assertEqual(market.health_factor, Decimal("0.945"))
@@ -449,8 +452,7 @@ class UniLpDataTest(unittest.TestCase):
         price_series = pd.Series(data=[Decimal(800), Decimal(1)], index=[weth.name, dai.name])
         old_market_status = market.market_status
         market.set_market_status(
-            timestamp=t,
-            data=AaveV3PoolStatus(timestamp=t, tokens=old_market_status.tokens),
+            data=MarketStatus(timestamp=t, data=old_market_status.data),
             price=price_series,
         )
         self.assertEqual(market.health_factor, Decimal("0.84"))

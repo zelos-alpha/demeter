@@ -19,10 +19,10 @@ tick_width = 500
 
 
 class AddOnFirstTickStrategy(Strategy):
-    def on_bar(self, row_data: MarketDict[RowData], prices):
+    def on_bar(self, row_data: RowData):
         market: UniLpMarket = self.broker.markets[test_market]
-        if row_data[test_market].row_id == 0:
-            tick = market.price_to_tick(row_data[test_market].price)
+        if row_data.row_id == 0:
+            tick = market.price_to_tick(row_data.market_status[test_market].price)
             price_high = market.tick_to_price(tick - tick_width)
             price_low = market.tick_to_price(tick + tick_width)
             market.add_liquidity(price_low, price_high)

@@ -444,3 +444,11 @@ class PositionManager:
     def has(self, stock: T) -> bool:
         key = str(stock)
         return key in self.positions
+
+
+@dataclass
+class RowData:
+    timestamp: datetime
+    row_id: int
+    prices: pd.Series
+    market_status: MarketDict[pd.Series] = MarketDict()

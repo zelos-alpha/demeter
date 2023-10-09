@@ -1,7 +1,7 @@
 # ver xx.xx.xx
 
 * add aave market
-* [breaking change]add price and timestamp parameter for before_bar/on_bar/after_bar in strategy
+* [breaking change]row_data parameter of before_bar/on_bar/after_bar in strategy has changed
 * add trigger.do in strategy
 * before bar in strategy is removed, as it's duplicate with trigger and on bar
 * [breaking change]if declare a TokenInfo, name property will be converted to upper case now
