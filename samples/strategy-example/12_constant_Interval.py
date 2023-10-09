@@ -17,7 +17,7 @@ class ConstantInterval(Strategy):
 
     def initialize(self):
         market: UniLpMarket = self.markets[market_key]
-        init_price = market.market_status.price
+        init_price = market.market_status.data.price
         market.even_rebalance(init_price)  # rebalance all reserve token#
         # new_position(self, baseToken, quoteToken, usd_price_a, usd_price_b):
         # what is  base/quote "https://corporatefinanceinstitute.com/resources/knowledge/economics/currency-pair/"

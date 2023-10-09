@@ -20,7 +20,7 @@ class DemoStrategy(Strategy):
         new_trigger = AtTimeTrigger(time=datetime(2023, 8, 15, 12, 0, 0), do=self.work)
         self.triggers.append(new_trigger)
 
-    def work(self, row_data: MarketDict[RowData], price: pd.Series):
+    def work(self, row_data: RowData):
         lp_market: UniLpMarket = self.markets[market_key]  # pick our market.
         new_position, amount0_used, amount1_used, liquidity = lp_market.add_liquidity(1000, 4000)  # add liquidity
 

@@ -17,7 +17,7 @@ class FillUp(Strategy):
 
     def initialize(self):
         lp_market: UniLpMarket = self.broker.markets[market_key]
-        init_price = lp_market.market_status.price
+        init_price = lp_market.market_status.data.price
 
         lp_market.even_rebalance(init_price)  # rebalance all reserve token#
         lp_market.add_liquidity(init_price - self.a, init_price + self.a)
@@ -27,16 +27,16 @@ class FillUp(Strategy):
             lp_market.add_liquidity(init_price, init_price + self.a)
         self.triggers.append(PeriodTrigger(time_delta=timedelta(days=1), do=self.work))
 
-    def work(self, row_data: MarketDict[RowData], price: pd.Series):
+    def work(self, row_data: RowData):
         lp_market: UniLpMarket = self.broker.markets[market_key]
         if len(lp_market.positions) > 0:
             lp_market.remove_all_liquidity()
-            lp_market.even_rebalance(price[eth.name])
-        lp_market.add_liquidity(price[eth.name] - self.a, price[eth.name] + self.a)
+            lp_market.even_rebalance(row_data.prices[eth.name])
+        lp_market.add_liquidity(row_data.prices[eth.name] - self.a, row_data.prices[eth.name] + self.a)
         if self.broker.assets[market.base_token].balance > 0:
-            lp_market.add_liquidity(price[eth.name] - self.a, price[eth.name])
+            lp_market.add_liquidity(row_data.prices[eth.name] - self.a, row_data.prices[eth.name])
         else:
-            lp_market.add_liquidity(price[eth.name], price[eth.name] + self.a)
+            lp_market.add_liquidity(row_data.prices[eth.name], row_data.prices[eth.name] + self.a)
 
 
 if __name__ == "__main__":

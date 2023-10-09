@@ -21,19 +21,19 @@ class DemoStrategy(Strategy):
         # add an indicator column, this column will be appended to corresponding market data
         self._add_column(market=market_key, name="sma", line=simple_moving_average(self.data[market_key].price))  # name,
 
-    def work(self, row_data: MarketDict[RowData], price: pd.Series):
+    def work(self, row_data: RowData):
         # price set to actuator
-        eth_price_external = price["ETH"]
-        eth_price_external = price[eth.name]
+        eth_price_external = row_data.prices["ETH"]
+        eth_price_external = row_data.prices[eth.name]
 
         # current data row,
-        eth_price_in_uniswap = row_data[market_key].price
-        row: UniLPData = row_data[market_key]
+        eth_price_in_uniswap = row_data.market_status[market_key].price
+        row: pd.Series | UniLPData = row_data.market_status[market_key]
         eth_price_in_uniswap = row.price
-        eth_price_in_uniswap = row_data.market1.price
-        eth_price_in_uniswap = row_data.default.price
+        eth_price_in_uniswap = row_data.market_status.market1.price
+        eth_price_in_uniswap = row_data.market_status.default.price
         # access extra column by its name
-        ma_value = row_data[market_key].sma
+        ma_value = row_data.market_status[market_key].sma
 
         # access data, every market has its own data, so data is also kept in MarketDict.
         data: pd.DataFrame = self.broker.markets[market_key].data
@@ -41,9 +41,9 @@ class DemoStrategy(Strategy):
         data: pd.DataFrame = self.data.default
         data: pd.DataFrame = self.data.market1
         # access current row
-        assert data.loc[row_data.default.timestamp].netAmount0 == data.iloc[row_data.default.row_id].netAmount0
+        assert data.loc[row_data.timestamp].netAmount0 == data.iloc[row_data.row_id].netAmount0
         # access one minute before
-        assert data.loc[row_data.default.timestamp - timedelta(minutes=1)].price == data.iloc[row_data.default.row_id - 1].price
+        assert data.loc[row_data.timestamp - timedelta(minutes=1)].price == data.iloc[row_data.row_id - 1].price
         # access extra column by its name
         ma = self.data[market_key].sma
 

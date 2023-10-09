@@ -44,15 +44,15 @@ class AddByVolatility(Strategy):
         self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=4), trigger_immediately=True, do=self.work))
         self.markets.default.even_rebalance(self.data[market_key].price[0])
 
-    def work(self, row_data: MarketDict[RowData], price:pd.Series):
+    def work(self, row_data: RowData):
         lp_market: UniLpMarket = self.broker.markets[market_key]
-        lp_row_data = row_data[market_key]
+        lp_row_data = row_data.market_status[market_key]
         if len(lp_market.positions) > 0:
             lp_market.remove_all_liquidity()
-            lp_market.even_rebalance(price[eth.name])
+            lp_market.even_rebalance(row_data.prices[eth.name])
         if math.isnan(lp_row_data.volatility):
             return
-        limit = c * float(price[eth.name]) * lp_row_data.volatility
+        limit = c * float(row_data.prices[eth.name]) * lp_row_data.volatility
         lp_market.add_liquidity(lp_row_data.sma_1_day - limit, lp_row_data.sma_1_day + limit)
 
 

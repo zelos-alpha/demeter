@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 import pandas as pd
 
-from demeter import TokenInfo, Actuator, Strategy, RowData, ChainType, MarketInfo, MarketDict, AtTimeTrigger
+from demeter import TokenInfo, Actuator, Strategy, RowData, ChainType, MarketInfo, AtTimeTrigger
 from demeter.uniswap import UniV3Pool, UniLpMarket
 
 # To print all the columns of dataframe, we should set up display option.
@@ -26,7 +26,7 @@ class MyFirstStrategy(Strategy):
         )  # This is a callback function, defines what to do at this time.
         self.triggers.append(new_trigger)  # Register our trigger
 
-    def work(self, row_data: MarketDict[RowData], price: pd.Series):
+    def work(self, row_data: RowData):
         """
         When time is up, work function will be called.
         """
