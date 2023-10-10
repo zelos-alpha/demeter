@@ -126,8 +126,8 @@ def borrow_to_dataframe(supplies: Dict[BorrowKey, Borrow]) -> pd.DataFrame:
 
 @dataclass
 class AaveBalance(MarketBalance):
-    supplys: Dict[SupplyKey, Supply]
-    borrows: Dict[BorrowKey, Borrow]
+    supplys_count: int
+    borrows_count: int
 
     borrow_balance: Decimal
     supply_balance: Decimal

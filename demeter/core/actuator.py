@@ -3,7 +3,7 @@ import os
 import pickle
 import time
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Union
 from dataclasses import dataclass, field
 import orjson
 import pandas as pd
@@ -204,22 +204,22 @@ class Actuator(object):
         for asset in assets:
             self._broker.set_balance(asset.token_info, asset.balance)
 
-    def set_price(self, prices: pd.DataFrame | pd.Series):
+    def set_price(self, prices: Union[pd.DataFrame, pd.Series]):
         """
         set price
         :param prices: dataframe or series
-                                                       eth  usdc
-        2022-08-20 00:00:00  1610.553895752868641174609110     1
-        2022-08-20 00:01:00  1612.487623747744872677867817     1
-        2022-08-20 00:02:00  1615.715664560742874527210287     1
-        2022-08-20 00:03:00  1615.715664560742874527210287     1
-        2022-08-20 00:04:00  1615.554109149827891738036484     1
-        ...                                            ...   ...
-        2022-08-20 23:55:00  1577.086574012079067849553855     1
-        2022-08-20 23:56:00  1576.928881123966671182435611     1
-        2022-08-20 23:57:00  1576.928881123966671182435611     1
-        2022-08-20 23:58:00  1576.613542649301384412539259     1
-        2022-08-20 23:59:00  1576.613542649301384412539259     1
+                                  eth  usdc
+        2022-08-20 00:00:00  1610.55     1
+        2022-08-20 00:01:00  1612.48     1
+        2022-08-20 00:02:00  1615.71     1
+        2022-08-20 00:03:00  1615.71     1
+        2022-08-20 00:04:00  1615.55     1
+        ...                      ...   ...
+        2022-08-20 23:55:00  1577.08     1
+        2022-08-20 23:56:00  1576.92     1
+        2022-08-20 23:57:00  1576.92     1
+        2022-08-20 23:58:00  1576.61     1
+        2022-08-20 23:59:00  1576.61     1
         [1440 rows x 2 columns]
         :return: None
         """

@@ -94,6 +94,10 @@ class AaveV3CoreLib(object):
         return a / b if b != 0 else Decimal("inf")
 
     @staticmethod
+    def safe_rounding(a: Decimal, rounding: Decimal) -> Decimal:
+        return a if a == Decimal("inf") or a == Decimal("nan") else a.quantize(rounding)
+
+    @staticmethod
     def safe_div_zero(a: Decimal, b: Decimal) -> Decimal:
         return a / b if b != 0 else Decimal(0)
 

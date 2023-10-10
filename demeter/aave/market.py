@@ -294,27 +294,27 @@ class AaveV3Market(Market):
         :return:
         :rtype:
         """
-        supplys = self.supplies
-        borrows = self.borrows
-
-        total_supplies = self.total_supply_value
-        total_borrows = self.total_borrows_value
+        # supplys = self.supplies
+        # borrows = self.borrows
+        rounding = Decimal("0.0001")
+        total_supplies = self.total_supply_value.quantize(rounding)
+        total_borrows = self.total_borrows_value.quantize(rounding)
         net_worth = total_supplies - total_borrows
 
-        supply_apy = self.supply_apy
-        borrow_apy = self.borrow_apy
+        supply_apy = self.supply_apy.quantize(rounding)
+        borrow_apy = self.borrow_apy.quantize(rounding)
         net_apy = AaveV3CoreLib.safe_div_zero(supply_apy * total_supplies - borrow_apy * total_borrows, total_supplies - total_borrows)
 
         return AaveBalance(
             net_value=net_worth,
-            supplys=supplys,
-            borrows=borrows,
-            liquidation_threshold=self.liquidation_threshold,
-            health_factor=self.health_factor,
+            supplys_count=len(self._supplies),
+            borrows_count=len(self._borrows),
+            liquidation_threshold=AaveV3CoreLib.safe_rounding(self.liquidation_threshold, rounding),
+            health_factor=AaveV3CoreLib.safe_rounding(self.health_factor, rounding),
             borrow_balance=total_borrows,
             supply_balance=total_supplies,
-            collateral_balance=self.total_collateral_value,
-            current_ltv=self.current_ltv,
+            collateral_balance=self.total_collateral_value.quantize(rounding),
+            current_ltv=AaveV3CoreLib.safe_rounding(self.current_ltv, rounding),
             supply_apy=supply_apy,
             borrow_apy=borrow_apy,
             net_apy=net_apy,
@@ -355,9 +355,10 @@ class AaveV3Market(Market):
             )
             + "\n"
         )
-        value += get_formatted_predefined("supplies", STYLE["key"]) + "\n"
+        value += get_formatted_predefined("Supplies", STYLE["key"]) + "\n"
         supply_df = supply_to_dataframe(self.supplies)
         value += supply_df.to_string() if len(supply_df.index) > 0 else "Empty DataFrame\n"
+        value += get_formatted_predefined("Borrows", STYLE["key"]) + "\n"
         borrow_df = borrow_to_dataframe(self.borrows)
         value += borrow_df.to_string() if len(borrow_df.index) > 0 else "Empty DataFrame\n"
 
