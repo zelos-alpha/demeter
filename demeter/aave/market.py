@@ -1,6 +1,5 @@
 import json
 import os
-import random
 import token
 from _decimal import Decimal
 from datetime import datetime, date, timedelta
@@ -28,7 +27,7 @@ from ._typing import (
     LiquidationAction,
     DictCache,
     AaveMarketDescription,
-    AaveTokenStatus,
+    AaveMarketStatus,
 )
 from .core import AaveV3CoreLib
 from .. import DemeterError, TokenInfo
@@ -139,7 +138,9 @@ class AaveV3Market(Market):
         if self._supplies_amount_cache.empty:
             for k, v in self._supplies.items():
                 self._supplies_amount_cache.set(
-                    k, AaveV3CoreLib.get_amount(v.base_amount, self._market_status.data[k.token.name].liquidity_index) * self._price_status[k.token.name]
+                    k,
+                    AaveV3CoreLib.get_amount(v.base_amount, self._market_status.data[k.token.name].liquidity_index)
+                    * self._price_status[k.token.name],
                 )
         return self._supplies_amount_cache.data
 
@@ -331,7 +332,7 @@ class AaveV3Market(Market):
         self._liquidate()
 
     @property
-    def market_status(self) -> MarketStatus:
+    def market_status(self) -> AaveMarketStatus:
         return self._market_status
 
     def formatted_str(self):

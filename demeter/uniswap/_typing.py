@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, NamedTuple
+from typing import Dict, NamedTuple, Union
 
 import pandas as pd
 
@@ -219,13 +219,8 @@ class UniV3PoolStatus:
     """
     current status of a pool, actuators can notify current status to broker by filling this entity
     """
-
-    price: Decimal
-    # tick of last minute(previous minute), to compatible with old version, keep default as None
-    # note: I have to make it compatible, as someone would check out their private version,
-    # Please fill this paameter as much as possible to improve accuracy
-    last_tick: int | None = None
     # required by market class
+    price: Decimal
     currentLiquidity: int = None
     inAmount0: int = None
     inAmount1: int = None
@@ -242,6 +237,17 @@ class UniV3PoolStatus:
     high: Decimal = None
     volume0: Decimal = None
     volume1: Decimal = None
+
+
+@dataclass
+class UniswapMarketStatus(MarketStatus):
+    """
+    MarketStatus properties
+
+    :type timestamp: datetime
+    """
+
+    data: Union[pd.Series, UniV3PoolStatus] = None
 
 
 @dataclass

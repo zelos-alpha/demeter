@@ -15,26 +15,26 @@ class MyFirstAaveStrategy(Strategy):
     def initialize(self):
         pass
 
-    def on_bar(self, row_data: MarketDict[RowData], price: pd.Series):
-        # row_data[market_key].
-        balance: AaveBalance = aave_market.get_market_balance()
-        local_market_var: AaveV3Market = self.broker.markets[market_key]
-
-        if balance.supply_balance > Decimal(0):
-            key1 = aave_market.supply(weth, 2)
-        if balance.health_factor > 0.8:
-            key2 = aave_market.supply(weth, 2, collateral=True)
-
-        print(balance.supply_balance)
-        print(balance.supplys)
-
-        if balance.supplys[key1].apy < 0.1:  # 10%
-            aave_market.withdraw(token_info=weth, amount=Decimal(10))
-
-        key_borrow = aave_market.borrow(weth, Decimal(10), InterestRateMode.variable)
-
-        if aave_market.borrows[key_borrow].apy < Decimal(0.1) or aave_market.get_borrow(key_borrow).apy < Decimal(0.1):
-            aave_market.repay(amount=None, key=key_borrow)
+    def on_bar(self, row_data: RowData):
+        pass
+        # balance: AaveBalance = aave_market.get_market_balance()
+        # local_market_var: AaveV3Market = self.broker.markets[market_key]
+        #
+        # if balance.supply_balance > Decimal(0):
+        #     key1 = aave_market.supply(weth, 2)
+        # if balance.health_factor > 0.8:
+        #     key2 = aave_market.supply(weth, 2, collateral=True)
+        #
+        # print(balance.supply_balance)
+        # print(balance.supplys)
+        #
+        # if balance.supplys[key1].apy < 0.1:  # 10%
+        #     aave_market.withdraw(token_info=weth, amount=Decimal(10))
+        #
+        # key_borrow = aave_market.borrow(weth, Decimal(10), InterestRateMode.variable)
+        #
+        # if aave_market.borrows[key_borrow].apy < Decimal(0.1) or aave_market.get_borrow(key_borrow).apy < Decimal(0.1):
+        #     aave_market.repay(amount=None, key=key_borrow)
 
 
 if __name__ == "__main__":

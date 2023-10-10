@@ -135,25 +135,25 @@ class TestUniLpMarketToken1Base(unittest.TestCase):
     def test_collect_fee_down(self):
         broker = self.get_broker()
         market: UniLpMarket = broker.markets[test_market]
-
+        current_tick = market.market_status.data.closeTick
         (new_position, base_used, quote_used, liquidity) = market._add_liquidity_by_tick(
-            Decimal(1), market.market_status.data.price, market.market_status.data.closeTick - 100, market.market_status.data.closeTick - 10
+            Decimal(1), market.market_status.data.price, current_tick - 100, current_tick - 10
         )
         TestUniLpMarketToken1Base.print_broker(broker)
         eth_amount = 10000000000000000000
         usdc_amount = 10000000
-        current = market.market_status.data.closeTick
-        price = market.tick_to_price(market.market_status.data.closeTick)
+        price = market.tick_to_price(current_tick)
         market.set_market_status(
             MarketStatus(
                 timestamp=None,
                 data=pd.Series(
-                    data=[current, liquidity * 100, eth_amount, usdc_amount, price, current - 120],
-                    index=["closeTick", "currentLiquidity", "inAmount0", "inAmount1", "price", "last_tick"],
+                    data=[current_tick, liquidity * 100, eth_amount, usdc_amount, price],
+                    index=["closeTick", "currentLiquidity", "inAmount0", "inAmount1", "price"],
                 ),
             ),
             price=None,
         )
+        market.last_tick = current_tick - 120
         market.update()
         print("=========after a bar======================================================================")
         TestUniLpMarketToken1Base.print_broker(broker)
@@ -188,12 +188,13 @@ class TestUniLpMarketToken1Base(unittest.TestCase):
             MarketStatus(
                 timestamp=None,
                 data=pd.Series(
-                    data=[current, liquidity * 100, eth_amount, usdc_amount, price, current - 50],
-                    index=["closeTick", "currentLiquidity", "inAmount0", "inAmount1", "price", "last_tick"],
+                    data=[current, liquidity * 100, eth_amount, usdc_amount, price],
+                    index=["closeTick", "currentLiquidity", "inAmount0", "inAmount1", "price"],
                 ),
             ),
             price=None,
         )
+        market.last_tick = current - 50
         market.update()
         print("=========after a bar======================================================================")
         TestUniLpMarketToken1Base.print_broker(broker)
@@ -215,32 +216,26 @@ class TestUniLpMarketToken1Base(unittest.TestCase):
     def test_collect_fee_up(self):
         broker = self.get_broker()
         market: UniLpMarket = broker.markets[test_market]
+        current_tick = market.market_status.data.closeTick
+
         (new_position, base_used, quote_used, liquidity) = market._add_liquidity_by_tick(
-            Decimal(1), market.market_status.data.price, market.market_status.data.closeTick - 100, market.market_status.data.closeTick - 10
+            Decimal(1), market.market_status.data.price, current_tick - 100, current_tick - 10
         )
         TestUniLpMarketToken1Base.print_broker(broker)
         eth_amount = 10000000000000000000
         usdc_amount = 10000000
-
-        price = market.tick_to_price(market.market_status.data.closeTick)
+        price = market.tick_to_price(current_tick)
         market.set_market_status(
             MarketStatus(
                 timestamp=None,
                 data=pd.Series(
-                    data=[
-                        market.market_status.data.closeTick - 120,
-                        liquidity * 100,
-                        eth_amount,
-                        usdc_amount,
-                        price,
-                        market.market_status.data.closeTick,
-                    ],
-                    index=["closeTick", "currentLiquidity", "inAmount0", "inAmount1", "price", "last_tick"],
+                    data=[current_tick - 120, liquidity * 100, eth_amount, usdc_amount, price],
+                    index=["closeTick", "currentLiquidity", "inAmount0", "inAmount1", "price"],
                 ),
             ),
             price=None,
         )
-
+        market.last_tick = current_tick
         market.update()
         print("=========after a bar======================================================================")
         TestUniLpMarketToken1Base.print_broker(broker)
@@ -262,20 +257,22 @@ class TestUniLpMarketToken1Base(unittest.TestCase):
     def test_collect_fee_up_update_twice(self):
         broker = self.get_broker()
         market: UniLpMarket = broker.markets[test_market]
+        current_tick = market.market_status.data.closeTick
+
         (new_position, base_used, quote_used, liquidity) = market._add_liquidity_by_tick(
-            Decimal(1), market.market_status.data.price, market.market_status.data.closeTick - 100, market.market_status.data.closeTick - 10
+            Decimal(1), market.market_status.data.price, current_tick - 100, current_tick - 10
         )
         TestUniLpMarketToken1Base.print_broker(broker)
         eth_amount = 10000000000000000000
         usdc_amount = 10000000
 
-        price = market.tick_to_price(market.market_status.data.closeTick)
+        price = market.tick_to_price(current_tick)
 
         market.set_market_status(
             MarketStatus(
                 timestamp=None,
                 data=pd.Series(
-                    data=[market.market_status.data.closeTick, liquidity * 100, eth_amount, usdc_amount, price],
+                    data=[current_tick, liquidity * 100, eth_amount, usdc_amount, price],
                     index=["closeTick", "currentLiquidity", "inAmount0", "inAmount1", "price"],
                 ),
             ),
@@ -286,7 +283,7 @@ class TestUniLpMarketToken1Base(unittest.TestCase):
             MarketStatus(
                 timestamp=None,
                 data=pd.Series(
-                    data=[market.market_status.data.closeTick - 120, liquidity * 100, eth_amount, usdc_amount, price],
+                    data=[current_tick - 120, liquidity * 100, eth_amount, usdc_amount, price],
                     index=["closeTick", "currentLiquidity", "inAmount0", "inAmount1", "price"],
                 ),
             ),
@@ -324,20 +321,13 @@ class TestUniLpMarketToken1Base(unittest.TestCase):
             MarketStatus(
                 timestamp=None,
                 data=pd.Series(
-                    data=[
-                        market.market_status.data.closeTick - 120,
-                        liquidity * 100,
-                        eth_amount,
-                        usdc_amount,
-                        price,
-                        market.market_status.data.closeTick - 110,
-                    ],
-                    index=["closeTick", "currentLiquidity", "inAmount0", "inAmount1", "price", "last_tick"],
+                    data=[market.market_status.data.closeTick - 120, liquidity * 100, eth_amount, usdc_amount, price],
+                    index=["closeTick", "currentLiquidity", "inAmount0", "inAmount1", "price"],
                 ),
             ),
             price=None,
         )
-
+        market.last_tick = market.market_status.data.closeTick - 110
         market.update()
         print("=========after a bar======================================================================")
         TestUniLpMarketToken1Base.print_broker(broker)

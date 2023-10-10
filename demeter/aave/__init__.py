@@ -14,6 +14,7 @@ from ._typing import (
     BorrowAction,
     WithdrawAction,
     SupplyAction,
+    AaveMarketStatus,
 )
 from .core import AaveV3CoreLib
 from .market import AaveV3Market

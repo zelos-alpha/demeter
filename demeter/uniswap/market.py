@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Dict
 
@@ -11,7 +11,6 @@ from ._typing import (
     UniV3Pool,
     TokenInfo,
     Position,
-    UniV3PoolStatus,
     UniLpBalance,
     AddLiquidityAction,
     RemoveLiquidityAction,
@@ -21,6 +20,7 @@ from ._typing import (
     position_dict_to_dataframe,
     PositionInfo,
     UniDescription,
+    UniswapMarketStatus,
 )
 from .core import V3CoreLib
 from .data import fillna
@@ -75,6 +75,8 @@ class UniLpMarket(Market):
         self._pool_price_unit = f"{self.base_token.name}/{self.quote_token.name}"
         # internal temporary variable
         # self.action_buffer = []
+        # tick of last minute(previous minute), to compatible with old version, keep default as None
+        self.last_tick: int = None
 
     # region properties
 
@@ -136,7 +138,7 @@ class UniLpMarket(Market):
         return self._positions[position_info]
 
     @property
-    def market_status(self) -> MarketStatus:
+    def market_status(self) -> UniswapMarketStatus:
         return self._market_status
 
     # endregion
@@ -147,18 +149,15 @@ class UniLpMarket(Market):
         price: pd.Series | None,
     ):
         # update price tick
-        local_prev_tick = self._market_status.data.closeTick if "closeTick" in self._market_status.data.index else np.nan
         total_virtual_liq = sum([p.liquidity for p in self._positions.values()])
+        self.last_tick = self._market_status.data.closeTick if "closeTick" in self._market_status.data.index else np.nan
 
         if data.data is None:
             data.data = self.data.loc[data.timestamp].copy()
-        if "last_tick" not in data.data.index:
-            data.data["last_tick"] = local_prev_tick
         data.data["currentLiquidity"] = data.data["currentLiquidity"] + total_virtual_liq
         self._market_status = data
 
         self._price_status = price
-
         self.has_update = False
 
     def get_price_from_data(self) -> pd.DataFrame:
@@ -213,7 +212,7 @@ class UniLpMarket(Market):
         fee will be calculated by liquidity
         """
         for position_info, position in self._positions.items():
-            V3CoreLib.update_fee(self.pool_info, position_info, position, self.market_status.data)
+            V3CoreLib.update_fee(self.last_tick, self.pool_info, position_info, position, self.market_status.data)
 
     def get_market_balance(self, prices: pd.Series | Dict[str, Decimal] = None) -> MarketBalance:
         """

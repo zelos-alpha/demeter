@@ -1,7 +1,7 @@
 from _decimal import Decimal
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, NamedTuple
+from typing import Dict, NamedTuple, Union
 from typing import TypeVar
 
 import pandas as pd
@@ -149,6 +149,17 @@ class AaveTokenStatus:
     variable_borrow_rate: Decimal
     liquidity_index: Decimal
     variable_borrow_index: Decimal
+
+
+@dataclass
+class AaveMarketStatus(MarketStatus):
+    """
+    MarketStatus properties
+
+    :type timestamp: datetime
+    """
+
+    data: Union[pd.Series, AaveTokenStatus] = None
 
 
 # @dataclass

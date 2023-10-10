@@ -108,7 +108,7 @@ class V3CoreLib(object):
         return lower_tick, upper_tick
 
     @staticmethod
-    def update_fee(pool: UniV3Pool, pos: PositionInfo, position: Position, state: UniV3PoolStatus):
+    def update_fee(last_tick:int,pool: UniV3Pool, pos: PositionInfo, position: Position, state: UniV3PoolStatus):
         """
         update fee
         :param pool: operation on which pool
@@ -126,11 +126,11 @@ class V3CoreLib(object):
             position.pending_amount1 += from_wei(state.inAmount1, pool.token1.decimal) * share * pool.fee_rate
 
         condition_in_position = pos.upper_tick >= state.closeTick >= pos.lower_tick
-        if state.last_tick:
-            condition_over_position = (state.last_tick > pos.upper_tick and state.closeTick < pos.lower_tick) or (
-                    state.closeTick > pos.upper_tick and state.last_tick < pos.lower_tick
+        if last_tick:
+            condition_over_position = (last_tick > pos.upper_tick and state.closeTick < pos.lower_tick) or (
+                    state.closeTick > pos.upper_tick and last_tick < pos.lower_tick
             )
-            condition_in_to_out_position = pos.upper_tick >= state.last_tick >= pos.lower_tick and (
+            condition_in_to_out_position = pos.upper_tick >= last_tick >= pos.lower_tick and (
                     state.closeTick > pos.upper_tick or state.closeTick < pos.lower_tick
             )
         else:
