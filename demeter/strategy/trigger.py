@@ -25,7 +25,7 @@ Note: in current version, all the market data should have the same index, which 
 
 
 class Trigger:
-    def __init__(self, do: Callable[[MarketDict[MarketStatus], pd.Series], Any], *args, **kwargs):
+    def __init__(self, do: Callable[[RowData], Any], *args, **kwargs):
         self._do = do if do is not None else self.do_nothing
         self.kwargs = kwargs
         self.args = args

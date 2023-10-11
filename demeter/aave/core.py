@@ -103,6 +103,8 @@ class AaveV3CoreLib(object):
 
     @staticmethod
     def get_apy(amounts: Dict[ActionKey, Decimal], rate_dict: Dict[TokenInfo, Decimal]):
+        if len(amounts) == 0:
+            return DECIMAL_0
         a = Decimal(sum([amounts[key] * AaveV3CoreLib.rate_to_apy(rate_dict[key.token]) for key, amount in amounts.items()]))
         b = Decimal(sum(amounts.values()))
         return AaveV3CoreLib.safe_div_zero(a, b)  # if total amount is 0, apy should be 0
