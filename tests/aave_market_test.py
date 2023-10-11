@@ -93,9 +93,9 @@ class UniLpDataTest(unittest.TestCase):
         assert_equal_with_error(stat.supplys[s_matic].apy, Decimal("0.0352"), 0.001)
         assert_equal_with_error(stat.supplys[s_matic].amount, Decimal("20.01"), 0.001)
 
-        assert_equal_with_error(stat.supply_balance, Decimal("110.19"), 0.001)
+        assert_equal_with_error(stat.supplies_value, Decimal("110.19"), 0.001)
         assert_equal_with_error(stat.supply_apy, Decimal("0.02226"), 0.001)
-        assert_equal_with_error(stat.collateral_balance, Decimal("110.18877975"), 0.001)
+        assert_equal_with_error(stat.collaterals_value, Decimal("110.18877975"), 0.001)
 
         # borrows
         assert_equal_with_error(stat.borrows[b_usdt_s].value, Decimal("5"), 0.001)
@@ -106,7 +106,7 @@ class UniLpDataTest(unittest.TestCase):
         assert_equal_with_error(stat.borrows[b_matic_v].apy, Decimal("0.0611"), 0.001)
         assert_equal_with_error(stat.borrows[b_matic_v].amount, Decimal("5"), 0.001)
 
-        assert_equal_with_error(stat.borrow_balance, Decimal("7.55"), 0.001)
+        assert_equal_with_error(stat.borrows_value, Decimal("7.55"), 0.001)
         assert_equal_with_error(stat.borrow_apy, Decimal("0.0576"), 0.001)
 
         assert_equal_with_error(stat.health_factor, Decimal("11.711114759422364164"), 0.001)

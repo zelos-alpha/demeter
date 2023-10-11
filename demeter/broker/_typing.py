@@ -45,6 +45,12 @@ class MarketInfo(NamedTuple):
     name: str  # uni_market
     type: MarketTypeEnum = MarketTypeEnum.uniswap
 
+    def __str__(self):
+        return f"{self.name}({self.type.name})"
+
+    def __repr__(self):
+        return f"{self.name}({self.type.name})"
+
 
 class AssetDescription(NamedTuple):
     name: str
@@ -155,6 +161,12 @@ class ActionTypeEnum(Enum):
     aave_borrow = "borrow"
     aave_repay = "repay"
     aave_liquidation = "liquidation"
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
 
 
 @dataclass

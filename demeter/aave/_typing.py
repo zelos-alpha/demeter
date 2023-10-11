@@ -17,6 +17,12 @@ class InterestRateMode(Enum):
     variable = 1
     stable = 2
 
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
 
 @dataclass
 class ActionKey:
@@ -129,9 +135,9 @@ class AaveBalance(MarketBalance):
     supplys_count: int
     borrows_count: int
 
-    borrow_balance: Decimal
-    supply_balance: Decimal
-    collateral_balance: Decimal
+    borrows_value: Decimal
+    supplies_value: Decimal
+    collaterals_value: Decimal
 
     health_factor: Decimal
     current_ltv: Decimal

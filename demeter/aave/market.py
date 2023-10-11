@@ -92,6 +92,7 @@ class AaveV3Market(Market):
         return self._risk_parameters
 
     def set_token_data(self, token_info: TokenInfo, value: pd.DataFrame):
+        value = value.applymap(to_decimal)
         if isinstance(value, pd.DataFrame):
             value.columns = pd.MultiIndex.from_tuples([(token_info.name, c) for c in value.columns])
             self._data = pd.concat([self._data, value], axis="columns")
@@ -319,9 +320,9 @@ class AaveV3Market(Market):
             borrows_count=len(self._borrows),
             liquidation_threshold=AaveV3CoreLib.safe_rounding(self.liquidation_threshold, rounding),
             health_factor=AaveV3CoreLib.safe_rounding(self.health_factor, rounding),
-            borrow_balance=total_borrows,
-            supply_balance=total_supplies,
-            collateral_balance=self.total_collateral_value.quantize(rounding),
+            borrows_value=total_borrows,
+            supplies_value=total_supplies,
+            collaterals_value=self.total_collateral_value.quantize(rounding),
             current_ltv=AaveV3CoreLib.safe_rounding(self.current_ltv, rounding),
             supply_apy=supply_apy,
             borrow_apy=borrow_apy,
@@ -353,9 +354,9 @@ class AaveV3Market(Market):
                 {
                     "net_value": "{:.2f}".format(balance.net_value),
                     "health_factor": "{:.2f}".format(balance.health_factor),
-                    "borrow_balance": "{:.2f}".format(balance.borrow_balance),
-                    "supply_balance": "{:.2f}".format(balance.supply_balance),
-                    "collateral_balance": "{:.2f}".format(balance.collateral_balance),
+                    "borrow_balance": "{:.2f}".format(balance.borrows_value),
+                    "supply_balance": "{:.2f}".format(balance.supplies_value),
+                    "collateral_balance": "{:.2f}".format(balance.collaterals_value),
                     "supply_apy": "{:.2f}".format(balance.supply_apy),
                     "borrow_apy": "{:.2f}".format(balance.borrow_apy),
                     "net_apy": "{:.2f}".format(balance.net_apy),
@@ -365,10 +366,10 @@ class AaveV3Market(Market):
         )
         value += get_formatted_predefined("Supplies", STYLE["key"]) + "\n"
         supply_df = supply_to_dataframe(self.supplies)
-        value += supply_df.to_string() if len(supply_df.index) > 0 else "Empty DataFrame\n"
+        value += supply_df.to_string() + "\n" if len(supply_df.index) > 0 else "Empty DataFrame\n"
         value += get_formatted_predefined("Borrows", STYLE["key"]) + "\n"
         borrow_df = borrow_to_dataframe(self.borrows)
-        value += borrow_df.to_string() if len(borrow_df.index) > 0 else "Empty DataFrame\n"
+        value += borrow_df.to_string() + "\n" if len(borrow_df.index) > 0 else "Empty DataFrame\n"
 
         return value
 
@@ -455,7 +456,7 @@ class AaveV3Market(Market):
 
         old_balance = self._supplies[key].base_amount
 
-        self._supplies[key].base_amount -= base_amount
+        self._supplies[key].base_amount = helper.sub_base_amount(self._supplies[key].base_amount, base_amount)
         self._supplies_amount_cache.reset()
         self._supplies_cache.reset()
 
@@ -617,7 +618,9 @@ class AaveV3Market(Market):
                 return Decimal(0)
             else:
                 raise DemeterError(f"{key} not exist in borrows")
-        self._borrows[key].base_amount -= AaveV3CoreLib.get_base_amount(amount, self._market_status.data[key.token.name].variable_borrow_index)
+        self._borrows[key].base_amount = helper.sub_base_amount(
+            self._borrows[key].base_amount, AaveV3CoreLib.get_base_amount(amount, self._market_status.data[key.token.name].variable_borrow_index)
+        )
         if self._borrows[key].base_amount == DECIMAL_0:
             del self._borrows[key]
             self._borrows_amount_cache.reset()
@@ -629,8 +632,9 @@ class AaveV3Market(Market):
     def _liquidate(self):
         health_factor = self.health_factor
         has_liquidated: List[BorrowKey] = []
-        # health_factor !=0 means there are still some collateral to liquidate
-        while health_factor != 0 and health_factor < AaveV3CoreLib.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
+        # health_factor ==0 means there are no collateral to liquidate
+        # health_factor > 0.000001 to avoid calculate error
+        while 0 < health_factor < AaveV3CoreLib.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
             # choose which token and how much to liquidate
 
             # choose the smallest delt
@@ -691,7 +695,9 @@ class AaveV3Market(Market):
         require(is_collateral_enabled, "collateral cannot be liquidated")
         require(total_debt != DECIMAL_0, "specified currency not borrowed by user")
 
-        user_collateral_balance = self.get_supply(token_info=collateral_token).amount
+        user_collateral_balance = (
+            self._supplies[SupplyKey(collateral_token)].base_amount * self._market_status.data[collateral_token.name].liquidity_index
+        )
 
         # calculate actual amount
         should_collateral = self._price_status.loc[delt_token.name] * actual_debt_to_liquidate / self._price_status.loc[collateral_token.name]
@@ -705,8 +711,10 @@ class AaveV3Market(Market):
         else:
             actual_collateral_to_liquidate = max_collateral_to_liquidate
             actual_debt_to_liquidate = actual_debt_to_liquidate
+        self._supplies[collateral_key].base_amount = helper.sub_base_amount(
+            self._supplies[collateral_key].base_amount, AaveV3CoreLib.get_base_amount(actual_collateral_to_liquidate, supply_index)
+        )
 
-        self._supplies[collateral_key].base_amount -= AaveV3CoreLib.get_base_amount(actual_collateral_to_liquidate, supply_index)
         if self._supplies[collateral_key].base_amount == 0:
             del self._supplies[collateral_key]
         if variable_delt > actual_debt_to_liquidate:
