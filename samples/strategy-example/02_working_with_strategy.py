@@ -27,7 +27,6 @@ class DemoStrategy(Strategy):
     some_prepare_work()
     strategy.initialize()
     for row in all_data:
-        strategy.before_bar(row)
         strategy.triggers(row)
         strategy.on_bar(row)
         markets.update()

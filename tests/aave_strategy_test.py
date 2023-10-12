@@ -68,7 +68,7 @@ class BasicStrategy(Strategy):
     def supply_and_borrow(self, row_data: RowData):
         aave_market: AaveV3Market = self.broker.markets[market_key]
         supply_key = aave_market.supply(weth, 10, True)
-        borrow_key = aave_market.borrow(weth, aave_market.get_max_borrow_amount(weth))
+        borrow_key = aave_market.borrow(weth, 7)
 
 
 class AllOperationStrategy(Strategy):
@@ -81,7 +81,7 @@ class AllOperationStrategy(Strategy):
     def supply_and_borrow(self, row_data: RowData):
         aave_market: AaveV3Market = self.broker.markets[market_key]
         supply_key = aave_market.supply(weth, 10, True)
-        borrow_key = aave_market.borrow(weth, aave_market.get_max_borrow_amount(weth))
+        borrow_key = aave_market.borrow(weth, 7)
 
     def repay(self, row_data: RowData):
         aave_market: AaveV3Market = self.broker.markets[market_key]
@@ -92,6 +92,22 @@ class AllOperationStrategy(Strategy):
         aave_market: AaveV3Market = self.broker.markets[market_key]
         for key in aave_market.supply_keys:
             aave_market.withdraw(key)
+
+
+class RepayWithCollateralStrategy(Strategy):
+    def initialize(self):
+        supply_trigger = AtTimeTrigger(time=datetime(2023, 8, 15, 0, 0), do=self.supply_and_borrow)
+        repay_trigger = AtTimeTrigger(time=datetime(2023, 8, 15, 0, 7), do=self.repay)
+        self.triggers.extend([supply_trigger, repay_trigger])
+
+    def supply_and_borrow(self, row_data: RowData):
+        aave_market: AaveV3Market = self.broker.markets[market_key]
+        supply_key = aave_market.supply(weth, 10, True)
+        borrow_key = aave_market.borrow(weth, aave_market.get_max_borrow_amount(weth))
+
+    def repay(self, row_data: RowData):
+        aave_market: AaveV3Market = self.broker.markets[market_key]
+        aave_market.repay(borrow_token=weth, interest_rate_mode=InterestRateMode.variable, repay_with_collateral=True)
 
 
 class TestActuator(unittest.TestCase):
@@ -108,9 +124,9 @@ class TestActuator(unittest.TestCase):
         actuator.set_price(pd.read_csv(StringIO(price_csv), index_col=0, parse_dates=True))
         actuator.run()
         account_status = actuator.get_account_status_dataframe()
-        self.assertEqual(account_status.tail(1).iloc[0].net_value, Decimal("10018.72"))
-        self.assertEqual(account_status.tail(1).iloc[0].aave_borrow_balance, Decimal("7991.282"))
-        self.assertEqual(account_status.tail(1).iloc[0].aave_supply_balance, Decimal("10090"))
+        self.assertEqual(account_status.tail(1).iloc[0].net_value, Decimal("10027"))
+        self.assertEqual(account_status.tail(1).iloc[0].aave_borrows_value, Decimal("7063"))
+        self.assertEqual(account_status.tail(1).iloc[0].aave_supplies_value, Decimal("10090"))
 
     def test_all_operation(self):
         aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="./aave_risk_parameters/polygon.csv", tokens=[weth])
@@ -125,13 +141,40 @@ class TestActuator(unittest.TestCase):
         actuator.set_price(pd.read_csv(StringIO(price_csv), index_col=0, parse_dates=True))
         actuator.run()
         account_status = actuator.get_account_status_dataframe()
-        self.assertEqual(account_status.iloc[9].net_value, Decimal("15024.56000000000090111029750"))
 
-        self.assertEqual(account_status.iloc[0].aave_borrow_balance, Decimal("7920"))
+        self.assertEqual(account_status.iloc[0].aave_borrows_value, Decimal("7000"))
+        self.assertEqual(account_status.iloc[6].aave_borrows_value, Decimal("7042"))
 
         self.assertEqual(account_status.iloc[7].aave_health_factor, Decimal("inf"))
-        self.assertEqual(account_status.iloc[7].aave_supply_balance, Decimal("10070.0000"))
-        self.assertEqual(account_status.iloc[7].aave_borrow_balance, Decimal("0"))
+        self.assertEqual(account_status.iloc[7].aave_supplies_value, Decimal("10070.0000"))
+        self.assertEqual(account_status.iloc[7].aave_borrows_value, Decimal("0"))
         self.assertEqual(account_status.iloc[7].aave_health_factor, Decimal("inf"))
 
-        self.assertEqual(account_status.iloc[8].aave_supply_balance, Decimal("0"))
+        self.assertEqual(account_status.iloc[8].aave_supplies_value, Decimal("0"))
+        self.assertEqual(account_status.iloc[9].net_value, Decimal("15031.00000000000080468964825"))
+
+    def test_repay_with_collateral(self):
+        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="./aave_risk_parameters/polygon.csv", tokens=[weth])
+
+        aave_market.set_token_data(weth, pd.read_csv(StringIO(eth_data_csv), index_col=0, parse_dates=True))
+
+        actuator = Actuator()
+        actuator.broker.add_market(aave_market)
+        actuator.broker.set_balance(weth, 10)
+        actuator.strategy = RepayWithCollateralStrategy()
+
+        actuator.set_price(pd.read_csv(StringIO(price_csv), index_col=0, parse_dates=True))
+        actuator.run()
+        account_status = actuator.get_account_status_dataframe()
+
+        self.assertEqual(account_status.iloc[0].aave_borrows_value, Decimal("7920"))
+        self.assertEqual(account_status.iloc[6].aave_borrows_value, Decimal("7967.5200"))
+        self.assertEqual(account_status.iloc[6].aave_supplies_value, Decimal("10060"))
+        self.assertEqual(account_status.iloc[6].WETH, Decimal("7.92"))
+
+        self.assertEqual(account_status.iloc[7].aave_health_factor, Decimal("inf"))
+        self.assertEqual(account_status.iloc[7].aave_supplies_value, Decimal("2094.5600"))
+        self.assertEqual(account_status.iloc[7].aave_borrows_value, Decimal("0"))
+        self.assertEqual(account_status.iloc[7].WETH, Decimal("7.92"))
+
+        self.assertEqual(actuator.broker.get_token_balance(weth), Decimal("7.92"))

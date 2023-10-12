@@ -24,6 +24,16 @@ class DemoStrategy(Strategy):
         lp_market: UniLpMarket = self.markets[market_key]  # pick our market.
         new_position, amount0_used, amount1_used, liquidity = lp_market.add_liquidity(1000, 4000)  # add liquidity
 
+    def notify(self, action: BaseAction):
+        """
+        When a new action(add/remove liquidity) is executed, you can be notified by this call back.
+        """
+        print("\n")
+        print(action.timestamp, action.action_type.value)
+        # add price to actions, so price will be kept in csv file.
+        action.price = "{:.3f}".format(actuator.token_prices.loc[action.timestamp][eth.name])
+        pass
+
     def finalize(self):
         """
         account_status, it's very important as it contains net_value.

@@ -253,6 +253,7 @@ class Actuator(object):
             #     print(f"\033[7;34m{action.timestamp} \033[0m")
             #     last_time = action.timestamp
             strategy.notify(action)
+            pass
 
     def _check_backtest(self):
         """

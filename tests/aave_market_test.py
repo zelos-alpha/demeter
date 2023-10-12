@@ -39,7 +39,72 @@ class UniLpDataTest(unittest.TestCase):
         self.assertEqual(Decimal("1.718281785360970821236766882"), AaveV3CoreLib.rate_to_apy(Decimal("1")))
         self.assertEqual(Decimal("0"), AaveV3CoreLib.rate_to_apy(Decimal("0")))
 
-    def test_status_calc(self):
+    def test_status_calc_with_moke_data(self):
+        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "./aave_risk_parameters/polygon.csv", tokens=[usdt, dai, matic])
+        timestamp = datetime(2023, 9, 12, 15)
+
+        price = pd.DataFrame(data={"USDT": Decimal(1), "WETH": Decimal(1000)}, index=[timestamp])
+
+        iterables = [
+            [usdt.name, weth.name],
+            ["liquidity_rate", "stable_borrow_rate", "variable_borrow_rate", "liquidity_index", "variable_borrow_index"],
+        ]
+        index = pd.MultiIndex.from_product(iterables)
+        pool_stat = MarketStatus(timestamp)
+        pool_stat.data = pd.Series(
+            index=index,
+            data=[
+                # usdt
+                Decimal("0.1"),
+                Decimal("0.1"),
+                Decimal("0.1"),
+                Decimal("1"),
+                Decimal("1"),
+                # weth
+                Decimal("0.2"),
+                Decimal("0.2"),
+                Decimal("0.2"),
+                Decimal("1.1"),
+                Decimal("1.1"),
+            ],
+        )
+        s_weth = SupplyKey(weth)
+        s_usdt = SupplyKey(usdt)
+        b_usdt = BorrowKey(usdt, InterestRateMode.variable)
+
+        market.set_market_status(data=pool_stat, price=price.iloc[0])
+        market._supplies[s_weth] = SupplyInfo(Decimal(1), True)
+        market._supplies[s_usdt] = SupplyInfo(Decimal(100), False)
+        market._borrows[b_usdt] = BorrowInfo(Decimal(600))
+        stat = market.get_market_balance()
+
+        self.assertEqual(market.get_supply(s_weth).value, Decimal("1100"))
+        self.assertEqual(market.get_supply(s_weth).apy, Decimal("0.221402757385561289653912008"))
+        self.assertEqual(market.get_supply(s_weth).amount, Decimal("1.1"))
+
+        self.assertEqual(market.get_supply(s_usdt).value, Decimal("100"))
+        self.assertEqual(market.get_supply(s_usdt).apy, Decimal("0.105170917900423925587564142"))
+        self.assertEqual(market.get_supply(s_usdt).amount, Decimal("100"))
+
+        self.assertEqual(stat.supplies_value, Decimal("1200"))
+        self.assertEqual(stat.supply_apy, Decimal("0.2117"))
+        self.assertEqual(stat.collaterals_value, Decimal("1100"))
+
+        self.assertEqual(market.get_borrow(b_usdt).value, Decimal("600"))
+        self.assertEqual(market.get_borrow(b_usdt).apy, Decimal("0.105170917900423925587564142"))
+        self.assertEqual(market.get_borrow(b_usdt).amount, Decimal("600"))
+
+        self.assertEqual(stat.borrows_value, Decimal("600"))
+        self.assertEqual(stat.borrow_apy, Decimal("0.1052"))
+
+        self.assertEqual(stat.health_factor, Decimal("1.5125"))
+        self.assertEqual(stat.liquidation_threshold, Decimal("0.825"))
+        self.assertEqual(stat.current_ltv, Decimal("0.8"))
+        self.assertEqual(stat.net_apy, Decimal("0.3182"))
+
+        self.assertEqual(stat.net_value, Decimal("600"))
+
+    def test_status_calc_with_real_data(self):
         market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "./aave_risk_parameters/polygon.csv", tokens=[usdt, dai, matic])
         timestamp = datetime(2023, 9, 12, 15)
 
@@ -85,26 +150,27 @@ class UniLpDataTest(unittest.TestCase):
         stat = market.get_market_balance()
         print(stat)
         # supplies
-        assert_equal_with_error(stat.supplys[s_dai].value, Decimal("99.99"), 0.001)
-        assert_equal_with_error(stat.supplys[s_dai].apy, Decimal("0.02093"), 0.001)
-        assert_equal_with_error(stat.supplys[s_dai].amount, Decimal("99.99"), 0.001)
+        market.get_supply(s_dai)
+        assert_equal_with_error(market.get_supply(s_dai).value, Decimal("99.99"), 0.001)
+        assert_equal_with_error(market.get_supply(s_dai).apy, Decimal("0.02093"), 0.001)
+        assert_equal_with_error(market.get_supply(s_dai).amount, Decimal("99.99"), 0.001)
 
-        assert_equal_with_error(stat.supplys[s_matic].value, Decimal("10.21"), 0.001)
-        assert_equal_with_error(stat.supplys[s_matic].apy, Decimal("0.0352"), 0.001)
-        assert_equal_with_error(stat.supplys[s_matic].amount, Decimal("20.01"), 0.001)
+        assert_equal_with_error(market.get_supply(s_matic).value, Decimal("10.21"), 0.001)
+        assert_equal_with_error(market.get_supply(s_matic).apy, Decimal("0.0352"), 0.001)
+        assert_equal_with_error(market.get_supply(s_matic).amount, Decimal("20.01"), 0.001)
 
         assert_equal_with_error(stat.supplies_value, Decimal("110.19"), 0.001)
-        assert_equal_with_error(stat.supply_apy, Decimal("0.02226"), 0.001)
+        assert_equal_with_error(stat.supply_apy, Decimal("0.0223"), 0.001)
         assert_equal_with_error(stat.collaterals_value, Decimal("110.18877975"), 0.001)
 
         # borrows
-        assert_equal_with_error(stat.borrows[b_usdt_s].value, Decimal("5"), 0.001)
-        assert_equal_with_error(stat.borrows[b_usdt_s].apy, Decimal("0.0559"), 0.001)
-        assert_equal_with_error(stat.borrows[b_usdt_s].amount, Decimal("5"), 0.001)
+        assert_equal_with_error(market.get_borrow(b_usdt_s).value, Decimal("5"), 0.001)
+        assert_equal_with_error(market.get_borrow(b_usdt_s).apy, Decimal("0.0559"), 0.001)
+        assert_equal_with_error(market.get_borrow(b_usdt_s).amount, Decimal("5"), 0.001)
 
-        assert_equal_with_error(stat.borrows[b_matic_v].value, Decimal("2.55"), 0.001)
-        assert_equal_with_error(stat.borrows[b_matic_v].apy, Decimal("0.0611"), 0.001)
-        assert_equal_with_error(stat.borrows[b_matic_v].amount, Decimal("5"), 0.001)
+        assert_equal_with_error(market.get_borrow(b_matic_v).value, Decimal("2.55"), 0.001)
+        assert_equal_with_error(market.get_borrow(b_matic_v).apy, Decimal("0.0611"), 0.001)
+        assert_equal_with_error(market.get_borrow(b_matic_v).amount, Decimal("5"), 0.001)
 
         assert_equal_with_error(stat.borrows_value, Decimal("7.55"), 0.001)
         assert_equal_with_error(stat.borrow_apy, Decimal("0.0576"), 0.001)
@@ -112,9 +178,9 @@ class UniLpDataTest(unittest.TestCase):
         assert_equal_with_error(stat.health_factor, Decimal("11.711114759422364164"), 0.001)
         assert_equal_with_error(stat.liquidation_threshold, Decimal("0.8025"), 0.001)
         assert_equal_with_error(stat.current_ltv, Decimal("0.7525"), 0.001)
-        assert_equal_with_error(stat.net_apy, Decimal("0.01965"), 0.001)
+        assert_equal_with_error(stat.net_apy, Decimal("0.01970"), 0.001)
 
-        self.assertTrue(assert_equal_with_error(stat.net_value, Decimal("102.64"), 0.001))
+        assert_equal_with_error(stat.net_value, Decimal("102.64"), 0.001)
 
         # net_apy=Decimal('0.01683792283834931728886791969'))
 
@@ -147,8 +213,8 @@ class UniLpDataTest(unittest.TestCase):
         market.data_path = "data"
         market.load_data("polygon", [weth], date(2023, 8, 14), date(2023, 8, 17))
         self.assertEqual(len(market.data.index), 1440 * 4)
-        self.assertEqual(market.data.index[0].to_pydatetime(), datetime(2023, 8, 14, 0, 0, tzinfo=timezone.utc))
-        self.assertEqual(market.data.index[1440 * 4 - 1].to_pydatetime(), datetime(2023, 8, 17, 23, 59, tzinfo=timezone.utc))
+        self.assertEqual(market.data.index[0].to_pydatetime(), datetime(2023, 8, 14, 0, 0))
+        self.assertEqual(market.data.index[1440 * 4 - 1].to_pydatetime(), datetime(2023, 8, 17, 23, 59))
         self.assertIn(("WETH", "stable_borrow_rate"), market.data)
         self.assertTrue(1 < market.data.iloc[0][weth.name]["liquidity_index"] < 1.1)
         pass
@@ -352,6 +418,45 @@ class UniLpDataTest(unittest.TestCase):
         market.repay(borrow_key, repay_amount)
         self.assertEqual(len(market._borrows), Decimal(0))
         self.assertEqual(broker.get_token_balance(dai), Decimal(0))
+        pass
+
+    def test_repay_with_collateral(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        amount = broker.get_token_balance(weth)
+
+        supply_key = market.supply(weth, amount, True)
+        borrow_key = market.borrow(dai, 1000, InterestRateMode.variable)
+        self.assertEqual(broker.get_token_balance(dai), Decimal(1000))
+        repay_amount = market.get_max_repay_amount(borrow_key)
+
+        market.repay(borrow_key, repay_amount, repay_with_collateral=True, repay_collateral_token=weth)
+        self.assertEqual(len(market._borrows), Decimal(0))
+        self.assertEqual(broker.get_token_balance(dai), Decimal(1000))
+        self.assertEqual(market.supplies[supply_key].amount, Decimal(4))
+        pass
+
+    def test_repay_with_collateral_in_all_token_supply(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        broker.set_balance(dai, 1000)
+        market: AaveV3Market = market
+        amount = broker.get_token_balance(weth)
+
+        supply_weth = market.supply(weth, 1, True)
+        supply_dai = market.supply(dai, 1000, True)
+
+        borrow_dai = market.borrow(dai, 1500, InterestRateMode.variable)
+        self.assertEqual(broker.get_token_balance(dai), Decimal(1500))
+        self.assertEqual(market.supplies[supply_weth].amount, Decimal(1))
+        self.assertEqual(market.supplies[supply_dai].amount, Decimal(1000))
+        self.assertEqual(market.borrows[borrow_dai].amount, Decimal(1500))
+
+        market.repay(borrow_dai, 1500, repay_with_collateral=True, repay_collateral_token=weth)
+
+        self.assertEqual(broker.get_token_balance(dai), Decimal(1500))
+        self.assertTrue(supply_weth not in market.supplies)
+        self.assertEqual(market.supplies[supply_dai].amount, Decimal(1000))
+        self.assertEqual(market.borrows[borrow_dai].amount, Decimal(500))
         pass
 
     def test_max_borrow(self):

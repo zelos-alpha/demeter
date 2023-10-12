@@ -587,13 +587,13 @@ class AaveV3Market(Market):
         if repay_with_collateral:
             if repay_collateral_token is None:
                 repay_collateral_token = borrow_token
-            repay_token_key = SupplyKey(repay_collateral_token)
-            require(repay_collateral_token in self.supplies.keys(), f"token {repay_collateral_token} is not in supply")
-            require(self.supplies[repay_token_key].collateral, f"token {repay_collateral_token} is not in collateral")
+            repay_collateral_key = SupplyKey(repay_collateral_token)
+            require(repay_collateral_key in self.supplies.keys(), f"token {repay_collateral_token} is not in supply")
+            require(self.supplies[repay_collateral_key].collateral, f"token {repay_collateral_token} is not in collateral")
 
             required_amount_in_collateral_token = self._get_swap_amount(borrow_token, repay_collateral_token, payback_amount)
-            supply = self.get_supply(supply_key=repay_token_key)
-            if required_amount_in_collateral_token < supply.amount:
+            supply = self.get_supply(supply_key=repay_collateral_key)
+            if required_amount_in_collateral_token > supply.amount:
                 # contract will change payback amount instead of raise a error
                 payback_amount = self._get_swap_amount(repay_collateral_token, borrow_token, supply.amount)
 
