@@ -45,9 +45,9 @@ class DemoStrategy(Strategy):
         * market1_net_value: net value of market1
         * market1_base_uncollected: uncollected base token amount.
         * market1_quote_uncollected: uncollected quote token amount
-        * market1_base_in_position: how many base token was deposited in position. it's calculated by liquidity and price
-        * market1_quote_in_position: how many quote token was deposited in position.
-        * market1_position_count: position count
+        * market1_base_in_position: how many base token was deposited in get_position. it's calculated by liquidity and price
+        * market1_quote_in_position: how many quote token was deposited in get_position.
+        * market1_position_count: get_position count
         """
         account_status: List[AccountStatus] = self.account_status
 

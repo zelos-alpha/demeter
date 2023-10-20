@@ -44,7 +44,7 @@ class DemoStrategy(Strategy):
 
         # positions
         for position_info, position in market.positions.items():
-            print(position_info, position)  # show all position
+            print(position_info, position)  # show all get_position
 
 
 if __name__ == "__main__":

@@ -49,9 +49,6 @@ class UniLpMarket(Market):
 
     UniLpMarket does not save historical state.
 
-    出于对计算效率的考虑, 回测没有模拟每个add/remove liquidity,
-    因此, 无法计算出当前池子价格等信息, 如current_tick, SqrtPriceX96,
-    这些信息需要在回测的时候从外部输入(设置到market_status变量).
     :param pool_info: pool information
     :type pool_info: UniV3Pool
     """
@@ -81,8 +78,9 @@ class UniLpMarket(Market):
     # region properties
 
     def __str__(self):
-        return json.dumps(self.description()._asdict())
+        return json.dumps(self.description._asdict())
 
+    @property
     def description(self) -> UniDescription:
         return UniDescription(type(self).__name__, self._market_info.name, len(self._positions), sum([p.liquidity for p in self._positions.values()]))
 
@@ -126,28 +124,31 @@ class UniLpMarket(Market):
         """
         return self._pool.token1
 
-    def position(self, position_info: PositionInfo) -> Position:
-        """
-        get position by position information
-
-        :param position_info: position information
-        :type position_info: PositionInfo
-        :return: Position entity
-        :rtype: Position
-        """
-        return self._positions[position_info]
-
     @property
     def market_status(self) -> UniswapMarketStatus:
         return self._market_status
 
     # endregion
 
+    def get_position(self, position_info: PositionInfo) -> Position:
+        """
+        get get_position by get_position information
+
+        :param position_info: get_position information
+        :type position_info: PositionInfo
+        :return: Position entity
+        :rtype: Position
+        """
+        return self._positions[position_info]
+
     def set_market_status(
         self,
         data: MarketStatus | None,
         price: pd.Series | None,
     ):
+        """
+        Set current pool status (total liquidity, price etc.) to Market
+        """
         # update price tick
         total_virtual_liq = sum([p.liquidity for p in self._positions.values()])
         self.last_tick = self._market_status.data.closeTick if "closeTick" in self._market_status.data.index else np.nan
@@ -161,6 +162,12 @@ class UniLpMarket(Market):
         self.has_update = False
 
     def get_price_from_data(self) -> pd.DataFrame:
+        """
+        Extract token pair price from pool data.
+        :return: a dataframe includes quote token price, and base token price will be set to 1
+        :rtype: pd.DataFrame
+
+        """
         if self.data is None:
             raise DemeterError("data has not set")
         price_series: pd.Series = self.data.price
@@ -181,6 +188,9 @@ class UniLpMarket(Market):
         return (any0, any1) if self._is_token0_base else (any1, any0)
 
     def check_market(self):
+        """
+        Verify settings before backtest
+        """
         super().check_market()
         required_columns = [
             "closeTick",
@@ -201,7 +211,7 @@ class UniLpMarket(Market):
 
     def update(self):
         """
-        re-calculate status
+        re-calculate status.
         """
         self.__update_fee()
 
@@ -218,7 +228,7 @@ class UniLpMarket(Market):
         """
         get current status, including positions, balances
 
-        :param prices: current price, used for calculate position value and net value, if set to None, will use price in current status
+        :param prices: current price, used for calculate get_position value and net value, if set to None, will use price in current status
         :type prices: pd.Series | Dict[str, Decimal]
 
         :return: MarketBalance
@@ -356,7 +366,7 @@ class UniLpMarket(Market):
     ):
         """
         collect fee
-        :param position: position
+        :param position: get_position
         :param max_collect_amount0: max collect amount0
         :param max_collect_amount1: max collect amount1
         :return:
@@ -388,7 +398,7 @@ class UniLpMarket(Market):
     ) -> (PositionInfo, Decimal, Decimal, int):
         """
 
-        add liquidity, then get a new position
+        add liquidity, then get a new get_position
 
         :param lower_quote_price: lower price base on quote token.
         :type lower_quote_price: Decimal | float
@@ -398,7 +408,7 @@ class UniLpMarket(Market):
         :type base_max_amount: Decimal | float
         :param quote_max_amount: inputted base token amount, also the max amount to deposit, if is None, will use all the balance of base token
         :type quote_max_amount: Decimal | float
-        :return: added position, base token used, quote token used
+        :return: added get_position, base token used, quote token used
         :rtype: (PositionInfo, Decimal, Decimal)
         """
         base_max_amount = self.broker.get_token_balance(self.base_token) if base_max_amount is None else base_max_amount
@@ -456,7 +466,7 @@ class UniLpMarket(Market):
         :type tick: int
         :param sqrt_price_x96: precise price.  if set to none, it will be calculated from current price. this param will override tick
         :type sqrt_price_x96: int
-        :return: added position, base token used, quote token used
+        :return: added get_position, base token used, quote token used
         :rtype: (PositionInfo, Decimal, Decimal)
         """
         if lower_tick > upper_tick:
@@ -504,10 +514,10 @@ class UniLpMarket(Market):
     ) -> (Decimal, Decimal):
         """
         remove liquidity from pool, liquidity will be reduced to 0,
-        instead of send tokens to broker, tokens will be transferred to fee property in position.
-        position will be not deleted, until fees and tokens are collected.
+        instead of send tokens to broker, tokens will be transferred to fee property in get_position.
+        get_position will be not deleted, until fees and tokens are collected.
 
-        :param position: position to remove.
+        :param position: get_position to remove.
         :type position: PositionInfo
         :param liquidity: liquidity amount to remove, if set to None, all the liquidity will be removed
         :type liquidity: int
@@ -517,7 +527,7 @@ class UniLpMarket(Market):
         :type sqrt_price_x96: int
         :param remove_dry_pool: remove pool which liquidity==0, effect when collect==True
         :type remove_dry_pool: bool
-        :return: (base_got,quote_get), base and quote token amounts collected from position
+        :return: (base_got,quote_get), base and quote token amounts collected from get_position
         :rtype:  (Decimal,Decimal)
         """
         if liquidity and liquidity < 0:
@@ -552,9 +562,9 @@ class UniLpMarket(Market):
     ) -> (Decimal, Decimal):
         """
         collect fee and token from positions,
-        if the amount and liquidity is zero, this position will be deleted.
+        if the amount and liquidity is zero, this get_position will be deleted.
 
-        :param position: position to collect
+        :param position: get_position to collect
         :type position: PositionInfo
         :param max_collect_amount0: max token0 amount to collect, eg: 1.2345 usdc, if set to None, all the amount will be collect
         :type max_collect_amount0: Decimal
@@ -562,7 +572,7 @@ class UniLpMarket(Market):
         :type max_collect_amount1: Decimal
         :param remove_dry_pool: remove pool which liquidity==0, effect when collect==True
         :type remove_dry_pool: bool
-        :return: (base_got,quote_get), base and quote token amounts collected from position
+        :return: (base_got,quote_get), base and quote token amounts collected from get_position
         :rtype:  (Decimal,Decimal)
         """
         if (max_collect_amount0 and max_collect_amount0 < 0) or (max_collect_amount1 and max_collect_amount1 < 0):

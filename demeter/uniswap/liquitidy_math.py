@@ -152,11 +152,14 @@ def get_liquidity(
 
 
 def get_sqrt_ratio_at_tick(tick: int) -> int:
+    """
+    (sqrt(1.0001) ** tick) * (2**96)
+    """
     tick = int(tick)
     abs_tick = tick if tick >= 0 else -tick
     assert abs_tick <= 887272
 
-    # 这些魔数分别表示 1/sqrt(1.0001)^1, 1/sqrt(1.0001)^2, 1/sqrt(1.0001)^4....
+    # Those magic number stands for 1/sqrt(1.0001)^1, 1/sqrt(1.0001)^2, 1/sqrt(1.0001)^4....
     ratio: int = 0xFFFCB933BD6FAD37AA2D162D1A594001 if abs_tick & 0x1 != 0 else 0x100000000000000000000000000000000
     if abs_tick & 0x2 != 0:
         ratio = (ratio * 0xFFF97272373D413259A46990580E213A) >> 128

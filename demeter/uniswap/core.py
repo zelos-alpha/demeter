@@ -16,14 +16,14 @@ class V3CoreLib(object):
         sqrt_price_x96: int,
     ):
         """
-        create new position
+        create new get_position
         :param pool: operation on which pool
         :param token0_amount: token0 amount
         :param token1_amount: token1 amount
         :param lower_tick: lower tick
         :param upper_tick: upper tick
         :param sqrt_price_x96: sqrt(price) * 2^96
-        :return: token0 position, token1 position, liquid, position instance
+        :return: token0 get_position, token1 get_position, liquid, get_position instance
         """
         position_liq = get_liquidity(
             sqrt_price_x96,
@@ -53,9 +53,9 @@ class V3CoreLib(object):
     @staticmethod
     def close_position(pool: UniV3Pool, position_info: PositionInfo, liquidity, sqrt_price_x96):
         """
-        close position
+        close get_position
         :param pool: operation on which pool
-        :param position_info: position info
+        :param position_info: get_position info
         :param liquidity: liquidity
         :param sqrt_price_x96: sqrt(price) * 2^96
         :return: token amount
@@ -65,9 +65,9 @@ class V3CoreLib(object):
     @staticmethod
     def get_token_amounts(pool: UniV3Pool, pos: PositionInfo, sqrt_price_x96, liquidity) -> (Decimal, Decimal):
         """
-        get token amount in position
+        get token amount in get_position
         :param pool: operation on which pool
-        :param pos: position info
+        :param pos: get_position info
         :param sqrt_price_x96: sqrt(price) * 2^96
         :param liquidity: liquidity
         :return: token0 amount, token1 amount
@@ -112,8 +112,8 @@ class V3CoreLib(object):
         """
         update fee
         :param pool: operation on which pool
-        :param pos: position info
-        :param position: position
+        :param pos: get_position info
+        :param position: get_position
         :param state: UniV3PoolStatus
         :param last_tick:
         :return: None

@@ -27,7 +27,7 @@ class AddByVolatility(Strategy):
     We will provide liquidity inside the Bollinger Bands.
     These bands are made up of a lower band BOLL = pa − c · v
     and an upper band BOLU = pa + c · v.
-    The liquidity position will be [pa − v · c, pa + v · c].
+    The liquidity get_position will be [pa − v · c, pa + v · c].
 
     * pa is simple moving average
     * c is a constant value, =2

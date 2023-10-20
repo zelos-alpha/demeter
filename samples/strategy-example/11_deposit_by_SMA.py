@@ -14,7 +14,7 @@ pd.set_option("display.width", 5000)
 class AddLiquidityByMA(Strategy):
     """
     We will provide liquidity according simple moving average,
-    The liquidity position will be [pa − price_width, pa + price_width].
+    The liquidity get_position will be [pa − price_width, pa + price_width].
 
     * pa is simple moving average
     * price_width is a constant value, default value is 100

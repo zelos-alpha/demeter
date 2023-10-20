@@ -51,7 +51,7 @@ if __name__ == "__main__":
     pool = UniV3Pool(token0=usdc, token1=eth, fee=0.05, base_token=usdc)
 
     # Declare a market key, which will be used to find the corresponding market in broker
-    market_key = MarketInfo("uni_market")
+    market_key = MarketInfo("U2EthPool")
     # Declare the market,
     market = UniLpMarket(market_key, pool)  # uni_market:UniLpMarket, positions: 0, total liquidity: 0
     # load data for market. those data is prepared by download tool

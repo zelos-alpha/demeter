@@ -54,7 +54,7 @@ class TestUniLpMarket(unittest.TestCase):
         print("broker:", broker)
         uni_market: UniLpMarket = broker.markets[test_market]
         for k, v in uni_market.positions.items():
-            print("=====begin print position=====")
+            print("=====begin print get_position=====")
             print(k)
             print(v)
             print("=====end======")
@@ -227,10 +227,10 @@ class TestUniLpMarket(unittest.TestCase):
         print("=========after a bar======================================================================")
         market.update()
         TestUniLpMarket.print_broker(broker)
-        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.position(new_position).pending_amount0)
-        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.position(new_position).pending_amount1)
-        fee0 = market.position(new_position).pending_amount0
-        fee1 = market.position(new_position).pending_amount1
+        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.get_position(new_position).pending_amount0)
+        self.assertTrue(Decimal("0.00004950495049504950495049504950") == market.get_position(new_position).pending_amount1)
+        fee0 = market.get_position(new_position).pending_amount0
+        fee1 = market.get_position(new_position).pending_amount1
         balance0 = broker.assets[self.usdc].balance
         balance1 = broker.assets[self.eth].balance
         market.collect_fee(new_position)
@@ -238,8 +238,8 @@ class TestUniLpMarket(unittest.TestCase):
         TestUniLpMarket.print_broker(broker)
         self.assertEqual(fee0 + balance0, broker.assets[self.usdc].balance)
         self.assertEqual(fee1 + balance1, broker.assets[self.eth].balance)
-        self.assertEqual(market.position(new_position).pending_amount0, 0)
-        self.assertEqual(market.position(new_position).pending_amount0, 0)
+        self.assertEqual(market.get_position(new_position).pending_amount0, 0)
+        self.assertEqual(market.get_position(new_position).pending_amount0, 0)
 
     def test_buy(self):
         broker = self.get_broker()

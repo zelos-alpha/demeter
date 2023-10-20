@@ -135,7 +135,7 @@ After run the test, The output is
     2022-10-13 18:11:58,035 - INFO - run evaluating indicator
     2022-10-13 18:11:58,038 - INFO - back testing finish
     Final status
-    total capital: 2000.0020usdc                  balance   : 1000usdc,1eth                  uncollect fee: 0usdc,0eth                     in position amount: 0usdc,0eth
+    total capital: 2000.0020usdc                  balance   : 1000usdc,1eth                  uncollect fee: 0usdc,0eth                     in get_position amount: 0usdc,0eth
     Evaluating indicator
     annualized_returns: 0                              benchmark_returns: 0
 
@@ -193,8 +193,8 @@ suppose we only have five rows of data, and in closeTick column, data is [0,1,2,
             print(self.broker.asset0.balance, self.broker.asset1.balance)  # show balance in asset 0,1
             print(self.broker.base_asset.balance, self.broker.quote_asset.balance)  # show balance in base quote
             print(self.broker.get_account_status())  # get current capital status,
-            for position_info, position in self.broker.positions.items():
-                print(position_info, position)  # show all position
+            for position_info, get_position in self.broker.positions.items():
+                print(position_info, get_position)  # show all get_position
 
 row_data is row of in current loop. its type is pandas.Series, and its properity is listed in :ref:`Lines`
 
@@ -245,10 +245,10 @@ And the result can save to file so you can review it later.
                          actions=True)  # save actions as a json file and a pickle file
 
 
-Add plot position decomposition
+Add plot get_position decomposition
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Use matplotlib library to plot the position decomposition.
+Use matplotlib library to plot the get_position decomposition.
 
 .. code-block::
 

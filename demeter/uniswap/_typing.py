@@ -12,7 +12,7 @@ from ..utils import get_formatted_from_dict
 
 class PositionInfo(NamedTuple):
     """
-    position information, including tick range and liquidity. It contains immutable properties of a position, and used as a key for position dict
+    get_position information, including tick range and liquidity. It contains immutable properties of a get_position, and used as a key for get_position dict
 
     :param lower_tick: lower tick
     :type lower_tick: int
@@ -109,8 +109,8 @@ class UniLpBalance(MarketBalance):
             {
                 "total capital": self.net_value.to_str(),
                 "uncollect fee": f"{self.base_uncollected.to_str()},{self.quote_uncollected.to_str()}",
-                "in position amount": f"{self.base_in_position.to_str()},{self.quote_in_position.to_str()}",
-                "position count": self.position_count,
+                "in get_position amount": f"{self.base_in_position.to_str()},{self.quote_in_position.to_str()}",
+                "get_position count": self.position_count,
             }
         )
 
@@ -191,7 +191,7 @@ class UniLpBalance(MarketBalance):
 @dataclass
 class Position(object):
     """
-    keeps variables for position
+    keeps variables for get_position
     """
 
     pending_amount0: Decimal
@@ -288,7 +288,7 @@ class AddLiquidityAction(UniLpBaseAction):
     :type base_amount_actual: UnitDecimal
     :param quote_amount_actual: actual used quote token
     :type quote_amount_actual: UnitDecimal
-    :param position: generated position
+    :param position: generated get_position
     :type position: PositionInfo
     :param liquidity: liquidity added
     :type liquidity: int
@@ -316,7 +316,7 @@ class AddLiquidityAction(UniLpBaseAction):
             {
                 "max amount": f"{self.base_amount_max.to_str()},{self.quote_amount_max.to_str()}",
                 "price": f"{self.lower_quote_price.to_str()},{self.upper_quote_price.to_str()}",
-                "position": self.position,
+                "get_position": self.position,
                 "liquidity": self.liquidity,
                 "balance": f"{self.base_balance_after.to_str()}(-{self.base_amount_actual.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_amount_actual.to_str()})",
             }
@@ -328,7 +328,7 @@ class CollectFeeAction(UniLpBaseAction):
     """
     collect fee
 
-    :param position: position to operate
+    :param position: get_position to operate
     :type position: PositionInfo
     :param base_amount: fee collected in base token
     :type base_amount: UnitDecimal
@@ -352,7 +352,7 @@ class CollectFeeAction(UniLpBaseAction):
         """
         return f"""\033[1;33m{"Collect fee":<20}\033[0m""" + get_formatted_from_dict(
             {
-                "position": self.position,
+                "get_position": self.position,
                 "balance": f"{self.base_balance_after.to_str()}(+{self.base_amount.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_amount.to_str()})",
             }
         )
@@ -361,9 +361,9 @@ class CollectFeeAction(UniLpBaseAction):
 @dataclass
 class RemoveLiquidityAction(UniLpBaseAction):
     """
-    remove position
+    remove get_position
 
-    :param position: position to operate
+    :param position: get_position to operate
     :type position: PositionInfo
     :param base_amount: base token amount collected
     :type base_amount: UnitDecimal
@@ -371,7 +371,7 @@ class RemoveLiquidityAction(UniLpBaseAction):
     :type quote_amount: UnitDecimal
     :param removed_liquidity: liquidity number has removed
     :type removed_liquidity: int
-    :param remain_liquidity: liquidity number left in position
+    :param remain_liquidity: liquidity number left in get_position
     :type remain_liquidity: int
 
     """
@@ -393,7 +393,7 @@ class RemoveLiquidityAction(UniLpBaseAction):
         """
         return f"""\033[1;32m{"Remove liquidity":<20}\033[0m""" + get_formatted_from_dict(
             {
-                "position": self.position,
+                "get_position": self.position,
                 "balance": f"{self.base_balance_after.to_str()}(+0), {self.quote_balance_after.to_str()}(+0)",
                 "token_got": f"{self.base_amount.to_str()},{self.quote_amount.to_str()}",
                 "removed liquidity": self.removed_liquidity,

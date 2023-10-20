@@ -442,7 +442,7 @@ class PositionManager:
     def substract(self, stock: T, amount: Decimal) -> Decimal:
         key = str(stock)
         if key not in self.positions:
-            raise DemeterError(f"{stock} not in position")
+            raise DemeterError(f"{stock} not in get_position")
         if self.positions[key] < amount:
             raise DemeterError(f"insufficient amount for {key}")
         self.positions[key] -= amount
@@ -451,7 +451,7 @@ class PositionManager:
     def get(self, stock: T) -> Decimal:
         key = str(stock)
         if key not in self.positions:
-            raise DemeterError(f"{key} not in position")
+            raise DemeterError(f"{key} not in get_position")
         return self.positions[key]
 
     def has(self, stock: T) -> bool:

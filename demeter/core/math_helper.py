@@ -22,7 +22,7 @@ def get_benchmark_returns(
 ):
     """
     Annualized benchmark return rate
-    algorithm: swap token balance to 1:1, and hold those position to the end.
+    algorithm: swap token balance to 1:1, and hold those get_position to the end.
     :return:
     """
     splited_value = init_value / len(init_price)

@@ -52,7 +52,7 @@ class UniLpCoreTest(unittest.TestCase):
 
         # for x in range(203960,204090):
         #     print(x)
-        #     token0_used, token1_used, position = V3CoreLib.new_position(self.pool,
+        #     token0_used, token1_used, get_position = V3CoreLib.new_position(self.pool,
         #                                                                 Decimal(74.315359),
         #                                                                 Decimal(0.02722552310238334),
         #                                                                 203960,

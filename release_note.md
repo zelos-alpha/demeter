@@ -10,6 +10,8 @@
 * [breaking change]PositionInfo class is moved to uniswap module
 * [breaking change]Location of some class was reorganized
 * [breaking change]elements in EvaluatorEnum was changed to lower case
+* [breaking change]UniswapMarket.position() has changed to UniswapMarket.get_position(), clarify its function by renaming it.
+
 
 # Ver older
 
