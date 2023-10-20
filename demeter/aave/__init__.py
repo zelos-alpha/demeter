@@ -1,3 +1,11 @@
+"""
+Aave market, this module can simulate common operations in Aave, such as supply/withdraw/borrow/repay
+
+but flash debt is not supported.
+Liquidate is not supported too, but your debt will be liquidated if health factor is too low.
+"""
+
+
 from ._typing import (
     AaveTokenStatus,
     SupplyInfo,

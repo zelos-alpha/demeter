@@ -1,5 +1,6 @@
 import unittest
 from demeter import UnitDecimal, Strategy, AccountStatus, TokenInfo
+from demeter.utils import get_formatted, ModeEnum, ForColorEnum, BackColorEnum
 
 
 class UtilsTest(unittest.TestCase):
@@ -28,3 +29,35 @@ class UtilsTest(unittest.TestCase):
         # lower case to upper case
         self.assertEqual(t.name, "USDT")
         self.assertEqual(str(t), "USDT")
+
+    def test_console_text(self):
+        print(get_formatted('正常显示'))
+        print('')
+        print("测试显示模式")
+        print(get_formatted('高亮', mode=ModeEnum.bold), )
+        print(get_formatted('下划线', mode=ModeEnum.underline), )
+        print(get_formatted('闪烁', mode=ModeEnum.blink), )
+        print(get_formatted('反白', mode=ModeEnum.invert), )
+        print(get_formatted('不可见', mode=ModeEnum.hide))
+        print('')
+        print("测试前景色")
+        print(get_formatted('黑色', fore=ForColorEnum.black), )
+        print(get_formatted('红色', fore=ForColorEnum.red), )
+        print(get_formatted('绿色', fore=ForColorEnum.green), )
+        print(get_formatted('黄色', fore=ForColorEnum.yellow), )
+        print(get_formatted('蓝色', fore=ForColorEnum.blue), )
+        print(get_formatted('紫红色', fore=ForColorEnum.purple), )
+        print(get_formatted('青蓝色', fore=ForColorEnum.cyan), )
+        print(get_formatted('白色', fore=ForColorEnum.white))
+        print('')
+        print("测试背景色")
+        print(get_formatted('黑色', back=BackColorEnum.black), )
+        print(get_formatted('红色', back=BackColorEnum.red), )
+        print(get_formatted('绿色', back=BackColorEnum.green), )
+        print(get_formatted('黄色', back=BackColorEnum.yellow), )
+        print(get_formatted('蓝色', back=BackColorEnum.blue), )
+        print(get_formatted('紫红色', back=BackColorEnum.purple), )
+        print(get_formatted('青蓝色', back=BackColorEnum.cyan), )
+        print(get_formatted('白色', back=BackColorEnum.white))
+        print('')
+        print(get_formatted("综合", ModeEnum.invert, ForColorEnum.red))

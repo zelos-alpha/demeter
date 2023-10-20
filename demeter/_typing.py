@@ -1,13 +1,17 @@
 from decimal import Decimal
 from enum import Enum
 
+
+# constant value for number 1
 DECIMAL_0 = Decimal(0)
+
+# constant value for number 0
 DECIMAL_1 = Decimal(1)
 
 
 class TimeUnitEnum(Enum):
     """
-    time unit for moving average,
+    Time unit of moving average,
 
     * minute
     * hour
@@ -35,6 +39,7 @@ class UnitDecimal(Decimal):
     """
 
     __integral = Decimal(1)
+
     default_output_format = ".8g"
 
     def __new__(cls, value, unit: str = "", output_format=None):
@@ -63,23 +68,32 @@ class UnitDecimal(Decimal):
 
 
 class EvaluatorEnum(Enum):
-    ALL = 0
-    ANNUALIZED_RETURNS = 1
-    BENCHMARK_RETURNS = 2
-    MAX_DRAW_DOWN = 3
+    """
+    Types of Strategy Evaluation
+    """
+
+    all = 0
+    annualized_returns = 1
+    benchmark_returns = 2
+    max_draw_down = 3
 
     def __str__(self):
+        return self.name
+
+    def __repr__(self):
         return self.name
 
 
 class TokenInfo:
     """
-    token info
+    Identity for a token, will be used as key for token dict.
 
     :param name: token symbol, will be set as unit of a token value, eg: usdc
     :type name: str
     :param decimal: decimal of this token, eg: 6
     :type decimal: int
+    :param address: Address of token, for aave market, this attribute has to be filled to load data.
+    :type decimal: str
     """
 
     name: str
@@ -107,34 +121,15 @@ class TokenInfo:
         return self.name.__hash__()
 
 
-# class TokenInfo(NamedTuple):
-#     name: str
-#     decimal: int
-#
-#     def __str__(self):
-#         return self.name
-#
-#     def __repr__(self):
-#         return self.name
-
-
 class DemeterError(Exception):
     def __init__(self, message):
         self.message = message
 
 
-class TradeError(Exception):
-    def __init__(self, message):
-        self.message = message
-
-
-class EthError(Exception):
-    def __init__(self, code, message):
-        self.code = code
-        self.message = message
-
-
 class ChainType(str, Enum):
+    """
+    Enum for chains
+    """
     ethereum = "ethereum"
     polygon = "polygon"
     optimism = "optimism"

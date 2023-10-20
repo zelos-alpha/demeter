@@ -67,5 +67,8 @@ def get_enum_by_name(me, name):
 
 
 def require(condition: bool, error_msg: str):
+    """
+    Checking whether the condition is True, if not, will raise a AssertionError
+    """
     if not condition:
         raise AssertionError(error_msg)

@@ -5,14 +5,14 @@ from typing import Dict, NamedTuple, Union
 
 import pandas as pd
 
-from .._typing import TokenInfo, DemeterError, UnitDecimal
+from .._typing import TokenInfo, UnitDecimal
 from ..broker import BaseAction, ActionTypeEnum, MarketBalance, MarketStatus
 from ..utils import get_formatted_from_dict
 
 
 class PositionInfo(NamedTuple):
     """
-    position information, including tick range and liquidity. It's the immute properties of a position
+    position information, including tick range and liquidity. It contains immutable properties of a position, and used as a key for position dict
 
     :param lower_tick: lower tick
     :type lower_tick: int
@@ -29,6 +29,10 @@ class PositionInfo(NamedTuple):
 
 
 class UniDescription(NamedTuple):
+    """
+    A brief description for uniswap market status.
+    """
+
     type: str
     name: str
     position_count: int
@@ -60,11 +64,6 @@ class UniV3Pool(object):
         self.fee_rate: Decimal = Decimal(fee) / Decimal(100)
 
     def __str__(self):
-        """
-        get string
-        :return:
-        :rtype:
-        """
         return (
             "PoolBaseInfo(Token0: {},".format(self.token0)
             + "Token1: {},".format(self.token1)
@@ -72,14 +71,15 @@ class UniV3Pool(object):
             + "base token: {})".format(self.token0.name if self.is_token0_base else self.token1.name)
         )
 
+    def __repr__(self):
+        return self.__str__()
+
 
 @dataclass
 class UniLpBalance(MarketBalance):
     """
-    current status of broker
+    current balances of quote and base token in uniswap market
 
-    :param timestamp: timestamp
-    :type timestamp: datetime
     :param base_uncollected: base token uncollect fee in all the positions.
     :type base_uncollected: UnitDecimal
     :param quote_uncollected: quote token uncollect fee in all the positions.
@@ -88,10 +88,8 @@ class UniLpBalance(MarketBalance):
     :type base_in_position: UnitDecimal
     :param quote_in_position: quote token amount deposited in positions, calculated according to current price
     :type quote_in_position: UnitDecimal
-    :param pool_net_value: 按照池子base/quote关系的净值. 不是broker层面的(which 通常是对u的).
-    :type pool_net_value: UnitDecimal
-    :param price: current price
-    :type price: UnitDecimal
+    :param position_count: count of positions
+    :type position_count: int
 
     """
 
@@ -109,15 +107,19 @@ class UniLpBalance(MarketBalance):
         """
         return get_formatted_from_dict(
             {
-                "total capital": self.pool_net_value.to_str(),
+                "total capital": self.net_value.to_str(),
                 "uncollect fee": f"{self.base_uncollected.to_str()},{self.quote_uncollected.to_str()}",
                 "in position amount": f"{self.base_in_position.to_str()},{self.quote_in_position.to_str()}",
-                "position count": self.position_count.to_str(),
+                "position count": self.position_count,
             }
         )
 
     def to_array(self):
+        """
+        Join attributes to an array
+        """
         return [
+            self.net_value,
             self.base_uncollected,
             self.quote_uncollected,
             self.base_in_position,
@@ -189,7 +191,7 @@ class UniLpBalance(MarketBalance):
 @dataclass
 class Position(object):
     """
-    variables for position
+    keeps variables for position
     """
 
     pending_amount0: Decimal
@@ -219,6 +221,7 @@ class UniV3PoolStatus:
     """
     current status of a pool, actuators can notify current status to broker by filling this entity
     """
+
     # required by market class
     price: Decimal
     currentLiquidity: int = None

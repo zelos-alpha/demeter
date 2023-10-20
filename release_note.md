@@ -1,11 +1,16 @@
-# ver xx.xx.xx
+# Ver 0.3.0
 
-* add aave market
-* [breaking change]row_data parameter of before_bar/on_bar/after_bar in strategy has changed
-* add trigger.do in strategy
-* before bar in strategy is removed, as it's duplicate with trigger and on bar
-* [breaking change]if declare a TokenInfo, name property will be converted to upper case now
-* BrokerAsset in uniswap market is removed, asset balance is managed by broker
-* PositionInfo class is moved to uniswap module
-* some package reference has changed
-* on_bar parameter type has changed
+* Add aave market, support supply/withdraw/borrow/repay, and passive liquidate.
+* Add PriceTrigger in strategy
+* str() of markets will return json string.
+* [breaking change]type of row_data parameter in on_bar/after_bar/trigger has changed, price is included now
+* [breaking change]before_bar in strategy has removed, as it's duplicate with trigger and on bar
+* [breaking change]if declare a TokenInfo, name property will be instead with upper case. Because name is used for find token parameters.
+* [breaking change]BrokerAsset in uniswap market is removed, asset balance is managed by broker
+* [breaking change]PositionInfo class is moved to uniswap module
+* [breaking change]Location of some class was reorganized
+* [breaking change]elements in EvaluatorEnum was changed to lower case
+
+# Ver older
+
+* Support uniswap v3 market

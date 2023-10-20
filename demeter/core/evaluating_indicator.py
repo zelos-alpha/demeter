@@ -39,7 +39,7 @@ class Evaluator(object):
         :param enables:
         :return: result_dict
         """
-        if EvaluatorEnum.ALL in enables:
+        if EvaluatorEnum.all in enables:
             enables = [x for x in EvaluatorEnum]
             enables = filter(lambda x: x.value > 0, enables)
         result_dict: Dict[EvaluatorEnum, UnitDecimal] = {}

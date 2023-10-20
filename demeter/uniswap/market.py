@@ -83,7 +83,7 @@ class UniLpMarket(Market):
     def __str__(self):
         return json.dumps(self.description()._asdict())
 
-    def description(self):
+    def description(self) -> UniDescription:
         return UniDescription(type(self).__name__, self._market_info.name, len(self._positions), sum([p.liquidity for p in self._positions.values()]))
 
     @property

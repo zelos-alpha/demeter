@@ -199,6 +199,7 @@ class MarketBalance:
     """
     MarketBalance properties
 
+    :param net_value: total net value in this market(in base token)
     :type net_value: Decimal
     """
 

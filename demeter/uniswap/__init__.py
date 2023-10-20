@@ -1,5 +1,5 @@
 """
-uniswap market
+Uniswap market, this module can simulate common operations in Uniswap V3, such as add/remove liquidity, swap etc.
 """
 
 from ._typing import (
