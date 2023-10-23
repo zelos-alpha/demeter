@@ -1,3 +1,4 @@
+import warnings
 from decimal import Decimal
 
 import pandas as pd
@@ -38,9 +39,9 @@ def get_benchmark_returns(
     return (final_value / init_value) ** Decimal(365 / timespan_in_day) - 1
 
 
-def __get_benchmark_asset(net_value, price):
+def __devide_value_to_50_50(net_value, price):
     """
-    get benchmark of asset
+    divide base/quote token value to 50:50 by according to price
     :param net_value: Decimal or float
     :param price:
     :return:
@@ -58,6 +59,7 @@ def max_draw_down(value: pd.Series):
     :return:
     :rtype:
     """
+    warnings.warn("use max_draw_down_fast instead", DeprecationWarning)
     value.index = range(len(value.index))  # restruct index to access faster
     result = 0
     for index, row in value.iteritems():
@@ -69,7 +71,7 @@ def max_draw_down(value: pd.Series):
 
 def max_draw_down_fast(value: pd.Series):
     """
-    get max draw down in a fast algorithm.
+    Get max draw down in a fast algorithm.
     :param value: value to calculate
     :type value:  pd.Series
     :return:

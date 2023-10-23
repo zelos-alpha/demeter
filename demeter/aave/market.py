@@ -395,7 +395,7 @@ class AaveV3Market(Market):
         self._supplies_cache.reset()
         self._collaterals_amount_cache.reset()
 
-        self.record_action(
+        self._record_action(
             SupplyAction(
                 market=self.market_info,
                 token=token_info,
@@ -464,7 +464,7 @@ class AaveV3Market(Market):
 
         final_base_amount = self.__sub_supply_amount(key, amount)
         self.broker.add_to_balance(token_info, amount)
-        self.record_action(
+        self._record_action(
             WithdrawAction(
                 market=self.market_info,
                 token=token_info,
@@ -536,7 +536,7 @@ class AaveV3Market(Market):
         self._borrows_amount_cache.reset()
         self._borrows_cache.reset()
 
-        self.record_action(
+        self._record_action(
             BorrowAction(
                 market=self.market_info,
                 token=token_info,
@@ -608,7 +608,7 @@ class AaveV3Market(Market):
         else:
             self.broker.subtract_from_balance(borrow_token, payback_amount)
         debt = self.__sub_borrow_amount(key, payback_amount)
-        self.record_action(
+        self._record_action(
             RepayAction(
                 market=self.market_info,
                 token=borrow_token,
@@ -765,7 +765,7 @@ class AaveV3Market(Market):
         self._supplies_cache.reset()
         self._collaterals_amount_cache.reset()
 
-        self.record_action(
+        self._record_action(
             LiquidationAction(
                 market=self.market_info,
                 collateral_token=collateral_token,

@@ -9,7 +9,7 @@ from .math_helper import max_draw_down_fast, annualized_returns, get_benchmark_r
 
 class Evaluator(object):
     """
-    calculate evaluator indicator for strategy.
+    Calculate evaluator indicator for strategy.
     """
 
     def __init__(

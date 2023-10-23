@@ -59,7 +59,7 @@ class Actuator(object):
         """
         record action list
         :param action: action
-        :return: None
+        :type action: BaseAction
         """
         action.timestamp = self._currents.timestamp
         action.set_type()
@@ -70,12 +70,15 @@ class Actuator(object):
     @property
     def account_status(self) -> List[AccountStatus]:
         """
-        account status of all market,
+        Get account status list.
+        Account status includes balances, net values and positions.
+        Each element in this list stands for one minute.
+        It is recommended to use get_account_status_dataframe.
         """
         return self._account_status_list
 
     @property
-    def token_prices(self):
+    def token_prices(self) -> pd.DataFrame:
         """
         price of all token
         :return: None
@@ -85,7 +88,7 @@ class Actuator(object):
     @property
     def final_status(self) -> AccountStatus:
         """
-        Get status after back test finish.
+        Get last account status of back test.
 
         If test has not run, an error will be raised.
 
@@ -100,7 +103,7 @@ class Actuator(object):
     def reset(self):
         """
 
-        reset all the status variables
+        Reset actuator by re-initiate all the status variables
 
         """
         self._evaluator: Evaluator | None = None
@@ -116,28 +119,28 @@ class Actuator(object):
     @property
     def actions(self) -> List[BaseAction]:
         """
-        all the actions during the test(buy/sell/add liquidity)
+        Actions(buy/sell/add liquidity) happened during back test
 
-        :return: action list
-        :rtype: [BaseAction]
+        :return: A list of actions
+        :rtype: List[BaseAction]
         """
         return self._action_list
 
     @property
     def evaluating_indicator(self) -> Dict[EvaluatorEnum, UnitDecimal]:
         """
-        evaluating indicator result
+        Get evaluating indicator result
 
-        :return:  evaluating indicator
-        :rtype: EvaluatingIndicator
+        :return: Result of each evaluating indicator in dict
+        :rtype: Dict[EvaluatorEnum, UnitDecimal]
         """
         return self._evaluator.result if self._evaluator is not None else None
 
     @property
     def broker(self) -> Broker:
         """
-        Broker manage assets in back testing. Including asset, positions. it also provides operations for positions,
-
+        Get broker instance.
+        Brokers are managers of assets. It manages cash and markets(the place to invest assets)
 
         """
         return self._broker
@@ -145,9 +148,9 @@ class Actuator(object):
     @property
     def strategy(self) -> Strategy:
         """
-        strategy,
+        Get strategy instance
 
-        :return: strategy
+        :return: strategy instance
         :rtype: Strategy
         """
         return self._strategy
@@ -155,8 +158,8 @@ class Actuator(object):
     @strategy.setter
     def strategy(self, value):
         """
-        set strategy
-        :param value: strategy
+        Set strategy instance to actuator
+        :param value: strategy instance
         :type value: Strategy
         """
         if isinstance(value, Strategy):
@@ -189,14 +192,18 @@ class Actuator(object):
 
     def get_account_status_dataframe(self) -> pd.DataFrame:
         """
-        get account status dataframe
-        :return: dataframe
+        Get account status in dataframe. it contains account balance/position change of every minute.
+        Row(datetimeindex) is per minute.
+        Column is net value/positions.
+
+        :return: account status
+        :rtype: pd.DataFrame
         """
         return AccountStatus.to_dataframe(self._account_status_list)
 
     def set_assets(self, assets: List[Asset]):
         """
-        set initial balance for token
+        Set initial token balance. That's cash held by the broker.
 
         :param assets: assets to set.
         :type assets: [Asset]
@@ -206,21 +213,15 @@ class Actuator(object):
 
     def set_price(self, prices: Union[pd.DataFrame, pd.Series]):
         """
-        set price
-        :param prices: dataframe or series
-                                  eth  usdc
-        2022-08-20 00:00:00  1610.55     1
-        2022-08-20 00:01:00  1612.48     1
-        2022-08-20 00:02:00  1615.71     1
-        2022-08-20 00:03:00  1615.71     1
-        2022-08-20 00:04:00  1615.55     1
-        ...                      ...   ...
-        2022-08-20 23:55:00  1577.08     1
-        2022-08-20 23:56:00  1576.92     1
-        2022-08-20 23:57:00  1576.92     1
-        2022-08-20 23:58:00  1576.61     1
-        2022-08-20 23:59:00  1576.61     1
-        [1440 rows x 2 columns]
+        Set price to actuator. param price can be dataframe(price of several tokens) or series(price of one token).
+        It's index(time range) should be larger than or equal to data.
+        And column name should be the same to token.name in upper case. eg:
+                           , WETH,    USDC
+        2023-08-13 00:00:00, 1848.12, 1
+        2023-08-13 00:01:00, 1848.12, 1
+
+        :param prices: dataframe or series contains prices
+        :type prices: Union[pd.DataFrame, pd.Series]
         :return: None
         """
         prices = prices.applymap(lambda y: to_decimal(y))
@@ -237,10 +238,9 @@ class Actuator(object):
 
     def notify(self, strategy: Strategy, actions: List[BaseAction]):
         """
+        Call strategy.notify() when new action happens.
 
-        notify user when new action happens.
-
-        :param strategy: Strategy
+        :param strategy: Strategy instance
         :type strategy: Strategy
         :param actions:  action list
         :type actions: [BaseAction]
@@ -257,7 +257,7 @@ class Actuator(object):
 
     def _check_backtest(self):
         """
-        check backtest result
+        check backtest result, including index of data, prices
         :return:
         """
         # ensure a market exist
@@ -410,7 +410,10 @@ class Actuator(object):
 
     def output(self):
         """
-        output back test result to console
+        Print back test result to console, and it will print the following content
+        1. Account status(including balances and positions) in the end of the back test.
+        2. Balance change during back test.
+        3. if evaluating indicator is enabled, will print evaluating of strategy.
         """
         if not self.__backtest_finished:
             raise DemeterError("Please run strategy first")
@@ -427,9 +430,9 @@ class Actuator(object):
         save back test result
         :param path: path to save
         :type path: str
-        :param account: Save account status or not
+        :param account: Save account status or not, If true, it will save a csv with all balance changes.
         :type account: bool
-        :param actions: Save actions or not
+        :param actions: Save actions or not. If true, it will save all actions in json(friendly to human) and pkl(can be loaded by python)
         :type actions: bool
         :return:
         :rtype:

@@ -424,7 +424,7 @@ class UniLpMarket(Market):
             liquidity,
         ) = self._add_liquidity_by_tick(token0_amt, token1_amt, lower_tick, upper_tick)
         base_used, quote_used = self._convert_pair(token0_used, token1_used)
-        self.record_action(
+        self._record_action(
             AddLiquidityAction(
                 market=self.market_info,
                 base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
@@ -486,7 +486,7 @@ class UniLpMarket(Market):
             liquidity,
         ) = self._add_liquidity_by_tick(token0_amt, token1_amt, lower_tick, upper_tick, sqrt_price_x96)
         base_used, quote_used = self._convert_pair(token0_used, token1_used)
-        self.record_action(
+        self._record_action(
             AddLiquidityAction(
                 market=self.market_info,
                 base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
@@ -535,7 +535,7 @@ class UniLpMarket(Market):
         token0_get, token1_get, delta_liquidity = self.__remove_liquidity(position, liquidity, sqrt_price_x96)
 
         base_get, quote_get = self._convert_pair(token0_get, token1_get)
-        self.record_action(
+        self._record_action(
             RemoveLiquidityAction(
                 market=self.market_info,
                 base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
@@ -581,7 +581,7 @@ class UniLpMarket(Market):
 
         base_get, quote_get = self._convert_pair(token0_get, token1_get)
         if self._positions[position]:
-            self.record_action(
+            self._record_action(
                 CollectFeeAction(
                     market=self.market_info,
                     base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
@@ -620,7 +620,7 @@ class UniLpMarket(Market):
         self.broker.subtract_from_balance(from_token, from_amount_with_fee)
         self.broker.add_to_balance(to_token, amount)
         base_amount, quote_amount = self._convert_pair(from_amount, amount)
-        self.record_action(
+        self._record_action(
             BuyAction(
                 market=self.market_info,
                 base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
@@ -655,7 +655,7 @@ class UniLpMarket(Market):
         self.broker.subtract_from_balance(from_token, from_amount_with_fee)
         self.broker.add_to_balance(to_token, to_amount)
         base_amount, quote_amount = self._convert_pair(to_amount, from_amount)
-        self.record_action(
+        self._record_action(
             SellAction(
                 market=self.market_info,
                 base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
