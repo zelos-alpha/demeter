@@ -70,3 +70,33 @@ class UniLpCoreTest(unittest.TestCase):
         self.assertIn(price_df.index[10 * 60], matched_time)
         self.assertIn(price_df.index[23 * 60], matched_time)
         self.assertIn(price_df.index[0], matched_time)
+
+    def test_multi_kwargs(self):
+        """
+        test if we can pass custom parameter to do function
+        """
+        param_container = []
+        price_df = UniLpCoreTest.__get_price_df()
+        pt = AtTimeTrigger(
+            time=datetime(2023, 5, 1, 23, 59, 0),
+            do=lambda row_data, extra_param1: param_container.append(extra_param1),
+            extra_param1=3,
+        )
+        self.__run(price_df, pt)
+        self.assertEqual(param_container[0], 3)
+        self.assertEqual(price_df.index[1440 - 1], datetime(2023, 5, 1, 23, 59, 0))
+
+    def test_multi_args(self):
+        """
+        test if we can pass custom parameter to do function
+        """
+        param_container = []
+        price_df = UniLpCoreTest.__get_price_df()
+        pt = AtTimeTrigger(
+            time=datetime(2023, 5, 1, 23, 59, 0),
+            do=lambda row_data, extra_param1: param_container.append(extra_param1),
+            extra_param1=3,
+        )
+        self.__run(price_df, pt)
+        self.assertEqual(param_container[0], 3)
+        self.assertEqual(price_df.index[1440 - 1], datetime(2023, 5, 1, 23, 59, 0))

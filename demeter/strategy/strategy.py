@@ -70,34 +70,22 @@ class Strategy(object):
         """
         pass
 
-    def _add_column(self, market: MarketInfo | Market, name: str, line: pd.Series):
+    def _add_column(self, market: MarketInfo | Market, name: str, column_data: pd.Series):
         """
-        add a column to data
+        add a column to data in a market
 
-        :param name: column name, sma
+        :param name: column name, like sma
         :type name: str
-        :param market: market1
+        :param market: which market to update
         :type market: MarketInfo
-        :param line: data,
-        2022-08-20 00:00:00            NaN
-        2022-08-20 00:01:00            NaN
-        2022-08-20 00:02:00            NaN
-        2022-08-20 00:03:00            NaN
-        2022-08-20 00:04:00            NaN
-                                  ...
-        2022-08-20 23:55:00    1568.069688
-        2022-08-20 23:56:00    1568.036998
-        2022-08-20 23:57:00    1568.004837
-        2022-08-20 23:58:00    1567.990103
-        2022-08-20 23:59:00    1567.975368
-        Freq: T, Name: price, Length: 1440, dtype: float64
-        :type line: Line
+        :param column_data: One data column, it should have the same timestamp index with market.data
+        :type column_data: pd.Series
         """
-        if not isinstance(line.index, pd.core.indexes.datetimes.DatetimeIndex):
+        if not isinstance(column_data.index, pd.core.indexes.datetimes.DatetimeIndex):
             raise DemeterError("date index must be datetime")
         if isinstance(market, MarketInfo):
-            self.broker.markets[market].data[name] = line
+            self.broker.markets[market].data[name] = column_data
         elif isinstance(market, Market):
-            market.data[name] = line
+            market.data[name] = column_data
         else:
             raise DemeterError(f"{market} is not a valid market")

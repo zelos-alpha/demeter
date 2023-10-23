@@ -300,22 +300,6 @@ class Actuator(object):
             if price_interval != data_interval[0]:
                 raise DemeterError("price list interval and data interval are not same")
 
-    # def __get_market_row_dict(self, index, row_id) -> MarketDict:
-    #     """
-    #     get market row dict info
-    #     :param index:
-    #     :param row_id:
-    #     :return: Market dict
-    #     """
-    #     market_dict = MarketDict()
-    #     for market_key, market in self._broker.markets.items():
-    #         market_row = RowData(index.to_pydatetime(), row_id)
-    #         df_row = market.data.loc[index]
-    #         for column_name in df_row.index:
-    #             setattr(market_row, column_name, df_row[column_name])
-    #         market_dict[market_key] = market_row
-    #     market_dict.set_default_key(self.broker.markets.get_default_key())
-    #     return market_dict
     def __get_row_data(self, timestamp, row_id, current_price) -> RowData:
         row_data = RowData(timestamp.to_pydatetime(), row_id, current_price)
         for market_info, market in self.broker.markets.items():
