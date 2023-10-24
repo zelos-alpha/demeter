@@ -39,8 +39,6 @@ from ..utils.application import require, float_param_formatter, to_decimal
 DEFAULT_DATA_PATH = "./data"
 
 
-# TODO: price
-# TODO: function comment
 class AaveV3Market(Market):
     def __init__(self, market_info: MarketInfo, risk_parameters_path: str, tokens: List[TokenInfo] = None, data_path=DEFAULT_DATA_PATH):
         tokens = tokens if token is not None else []
@@ -316,7 +314,7 @@ class AaveV3Market(Market):
 
         return AaveBalance(
             net_value=net_worth,
-            supplys_count=len(self._supplies),
+            supplies_count=len(self._supplies),
             borrows_count=len(self._borrows),
             liquidation_threshold=AaveV3CoreLib.safe_rounding(self.liquidation_threshold, rounding),
             health_factor=AaveV3CoreLib.safe_rounding(self.health_factor, rounding),
@@ -479,7 +477,7 @@ class AaveV3Market(Market):
     def get_max_withdraw_amount(self, supply_key: SupplyKey = None, token_info: TokenInfo = None) -> Decimal:
         key, token_info = AaveV3Market.__get_supply_key(supply_key, token_info)
         return self.supplies[key].amount - AaveV3CoreLib.get_min_withdraw_kept_amount(
-            token_info, self.supplies_value, self.borrows_value, self._risk_parameters, self._price_status[token_info.name]
+            token_info, self.collateral_value, self.borrows_value, self._risk_parameters, self._price_status[token_info.name]
         )
 
     def get_max_borrow_amount(self, token_info: TokenInfo):

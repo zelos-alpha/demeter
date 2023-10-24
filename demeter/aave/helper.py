@@ -7,9 +7,15 @@ import pandas as pd
 from demeter import DemeterError
 from demeter.aave._typing import RiskParameter
 
+MIN_TOKEN_VALUE = (1e-18) - (1e-27)
+
 
 def sub_base_amount(old_v, value):
-    MIN_TOKEN_VALUE = (1e-18) - (1e-27)
+    """
+    Subtract base amount.
+    Usually, max token decimal is 18. so if token value is below 1e-18, we consider it's 0
+    It's necessary because number here is kept in decimal instead of int256. so there will be calculation errors.
+    """
 
     new_v = old_v - value
     if new_v < MIN_TOKEN_VALUE:

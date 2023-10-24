@@ -50,7 +50,7 @@ class UnitDecimal(Decimal):
 
     def to_str(self):
         """
-        get formatted string of this decimal. format is defined in self.output_format and unit will be append.
+        Get formatted string like "12.34 eth". Decimal format is predefined by self.output_format attribute
 
         :return: formatted string
         :rtype: str
