@@ -1,7 +1,7 @@
 from _decimal import Decimal
 from datetime import date, datetime
 from typing import Union
-
+import numpy as np
 import pandas as pd
 
 from demeter import TokenInfo, Actuator, Strategy, RowData, MarketInfo, MarketDict, MarketTypeEnum, ChainType, AtTimeTrigger
@@ -42,15 +42,13 @@ class MyFirstAaveStrategy(Strategy):
         pass
 
 
-
 if __name__ == "__main__":
     weth = TokenInfo(name="weth", decimal=18, address="0x7ceb23fd6bc0add59e62ac25578270cff1b9f619")  # declare token eth
 
     market_key = MarketInfo("aave", MarketTypeEnum.aave_v3)
     aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="../../tests/aave_risk_parameters/polygon.csv", tokens=[weth])
     aave_market.data_path = "../data"
-    aave_market.load_data(ChainType.polygon.name, [weth], date(2023, 8, 14), date(2023, 8, 14))
-
+    aave_market.load_data(ChainType.polygon, [weth], date(2023, 8, 14), date(2023, 8, 14))
     actuator = Actuator()
     actuator.broker.add_market(aave_market)
     actuator.broker.set_balance(weth, 15)

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, date, timezone
 import numpy as np
 import pandas as pd
 
-from demeter import MarketInfo, TokenInfo, MarketTypeEnum, Broker, MarketStatus
+from demeter import MarketInfo, TokenInfo, MarketTypeEnum, Broker, MarketStatus, ChainType
 from demeter.aave import (
     AaveTokenStatus,
     SupplyInfo,
@@ -211,7 +211,7 @@ class UniLpDataTest(unittest.TestCase):
         market_key = MarketInfo("aave_test", MarketTypeEnum.aave_v3)
         market = AaveV3Market(market_key, "./aave_risk_parameters/polygon.csv")
         market.data_path = "data"
-        market.load_data("polygon", [weth], date(2023, 8, 14), date(2023, 8, 17))
+        market.load_data(ChainType.polygon, [weth], date(2023, 8, 14), date(2023, 8, 17))
         self.assertEqual(len(market.data.index), 1440 * 4)
         self.assertEqual(market.data.index[0].to_pydatetime(), datetime(2023, 8, 14, 0, 0))
         self.assertEqual(market.data.index[1440 * 4 - 1].to_pydatetime(), datetime(2023, 8, 17, 23, 59))

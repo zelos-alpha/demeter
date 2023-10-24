@@ -44,23 +44,20 @@ from ..utils import (
 
 class UniLpMarket(Market):
     """
-    Broker manage assets in back testing. Including asset, positions. it also provides operations for positions,
-    such as add/remove liquidity, swap assets.
+    UniLpMarket is the simulator of uniswap v3, it can simulate transactions such as add/remove liquidity, swap assets. and calculate position net value
 
-    UniLpMarket does not save historical state.
-
-    :param pool_info: pool information
+    :param market_info: key of this market
+    :type market_info: MarketInfo
+    :param pool_info: Uniswap v3 pool info
     :type pool_info: UniV3Pool
+    :param data: pool data for back test. downloaded by demeter-fetch
+    :type data: pd.DataFrame
+    :param data_path: path to load pool data
+    :type data_path: str
     """
 
-    def __init__(self, market_info: MarketInfo, pool_info: UniV3Pool, data: pd.DataFrame = None):
-        """
-        init UniLpMarket
-        :param market_info: uni_market
-        :param pool_info: pool info with token0, token1, fee, base token
-        :param data: default None, dataframe data
-        """
-        super().__init__(market_info=market_info, data=data)
+    def __init__(self, market_info: MarketInfo, pool_info: UniV3Pool, data: pd.DataFrame = None, data_path: str = "./data"):
+        super().__init__(market_info=market_info, data=data, data_path=data_path)
         self._pool: UniV3Pool = pool_info
         # init balance
         self._is_token0_base = pool_info.is_token0_base

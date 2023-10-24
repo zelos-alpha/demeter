@@ -31,7 +31,7 @@ from ._typing import (
 )
 from .core import AaveV3CoreLib
 from .. import DemeterError, TokenInfo
-from .._typing import DECIMAL_0, UnitDecimal
+from .._typing import DECIMAL_0, UnitDecimal, ChainType
 from ..broker import Market, MarketStatus, MarketInfo
 from ..utils import get_formatted_predefined, STYLE, get_formatted_from_dict
 from ..utils.application import require, float_param_formatter, to_decimal
@@ -40,21 +40,46 @@ DEFAULT_DATA_PATH = "./data"
 
 
 class AaveV3Market(Market):
-    def __init__(self, market_info: MarketInfo, risk_parameters_path: str, tokens: List[TokenInfo] = None, data_path=DEFAULT_DATA_PATH):
-        tokens = tokens if token is not None else []
-        super().__init__(market_info=market_info)
+    """
+    AaveV3Market is the simulator of aave v3, here you can simulate some transactions like supply/borrow etc. this class also tracks value change.
+
+    :param market_info: key of this market
+    :type market_info: MarketInfo
+    :param risk_parameters_path: path to load risk parameters csv file, those files can be downloaded form https://www.config.fyi. One csv file for each chain.
+    :type risk_parameters_path: str
+    :param tokens: Tokens which will be used in this market
+    :type tokens: List[TokenInfo]
+    :param data: pool data for back test. downloaded by demeter-fetch, it's recommended to set data with load_data() or set_token_data() function
+    :type data: pd.DataFrame
+    :param data_path: path to load data
+    :type data_path: str
+    """
+
+    def __init__(
+        self,
+        market_info: MarketInfo,
+        risk_parameters_path: str,
+        tokens: List[TokenInfo] = None,
+        data: pd.DataFrame = None,
+        data_path: str = DEFAULT_DATA_PATH,
+    ):
+        super().__init__(market_info=market_info, data_path=data_path, data=data)
+        tokens = tokens if token is not None else []  # just to set an initial value
         self._supplies: Dict[SupplyKey, SupplyInfo] = {}
         self._borrows: Dict[BorrowKey, BorrowInfo] = {}
 
         self._risk_parameters: pd.DataFrame | Dict[str, RiskParameter] = helper.load_risk_parameter(risk_parameters_path)
-        self.data_path: str = data_path
 
+        # caches, since amounts and values are calculated by base_amount, and they are commonly used, cache is introduced to speed up back test.
+        # when base amount or price has changed, they must be reset.
+        # Maybe I'm just bring trouble on oneself
         self._collaterals_amount_cache = DictCache()
         self._supplies_amount_cache = DictCache()
         self._supplies_cache = DictCache()
         self._borrows_amount_cache = DictCache()
         self._borrows_cache = DictCache()
 
+        self._market_status: AaveMarketStatus = None
         self._tokens: Set[TokenInfo] = set()
         self.add_token(tokens)
 
@@ -70,34 +95,86 @@ class AaveV3Market(Market):
         return json.dumps(self.description()._asdict())
 
     def description(self):
+        """
+        Get a brief description of this market
+        """
         return AaveMarketDescription(type(self).__name__, self._market_info.name, len(self._supplies), len(self._borrows))
 
     @property
     def market_info(self) -> MarketInfo:
+        """
+        Get market info, it is the key of a market.
+        """
         return self._market_info
 
     @property
     def data(self) -> pd.DataFrame:
         """
-        environment data
-        :return:
-        :rtype:
+        Get data attribute. data have multiple column index.
+        Columns are organized by token, like this:
+                                      WETH
+                            liquidity_rate stable_borrow_rate variable_borrow_rate  liquidity_index  variable_borrow_index
+        block_timestamp
+        2023-08-15 00:00:00              0                  0                    0                1                 1
+        2023-08-15 00:01:00              0                  0                    0            1.000                 1.000
+        2023-08-15 00:02:00              0                  0                    0            1.002                 1.002
+        2023-08-15 00:03:00              0                  0                    0            1.002                 1.002
+        2023-08-15 00:04:00              0                  0                    0            1.004                 1.000
+
+        So if you want to read a element in this dataframe, such as liquidity_rate of weth, you should do: data.iloc[0]["WETH"]["liquidity_rate"],
+        and if you access a column, you can do data["WETH"]["liquidity_rate"]
+        If you append a new column to data, the new column will be
+                                       WETH                                                                                 new_column
+                            liquidity_rate stable_borrow_rate variable_borrow_rate  liquidity_index  variable_borrow_index
+        block_timestamp
+        2023-08-15 00:00:00              0                  0                    0                1                 1       0
+        2023-08-15 00:01:00              0                  0                    0            1.000                 1.000   0
+        2023-08-15 00:02:00              0                  0                    0            1.002                 1.002   0
+        2023-08-15 00:03:00              0                  0                    0            1.002                 1.002   0
+        2023-08-15 00:04:00              0                  0                    0            1.004                 1.000   0
+        This bring an odd thing, if you access a element in new_column by access row first. data.iloc[0]["new_column"] will return a series instead a item. so data.iloc[0]["new_column"][0] will work
+        and if you access by column first, data["new_column"] will return a series, so data["new_column"].iloc[0] will work, no need to write extra [0]
+
         """
         return self._data
 
     @property
     def risk_parameters(self) -> pd.DataFrame:
+        """
+        Get risk parameters
+        """
         return self._risk_parameters
 
-    def set_token_data(self, token_info: TokenInfo, value: pd.DataFrame):
-        value = value.applymap(to_decimal)
-        if isinstance(value, pd.DataFrame):
-            value.columns = pd.MultiIndex.from_tuples([(token_info.name, c) for c in value.columns])
-            self._data = pd.concat([self._data, value], axis="columns")
+    def set_token_data(self, token_info: TokenInfo, token_data: pd.DataFrame):
+        """
+        Set aave pool data of one token. Usually demeter-fetch will keep one csv file for each token.
+
+        :param token_info: which token to set
+        :type token_info:TokenInfo
+        :param token_data: data
+        :type token_data:DataFrame
+        """
+        if self._data is not None and token_info.name in self._data:
+            raise DemeterError(f"{token_info.name} has already set to data")
+        if isinstance(token_data, pd.DataFrame):
+            token_data = token_data.applymap(to_decimal)
+            token_data.columns = pd.MultiIndex.from_tuples([(token_info.name, c) for c in token_data.columns])
+            self._data = pd.concat([self._data, token_data], axis="columns")
         else:
             raise ValueError()
 
-    def load_data(self, chain: str, token_info_list: List[TokenInfo], start_date: date, end_date: date):
+    def load_data(self, chain: ChainType, token_info_list: List[TokenInfo], start_date: date, end_date: date):
+        """
+        Load data from folder set in data_path. Those data file should be downloaded by demeter, and meet name rule. [chain]-aave_v3-[token_contract_address]-[date].minute.csv
+        :param chain: chain type
+        :type chain:ChainType
+        :param token_info_list: tokens to load
+        :type token_info_list:List[TokenInfo]
+        :param start_date: start day
+        :type start_date:date
+        :param end_date: end day, the end day will be included
+        :type end_date:date
+        """
         self.logger.info(f"start load files from {start_date} to {end_date}...")
         for token_info in token_info_list:
             day = start_date
@@ -107,7 +184,7 @@ class AaveV3Market(Market):
             while day <= end_date:
                 path = os.path.join(
                     self.data_path,
-                    f"{chain.lower()}-aave_v3-{token_info.address}-{day.strftime('%Y-%m-%d')}.minute.csv",
+                    f"{chain.name.lower()}-aave_v3-{token_info.address}-{day.strftime('%Y-%m-%d')}.minute.csv",
                 )
                 if not os.path.exists(path):
                     raise IOError(f"resource file {path} not found, please download with demeter-fetch: https://github.com/zelos-alpha/demeter-fetch")
@@ -124,16 +201,20 @@ class AaveV3Market(Market):
             self.set_token_data(token_info, df)
         self.logger.info("data has been prepared")
 
-    @data.setter
-    def data(self, value):
-        raise NotImplementedError("Aave market doesn't support set data with setter, please use set_token_data instead")
-
     @property
     def tokens(self) -> Set[TokenInfo]:
+        """
+        Get tokens in aave back test
+        """
         return self._tokens
 
     @property
     def supplies_value(self) -> Dict[SupplyKey, Decimal]:
+        """
+        Get value of all supplied token. unit is usd
+        :return : value of all tokens
+        :rtype: Dict[SupplyKey, Decimal]
+        """
         if self._supplies_amount_cache.empty:
             for k, v in self._supplies.items():
                 self._supplies_amount_cache.set(
@@ -145,10 +226,18 @@ class AaveV3Market(Market):
 
     @property
     def total_supply_value(self) -> Decimal:
+        """
+        Get total supply value, unit is usd
+        """
         return Decimal(sum(self.supplies_value.values()))
 
     @property
     def collateral_value(self) -> Dict[SupplyKey, Decimal]:
+        """
+        Get value of all collateral token. unit is usd
+        :return : value of all collaterals
+        :rtype: Dict[SupplyKey, Decimal]
+        """
         if self._collaterals_amount_cache.empty:
             for k, v in self._supplies.items():
                 if v.collateral:
@@ -157,10 +246,18 @@ class AaveV3Market(Market):
 
     @property
     def total_collateral_value(self) -> Decimal:
+        """
+        Get total supply value, unit is usd
+        """
         return Decimal(sum(self.collateral_value.values()))
 
     @property
     def borrows_value(self) -> Dict[BorrowKey, Decimal]:
+        """
+        Get value of all borrowed token. unit is usd
+        :return : value of all borrows
+        :rtype: Dict[BorrowKey, Decimal]
+        """
         if self._borrows_amount_cache.empty:
             for k, v in self._borrows.items():
                 self._borrows_amount_cache.set(
@@ -172,10 +269,18 @@ class AaveV3Market(Market):
 
     @property
     def total_borrows_value(self) -> Decimal:
+        """
+        Get total borrow value, unit is usd
+        """
         return Decimal(sum(self.borrows_value.values()))
 
     @property
     def supplies(self) -> Dict[SupplyKey, Supply]:
+        """
+        Get amounts and values of all supplies
+        :return : Dict of supply information
+        :rtype:Dict[SupplyKey, Supply]
+        """
         if self._supplies_cache.empty:
             for key in self._supplies.keys():
                 self._supplies_cache.set(key, self.get_supply(supply_key=key))
@@ -183,10 +288,18 @@ class AaveV3Market(Market):
 
     @property
     def supply_keys(self) -> List[SupplyKey]:
+        """
+        Get all supply keys
+        """
         return list(self._supplies.keys())
 
     @property
     def borrows(self) -> Dict[BorrowKey, Borrow]:
+        """
+        Get amounts and values of all borrows
+        :return : Dict of borrow information
+        :rtype:Dict[BorrowKey, Borrow]
+        """
         if self._borrows_cache.empty:
             for key in self._borrows.keys():
                 self._borrows_cache.set(key, self.get_borrow(key))
@@ -194,19 +307,22 @@ class AaveV3Market(Market):
 
     @property
     def borrow_keys(self) -> List[BorrowKey]:
+        """
+        Get all borrow keys
+        """
         return list(self._borrows.keys())
 
     def set_market_status(
         self,
-        data: MarketStatus,
+        data: AaveMarketStatus,
         price: pd.Series,
     ):
         """
         set up market status, such as liquidity, price
-        :param timestamp: current timestamp
-        :type timestamp: datetime
         :param data: market status
-        :type data: pd.Series | MarketStatus
+        :type data: AaveMarketStatus
+        :param price: current price of tokens involved
+        :type price: Series
         """
         if data.data is None:
             data.data = self.data.loc[data.timestamp]
@@ -224,18 +340,30 @@ class AaveV3Market(Market):
 
     @property
     def liquidation_threshold(self) -> Decimal:
+        """
+        Get liquidation threshold
+        """
         return AaveV3CoreLib.total_liquidation_threshold(self.collateral_value, self._risk_parameters)
 
     @property
     def current_ltv(self) -> Decimal:
+        """
+        Get current ltv, it's the max ltv of current user
+        """
         return AaveV3CoreLib.current_ltv(self.collateral_value, self._risk_parameters)
 
     @property
     def health_factor(self) -> Decimal:
+        """
+        Get health factor
+        """
         return AaveV3CoreLib.health_factor(self.collateral_value, self.borrows_value, self._risk_parameters)
 
     @property
     def supply_apy(self) -> Decimal:
+        """
+        Calculate apy of all supplies
+        """
         rate_dict: Dict[TokenInfo, Decimal] = {}
         for k in self.supplies.keys():
             rate_dict[k.token] = self._market_status.data[k.token.name].liquidity_rate
@@ -244,6 +372,9 @@ class AaveV3Market(Market):
 
     @property
     def borrow_apy(self) -> Decimal:
+        """
+        Calculate apy of all borrows
+        """
         rate_dict: Dict[TokenInfo, Decimal] = {}
         for k in self._borrows.keys():
             if k.interest_rate_mode == InterestRateMode.variable:
@@ -255,6 +386,9 @@ class AaveV3Market(Market):
 
     @property
     def total_apy(self) -> Decimal:
+        """
+        Calculate total apy based on borrow/supply apy and amount
+        """
         total_supplies = self.total_supply_value
         total_borrows = self.total_borrows_value
         supply_apy = self.supply_apy
