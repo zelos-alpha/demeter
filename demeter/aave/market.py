@@ -2,7 +2,7 @@ import json
 import os
 import token
 from _decimal import Decimal
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
 from typing import Dict, List, Set
 
 import pandas as pd
@@ -32,7 +32,7 @@ from ._typing import (
 from .core import AaveV3CoreLib
 from .. import DemeterError, TokenInfo
 from .._typing import DECIMAL_0, UnitDecimal, ChainType
-from ..broker import Market, MarketStatus, MarketInfo
+from ..broker import Market, MarketInfo
 from ..utils import get_formatted_predefined, STYLE, get_formatted_from_dict
 from ..utils.application import require, float_param_formatter, to_decimal
 
@@ -312,13 +312,20 @@ class AaveV3Market(Market):
         """
         return list(self._borrows.keys())
 
+    @property
+    def market_status(self) -> AaveMarketStatus:
+        """
+        Get market status
+        """
+        return self._market_status
+
     def set_market_status(
         self,
         data: AaveMarketStatus,
         price: pd.Series,
     ):
         """
-        set up market status, such as liquidity, price
+        Set up pool status of this moment, such as liquidity index, supply/borrow rate, and price
         :param data: market status
         :type data: AaveMarketStatus
         :param price: current price of tokens involved
@@ -396,6 +403,15 @@ class AaveV3Market(Market):
         return AaveV3CoreLib.safe_div_zero(supply_apy * total_supplies - borrow_apy * total_borrows, total_supplies - total_borrows)
 
     def get_supply(self, supply_key: SupplyKey = None, token_info: TokenInfo = None) -> Supply:
+        """
+        Get details of supply position, include value, amount, apy etc.
+        :params supply_key: supply key, you can query by supply_key or token_info
+        :type supply_key: SupplyKey
+        :param token_info: token info, you can query by supply_key or token_info
+        :type token_info: TokenInfo
+        :return : details of supply position
+        :rtype: Supply
+        """
         key, token_info = AaveV3Market.__get_supply_key(supply_key, token_info)
         supply_info = self._supplies[key]
         supply_value = Supply(
@@ -408,7 +424,14 @@ class AaveV3Market(Market):
         )
         return supply_value
 
-    def get_borrow(self, borrow_key: BorrowKey):
+    def get_borrow(self, borrow_key: BorrowKey) -> Borrow:
+        """
+        Get details of borrow position. include type, amount, value etc.
+        :params borrow_key: borrow key
+        :type borrow_key: BorrowKey
+        :return : details of borrow position
+        :rtype: Borrow
+        """
         borrow_info = self._borrows[borrow_key]
         return Borrow(
             token=borrow_key.token,
@@ -424,16 +447,23 @@ class AaveV3Market(Market):
         )
 
     def add_token(self, token_info: TokenInfo | List[TokenInfo]):
+        """
+        Add one or an array of token to aave back test.
+        :param token_info: tokens to add
+        :type token_info:  TokenInfo | List[TokenInfo]
+        """
         if not isinstance(token_info, list):
             token_info = [token_info]
         for t in token_info:
             self._tokens.add(t)
 
-    def get_market_balance(self, prices: pd.Series | Dict[str, Decimal] = None) -> AaveBalance:
+    def get_market_balance(self, price=None) -> AaveBalance:
         """
-        get market asset balance
-        :return:
-        :rtype:
+        Get position and their values invested in aave market. Note: price will be read from self.market_status.price
+        :param price: useless, price will read from market status, it is kept because it's inherited form parent market
+        :type price: None
+        :return: values of positions in aave
+        :rtype: AaveBalance
         """
         # supplys = self.supplies
         # borrows = self.borrows
@@ -463,20 +493,26 @@ class AaveV3Market(Market):
 
     # region for subclass to override
     def check_market(self):
+        """
+        Check market tokens before back test
+        """
         super().check_market()
         require(len(self.tokens) > 0, "should set tokens")
         for t in self.tokens:
+            require(t.name in self.risk_parameters.index, f"According to risk_parameter, {t.name} is not supported in this chain. ")
             for col in AaveV3Market.REQUIRED_DATA_COLUMN:
                 require((t.name, col) in self.data.columns, f"{t.name}.{col} not found in data")
 
     def update(self):
+        """
+        Trigger update of this market
+        """
         self._liquidate()
 
-    @property
-    def market_status(self) -> AaveMarketStatus:
-        return self._market_status
-
     def formatted_str(self):
+        """
+        Return a brief description of this market in pretty format. Used for print in console.
+        """
         value = get_formatted_predefined(f"{self.market_info.name}({type(self).__name__})", STYLE["header3"]) + "\n"
         token_dict = {"tokens": ",".join([t.name for t in self._tokens])}
         value += get_formatted_from_dict(token_dict) + "\n"
@@ -508,6 +544,21 @@ class AaveV3Market(Market):
     # endregion
     @float_param_formatter
     def supply(self, token_info: TokenInfo, amount: Decimal | float, collateral: bool = True) -> SupplyKey:
+        """
+        Supply asset to aave pool
+        Note:
+        1. some token are not allow to collateral, it's decided by risk parameter
+        2. if append amount to existing supply, collateral can not change.
+
+        :param token_info: which token to supply
+        :type token_info: TokenInfo
+        :param amount: amount to supply
+        :type amount: Decimal | float
+        :param collateral: collateral or not, default is true.
+        :type collateral: bool
+        :return : key of new supply
+        :rtype: SupplyKey
+        """
         if collateral:
             require(self._risk_parameters.loc[token_info.name].canCollateral, "Can not supplied as collateral")
         token_status = self._market_status.data[token_info.name]
@@ -552,6 +603,17 @@ class AaveV3Market(Market):
         return key, token_info
 
     def change_collateral(self, collateral: bool, supply_key: SupplyKey = None, token_info: TokenInfo = None) -> SupplyKey:
+        """
+        Change collateral type of supply position. Health factor will be checked to prevent liquidation
+        :param collateral: new value
+        :type collateral: bool
+        :param supply_key: key of supply, you can set by supply_key or token_info
+        :type supply_key: SupplyKey
+        :param token_info:token to supply, you can set by supply_key or token_info
+        :type token_info: TokenInfo
+        :return : key of new supply
+        :rtype: SupplyKey
+        """
         key, token_info = AaveV3Market.__get_supply_key(supply_key, token_info)
         old_collateral = self._supplies[key].collateral
         if old_collateral == collateral:
@@ -576,6 +638,15 @@ class AaveV3Market(Market):
         amount: Decimal | float = None,
         token_info: TokenInfo = None,
     ):
+        """
+        Withdraw supply from aave pool.
+        :param supply_key: key of supply, you can set by supply_key or token_info
+        :type supply_key: SupplyKey
+        :param amount: amount to withdraw, if set to None, will withdraw max available amount
+        :type amount : Decimal | float
+        :param token_info: which token to withdraw. you can set by supply_key or token_info
+        :type token_info:TokenInfo
+        """
         key, token_info = AaveV3Market.__get_supply_key(supply_key, token_info)
         token_status = self._market_status.data[token_info.name]
         supply = self.get_supply(key)
@@ -609,12 +680,28 @@ class AaveV3Market(Market):
         pass
 
     def get_max_withdraw_amount(self, supply_key: SupplyKey = None, token_info: TokenInfo = None) -> Decimal:
+        """
+        Get max available withdraw amount
+        :param supply_key: key of supply to query, you can set by supply_key or token_info
+        :type supply_key: SupplyKey
+        :param token_info: which token to query. you can set by supply_key or token_info
+        :type token_info:TokenInfo
+        :return: max withdraw amount
+        :rtype: Decimal
+        """
         key, token_info = AaveV3Market.__get_supply_key(supply_key, token_info)
         return self.supplies[key].amount - AaveV3CoreLib.get_min_withdraw_kept_amount(
             token_info, self.collateral_value, self.borrows_value, self._risk_parameters, self._price_status[token_info.name]
         )
 
-    def get_max_borrow_amount(self, token_info: TokenInfo):
+    def get_max_borrow_amount(self, token_info: TokenInfo) -> Decimal:
+        """
+        Get max token amount to borrow.
+        :param token_info: token to query
+        :param token_info: TokenInfo
+        :return: max borrow amount
+        :rtype:Decimal
+        """
         value = AaveV3CoreLib.get_max_borrow_value(self.collateral_value, self.borrows_value, self.risk_parameters)
         return value / self._price_status[token_info.name]
 
@@ -625,6 +712,21 @@ class AaveV3Market(Market):
         amount: Decimal | float = None,
         interest_rate_mode: InterestRateMode = InterestRateMode.variable,
     ) -> BorrowKey:
+        """
+        Borrow token from aave pool.
+        Note:
+        1. Risk parameter decides Which token is allowed to borrow
+        2. If this borrow transaction will cause health factor below 1, an exception will be raised.
+        3. If Borrow on existing borrow key, amount will be added to existing key
+        :param token_info: Token to borrow
+        :type token_info: TokenInfo
+        :param amount: amount to borrow. if set to None, will borrow max amount.
+        :type amount: Decimal | float
+        :param interest_rate_mode: interest rate mode, default is variable.
+        :type interest_rate_mode: InterestRateMode
+        :return: key of new Borrows
+        :rtype:BorrowKey
+        """
         key = BorrowKey(token_info, interest_rate_mode)
         if amount is None:
             amount = self.get_max_borrow_amount(token_info)
@@ -682,6 +784,17 @@ class AaveV3Market(Market):
         return key
 
     def get_max_repay_amount(self, key: BorrowKey = None, token_info: TokenInfo = None, interest_rate_mode: InterestRateMode = None) -> Decimal:
+        """
+        Get max token amount to repay.
+        :param key: key for borrow. Either fill key parameter or token_info+interest_rate_mode parameter.
+        :type key: BorrowKey
+        :param token_info: token to borrow, Either fill key parameter or token_info+interest_rate_mode parameter.
+        :type token_info: TokenInfo
+        :param interest_rate_mode: interest rate mode, Either fill key parameter or token_info+interest_rate_mode parameter.
+        :type interest_rate_mode: InterestRateMode
+        :return: max amount to repay
+        :rtype: Decimal
+        """
         (key, _, _) = AaveV3Market.__get_borrow_key(key, token_info, interest_rate_mode)
         return AaveV3CoreLib.get_amount(self._borrows[key].base_amount, self.market_status.data[key.token.name].variable_borrow_index)
 
@@ -708,6 +821,22 @@ class AaveV3Market(Market):
         repay_with_collateral: bool = False,
         repay_collateral_token: TokenInfo = None,
     ):
+        """
+        Repay borrow. You can repay with collateral token or cash.
+        :param key: key for borrow. Either fill key parameter or token_info+interest_rate_mode parameter.
+        :type key: BorrowKey
+        :param borrow_token: token to borrow, Either fill key parameter or token_info+interest_rate_mode parameter.
+        :type borrow_token: TokenInfo
+        :param interest_rate_mode: interest rate mode, Either fill key parameter or token_info+interest_rate_mode parameter.
+        :type interest_rate_mode: InterestRateMode
+        :param payback_amount: amount to pay back, if leave to None, will use max repay amount
+        :type payback_amount:Decimal | float
+        :param repay_with_collateral: If set to True, will repay with collateral, else will repay with cash
+        :type repay_with_collateral:bool
+        :param repay_collateral_token: Which collateral token is used to repay the debt, if repay_with_collateral==False, this parameter will not work,
+        :type repay_collateral_token:TokenInfo
+
+        """
         (key, borrow_token, interest_rate_mode) = AaveV3Market.__get_borrow_key(key, borrow_token, interest_rate_mode)
         # because liqThereshold<1, so repay will collateral will increase health factor, so there is no need to check health factor
         token_status = self._market_status.data[borrow_token.name]
@@ -792,6 +921,13 @@ class AaveV3Market(Market):
             return self._borrows[key].base_amount
 
     def _liquidate(self):
+        """
+        Do passive liquidate. If health factor is below 1, liquidate will be triggered. And user can not make a liquidation transaction. Because currently demeter doesn't support that.
+        First is to decide when to liquidate, if in current loop, health factor is below 1, liquidation will happen immediately. Triggered by update function.
+        Second step to choose the assets. Here we will pick the most valuable collateral asset and least valuable debt.
+        After liquidation, if health factor is still below 1. Will choose a pair of collateral and debt to liquidate again.
+        But if a debt asset has liquidated, It will not be liquidated again.
+        """
         health_factor = self.health_factor
         has_liquidated: List[BorrowKey] = []
         # health_factor ==0 means there are no collateral to liquidate
@@ -823,14 +959,25 @@ class AaveV3Market(Market):
             has_liquidated.append(min_borrow_key)
 
             try:
-                self._do_liquidate(max_supply_key.token, min_borrow_key.token, min_borrow_value, health_factor)
+                self._do_liquidate(max_supply_key.token, min_borrow_key.token, min_borrow_value)
             except AssertionError:
                 # if a liquidated is rejected, choose another delt token to liquidate
                 pass
             health_factor = self.health_factor
         self.has_update = True
 
-    def _do_liquidate(self, collateral_token: TokenInfo, delt_token: TokenInfo, delt_to_cover: Decimal, health_factor: Decimal):
+    def _do_liquidate(self, collateral_token: TokenInfo, delt_token: TokenInfo, delt_value_to_cover: Decimal):
+        """
+        Make a liquidation transaction;
+        :param collateral_token: Which collateral token will be used
+        :type collateral_token: TokenInfo
+        :param delt_token: Which debt token will be repaid
+        :type delt_token: TokenInfo
+        :param delt_value_to_cover: total delt token value to repay. unit is usd
+        :type delt_value_to_cover: Decimal
+
+        """
+        old_health_factor = self.health_factor
         borrow_index = self._market_status.data[delt_token.name].variable_borrow_index
         supply_index = self._market_status.data[delt_token.name].liquidity_index
 
@@ -845,11 +992,11 @@ class AaveV3Market(Market):
         total_debt = stable_delt + variable_delt
         close_factor = (
             AaveV3CoreLib.DEFAULT_LIQUIDATION_CLOSE_FACTOR
-            if health_factor > AaveV3CoreLib.CLOSE_FACTOR_HF_THRESHOLD
+            if old_health_factor > AaveV3CoreLib.CLOSE_FACTOR_HF_THRESHOLD
             else AaveV3CoreLib.MAX_LIQUIDATION_CLOSE_FACTOR
         )
         max_liquidatable_debt = total_debt * close_factor
-        actual_debt_to_liquidate = max_liquidatable_debt if delt_to_cover > max_liquidatable_debt else delt_to_cover
+        actual_debt_to_liquidate = max_liquidatable_debt if delt_value_to_cover > max_liquidatable_debt else delt_value_to_cover
 
         # validate delt
         is_collateral_enabled = self._risk_parameters.loc[collateral_token.name].liqThereshold != 0 and self._supplies[collateral_key].collateral
@@ -902,11 +1049,11 @@ class AaveV3Market(Market):
                 market=self.market_info,
                 collateral_token=collateral_token,
                 debt_token=delt_token,
-                delt_to_cover=UnitDecimal(delt_to_cover, delt_token.name),
+                delt_to_cover=UnitDecimal(delt_value_to_cover, delt_token.name),
                 collateral_used=UnitDecimal(actual_collateral_to_liquidate, collateral_token.name),
                 variable_delt_liquidated=UnitDecimal(vari_debt_liquidated, delt_token.name),
                 stable_delt_liquidated=UnitDecimal(stable_debt_liquidated, delt_token.name),
-                health_factor_before=health_factor,
+                health_factor_before=old_health_factor,
                 health_factor_after=self.health_factor,
                 collateral_after=UnitDecimal(
                     AaveV3CoreLib.get_amount(

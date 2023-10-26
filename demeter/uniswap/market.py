@@ -362,7 +362,7 @@ class UniLpMarket(Market):
         max_collect_amount1: Decimal = None,
     ):
         """
-        collect fee
+        Collect fee
         :param position: get_position
         :param max_collect_amount0: max collect amount0
         :param max_collect_amount1: max collect amount1
@@ -788,10 +788,9 @@ class UniLpMarket(Market):
         self.data = df
         self.logger.info("data has been prepared")
 
-    def formatted_str(self):
+    def formatted_str(self)->str:
         """
-        return formatted str info
-        :return:
+        Return a brief description of this market in pretty format. Used for print in console.
         """
         value = get_formatted_predefined(f"{self.market_info.name}({type(self).__name__})", STYLE["header3"]) + "\n"
         value += (
