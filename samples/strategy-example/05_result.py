@@ -19,10 +19,16 @@ class DemoStrategy(Strategy):
     def initialize(self):
         new_trigger = AtTimeTrigger(time=datetime(2023, 8, 15, 12, 0, 0), do=self.work)
         self.triggers.append(new_trigger)
+        remove_trigger = AtTimeTrigger(time=datetime(2023, 8, 16, 12, 0, 0), do=self.remove_liquidity)
+        self.triggers.append(remove_trigger)
 
     def work(self, row_data: RowData):
         lp_market: UniLpMarket = self.markets[market_key]  # pick our market.
-        new_position, amount0_used, amount1_used, liquidity = lp_market.add_liquidity(1000, 4000)  # add liquidity
+        self.new_position, amount0_used, amount1_used, liquidity = lp_market.add_liquidity(1000, 4000)  # add liquidity
+
+    def remove_liquidity(self, row_data: RowData):
+        lp_market: UniLpMarket = self.markets[market_key]
+        lp_market.remove_liquidity(self.new_position)
 
     def notify(self, action: BaseAction):
         """
@@ -70,7 +76,7 @@ if __name__ == "__main__":
     market_key = MarketInfo("market1")  # market1
     market = UniLpMarket(market_key, pool)
     market.data_path = "../data"
-    market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 15), date(2023, 8, 15))
+    market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 15), date(2023, 8, 17))
 
     actuator = Actuator()
     actuator.broker.add_market(market)  # add market
@@ -81,7 +87,17 @@ if __name__ == "__main__":
 
     # if evaluator is set, evaluating indicator will run after backtest.
     # those evaluating indicator will calculate indicator of net value.
-    actuator.run(evaluator=[EvaluatorEnum.MAX_DRAW_DOWN, EvaluatorEnum.ANNUALIZED_RETURNS])
+    actuator.run(evaluator=[
+        EvaluatorEnum.max_draw_down,
+        EvaluatorEnum.annualized_returns,
+        EvaluatorEnum.NET_VALUE,
+        EvaluatorEnum.PROFIT,
+        EvaluatorEnum.NET_VALUE_UP_DOWN_RATE,
+        EvaluatorEnum.ETH_UP_DOWN_RATE,
+        EvaluatorEnum.POSITION_FEE_PROFIT,
+        EvaluatorEnum.POSITION_FEE_ANNUALIZED_RETURNS,
+        EvaluatorEnum.POSITION_MARKET_TIME_RATE,
+    ])
     # get result
     evaluating_result: Dict[EvaluatorEnum, Decimal] = actuator.evaluating_indicator
 
