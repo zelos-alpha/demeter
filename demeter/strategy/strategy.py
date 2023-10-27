@@ -38,8 +38,6 @@ class Strategy(object):
 
         :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
         :type row_data: Union[{MarketInfo:MarketStatus}, pd.Series]
-        :param price: current price of all tokens
-        :type price: pd.Series
         """
         pass
 
@@ -49,8 +47,6 @@ class Strategy(object):
 
         :param row_data: row data, include columns load from data, converted data( price, volumn, and timestamp, index), indicators(such as ma)
         :type row_data: Union[{MarketInfo:MarketStatus}, pd.Series]
-        :param price: current price of all tokens
-        :type price: pd.Series
         """
         pass
 

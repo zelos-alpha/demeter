@@ -78,7 +78,7 @@ for example, if you want to access current value of price, you can call *get_by_
 
 .. code-block:: python
 
-  self.data.get_by_cursor(0).closeTick # access current row
+  self.data.get_by_cursor(0).cl
   self.data.get_by_cursor(-1).closeTick # access previous row
 
 This will help access current row and rows around.
@@ -246,7 +246,7 @@ And the result can save to file so you can review it later.
 
 
 Add plot get_position decomposition
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Use matplotlib library to plot the get_position decomposition.
 
