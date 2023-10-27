@@ -150,9 +150,9 @@ class AaveV3Market(Market):
         Set aave pool data of one token. Usually demeter-fetch will keep one csv file for each token.
 
         :param token_info: which token to set
-        :type token_info:TokenInfo
+        :type token_info: TokenInfo
         :param token_data: data
-        :type token_data:DataFrame
+        :type token_data: DataFrame
         """
         if self._data is not None and token_info.name in self._data:
             raise DemeterError(f"{token_info.name} has already set to data")
@@ -237,7 +237,7 @@ class AaveV3Market(Market):
     def collateral_value(self) -> Dict[SupplyKey, Decimal]:
         """
         Get value of all collateral token. unit is usd
-        :return : value of all collaterals
+        :return: value of all collaterals
         :rtype: Dict[SupplyKey, Decimal]
         """
         if self._collaterals_amount_cache.empty:
@@ -459,7 +459,7 @@ class AaveV3Market(Market):
         Add one or an array of token to aave back test.
 
         :param token_info: tokens to add
-        :type token_info:  TokenInfo | List[TokenInfo]
+        :type token_info: TokenInfo | List[TokenInfo]
         """
         if not isinstance(token_info, list):
             token_info = [token_info]
