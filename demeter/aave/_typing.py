@@ -80,6 +80,7 @@ class SupplyKey(ActionKey):
 class SupplyInfo:
     """
     Basic info for supply, designed to kept properties inside market
+
     :param base_amount: Base amount of token. Note: base amount is the amount kept in aave contract. its value is amount/liquidity_index
     :type base_amount: Decimal
     :param collateral: set this supply to collateral or not
@@ -95,6 +96,7 @@ class SupplyInfo:
 class Supply:
     """
     Supply info, designed to show supplies to user
+
     :param token: which token is supplied
     :type token: TokenInfo
     :param base_amount: Base amount of token. Note: base amount is the amount kept in aave contract. its value is amount/liquidity_index_at_supply_moment
@@ -143,6 +145,7 @@ def supply_to_dataframe(supplies: Dict[SupplyKey, Supply]) -> pd.DataFrame:
 class BorrowInfo:
     """
     Basic info for borrow, designed to kept properties inside market
+
     :param base_amount: Base amount of token. Note: base amount is the amount kept in aave contract. its value is amount/liquidity_index
     :type base_amount: Decimal
     """
@@ -154,6 +157,7 @@ class BorrowInfo:
 class Borrow:
     """
     borrow info, designed to show borrows to user
+
     :param token: which token is borrowed
     :type token: TokenInfo
     :param base_amount: Base amount of token. Note: base amount is the amount kept in aave contract. its value is amount/variable_borrow_index_at_supply_moment
@@ -203,28 +207,29 @@ def borrow_to_dataframe(supplies: Dict[BorrowKey, Borrow]) -> pd.DataFrame:
 class AaveBalance(MarketBalance):
     """
     Asset or position value in aave market.
+
     :param supplies_count: count of supplies
     :type supplies_count: int
     :param borrows_count: count of borrows
     :type borrows_count: int
     :param borrows_value: total borrow value(in usd)
-    :type borrows_value:Decimal
+    :type borrows_value: Decimal
     :param supplies_value: total supply value(in usd)
-    :type supplies_value:Decimal
-    :param collaterals_value:total collateral value in supplies(in usd)
-    :type collaterals_value:Decimal
+    :type supplies_value: Decimal
+    :param collaterals_value: total collateral value in supplies(in usd)
+    :type collaterals_value: Decimal
     :param health_factor: current health factor
-    :type health_factor:Decimal
+    :type health_factor: Decimal
     :param current_ltv: max ltv allowed, in decimal, eg: 0.7568
-    :type current_ltv:Decimal
+    :type current_ltv: Decimal
     :param liquidation_threshold: current liquidation threshold, in decimal, eg:0.8
-    :type liquidation_threshold:Decimal
+    :type liquidation_threshold: Decimal
     :param supply_apy: annual interest rate of supplies
-    :type supply_apy:Decimal
+    :type supply_apy: Decimal
     :param borrow_apy: annual interest rate of borrows
-    :type borrow_apy:Decimal
+    :type borrow_apy: Decimal
     :param net_apy: total annual interest rate of all supplies/borrows
-    :type net_apy:Decimal
+    :type net_apy: Decimal
     """
 
     supplies_count: int
@@ -247,16 +252,17 @@ class AaveBalance(MarketBalance):
 class AaveTokenStatus:
     """
     Aave pool status of one token. Usually they are got form ReserveDataUpdated event of aave pool. Consider it's the transient interest rates
+
     :param liquidity_rate: interest rate of supply in a second
-    :type liquidity_rate:Decimal
+    :type liquidity_rate: Decimal
     :param stable_borrow_rate: interest rate of stable borrow in a second
-    :type stable_borrow_rate:Decimal
+    :type stable_borrow_rate: Decimal
     :param variable_borrow_rate: interest rate of variable borrow rate in a second
-    :type variable_borrow_rate:Decimal
+    :type variable_borrow_rate: Decimal
     :param liquidity_index: Decide supply amount at this moment. consider it's the average interest rate
-    :type liquidity_index:Decimal
-    :param variable_borrow_index:Decide borrow amount at this moment. consider it's the average borrow interest rate
-    :type variable_borrow_index:Decimal
+    :type liquidity_index: Decimal
+    :param variable_borrow_index: Decide borrow amount at this moment. consider it's the average borrow interest rate
+    :type variable_borrow_index: Decimal
     """
 
     liquidity_rate: Decimal
@@ -307,6 +313,7 @@ class RiskParameter:
 class SupplyAction(BaseAction):
     """
     Describe parameters and results of supply transaction
+
     :param token: which token is supplied
     :type token: TokenInfo
     :param amount: amount supplied
@@ -329,6 +336,7 @@ class SupplyAction(BaseAction):
 class WithdrawAction(BaseAction):
     """
     Describe parameters and results of withdraw transaction
+
     :param token: which token is supplied
     :type token: TokenInfo
     :param amount: amount supplied
@@ -348,6 +356,7 @@ class WithdrawAction(BaseAction):
 class BorrowAction(BaseAction):
     """
     Describe parameters and results of borrow transaction
+
     :param token: which token is borrowed
     :type token: TokenInfo
     :param interest_rate_mode: interest rate mode
@@ -370,6 +379,7 @@ class BorrowAction(BaseAction):
 class RepayAction(BaseAction):
     """
     Describe parameters and results of RepayAction transaction
+
     :param token: which token is borrowed
     :type token: TokenInfo
     :param interest_rate_mode: interest rate mode
@@ -392,6 +402,7 @@ class RepayAction(BaseAction):
 class LiquidationAction(BaseAction):
     """
     Describe parameters and results of a liquidation
+
     :param collateral_token: which collateral token is used in liquidation
     :type collateral_token: TokenInfo
     :param debt_token:  which debt token is used in liquidation
