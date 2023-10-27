@@ -5,9 +5,10 @@ References
    :maxdepth: 2
    :caption: Contents:
 
-   references/types
-   references/strategy
-   references/broker
+   references/aave
    references/actuator
+   references/types
+   references/broker
    references/indicator
-   references/data_line
+   references/strategy
+   references/uniswap

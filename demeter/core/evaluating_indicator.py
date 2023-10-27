@@ -47,7 +47,7 @@ class Evaluator(object):
         result_dict: Dict[EvaluatorEnum, UnitDecimal] = {}
         for request in enables:
             match request:
-                case EvaluatorEnum.ANNUALIZED_RETURNS:
+                case EvaluatorEnum.annualized_returns:
                     result = UnitDecimal(
                         annualized_returns(
                             self.init_status.net_value,
@@ -56,7 +56,7 @@ class Evaluator(object):
                         ),
                         "",
                     )
-                case EvaluatorEnum.BENCHMARK_RETURNS:
+                case EvaluatorEnum.benchmark_returns:
                     result = UnitDecimal(
                         get_benchmark_returns(
                             self.init_status.net_value,
@@ -66,7 +66,7 @@ class Evaluator(object):
                         ),
                         "",
                     )
-                case EvaluatorEnum.MAX_DRAW_DOWN:
+                case EvaluatorEnum.max_draw_down:
                     result = UnitDecimal(max_draw_down_fast(self.data.net_value), "")
                 case EvaluatorEnum.NET_VALUE:
                     result = UnitDecimal(self.end_status.net_value / self.init_status.net_value)
