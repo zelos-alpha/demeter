@@ -15,13 +15,8 @@ This demo will show how to work with strategy, including how to trigger actions 
 
 
 class DemoStrategy(Strategy):
-    def __init__(self):
-        super().__init__()
-        self.net_value_before_bar = 0
-        self.net_value_diff_list = []
-
     """
-    Strategy has may functions to override, They provide flexibility for writing strategy.
+    Strategy has many functions to override, They provide flexibility for writing strategy.
     During backtest process, those functions will be called in the following sequence:
     
     some_prepare_work()
@@ -46,7 +41,8 @@ class DemoStrategy(Strategy):
         # Add a simple moving average line for backtesting data. In backtesting,
         # we will add/remove liquidity according to this line.
         self._add_column(market_key, "sma", simple_moving_average(self.data[market_key].price, window=timedelta(hours=1)))
-
+        self.net_value_before_bar = 0
+        self.net_value_diff_list = []
         # Register a trigger, every day, we split both assets into two shares of equal value
         self.triggers.append(PeriodTrigger(time_delta=timedelta(days=1), trigger_immediately=True, do=self.rebalance))
 
