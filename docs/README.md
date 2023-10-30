@@ -1,5 +1,7 @@
 # How to compile
 
 ```bash
-cd docs && make html
+cd docs
+sphinx-apidoc -o ./source ../demeter
+make clean && make html
 ```
