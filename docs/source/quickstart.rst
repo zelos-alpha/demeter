@@ -37,9 +37,6 @@ As we follow the style of backtrader. Demeter inherits some core concepts from b
 Lines
 ----------------------------------------
 
-Data Feeds, Indicators and Strategies are considered as :doc:`Line <references/data_line>`, which is inherit from pandas.Series,
-and their collection is :doc:`Lines <references/data_line>`, which is inherit from pandas.DataFrame.
-
 
 
 A line is a succession of points that when joined together form this line. Data collected by downloader will have the following set of points per minute:

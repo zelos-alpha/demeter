@@ -216,9 +216,14 @@ class Actuator(object):
         Set price to actuator. param price can be dataframe(price of several tokens) or series(price of one token).
         It's index(time range) should be larger than or equal to data.
         And column name should be the same to token.name in upper case. eg:
-                           , WETH,    USDC
-        2023-08-13 00:00:00, 1848.12, 1
-        2023-08-13 00:01:00, 1848.12, 1
+
+        +-------------------+---------+-------+
+        |                   |WETH     | USDC  |
+        +===================+=========+=======+
+        |2023-08-13 00:00:00| 1848.12 | 1     |
+        +-------------------+---------+-------+
+        |2023-08-13 00:01:00| 1848.12 | 1     |
+        +-------------------+---------+-------+
 
         :param prices: dataframe or series contains prices
         :type prices: Union[pd.DataFrame, pd.Series]
