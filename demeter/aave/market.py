@@ -50,7 +50,7 @@ class AaveV3Market(Market):
     :param tokens: Tokens which will be used in this market
     :type tokens: List[TokenInfo]
     :param data: pool data for back test. downloaded by demeter-fetch, it's recommended to set data with load_data() or set_token_data() function
-    :type data: pd.DataFrame
+    :type data: DataFrame
     :param data_path: path to load data
     :type data_path: str
     """
@@ -110,8 +110,8 @@ class AaveV3Market(Market):
     @property
     def data(self) -> pd.DataFrame:
         """
-        Get data attribute. data have multiple column index.
-        Columns are organized by token, like this:
+        | Get data attribute. data have multiple column index.
+        | Columns are organized by token, like this:
 
         +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+
         |                   | WETH           |                   |                     |                 |                      |
@@ -131,9 +131,9 @@ class AaveV3Market(Market):
 
 
 
-        So if you want to read a element in this dataframe, such as liquidity_rate of weth, you should do: data.iloc[0]["WETH"]["liquidity_rate"],
-        and if you access a column, you can do data["WETH"]["liquidity_rate"]
-        If you append a new column to data, the new column will be
+        | So if you want to read a element in this dataframe, such as liquidity_rate of weth, you should do: data.iloc[0]["WETH"]["liquidity_rate"],
+        | and if you access a column, you can do data["WETH"]["liquidity_rate"]
+        | If you append a new column to data, the new column will be
 
         +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+----------------------+
         |                   | WETH           |                   |                     |                 |                      |     new_column       |
@@ -256,6 +256,7 @@ class AaveV3Market(Market):
     def collateral_value(self) -> Dict[SupplyKey, Decimal]:
         """
         Get value of all collateral token. unit is usd
+
         :return: value of all collaterals
         :rtype: Dict[SupplyKey, Decimal]
         """
@@ -575,10 +576,10 @@ class AaveV3Market(Market):
     @float_param_formatter
     def supply(self, token_info: TokenInfo, amount: Decimal | float, collateral: bool = True) -> SupplyKey:
         """
-        Supply asset to aave pool
-        Note:
-        1. some token are not allow to collateral, it's decided by risk parameter
-        2. if append amount to existing supply, collateral can not change.
+        | Supply asset to aave pool
+        | Note:
+        | 1. some token are not allow to collateral, it's decided by risk parameter
+        | 2. if append amount to existing supply, collateral can not change.
 
         :param token_info: which token to supply
         :type token_info: TokenInfo
@@ -747,11 +748,11 @@ class AaveV3Market(Market):
         interest_rate_mode: InterestRateMode = InterestRateMode.variable,
     ) -> BorrowKey:
         """
-        Borrow token from aave pool.
-        Note:
-        1. Risk parameter decides Which token is allowed to borrow
-        2. If this borrow transaction will cause health factor below 1, an exception will be raised.
-        3. If Borrow on existing borrow key, amount will be added to existing key
+        | Borrow token from aave pool.
+        | Note:
+        | 1. Risk parameter decides Which token is allowed to borrow
+        | 2. If this borrow transaction will cause health factor below 1, an exception will be raised.
+        | 3. If Borrow on existing borrow key, amount will be added to existing key
 
         :param token_info: Token to borrow
         :type token_info: TokenInfo
@@ -959,11 +960,11 @@ class AaveV3Market(Market):
 
     def _liquidate(self):
         """
-        Do passive liquidate. If health factor is below 1, liquidate will be triggered. And user can not make a liquidation transaction. Because currently demeter doesn't support that.
-        First is to decide when to liquidate, if in current loop, health factor is below 1, liquidation will happen immediately. Triggered by update function.
-        Second step to choose the assets. Here we will pick the most valuable collateral asset and least valuable debt.
-        After liquidation, if health factor is still below 1. Will choose a pair of collateral and debt to liquidate again.
-        But if a debt asset has liquidated, It will not be liquidated again.
+        | Do passive liquidate. If health factor is below 1, liquidate will be triggered. And user can not make a liquidation transaction. Because currently demeter doesn't support that.
+        | First is to decide when to liquidate, if in current loop, health factor is below 1, liquidation will happen immediately. Triggered by update function.
+        | Second step to choose the assets. Here we will pick the most valuable collateral asset and least valuable debt.
+        | After liquidation, if health factor is still below 1. Will choose a pair of collateral and debt to liquidate again.
+        | But if a debt asset has liquidated, It will not be liquidated again.
         """
         health_factor = self.health_factor
         has_liquidated: List[BorrowKey] = []

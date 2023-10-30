@@ -45,5 +45,4 @@
     :members:
 .. autoclass:: demeter.aave._typing.AaveMarketDescription
     :members:
-
 ```
