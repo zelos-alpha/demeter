@@ -147,3 +147,13 @@ dmypy.json
 cython_debug/
 demeter/*.pkl
 /tests/result/
+
+/docs/source/demeter.aave.rst
+/docs/source/demeter.broker.rst
+/docs/source/demeter.core.rst
+/docs/source/demeter.indicator.rst
+/docs/source/demeter.rst
+/docs/source/demeter.strategy.rst
+/docs/source/demeter.uniswap.rst
+/docs/source/demeter.utils.rst
+/docs/source/modules.rst
