@@ -14,7 +14,12 @@ K = TypeVar("K")
 
 
 class InterestRateMode(Enum):
-    """Interest rate mode"""
+    """
+    Interest rate mode
+
+    * variable = 1
+    * stable = 2
+    """
 
     variable = 1
     stable = 2
@@ -30,6 +35,9 @@ class InterestRateMode(Enum):
 class ActionKey:
     """
     Abstract key for actions(supply, borrow, etc.)
+
+    :param token: token of this position
+    :type token: TokenInfo
     """
 
     token: TokenInfo
@@ -45,6 +53,11 @@ class ActionKey:
 class BorrowKey(ActionKey):
     """
     key of dict for borrow actions
+
+    :param token: token of this position
+    :type token: TokenInfo
+    :param interest_rate_mode: interest rate mode
+    :type interest_rate_mode: InterestRateMode
     """
 
     interest_rate_mode: InterestRateMode
@@ -64,6 +77,8 @@ class SupplyKey(ActionKey):
     """
     key of dict for supply actions
 
+    :param token: token of this position
+    :type token: TokenInfo
     """
 
     def __str__(self):
@@ -286,11 +301,12 @@ class AaveMarketStatus(MarketStatus):
 
 class RiskParameter:
     """
-    Risk parameter of tokens,
-    It's a column description of dataframe
-    The csv is downloaded from https://www.config.fyi/,
-    Note: some attributes in csv file are excluded.
+    | Risk parameter of tokens,
+    | It's a column description of dataframe
+    | The csv is downloaded from https://www.config.fyi/,
+    | Note: some attributes in csv file are excluded.
     """
+
     symbol: str
     canCollateral: bool
     LTV: float
@@ -323,6 +339,7 @@ class SupplyAction(BaseAction):
     :param deposit_after: total supply amount of this token after supply
     :type deposit_after: UnitDecimal
     """
+
     token: TokenInfo
     amount: UnitDecimal
     collateral: bool
@@ -344,6 +361,7 @@ class WithdrawAction(BaseAction):
     :param deposit_after: total supply amount of this token after withdraw
     :type deposit_after: UnitDecimal
     """
+
     token: TokenInfo
     amount: UnitDecimal
     deposit_after: UnitDecimal
@@ -366,6 +384,7 @@ class BorrowAction(BaseAction):
     :param debt_after: total borrow amount of this token after borrow transaction
     :type debt_after: UnitDecimal
     """
+
     token: TokenInfo
     interest_rate_mode: InterestRateMode
     amount: UnitDecimal
@@ -389,6 +408,7 @@ class RepayAction(BaseAction):
     :param debt_after: total borrow amount of this token after repay transaction
     :type debt_after: UnitDecimal
     """
+
     token: TokenInfo
     interest_rate_mode: InterestRateMode
     amount: UnitDecimal
@@ -426,6 +446,7 @@ class LiquidationAction(BaseAction):
     :param stable_delt_after: stable delt token amount after liquidation
     :type stable_delt_after: UnitDecimal
     """
+
     collateral_token: TokenInfo
     debt_token: TokenInfo
     delt_to_cover: UnitDecimal
@@ -444,29 +465,65 @@ class LiquidationAction(BaseAction):
 
 class DictCache:
     """
-    A cache class in dictionary
+    A cache class in dictionary. It uses dict for storage.
     """
+
     def __init__(self):
         self.empty = True
-        self._data: Dict[K, T] = {}
+        self._value: Dict[K, T] = {}
 
     @property
-    def data(self) -> Dict[K, T]:
-        return self._data
+    def value(self) -> Dict[K, T]:
+        """
+        Get dict in this cache instance.
+        """
+        return self._value
+
+    def get(self, k: K) -> T:
+        """
+        Get value from cache.
+
+        :param k: key
+        :type k: K
+        :return: value
+        :rtype: T
+        """
+        return self._value[k]
 
     def reset(self):
-        self._data: Dict[K, T] = {}
+        """
+        Reset cache instance, will set values to empty.
+        """
+        self._value: Dict[K, T] = {}
         self.empty = True
 
     def set(self, k: K, v: T):
-        self._data[k] = v
+        """
+        Set value to dict
+
+        :param k: key
+        :type k: K
+        :param v: value
+        :type v: T
+        """
+        self._value[k] = v
         self.empty = False
 
 
 class AaveMarketDescription(NamedTuple):
     """
     Designed to generate json description for aave market
+
+    :param type: market type
+    :type type: str
+    :param name: market name
+    :type name: str
+    :param supplies_count: count of supplies
+    :type supplies_count: int
+    :param borrows_count: count of borrows
+    :type borrows_count: int
     """
+
     type: str
     name: str
     supplies_count: int

@@ -243,7 +243,7 @@ class AaveV3Market(Market):
                     AaveV3CoreLib.get_amount(v.base_amount, self._market_status.data[k.token.name].liquidity_index)
                     * self._price_status[k.token.name],
                 )
-        return self._supplies_amount_cache.data
+        return self._supplies_amount_cache.value
 
     @property
     def total_supply_value(self) -> Decimal:
@@ -263,7 +263,7 @@ class AaveV3Market(Market):
             for k, v in self._supplies.items():
                 if v.collateral:
                     self._collaterals_amount_cache.set(k, self.supplies_value[k])
-        return self._collaterals_amount_cache.data
+        return self._collaterals_amount_cache.value
 
     @property
     def total_collateral_value(self) -> Decimal:
@@ -287,7 +287,7 @@ class AaveV3Market(Market):
                     AaveV3CoreLib.get_amount(v.base_amount, self._market_status.data[k.token.name].variable_borrow_index)
                     * self._price_status[k.token.name],
                 )
-        return self._borrows_amount_cache.data
+        return self._borrows_amount_cache.value
 
     @property
     def total_borrows_value(self) -> Decimal:
@@ -307,7 +307,7 @@ class AaveV3Market(Market):
         if self._supplies_cache.empty:
             for key in self._supplies.keys():
                 self._supplies_cache.set(key, self.get_supply(supply_key=key))
-        return self._supplies_cache.data
+        return self._supplies_cache.value
 
     @property
     def supply_keys(self) -> List[SupplyKey]:
@@ -328,7 +328,7 @@ class AaveV3Market(Market):
         if self._borrows_cache.empty:
             for key in self._borrows.keys():
                 self._borrows_cache.set(key, self.get_borrow(key))
-        return self._borrows_cache.data
+        return self._borrows_cache.value
 
     @property
     def borrow_keys(self) -> List[BorrowKey]:

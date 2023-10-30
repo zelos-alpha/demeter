@@ -8,8 +8,8 @@ import pandas as pd
 
 class AaveV3CoreLib(object):
     """
-    The core calculation library for aave v3 market
-
+    | The core calculation library for aave v3 market
+    | Note: All functions are static
     """
 
     SECONDS_IN_A_YEAR = 31536000  # how many seconds in a year
@@ -34,6 +34,13 @@ class AaveV3CoreLib(object):
         """
         | Get amount from base amount.
         | Note: base amount is used in contract. Actual user token balance is base_amount * liquidity_index
+
+        :param base_amount: base token amount
+        :type base_amount: Decimal
+        :param liquidity_index: token liquidity_index at this moment.
+        :type liquidity_index: Decimal
+        :return: Actually token amount.
+        :rtype: Decimal
         """
         return Decimal(base_amount) * Decimal(liquidity_index)
 
@@ -42,6 +49,13 @@ class AaveV3CoreLib(object):
         """
         | Get base amount from amount
         | Note: base amount is used in contract. Actual user token balance is base_amount * liquidity_index
+
+        :param amount: token amount
+        :type amount: Decimal
+        :param liquidity_index: token liquidity_index at this moment.
+        :type liquidity_index: Decimal
+        :return: token base amount.
+        :rtype: Decimal
         """
         return amount / liquidity_index
 
@@ -79,20 +93,19 @@ class AaveV3CoreLib(object):
         price: Decimal,
     ) -> Decimal:
         """
-        Get min collateral token amount to kept in pool.
-        If collateral token amount left is less than this amount, health factor will below 1
+        | Get min collateral token amount to keep health factor above 1
 
         :param token: which token to calculate
         :type token: TokenInfo
-        :param collaterals: collateral values, note: dict value(Decimal) is token value in usd
+        :param collaterals: collateral values of each token, note: dict value(Decimal) is token value in usd
         :type collaterals: Dict[SupplyKey, Decimal]
-        :param borrows: borrow values , note: dict value(Decimal) is token value in usd
+        :param borrows: borrow values of each token, note: dict value(Decimal) is token value in usd
         :type borrows: Dict[BorrowKey, Decimal]
-        :param risk_parameters: risk parameters of this chain
-        :type risk_parameters: pd.DataFrame
+        :param risk_parameters: token risk parameters of this chain
+        :type risk_parameters: DataFrame
         :param price: current token price
         :type price: Decimal
-        :return: min token amount to kept to prevent liquidation
+        :return: min token amount should kept to prevent liquidation
         :rtype: Decimal
         """
         # if token is not collateral token, doesn't need to keep any
@@ -114,12 +127,12 @@ class AaveV3CoreLib(object):
         """
         Get current health factor in decimal, eg:0.8
 
-        :param collaterals: collateral values, note: dict value(Decimal) is token value in usd
+        :param collaterals: collateral values of each token, note: dict value(Decimal) is token value in usd
         :type collaterals: Dict[SupplyKey, Decimal]
-        :param borrows: borrow values , note: dict value(Decimal) is token value in usd
+        :param borrows: borrow values of each token, note: dict value(Decimal) is token value in usd
         :type borrows: Dict[BorrowKey, Decimal]
-        :param risk_parameters: risk parameters of this chain
-        :type risk_parameters: pd.DataFrame
+        :param risk_parameters: token risk parameters of this chain
+        :type risk_parameters: DataFrame
         :return: health factor
         :rtype: Decimal
         """
@@ -131,12 +144,12 @@ class AaveV3CoreLib(object):
     @staticmethod
     def current_ltv(collaterals: Dict[SupplyKey, Decimal], risk_parameters) -> Decimal:
         """
-        Get max ltv of this user
+        Get max ltv of this user, calculated by token ltv and positions
 
         :param collaterals: collateral values, note: dict value(Decimal) is token value in usd
         :type collaterals: Dict[SupplyKey, Decimal]
-        :param risk_parameters: risk parameters of this chain
-        :type risk_parameters: pd.DataFrame
+        :param risk_parameters: token risk parameters of this chain
+        :type risk_parameters: DataFrame
         :return: max ltv
         :rtype: Decimal
         """
@@ -150,13 +163,13 @@ class AaveV3CoreLib(object):
     @staticmethod
     def total_liquidation_threshold(collaterals: Dict[SupplyKey, Decimal], risk_parameters):
         """
-        Get total liquidation threshold of this user, value is in decimal, eg:0.81, this value should be larger than ltv
-        value = (token_amount0 * LT0 + token_amount1 * LT1 + ...) / (token_amount0 + token_amount1)
+        | Get total liquidation threshold of this user, value is in decimal, eg:0.81, this value should be larger than ltv
+        | value = (token_amount0 * LT0 + token_amount1 * LT1 + ...) / (token_amount0 + token_amount1)
 
-        :param collaterals: collateral values, note: dict value(Decimal) is token value in usd
+        :param collaterals: collateral values of each token, note: dict value(Decimal) is token value in usd
         :type collaterals: Dict[SupplyKey, Decimal]
-        :param risk_parameters: risk parameters of this chain
-        :type risk_parameters: pd.DataFrame
+        :param risk_parameters: token risk parameters of this chain
+        :type risk_parameters: DataFrame
         :return: total liquidation threshold
         :rtype: Decimal
         """
@@ -178,7 +191,7 @@ class AaveV3CoreLib(object):
     @staticmethod
     def safe_rounding(a: Decimal, rounding: Decimal) -> Decimal:
         """
-        round decimal without throw an exception
+        Round decimal number, but when value is inf or nan, will not throw an exception
         """
         return a if a == Decimal("inf") or a == Decimal("nan") else a.quantize(rounding)
 
@@ -192,7 +205,7 @@ class AaveV3CoreLib(object):
     @staticmethod
     def get_apy(amounts: Dict[ActionKey, Decimal], rate_dict: Dict[TokenInfo, Decimal]) -> Decimal:
         """
-        Calculate all apy (borrow or supply)
+        Calculate apy of all borrows or supplies
 
         :param amounts: supply or borrow values, note: dict value(Decimal) is token value in usd
         :type amounts: Dict[ActionKey, Decimal]
