@@ -1,11 +1,13 @@
 # AAVE
 
 ```{eval-rst}
-.. autoclass:: demeter.aave._typing.InterestRateMode
-    :members:
 .. autoclass:: demeter.aave.core.AaveV3CoreLib
     :members:
+    :undoc-members:
 .. autoclass:: demeter.aave.market.AaveV3Market
+    :members:
+    :undoc-members:
+.. autoclass:: demeter.aave._typing.InterestRateMode
     :members:
 .. autoclass:: demeter.aave._typing.ActionKey
     :members:

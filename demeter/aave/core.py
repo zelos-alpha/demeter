@@ -13,15 +13,16 @@ class AaveV3CoreLib(object):
     """
 
     SECONDS_IN_A_YEAR = 31536000  # how many seconds in a year
-    """
-    if CLOSE_FACTOR_HF_THRESHOLD < health factor <  DEFAULT_LIQUIDATION_CLOSE_FACTOR
-    only DEFAULT_LIQUIDATION_CLOSE_FACTOR(50%) will be liquidated,
-    otherwise HEALTH_FACTOR_LIQUIDATION_THRESHOLD(100%) will be liquidated
-    """
+
     HEALTH_FACTOR_LIQUIDATION_THRESHOLD = Decimal(1)
     DEFAULT_LIQUIDATION_CLOSE_FACTOR = Decimal(0.5)
     MAX_LIQUIDATION_CLOSE_FACTOR = Decimal(1)
     CLOSE_FACTOR_HF_THRESHOLD = Decimal(0.95)
+    """
+        if CLOSE_FACTOR_HF_THRESHOLD < health factor <  DEFAULT_LIQUIDATION_CLOSE_FACTOR
+        only DEFAULT_LIQUIDATION_CLOSE_FACTOR(50%) will be liquidated,
+        otherwise HEALTH_FACTOR_LIQUIDATION_THRESHOLD(100%) will be liquidated
+    """
 
     @staticmethod
     def rate_to_apy(rate: Decimal) -> Decimal:
