@@ -13,16 +13,14 @@ class AaveV3CoreLib(object):
     """
 
     SECONDS_IN_A_YEAR = 31536000  # how many seconds in a year
+    # if CLOSE_FACTOR_HF_THRESHOLD < health factor <  DEFAULT_LIQUIDATION_CLOSE_FACTOR
+    # only DEFAULT_LIQUIDATION_CLOSE_FACTOR(50%) will be liquidated,
+    # otherwise HEALTH_FACTOR_LIQUIDATION_THRESHOLD(100%) will be liquidated
+    HEALTH_FACTOR_LIQUIDATION_THRESHOLD = Decimal("1")
+    DEFAULT_LIQUIDATION_CLOSE_FACTOR = Decimal("0.5")
+    MAX_LIQUIDATION_CLOSE_FACTOR = Decimal("1")
+    CLOSE_FACTOR_HF_THRESHOLD = Decimal("0.95")
 
-    HEALTH_FACTOR_LIQUIDATION_THRESHOLD = Decimal(1)
-    DEFAULT_LIQUIDATION_CLOSE_FACTOR = Decimal(0.5)
-    MAX_LIQUIDATION_CLOSE_FACTOR = Decimal(1)
-    CLOSE_FACTOR_HF_THRESHOLD = Decimal(0.95)
-    """
-        if CLOSE_FACTOR_HF_THRESHOLD < health factor <  DEFAULT_LIQUIDATION_CLOSE_FACTOR
-        only DEFAULT_LIQUIDATION_CLOSE_FACTOR(50%) will be liquidated,
-        otherwise HEALTH_FACTOR_LIQUIDATION_THRESHOLD(100%) will be liquidated
-    """
 
     @staticmethod
     def rate_to_apy(rate: Decimal) -> Decimal:
@@ -34,16 +32,16 @@ class AaveV3CoreLib(object):
     @staticmethod
     def get_amount(base_amount: Decimal, liquidity_index: Decimal) -> Decimal:
         """
-        Get amount from base amount.
-        Note: base amount is used in contract. Actual user token balance is base_amount * liquidity_index
+        | Get amount from base amount.
+        | Note: base amount is used in contract. Actual user token balance is base_amount * liquidity_index
         """
         return Decimal(base_amount) * Decimal(liquidity_index)
 
     @staticmethod
     def get_base_amount(amount: Decimal, liquidity_index: Decimal) -> Decimal:
         """
-        Get base amount from amount
-        Note: base amount is used in contract. Actual user token balance is base_amount * liquidity_index
+        | Get base amount from amount
+        | Note: base amount is used in contract. Actual user token balance is base_amount * liquidity_index
         """
         return amount / liquidity_index
 
@@ -54,8 +52,8 @@ class AaveV3CoreLib(object):
         risk_parameters: pd.DataFrame,
     ) -> Decimal:
         """
-        Calculate the max amount to borrow.
-        Note: As aave web app will multiply 0.99 to result, we followed this practice
+        | Calculate the max amount to borrow.
+        | Note: As aave web app will multiply 0.99 to result, we followed this practice
 
         :param collaterals: All collaterals. note: unit of dict value(Decimal) is usd
         :type collaterals: Dict[SupplyKey, Decimal]
