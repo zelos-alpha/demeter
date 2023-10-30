@@ -192,9 +192,9 @@ class Actuator(object):
 
     def get_account_status_dataframe(self) -> pd.DataFrame:
         """
-        Get account status in dataframe. it contains account balance/position change of every minute.
-        Row(datetimeindex) is per minute.
-        Column is net value/positions.
+        | Get account status in dataframe. it contains account balance/position change of every minute.
+        | Row(datetimeindex) is per minute.
+        | Column is net value/positions.
 
         :return: account status
         :rtype: pd.DataFrame

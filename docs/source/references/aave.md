@@ -1,4 +1,4 @@
-# AAVE
+# Aave
 
 ```{eval-rst}
 .. autoclass:: demeter.aave.core.AaveV3CoreLib
