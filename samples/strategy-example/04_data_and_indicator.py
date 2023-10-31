@@ -19,7 +19,7 @@ class DemoStrategy(Strategy):
         new_trigger = AtTimeTrigger(time=datetime(2023, 8, 15, 12, 0, 0), do=self.work)
         self.triggers.append(new_trigger)  # add new trigger at 2023-8-15 12:00:00
         # add an indicator column, this column will be appended to corresponding market data
-        self._add_column(market=market_key, name="sma", column_data=simple_moving_average(self.data[market_key].price))  # name,
+        self.add_column(market=market_key, name="sma", column_data=simple_moving_average(self.data[market_key].price))  # name,
 
     def work(self, row_data: RowData):
         # price set to actuator

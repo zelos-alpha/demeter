@@ -30,7 +30,7 @@ class AddLiquidityByMA(Strategy):
 
     def initialize(self):
         lp_market: UniLpMarket = self.broker.markets[market_key]
-        self._add_column(lp_market, "ma5", demeter.indicator.simple_moving_average(self.data.default.price, timedelta(hours=5)))
+        self.add_column(lp_market, "ma5", demeter.indicator.simple_moving_average(self.data.default.price, timedelta(hours=5)))
         self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=1), trigger_immediately=True, do=self.work))
 
     def work(self, row_data: RowData):

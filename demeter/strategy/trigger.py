@@ -1,48 +1,74 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Callable, Any
+from typing import Callable, Any, List
 
 import pandas as pd
 
-from .. import MarketDict, RowData
+from .. import RowData
 from .._typing import DemeterError
-from ..broker import MarketStatus
 
 
 def to_minute(time: datetime) -> datetime:
     """
-    second with 0 datetime
-    :param time:
-    :return:
+    Convert a datetime instance to minute(Just set its second to 0)
+
+    :param time: time instance to convert
+    :type time: datetime
+    :return: time whose second is zero
+    :rtype: datetime
     """
     return datetime(time.year, time.month, time.day, time.hour, time.minute)
 
 
 class Trigger:
+    """
+    Abstract trigger.
+
+    Trigger will do something(decide by do function) when condition is met(decide by when function)
+
+    Extra args can be passed through kwargs. e.g. tg = Trigger(lambda r:r, extra_arg1=0, extra_arg2="1")
+
+    :param do: which action to take.
+    :type do: Callable[[RowData], Any]
+    """
+
     def __init__(self, do: Callable[[RowData], Any], **kwargs):
         self._do = do if do is not None else lambda x: x
         self.kwargs = kwargs
 
     def when(self, row_data: RowData) -> bool:
         """
-        when to handler data
-        :param row_data: data in row
-        :return:
+        If the condition is met or not.
+
+        :param row_data: data of this iteration. used to decide to if the condition is meet.
+        :type row_data: RowData
+        :return: if condition is met, return true
+        :rtype: bool
         """
         return False
 
     def do(self, row_data: RowData):
         """
-        operation to handler with row data
-        :param row_data:
-        :return:
+        when condition is met, what actions will be taken
+
+        :param row_data: data of this iteration
+        :type row_data: condition
+        :return: Anything do function returns
+        :rtype: Any
         """
         return self._do(row_data, **self.kwargs)
 
 
 class AtTimeTrigger(Trigger):
     """
-    trigger action at a specific time
+    Trigger action at a specific time
+
+    Extra args can be passed through kwargs.
+
+    :param time: time to trigger action
+    :type time: datetime
+    :param do: which action to take.
+    :type do: Callable[[RowData], Any]
     """
 
     def __init__(self, time: datetime, do, **kwargs):
@@ -55,10 +81,18 @@ class AtTimeTrigger(Trigger):
 
 class AtTimesTrigger(Trigger):
     """
-    trigger action at some specific time
+    trigger action at some specific times
+
+    Extra args can be passed through kwargs.
+
+    :param time: when current timestamp is in List[datetime], will trigger action
+    :type time: List[datetime]
+    :param do: which action to take.
+    :type do: Callable[[RowData], Any]
+
     """
 
-    def __init__(self, time: [datetime], do, **kwargs):
+    def __init__(self, time: List[datetime], do, **kwargs):
         self._time = [to_minute(t) for t in time]
         super().__init__(do, **kwargs)
 
@@ -68,6 +102,10 @@ class AtTimesTrigger(Trigger):
 
 @dataclass
 class TimeRange:
+    """
+    Time range
+    """
+
     start: datetime
     end: datetime
 
@@ -75,6 +113,13 @@ class TimeRange:
 class TimeRangeTrigger(Trigger):
     """
     trigger action at a time range
+
+    Extra args can be passed through kwargs. e.g. tg = Trigger(lambda r:r, extra_arg1=0, extra_arg2="1")
+
+    :param time_range: when current timestamp is between time range, will trigger action, end time will not be included
+    :type time_range: TimeRange
+    :param do: which action to take.
+    :type do: Callable[[RowData], Any]
     """
 
     def __init__(self, time_range: TimeRange, do, **kwargs):
@@ -88,9 +133,16 @@ class TimeRangeTrigger(Trigger):
 class TimeRangesTrigger(Trigger):
     """
     trigger action at some time range
+
+    Extra args can be passed through kwargs. e.g. tg = Trigger(lambda r:r, extra_arg1=0, extra_arg2="1")
+
+    :param time_range: when current timestamp is between any time range, will trigger action, end time will not be included
+    :type time_range: List[TimeRange]
+    :param do: which action to take.
+    :type do: Callable[[RowData], Any]
     """
 
-    def __init__(self, time_range: [TimeRange], do, **kwargs):
+    def __init__(self, time_range: List[TimeRange], do, **kwargs):
         self._time_range: [TimeRange] = [TimeRange(to_minute(t.start), to_minute(t.end)) for t in time_range]
         super().__init__(do, **kwargs)
 
@@ -101,21 +153,30 @@ class TimeRangesTrigger(Trigger):
         return False
 
 
-def check_time_delta(delta: timedelta):
+def _check_time_delta(delta: timedelta):
     if delta.total_seconds() % 60 != 0:
         raise DemeterError("min time span is 1 minute")
 
 
 class PeriodTrigger(Trigger):
     """
-    trigger period action
+    Trigger action periodically
+
+    Extra args can be passed through kwargs. e.g. tg = Trigger(lambda r:r, extra_arg1=0, extra_arg2="1")
+
+    :param time_delta: Period
+    :type time_delta: timedelta
+    :param do: which action to take.
+    :type do: Callable[[RowData], Any]
+    :param trigger_immediately: whither to trigger action when back test just started
+    :type trigger_immediately: bool
     """
 
     def __init__(self, time_delta: timedelta, do, trigger_immediately=False, **kwargs):
         self._next_match = None
         self._delta = time_delta
         self._trigger_immediately = trigger_immediately
-        check_time_delta(time_delta)
+        _check_time_delta(time_delta)
         super().__init__(do, **kwargs)
 
     def reset(self):
@@ -135,16 +196,25 @@ class PeriodTrigger(Trigger):
 
 class PeriodsTrigger(Trigger):
     """
-    trigger some period actions
+    trigger action periodically, but you can set multiple period.
+
+    Extra args can be passed through kwargs. e.g. tg = Trigger(lambda r:r, extra_arg1=0, extra_arg2="1")
+
+    :param time_delta: Periods,
+    :type time_delta: List[timedelta]
+    :param do: which action to take.
+    :type do: Callable[[RowData], Any]
+    :param trigger_immediately: whither to trigger action when back test just started
+    :type trigger_immediately: bool
     """
 
-    def __init__(self, time_delta: [timedelta], do, trigger_immediately=False, **kwargs):
+    def __init__(self, time_delta: List[timedelta], do, trigger_immediately=False, **kwargs):
         self._next_matches = [None for _ in time_delta]
         self._deltas = time_delta
         self._trigger_immediately = trigger_immediately
 
         for td in time_delta:
-            check_time_delta(td)
+            _check_time_delta(td)
         super().__init__(do, **kwargs)
 
     def reset(self):
@@ -165,7 +235,14 @@ class PeriodsTrigger(Trigger):
 
 class PriceTrigger(Trigger):
     """
-    trigger when price match a condition
+    Trigger when price meet a customized condition
+
+    Extra args can be passed through kwargs. e.g. tg = Trigger(lambda r:r, extra_arg1=0, extra_arg2="1")
+
+    :param condition: customized condition, arg is price of tokens
+    :type condition: Callable[[pd.Series], bool]
+    :param do: which action to take.
+    :type do: Callable[[RowData], Any]
     """
 
     def __init__(self, condition: Callable[[pd.Series], bool], do, **kwargs):
@@ -174,3 +251,23 @@ class PriceTrigger(Trigger):
 
     def when(self, row_data: RowData) -> bool:
         return self._condition(row_data.prices)
+
+
+class CustomizedTrigger(Trigger):
+    """
+    Trigger on customized condition
+
+    Extra args can be passed through kwargs. e.g. tg = Trigger(lambda r:r, extra_arg1=0, extra_arg2="1")
+
+    :param condition: customized condition
+    :type condition: Callable[[RowData], bool]
+    :param do: which action to take.
+    :type do: Callable[[RowData], Any]
+    """
+
+    def __init__(self, condition: Callable[[RowData], bool], do, **kwargs):
+        self._condition = condition
+        super().__init__(do, **kwargs)
+
+    def when(self, row_data: RowData) -> bool:
+        return self._condition(row_data)

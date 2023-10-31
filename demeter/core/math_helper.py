@@ -7,10 +7,10 @@ import pandas as pd
 def annualized_returns(init_value, final_value, timespan_in_day):
     """
     calculated for a period of a year's data
-    :param init_value:
-    :param final_value:
-    :param timespan_in_day:
-    :return:
+
+    :param init_value:  Net value in the beginning
+    :param final_value: Net value in the end
+    :param timespan_in_day: time span, unit is day
     """
     return (final_value / init_value) ** Decimal(365 / timespan_in_day) - 1
 
@@ -20,11 +20,22 @@ def get_benchmark_returns(
     init_price: pd.Series,
     final_price: pd.Series,
     timespan_in_day: Decimal,
-):
+)->Decimal:
     """
     Annualized benchmark return rate
+
     algorithm: swap token balance to 1:1, and hold those get_position to the end.
-    :return:
+
+    :param init_value: total net value in the beginning
+    :type init_value: Decimal
+    :param init_price: price in the beginning, price should contain two items, base price and quote price
+    :type init_price: Series
+    :param final_price: Price in the end, price should contain two items, base price and quote price
+    :type final_price: Series
+    :param timespan_in_day: time span, unit is day
+    :type timespan_in_day: Decimal
+    :return: benchmark return
+    :rtype: Decimal
     """
     splited_value = init_value / len(init_price)
 
@@ -42,9 +53,9 @@ def get_benchmark_returns(
 def __devide_value_to_50_50(net_value, price):
     """
     divide base/quote token value to 50:50 by according to price
+
     :param net_value: Decimal or float
-    :param price:
-    :return:
+    :param price: quote token price
     """
     base_amount = net_value / 2
     quote_amount = (net_value - base_amount) / price
@@ -53,11 +64,10 @@ def __devide_value_to_50_50(net_value, price):
 
 def max_draw_down(value: pd.Series):
     """
-    get max draw down
+    Get max draw down
+
     :param value: value to calculate
     :type value: pd.Series
-    :return:
-    :rtype:
     """
     warnings.warn("use max_draw_down_fast instead", DeprecationWarning)
     value.index = range(len(value.index))  # restruct index to access faster
@@ -72,10 +82,9 @@ def max_draw_down(value: pd.Series):
 def max_draw_down_fast(value: pd.Series):
     """
     Get max draw down in a fast algorithm.
+
     :param value: value to calculate
     :type value:  pd.Series
-    :return:
-    :rtype:
     """
     max_value, idx_h, idx_l = _withdraw_with_high_low(value.to_list())
     return (value.iloc[idx_h] - value.iloc[idx_l]) / value.iloc[idx_h]

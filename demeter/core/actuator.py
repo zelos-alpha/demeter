@@ -80,7 +80,7 @@ class Actuator(object):
     @property
     def token_prices(self) -> pd.DataFrame:
         """
-        Price of all tokens. Row(index) is minutely timestamp, column is token. eg:
+        Price of all tokens. Row(index) is minutely timestamp, column is token. e.g.
 
         +-------------------+---------+-------+
         |                   |WETH     | USDC  |
@@ -177,7 +177,7 @@ class Actuator(object):
     @property
     def number_format(self) -> str:
         """
-        number format for console output, eg: ".8g", ".5f"
+        number format for console output, e.g. ".8g", ".5f"
 
         :return: number format
         :rtype: str
@@ -187,7 +187,7 @@ class Actuator(object):
     @number_format.setter
     def number_format(self, value: str):
         """
-        | number format for console output, eg: ".8g", ".5f",
+        | number format for console output, e.g. ".8g", ".5f",
         | follow the document here: https://python-reference.readthedocs.io/en/latest/docs/functions/format.html
 
         :param value: number format,
@@ -222,7 +222,7 @@ class Actuator(object):
         """
         | Set price to actuator. param price can be dataframe(price of several tokens) or series(price of one token).
         | It's index time range should be larger than or equal to data.
-        | And column name should be the same to token.name in upper case. eg:
+        | And column name should be the same to token.name in upper case. e.g.
 
         +-------------------+---------+-------+
         |                   |WETH     | USDC  |
@@ -341,7 +341,7 @@ class Actuator(object):
             * prepare data in each row
             * run trigger
             * run strategy.on_bar()
-            * update market, eg: calculate fee earned
+            * update market, e.g. calculate fee earned
             * run strategy.after_bar()
             * get latest account status
             * notify actions
@@ -390,7 +390,7 @@ class Actuator(object):
                 # if liquidity has changed in the head of this minute, this will add the new liquidity to total_liquidity in current minute.
                 self.__set_row_to_markets(timestamp_index, True)
 
-                # update broker status, eg: re-calculate fee
+                # update broker status, e.g. re-calculate fee
                 # and read the latest status from broker
                 for market in self._broker.markets.values():
                     market.update()

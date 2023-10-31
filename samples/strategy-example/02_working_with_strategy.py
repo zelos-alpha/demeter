@@ -40,7 +40,7 @@ class DemoStrategy(Strategy):
 
         # Add a simple moving average line for backtesting data. In backtesting,
         # we will add/remove liquidity according to this line.
-        self._add_column(market_key, "sma", simple_moving_average(self.data[market_key].price, window=timedelta(hours=1)))
+        self.add_column(market_key, "sma", simple_moving_average(self.data[market_key].price, window=timedelta(hours=1)))
         self.net_value_before_bar = 0
         self.net_value_diff_list = []
         # Register a trigger, every day, we split both assets into two shares of equal value

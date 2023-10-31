@@ -106,7 +106,7 @@ so we assign two variables *eth*, *usdc*.
 
 2 Then setup tool, the parameter should be consistent with pool contract. note, the last parameter is base token.
 That means which token will be considered as base token.
-eg: to a token pair of USDT/BTC, if you want price unit to be like 10000 usdt/btc, you should set usdt as base token,
+e.g. to a token pair of USDT/BTC, if you want price unit to be like 10000 usdt/btc, you should set usdt as base token,
 otherwise if price unit is 0.00001 btc/usdt, you should set btc as base token
 
 3 Now create a actuator, and set pool info as parameter

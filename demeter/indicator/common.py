@@ -8,10 +8,14 @@ from .._typing import DemeterError
 
 def get_real_n(data: pd.Series, window: timedelta):
     """
-    get window data
-    :param data: all data
-    :param window: timed window data
-    :return:
+    Get how many rows of data should be included in time window
+
+    :param data: pd.Series whose timestamp interval are same.
+    :type data: Series
+    :param window: time window
+    :param window: timedelta
+    :return: row count of corresponding time window
+    :rtype: int
     """
     if data.size < 2:
         raise DemeterError("not enough data for simple_moving_average")

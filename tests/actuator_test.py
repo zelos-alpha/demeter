@@ -40,7 +40,7 @@ class AddLiquidity(Strategy):
 
 class WithSMA(Strategy):
     def initialize(self):
-        self._add_column(self.market1, "ma5", demeter.indicator.simple_moving_average(self.market1.data.closeTick))
+        self.add_column(self.market1, "ma5", demeter.indicator.simple_moving_average(self.market1.data.closeTick))
 
     def on_bar(self, row_data):
         pass

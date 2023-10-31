@@ -38,7 +38,7 @@ class Market:
         self._market_status: MarketStatus = MarketStatus(None, pd.Series())
         self._price_status: pd.Series | None = None
         # if some var that related to market status has changed, should set this to True, then the second set_market_status in every minute will be triggerd
-        # eg: At uniswap market, when add liquidity in the head of the minute, this flag will be set to True,
+        # e.g. At uniswap market, when add liquidity in the head of the minute, this flag will be set to True,
         # so user liquidity will be added to total liquidity in this minute, and get more fee
         # remember set this flag to False after set_market_status
         self.has_update = False

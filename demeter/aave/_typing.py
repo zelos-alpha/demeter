@@ -119,11 +119,11 @@ class Supply:
     :type base_amount: Decimal
     :param collateral: set this supply to collateral or not
     :type collateral: bool
-    :param amount: Actual amount at this moment. value is amount * liquidity_index_at_this_moment, unit in token amount, eg: 1 eth
+    :param amount: Actual amount at this moment. value is amount * liquidity_index_at_this_moment, unit in token amount, e.g. 1 eth
     :type amount: Decimal
     :param apy: current apy (annual interest rate)
     :type apy: Decimal
-    :param value: value at this moment. unit is usd, eg: 1400 usd
+    :param value: value at this moment. unit is usd, e.g. 1400 usd
     :type value: Decimal
     """
 
@@ -134,11 +134,11 @@ class Supply:
     collateral: bool
     """set this supply to collateral or not"""
     amount: Decimal
-    """Actual amount at this moment. value is amount * liquidity_index_at_this_moment, unit in token amount, eg: 1 eth"""
+    """Actual amount at this moment. value is amount * liquidity_index_at_this_moment, unit in token amount, e.g. 1 eth"""
     apy: Decimal
     """current apy (annual interest rate)"""
     value: Decimal
-    """value at this moment. unit is usd, eg: 1400 usd"""
+    """value at this moment. unit is usd, e.g. 1400 usd"""
 
 
 def supply_to_dataframe(supplies: Dict[SupplyKey, Supply]) -> pd.DataFrame:
@@ -187,11 +187,11 @@ class Borrow:
     :type base_amount: Decimal
     :param interest_rate_mode: Interest rate mode
     :type interest_rate_mode: InterestRateMode
-    :param amount: Actual amount at this moment. value is amount * variable_borrow_index_at_this_moment, unit in token amount, eg: 1 eth
+    :param amount: Actual amount at this moment. value is amount * variable_borrow_index_at_this_moment, unit in token amount, e.g. 1 eth
     :type amount: Decimal
     :param apy:  current apy (annual interest rate)
     :type apy: Decimal
-    :param value: value at this moment. unit is usd, eg: 1400 usd
+    :param value: value at this moment. unit is usd, e.g. 1400 usd
     :type value: Decimal
     """
 
@@ -202,11 +202,11 @@ class Borrow:
     interest_rate_mode: InterestRateMode
     """Interest rate mode"""
     amount: Decimal
-    """Actual amount at this moment. value is amount * variable_borrow_index_at_this_moment, unit in token amount, eg: 1 eth"""
+    """Actual amount at this moment. value is amount * variable_borrow_index_at_this_moment, unit in token amount, e.g. 1 eth"""
     apy: Decimal
     """current apy (annual interest rate)"""
     value: Decimal
-    """value at this moment. unit is usd, eg: 1400 usd"""
+    """value at this moment. unit is usd, e.g. 1400 usd"""
 
 
 def borrow_to_dataframe(supplies: Dict[BorrowKey, Borrow]) -> pd.DataFrame:
@@ -249,9 +249,9 @@ class AaveBalance(MarketBalance):
     :type collaterals_value: Decimal
     :param health_factor: current health factor
     :type health_factor: Decimal
-    :param current_ltv: max ltv allowed, in decimal, eg: 0.7568
+    :param current_ltv: max ltv allowed, in decimal, e.g. 0.7568
     :type current_ltv: Decimal
-    :param liquidation_threshold: current liquidation threshold, in decimal, eg:0.8
+    :param liquidation_threshold: current liquidation threshold, in decimal, e.g.0.8
     :type liquidation_threshold: Decimal
     :param supply_apy: annual interest rate of supplies
     :type supply_apy: Decimal
@@ -274,9 +274,9 @@ class AaveBalance(MarketBalance):
     health_factor: Decimal
     """current health factor"""
     current_ltv: Decimal
-    """max ltv allowed, in decimal, eg: 0.7568"""
+    """max ltv allowed, in decimal, e.g. 0.7568"""
     liquidation_threshold: Decimal
-    """current liquidation threshold, in decimal, eg:0.8"""
+    """current liquidation threshold, in decimal, e.g.0.8"""
     supply_apy: Decimal
     """annual interest rate of supplies"""
     borrow_apy: Decimal

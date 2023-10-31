@@ -19,7 +19,7 @@ class MyFirstStrategy(Strategy):
     def initialize(self):
         """
         Initialize function will be called right before a backtest start.
-        You can do various things here, eg: register a trigger, or add a simple moving average line.
+        You can do various things here, e.g. register a trigger, or add a simple moving average line.
         """
         new_trigger = AtTimeTrigger(  # define a new trigger
             time=datetime(2022, 8, 20, 12, 0, 0), do=self.work  # we will make the action happen at 12:00 20/8/22
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     """
     Here shows how to start a back test. Demeter has 4 components.
     * Actuator: It controls the whole test process, and keeps backtest result.
-    * Broker: Broker manage assets(token balance in wallet) and markets(eg. uniswap or aave). When you declare an actuator, you will have a default broker inside.
+    * Broker: Broker manage assets(token balance in wallet) and markets(e.g. uniswap or aave). When you declare an actuator, you will have a default broker inside.
     * Market: Market is the place you execute transactions. There are various market type, and we support Uniswap V3 Liquid Provider market and AAVE now.
     * Strategy: It's a class designed for test different market making strategies. Users need to inherit the strategy class and test returns of different strategies through on_bar processing or triggers.
     """

@@ -137,7 +137,7 @@ class AaveV3CoreLib(object):
     @staticmethod
     def health_factor(collaterals: Dict[SupplyKey, Decimal], borrows: Dict[BorrowKey, Decimal], risk_parameters) -> Decimal:
         """
-        Get current health factor in decimal, eg:0.8
+        Get current health factor in decimal, e.g.0.8
 
         :param collaterals: collateral values of each token, note: dict value(Decimal) is token value in usd
         :type collaterals: Dict[SupplyKey, Decimal]
@@ -175,7 +175,7 @@ class AaveV3CoreLib(object):
     @staticmethod
     def total_liquidation_threshold(collaterals: Dict[SupplyKey, Decimal], risk_parameters):
         """
-        | Get total liquidation threshold of this user, value is in decimal, eg:0.81, this value should be larger than ltv
+        | Get total liquidation threshold of this user, value is in decimal, e.g.0.81, this value should be larger than ltv
         | value = (token_amount0 * LT0 + token_amount1 * LT1 + ...) / (token_amount0 + token_amount1)
 
         :param collaterals: collateral values of each token, note: dict value(Decimal) is token value in usd

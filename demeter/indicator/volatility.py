@@ -22,6 +22,7 @@ def realized_volatility(
     3. calculate standard deviation for each data point, form current point p[n] to previous point p[n - window_size].
 
     note:
+
     1. the first window_size * 2 - 1 data will be NAN
 
     :param data: data to process
@@ -30,6 +31,8 @@ def realized_volatility(
     :type window: timedelta
     :param timeunit: time unit for volatility, default is one day
     :type timeunit: timedelta
+    :return: volatility of each point in data
+    :rtype: Series
     """
     real_n = get_real_n(data, window)
 

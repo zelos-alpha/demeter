@@ -32,7 +32,7 @@ class UnitDecimal(Decimal):
 
     :param number: number to keep
     :type number: Decimal
-    :param unit: unit of the number, eg: eth
+    :param unit: unit of the number, e.g. eth
     :type _unit: str
     :param output_format: output format, follow the document here: https://python-reference.readthedocs.io/en/latest/docs/functions/format.html
     :type output_format: str
@@ -95,9 +95,9 @@ class TokenInfo:
     """
     Identity for a token, will be used as key for token dict.
 
-    :param name: token symbol, will be set as unit of a token value, eg: usdc
+    :param name: token symbol, will be set as unit of a token value, e.g. usdc
     :type name: str
-    :param decimal: decimal of this token, eg: 6
+    :param decimal: decimal of this token, e.g. 6
     :type decimal: int
     :param address: Address of token, for aave market, this attribute has to be filled to load data.
     :type decimal: str

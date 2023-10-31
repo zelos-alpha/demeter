@@ -85,7 +85,7 @@ class Broker:
 
         :param token: which token to set
         :type token: TokenInfo
-        :param amount: balance, eg: 1.2345
+        :param amount: balance, e.g. 1.2345
         :type amount: Decimal | float
         :return: Asset instance
         :rtype: Asset
@@ -104,7 +104,7 @@ class Broker:
 
         :param token: which token to set, TokenInfo(name='usdc', decimal=6)
         :type token: TokenInfo
-        :param amount: amount of token, eg: 10.00
+        :param amount: amount of token, e.g. 10.00
         :type amount:  Decimal | float
         :return: Asset instance
         :rtype: Asset
@@ -149,7 +149,7 @@ class Broker:
 
         :param token: which token to find.
         :type token: TokenInfo
-        :return: balance of this token, eg: 1.2345
+        :return: balance of this token, e.g. 1.2345
         :rtype: Decimal
         """
         if token in self.assets:
@@ -163,7 +163,7 @@ class Broker:
 
         :param token: which token to find.
         :type token: TokenInfo
-        :return: balance of this token, eg: 1.2345 eth
+        :return: balance of this token, e.g. 1.2345 eth
         :rtype: UnitDecimal
         """
         return UnitDecimal(self.get_token_balance(token), token.name)
@@ -172,7 +172,7 @@ class Broker:
         """
         Get account status, including net value, cash balance and balance in all markets
 
-        :param prices: current price, eg: ('eth', Decimal('1610.553895752868641174609110')) ('usdc', 1)
+        :param prices: current price, e.g. ('eth', Decimal('1610.553895752868641174609110')) ('usdc', 1)
         :type prices: pd.Series | Dict[str, Decimal]
         :param timestamp: current timestamp
         :type timestamp: datetime

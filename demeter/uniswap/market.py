@@ -179,8 +179,8 @@ class UniLpMarket(Market):
 
         Or convert order of base_token/quote_token to token0/token1
 
-        :param any0: token0 or any property of token0, eg. balance...
-        :param any1: token1 or any property of token1, eg. balance...
+        :param any0: token0 or any property of token0, e.g. balance...
+        :param any1: token1 or any property of token1, e.g. balance...
         :return: (base,qoute) or (token0,token1)
         """
         return (any0, any1) if self._is_token0_base else (any1, any0)
@@ -564,7 +564,7 @@ class UniLpMarket(Market):
 
         :param position: get_position to collect
         :type position: PositionInfo
-        :param max_collect_amount0: max token0 amount to collect, eg: 1.2345 usdc, if set to None, all the amount will be collect
+        :param max_collect_amount0: max token0 amount to collect, e.g. 1.2345 usdc, if set to None, all the amount will be collect
         :type max_collect_amount0: Decimal
         :param max_collect_amount1: max token0 amount to collect, if set to None, all the amount will be collect
         :type max_collect_amount1: Decimal
@@ -672,7 +672,7 @@ class UniLpMarket(Market):
         """
         Divide assets equally between two tokens.
 
-        :param price: price of quote token. eg: 1234 eth/usdc
+        :param price: price of quote token. e.g. 1234 eth/usdc
         :type price: Decimal
         :return: fee, base token amount spend, quote token amount got
         :rtype: (Decimal, Decimal, Decimal)
