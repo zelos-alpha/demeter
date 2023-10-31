@@ -41,7 +41,8 @@ DEFAULT_DATA_PATH = "./data"
 
 class AaveV3Market(Market):
     """
-    AaveV3Market is the simulator of aave v3, here you can simulate some transactions like supply/borrow etc. this class also tracks value change.
+    | AaveV3Market is the simulator of aave v3, here you can simulate some transactions like supply/borrow etc. this class also tracks value change.
+    | AaveV3Market corresponds to a pool on chain, and one chan has one pool.
 
     :param market_info: key of this market
     :type market_info: MarketInfo
@@ -99,13 +100,6 @@ class AaveV3Market(Market):
         Get a brief description of this market
         """
         return AaveMarketDescription(type(self).__name__, self._market_info.name, len(self._supplies), len(self._borrows))
-
-    @property
-    def market_info(self) -> MarketInfo:
-        """
-        Get market info, it is the key of a market.
-        """
-        return self._market_info
 
     @property
     def data(self) -> pd.DataFrame:
@@ -248,7 +242,7 @@ class AaveV3Market(Market):
     @property
     def total_supply_value(self) -> Decimal:
         """
-        Get total supply value, unit is usd
+        Get sum supply value in this pool, unit is usd
         """
         return Decimal(sum(self.supplies_value.values()))
 
@@ -269,7 +263,7 @@ class AaveV3Market(Market):
     @property
     def total_collateral_value(self) -> Decimal:
         """
-        Get total supply value, unit is usd
+        Get sum supply value in this pool, unit is usd
         """
         return Decimal(sum(self.collateral_value.values()))
 
@@ -293,7 +287,7 @@ class AaveV3Market(Market):
     @property
     def total_borrows_value(self) -> Decimal:
         """
-        Get total borrow value, unit is usd
+        Get sum borrow value in this pool, unit is usd
         """
         return Decimal(sum(self.borrows_value.values()))
 

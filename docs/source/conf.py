@@ -13,9 +13,9 @@ import sphinx_rtd_theme
 sys.path.insert(0, os.path.abspath('../..'))
 
 project = 'Demeter'
-copyright = '2022, zelos research'
+copyright = '2023, zelos research'
 author = 'zelos research'
-release = '0.1.6'
+release = '0.3.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

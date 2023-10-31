@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from decimal import Decimal
 from typing import Dict, Callable
 
@@ -13,18 +12,22 @@ DEFAULT_DATA_PATH = "./data"
 
 class Market:
     """
-    Market is the place to invest your assets.
 
-    But this is an abstract class, you should use subclass instead this one
-    note: only get properties are allow in this base class
+    | Market is the place to invest your assets.
+    | This is an abstract class, you should use subclass instead this one
+
+    :param market_info: Key of this market.
+    :type market_info: MarketInfo
+    :param data: Data is used to simulate market status. usually it is downloaded from log event of ethereum, then indexed by timestamp with minute interval.
+    :type data: DataFrame
+    :param data_path: default folder path for data files. Each day has a corresponding csv file.
+    :type data_path: str
     """
 
     def __init__(self, market_info: MarketInfo, data: pd.DataFrame = None, data_path=DEFAULT_DATA_PATH):
         """
         Initialize a Market
-        :param market_info: uni_market
-        :param data: None or dataframe data
-        :param data_path: default path for data
+
         """
         self._data: pd.DataFrame = data
         self._market_info: MarketInfo = market_info
@@ -51,13 +54,14 @@ class Market:
         return self._market_info
 
     @property
-    def data(self)->pd.DataFrame:
+    def data(self) -> pd.DataFrame:
         """
-        Market data is download from blockchain. It's decoded from event logs. and resampled to one minute.
-        Its type is dataframe, and indexed by timestamp. The whole back test process is based on its index.
-        For example. if data in a day is loaded, since a day has 1440 minutes, back test will loop 1440 times
-        Data can be downloaded by demeter-fetch
-        :return: data
+        | Market data is used to simulate the status of market. For example, in uniswap market, data describe pool liquidity, price of this pool.
+        | Usually data is got by demeter-fetch which can download and decode on chain event log. Data will be saved in CSV format, each day has a corresponding csv file.
+        | Those csv file is indexed by timestamp, and resampled to one minute.
+        | Data files will be loaded as dataframe. The whole back test process is based on minutely timestamp.
+
+        :return: market data
         :rtype: DataFrame
         """
         return self._data
@@ -107,6 +111,7 @@ class Market:
     ):
         """
         Set up market status, such as liquidity, price
+
         :param data: market status
         :type data: Series | MarketStatus
         :param price: current price
@@ -120,6 +125,7 @@ class Market:
     def get_market_balance(self, prices: pd.Series | Dict[str, Decimal]) -> MarketBalance:
         """
         Get market asset balance, such as current positions, net values
+
         :param prices: current price of each token
         :type prices: pd.Series | Dict[str, Decimal]
         :return: Balance in this market includes net value, position value

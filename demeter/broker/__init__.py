@@ -1,5 +1,5 @@
 """
-Broker keeps cash, and manage markets.
+Broker supports different order types, and track cash and positions.
 """
 
 from ._typing import (

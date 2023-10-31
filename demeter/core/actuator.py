@@ -23,14 +23,13 @@ class Actuator(object):
     """
     Core component of a back test. Manage the resources in a test, including broker/strategy/data/indicator,
 
-
-
+    :param allow_negative_balance: Allow cash balance of broker can be negative value or not. Default is False
+    :type allow_negative_balance: bool
     """
 
     def __init__(self, allow_negative_balance=False):
         """
         init Actuator
-        :param allow_negative_balance: balance can less than 0
         """
         # all the actions during the test(buy/sell/add liquidity)
         self._action_list: List[BaseAction] = []
@@ -58,6 +57,7 @@ class Actuator(object):
     def _record_action_list(self, action: BaseAction):
         """
         record action list
+
         :param action: action
         :type action: BaseAction
         """
@@ -70,27 +70,36 @@ class Actuator(object):
     @property
     def account_status(self) -> List[AccountStatus]:
         """
-        Get account status list.
-        Account status includes balances, net values and positions.
-        Each element in this list stands for one minute.
-        It is recommended to use get_account_status_dataframe.
+        | Get account status list.
+        | Account status includes balances, net values and positions.
+        | Each element in this list stands for one minute.
+        | It is recommended to use get_account_status_dataframe.
         """
         return self._account_status_list
 
     @property
     def token_prices(self) -> pd.DataFrame:
         """
-        price of all token
-        :return: None
+        Price of all tokens. Row(index) is minutely timestamp, column is token. eg:
+
+        +-------------------+---------+-------+
+        |                   |WETH     | USDC  |
+        +===================+=========+=======+
+        |2023-08-13 00:00:00| 1848.12 | 1     |
+        +-------------------+---------+-------+
+        |2023-08-13 00:01:00| 1848.12 | 1     |
+        +-------------------+---------+-------+
+
+        :return: data from with prices of all token
+        :rtype: DataFrame
         """
         return self._token_prices
 
     @property
     def final_status(self) -> AccountStatus:
         """
-        Get last account status of back test.
-
-        If test has not run, an error will be raised.
+        | Get last account status of back test.
+        | Note: If back test has not run, an error will be raised.
 
         :return: Final state of broker
         :rtype: AccountStatus
@@ -102,9 +111,7 @@ class Actuator(object):
 
     def reset(self):
         """
-
         Reset actuator by re-initiate all the status variables
-
         """
         self._evaluator: Evaluator | None = None
         self._enabled_evaluator: [] = []
@@ -119,7 +126,7 @@ class Actuator(object):
     @property
     def actions(self) -> List[BaseAction]:
         """
-        Actions(buy/sell/add liquidity) happened during back test
+        A list of actions(buy/sell/add liquidity) happened during back test
 
         :return: A list of actions
         :rtype: List[BaseAction]
@@ -139,8 +146,8 @@ class Actuator(object):
     @property
     def broker(self) -> Broker:
         """
-        Get broker instance.
-        Brokers are managers of assets. It manages cash and markets(the place to invest assets)
+        | Get broker instance.
+        | Brokers are managers of assets. It manages cash and markets(the place to invest assets)
 
         """
         return self._broker
@@ -180,8 +187,8 @@ class Actuator(object):
     @number_format.setter
     def number_format(self, value: str):
         """
-        number format for console output, eg: ".8g", ".5f",
-        follow the document here: https://python-reference.readthedocs.io/en/latest/docs/functions/format.html
+        | number format for console output, eg: ".8g", ".5f",
+        | follow the document here: https://python-reference.readthedocs.io/en/latest/docs/functions/format.html
 
         :param value: number format,
         :type value:str
@@ -197,7 +204,7 @@ class Actuator(object):
         | Column is net value/positions.
 
         :return: account status
-        :rtype: pd.DataFrame
+        :rtype: DataFrame
         """
         return AccountStatus.to_dataframe(self._account_status_list)
 
@@ -213,9 +220,9 @@ class Actuator(object):
 
     def set_price(self, prices: Union[pd.DataFrame, pd.Series]):
         """
-        Set price to actuator. param price can be dataframe(price of several tokens) or series(price of one token).
-        It's index(time range) should be larger than or equal to data.
-        And column name should be the same to token.name in upper case. eg:
+        | Set price to actuator. param price can be dataframe(price of several tokens) or series(price of one token).
+        | It's index time range should be larger than or equal to data.
+        | And column name should be the same to token.name in upper case. eg:
 
         +-------------------+---------+-------+
         |                   |WETH     | USDC  |
@@ -227,7 +234,6 @@ class Actuator(object):
 
         :param prices: dataframe or series contains prices
         :type prices: Union[pd.DataFrame, pd.Series]
-        :return: None
         """
         prices = prices.applymap(lambda y: to_decimal(y))
         if isinstance(prices, pd.DataFrame):
@@ -247,8 +253,8 @@ class Actuator(object):
 
         :param strategy: Strategy instance
         :type strategy: Strategy
-        :param actions:  action list
-        :type actions: [BaseAction]
+        :param actions: action list
+        :type actions: List[BaseAction]
         """
         if len(actions) < 1:
             return
@@ -263,7 +269,6 @@ class Actuator(object):
     def _check_backtest(self):
         """
         check backtest result, including index of data, prices
-        :return:
         """
         # ensure a market exist
         if len(self._broker.markets) < 1:
@@ -328,18 +333,21 @@ class Actuator(object):
 
     def run(self, evaluator: List[EvaluatorEnum] | None = None, output: bool = True):
         """
-        start back test, the whole process including:
+        Start back test, the whole process including:
 
         * reset actuator
         * initialize strategy (set object to strategy, then run strategy.initialize())
         * process each bar in data
             * prepare data in each row
+            * run trigger
             * run strategy.on_bar()
-            * calculate fee earned
+            * update market, eg: calculate fee earned
+            * run strategy.after_bar()
             * get latest account status
             * notify actions
         * run evaluator indicator
         * run strategy.finalize()
+        * output result if required
 
         :param evaluator: enable evaluating indicator.
         :type evaluator: List[EvaluatorEnum]
@@ -416,6 +424,7 @@ class Actuator(object):
     def output(self):
         """
         Print back test result to console, and it will print the following content
+
         1. Account status(including balances and positions) in the end of the back test.
         2. Balance change during back test.
         3. if evaluating indicator is enabled, will print evaluating of strategy.
@@ -433,14 +442,15 @@ class Actuator(object):
     def save_result(self, path: str, account=True, actions=True) -> List[str]:
         """
         save back test result
+
         :param path: path to save
         :type path: str
         :param account: Save account status or not, If true, it will save a csv with all balance changes.
         :type account: bool
         :param actions: Save actions or not. If true, it will save all actions in json(friendly to human) and pkl(can be loaded by python)
         :type actions: bool
-        :return:
-        :rtype:
+        :return: A list of saved file path
+        :rtype: List[str]
         """
         if not self.__backtest_finished:
             raise DemeterError("Please run strategy first")
@@ -458,7 +468,7 @@ class Actuator(object):
             with open(pkl_name, "wb") as outfile1:
                 pickle.dump(self._action_list, outfile1)
             # save json to read
-            actions_json_str = orjson.dumps(self._action_list, option=orjson.OPT_INDENT_2, default=json_default)
+            actions_json_str = orjson.dumps(self._action_list, option=orjson.OPT_INDENT_2, default=_json_default)
             json_name = os.path.join(path, file_name_head + ".action.json")
             with open(json_name, "wb") as outfile:
                 outfile.write(actions_json_str)
@@ -506,13 +516,20 @@ class Actuator(object):
 
 @dataclass
 class Currents:
+    """
+    Values in current timestamp.
+
+    """
     actions: List[BaseAction] = field(default_factory=list)
+    """Actions in this iteration"""
     timestamp: datetime = None
+    """Current timestamp"""
 
 
-def json_default(obj):
+def _json_default(obj):
     """
     format json data
+
     :param obj:
     :return:
     """

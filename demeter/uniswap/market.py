@@ -44,7 +44,8 @@ from ..utils import (
 
 class UniLpMarket(Market):
     """
-    UniLpMarket is the simulator of uniswap v3, it can simulate transactions such as add/remove liquidity, swap assets. and calculate position net value
+    | UniLpMarket is the simulator of uniswap v3, it can simulate transactions such as add/remove liquidity, swap assets. and calculate position net value
+    | UniLpMarket corresponds to a pool on chain, which means a token pair in a chain.
 
     :param market_info: key of this market
     :type market_info: MarketInfo
@@ -162,7 +163,7 @@ class UniLpMarket(Market):
         """
         Extract token pair price from pool data.
         :return: a dataframe includes quote token price, and base token price will be set to 1
-        :rtype: pd.DataFrame
+        :rtype: DataFrame
 
         """
         if self.data is None:

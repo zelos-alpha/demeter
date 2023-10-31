@@ -10,6 +10,15 @@ from .math_helper import max_draw_down_fast, annualized_returns, get_benchmark_r
 class Evaluator(object):
     """
     Calculate evaluator indicator for strategy.
+
+    :param init_status:
+    :type init_status: AccountStatus
+    :param data:
+    :type data: pd.DataFrame | AccountStatusCommon
+    :param prices:
+    :type prices: DataFrame
+    :param actions:
+    :type actions: List
     """
 
     def __init__(
@@ -21,9 +30,7 @@ class Evaluator(object):
     ):
         """
         init Evaluator
-        :param init_status:
-        :param data:
-        :param prices:
+
         """
         self.init_status: AccountStatus = init_status
         self.end_status: AccountStatusCommon = data.iloc[-1]

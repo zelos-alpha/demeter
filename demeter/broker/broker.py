@@ -10,11 +10,19 @@ from ..utils import get_formatted_from_dict, get_formatted_predefined, STYLE, fl
 
 
 class Broker:
+    """
+    Broker supports different order types, checking a submitted order cash requirements against current cash, keeping track of cash and value for each iteration of actuator and keeping the current position on different datas.
+
+    :param allow_negative_balance: allow cash balance can be negative value or not.
+    :type allow_negative_balance: bool
+    :param record_action_callback: A callback function used to notify actions(buy/sell). When new actions is taken, this function will be called, and action instance will be passed as parameter. function should be like: def callback(action:BaseAction)
+    :type record_action_callback: Callable[[BaseAction], None]
+    """
+
     def __init__(self, allow_negative_balance=False, record_action_callback: Callable[[BaseAction], None] = None):
         """
         init Broker
-        :param allow_negative_balance:
-        :param record_action_callback:
+
         """
         self.allow_negative_balance = allow_negative_balance
         self._assets: AssetDict[Asset] = AssetDict()
@@ -26,16 +34,20 @@ class Broker:
     @property
     def markets(self) -> MarketDict[Market]:
         """
-        markets property
-        :return:
+        markets managed by this broker
+
+        :return: a dict of markets, key type is MarketKey.
+        :rtype: MarketDict[Market]
         """
         return self._markets
 
     @property
     def assets(self) -> AssetDict[Asset]:
         """
-        asset property
-        :return:
+        All assets managed by this broker.
+
+        :return: A dict of assets, key type is TokenInfo
+        :rtype: AssetDict[Asset]
         """
         return self._assets
 
@@ -43,8 +55,10 @@ class Broker:
 
     def __str__(self):
         """
-        Broker raw info
-        :return:
+        Return description of this broker in json string.
+
+        :return: json string
+        :type: str
         """
         return '{{"assets":[{}],"markets":[{}]}}'.format(
             ",".join(f"{asset}" for asset in self._assets.values()), ",".join(f"{v}" for k, v in self.markets.items())
@@ -52,12 +66,11 @@ class Broker:
 
     def add_market(self, market: Market):
         """
-        Set a new market to broker,
-        User should initialize market before set to broker(Because there are too many initial parameters)
-        :param market: market
+        | Set a new market to broker,
+        | User should initialize market before set to broker(Because there are too many initial parameters)
+
+        :param market: market to add, can be uniswap market or aave market etc.
         :type market: Market
-        :return:
-        :rtype:
         """
         if market.market_info in self._markets:
             raise DemeterError("market has exist")
@@ -66,14 +79,16 @@ class Broker:
         market._record_action_callback = self._record_action_callback
 
     @float_param_formatter
-    def add_to_balance(self, token: TokenInfo, amount: Decimal | float):
+    def add_to_balance(self, token: TokenInfo, amount: Decimal | float) -> Asset:
         """
-        set initial balance for token
+        Add token amount to wallet of broker, if token key is not exist. will generate a new record
 
         :param token: which token to set
         :type token: TokenInfo
         :param amount: balance, eg: 1.2345
         :type amount: Decimal | float
+        :return: Asset instance
+        :rtype: Asset
         """
         if token in self._assets:
             asset: Asset = self._assets[token]
@@ -83,24 +98,35 @@ class Broker:
         return asset
 
     @float_param_formatter
-    def set_balance(self, token: TokenInfo, amount: Decimal | float):
+    def set_balance(self, token: TokenInfo, amount: Decimal | float) -> Asset:
         """
-        set the balance value
-        :param token: the token of asset, TokenInfo(name='usdc', decimal=6)
-        :param amount: amount of token, 10000
-        :return: Asset instance, usdc: 10000
+        Set token amount to wallet of broker. Old value will be overwritten
+
+        :param token: which token to set, TokenInfo(name='usdc', decimal=6)
+        :type token: TokenInfo
+        :param amount: amount of token, eg: 10.00
+        :type amount:  Decimal | float
+        :return: Asset instance
+        :rtype: Asset
+
         """
         asset: Asset = self.__add_asset(token)
         asset.balance = amount
         return asset
 
     @float_param_formatter
-    def subtract_from_balance(self, token: TokenInfo, amount: Decimal | float):
+    def subtract_from_balance(self, token: TokenInfo, amount: Decimal | float) -> Asset:
         """
+        | subtract token amount from wallet of broker.
+        | Wallet balance may be negative if allow_negative_balance==True
+        | if token key is not exist. will generate a new record, unless broker.allow_negative_balance==False
 
-        :param token: TokenInfo object
+        :param token: which token to set
+        :type token: TokenInfo
         :param amount: Decimal or float type
-        :return:
+        :type amount:  Decimal | float
+        :return: Asset instance
+        :rtype: Asset
         """
         if token in self._assets:
             asset: Asset = self._assets[token]
@@ -114,41 +140,45 @@ class Broker:
         return asset
 
     def __add_asset(self, token: TokenInfo) -> Asset:
-        """
-        set Asset with Token
-        :param token: TokenInfo
-        :return: Asset with TokenInfo
-        """
         self._assets[token] = Asset(token, 0)
         return self._assets[token]
 
-    def get_token_balance(self, token: TokenInfo):
+    def get_token_balance(self, token: TokenInfo) -> Decimal:
         """
-        get balance of token
-        :param token:
-        :return:
+        Get balance of token, if token has not set, will raise an error
+
+        :param token: which token to find.
+        :type token: TokenInfo
+        :return: balance of this token, eg: 1.2345
+        :rtype: Decimal
         """
         if token in self.assets:
             return self._assets[token].balance
         else:
             raise DemeterError(f"{token.name} doesn't exist in assets dict")
 
-    def get_token_balance_with_unit(self, token: TokenInfo):
+    def get_token_balance_with_unit(self, token: TokenInfo) -> UnitDecimal:
         """
-        get balance of token with unit
-        :param token: TokenInfo
-        :return: UnitDecimal balance
+        Get balance of token with unit
+
+        :param token: which token to find.
+        :type token: TokenInfo
+        :return: balance of this token, eg: 1.2345 eth
+        :rtype: UnitDecimal
         """
         return UnitDecimal(self.get_token_balance(token), token.name)
 
     def get_account_status(self, prices: pd.Series | Dict[str, Decimal], timestamp=None) -> AccountStatus:
         """
-        get account status
-        :param prices: price series
-        ('eth', Decimal('1610.553895752868641174609110')) ('usdc', 1)
-        :param timestamp: optional timestamp, 2022-08-20 00:00:00
-        :return: account status
-        AccountStatus(timestamp=None, net_value=Decimal('26105.53895752868641174609110'), asset_balances=<demeter.broker._typing.AssetDict object at 0x11842f7c0>, market_status=<demeter.broker._typing.MarketDict object at 0x11842e020>)
+        Get account status, including net value, cash balance and balance in all markets
+
+        :param prices: current price, eg: ('eth', Decimal('1610.553895752868641174609110')) ('usdc', 1)
+        :type prices: pd.Series | Dict[str, Decimal]
+        :param timestamp: current timestamp
+        :type timestamp: datetime
+        :return: balances
+        :rtype: AccountStatus
+
         """
         account_status = AccountStatus(timestamp=timestamp)
         for k, v in self.markets.items():
@@ -163,8 +193,10 @@ class Broker:
 
     def formatted_str(self):
         """
-        get formatted broker info
+        Get formatted broker description string to print in console
+
         :return: str info of broker
+        :rtype: str
         """
         str_to_print = get_formatted_predefined("Broker", STYLE["header1"]) + "\n"
 

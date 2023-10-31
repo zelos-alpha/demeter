@@ -32,7 +32,7 @@ def load_risk_parameter(token_setting_path:str) -> pd.DataFrame | Dict[str, Risk
     :param token_setting_path: risk parameter file path
     :type token_setting_path: str
     :return: risk parameter dataframe
-    :rtype: pd.DataFrame | Dict[str, RiskParameter]
+    :rtype: DataFrame | Dict[str, RiskParameter]
     """
     path = os.path.join(token_setting_path)
     if not os.path.exists(path):
