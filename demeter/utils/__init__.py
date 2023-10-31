@@ -1,3 +1,7 @@
+"""
+Utils functions of demeter
+"""
+
 from .application import float_param_formatter, to_decimal
 from .console_text import (
     ForColorEnum,

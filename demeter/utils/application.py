@@ -1,35 +1,46 @@
 import json
 from decimal import Decimal
+from enum import Enum
 from functools import wraps
 from types import SimpleNamespace
-
+from typing import Any, Dict
 
 OUTPUT_WIDTH = 30
 
 
-def to_decimal(value):
+def to_decimal(value: Any) -> Decimal:
     """
-    decimal value
-    :param value:
-    :return:
+    convert value to decimal
+
+    :param value: any value
+    :type value: Any
+    :return: Decimal value
+    :rtype: Decimal
+
     """
     return Decimal(value)
 
 
-def object_to_decimal(num):
+def object_to_decimal(num: Any) -> Any:
     """
-    convert object to decimal
-    :param num:
-    :return:
+    If number is float or int, return Decimal, else return original value
+
+    :param value: any value
+    :type value: Any
+    :return: Decimal value
+    :rtype: Any
     """
     return Decimal(str(num)) if (isinstance(num, float) or type(num) == int) else num
 
 
-def dict_to_object(dict_entity):
+def dict_to_object(dict_entity: Dict) -> Any:
     """
-    convert dict to object
-    :param dict_entity:
-    :return:
+    convert dict to object via json
+
+    :param dict_entity: dict instance
+    :type dict_entity: Dict
+    :return: object
+    :rtype: Any
     """
     return json.loads(json.dumps(dict_entity), object_hook=lambda d: SimpleNamespace(**d))
 
@@ -37,8 +48,9 @@ def dict_to_object(dict_entity):
 def float_param_formatter(func):
     """
     decorator to convert param to float
-    :param func:
-    :return:
+
+    :param func: any function
+    :return: function execute result
     """
 
     @wraps(func)
@@ -53,11 +65,12 @@ def float_param_formatter(func):
     return wrapper_func
 
 
-def get_enum_by_name(me, name):
+def get_enum_by_name(me: Enum, name: str):
     """
     get enum by name
-    :param me: enum
-    :param name: key
+
+    :param me: enum class
+    :param name: enum item name
     :return: get value in enum
     """
     for e in me:
@@ -69,6 +82,11 @@ def get_enum_by_name(me, name):
 def require(condition: bool, error_msg: str):
     """
     Checking whether the condition is True, if not, will raise a AssertionError
+
+    :param condition: condition
+    :type condition: bool
+    :param error_msg: error message contains in AssertionError
+    :param error_msg: str
     """
     if not condition:
         raise AssertionError(error_msg)

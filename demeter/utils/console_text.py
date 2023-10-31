@@ -3,6 +3,10 @@ from typing import Dict
 
 
 class ForColorEnum(Enum):
+    """
+    foreground color in console
+    """
+
     default = 0
     black = 30
     red = 31
@@ -15,6 +19,10 @@ class ForColorEnum(Enum):
 
 
 class BackColorEnum(Enum):
+    """
+    background color in console
+    """
+
     default = 0
     black = 40
     red = 41
@@ -27,6 +35,10 @@ class BackColorEnum(Enum):
 
 
 class ModeEnum(Enum):
+    """
+    font mode in console
+    """
+
     normal = 0
     bold = 1
     underline = 4
@@ -78,6 +90,22 @@ def get_formatted(
     back: BackColorEnum = BackColorEnum.default,
     width=-1,
 ) -> str:
+    """
+    Get formatted string to display in console
+
+    :param string: text to convert
+    :type string: str
+    :param mode: text mode
+    :type mode: ModeEnum
+    :param fore: forground color
+    :type fore: ForColorEnum
+    :param back: background color
+    :type back: BackColorEnum
+    :param width: text width
+    :type width: int
+    :return: string with console format
+    :rtype: str
+    """
     mode = "{}".format(mode.value if mode != mode.normal else "")
     fore = "{}".format(fore.value if fore != ForColorEnum.default else "")
     back = "{}".format(back.value if back != BackColorEnum.default else "")
@@ -94,11 +122,29 @@ def get_formatted(
     return string
 
 
-def get_formatted_predefined(string: str, style):
+def get_formatted_predefined(string: str, style: Dict)->str:
+    """
+    Get formatted string with predefined rule
+
+    :param string: text to convert
+    :type string: str
+    :param style: style defined in STYLE dictionary
+    :type style: Dict
+    :return: string with console format
+    :rtype: str
+    """
     return get_formatted(string, style["mode"], style["fore"], style["back"], style["width"])
 
 
 def get_formatted_from_dict(values: Dict[str, str]) -> str:
+    """
+    Get formatted string of key:value pair with predefined rule
+
+    :param values: dict to convert, e.g. name: Eric.
+    :type values: Dict[str, str]
+    :return: string with console format
+    :rtype: str
+    """
     str_array = []
     for k, v in values.items():
         str_array.append(f"{get_formatted_predefined(k, STYLE['key'])}:{get_formatted_predefined(str(v), STYLE['value'])}")

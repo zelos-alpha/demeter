@@ -87,6 +87,9 @@ LINE_RULES = {
 
 
 def get_line_rules_safe(key: str) -> Rule:
+    """
+    Get column rules safely without throw exception
+    """
     if key in LINE_RULES:
         return LINE_RULES[key]
     else:
@@ -110,6 +113,7 @@ def resample(
 ) -> pd.DataFrame:
     """
     resample data
+
     :param df: data in dataframe
     :param rule: resample rule, see Dataframe.resample doc
     :param axis: resample axis, see Dataframe.resample doc

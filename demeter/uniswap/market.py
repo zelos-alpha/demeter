@@ -162,6 +162,7 @@ class UniLpMarket(Market):
     def get_price_from_data(self) -> pd.DataFrame:
         """
         Extract token pair price from pool data.
+
         :return: a dataframe includes quote token price, and base token price will be set to 1
         :rtype: DataFrame
 
@@ -364,6 +365,7 @@ class UniLpMarket(Market):
     ):
         """
         Collect fee
+
         :param position: get_position
         :param max_collect_amount0: max collect amount0
         :param max_collect_amount1: max collect amount1
@@ -511,9 +513,9 @@ class UniLpMarket(Market):
         remove_dry_pool: bool = True,
     ) -> (Decimal, Decimal):
         """
-        remove liquidity from pool, liquidity will be reduced to 0,
-        instead of send tokens to broker, tokens will be transferred to fee property in get_position.
-        get_position will be not deleted, until fees and tokens are collected.
+        | remove liquidity from pool, liquidity will be reduced to 0,
+        | instead of send tokens to broker, tokens will be transferred to fee property in get_position.
+        | get_position will be not deleted, until fees and tokens are collected.
 
         :param position: get_position to remove.
         :type position: PositionInfo
@@ -559,8 +561,8 @@ class UniLpMarket(Market):
         remove_dry_pool: bool = True,
     ) -> (Decimal, Decimal):
         """
-        collect fee and token from positions,
-        if the amount and liquidity is zero, this get_position will be deleted.
+        | collect fee and token from positions,
+        | if the amount and liquidity is zero, this get_position will be deleted.
 
         :param position: get_position to collect
         :type position: PositionInfo

@@ -22,7 +22,9 @@ class PositionInfo(NamedTuple):
     """
 
     lower_tick: int
+    """lower tick"""
     upper_tick: int
+    """upper tick"""
 
     def __str__(self):
         return f"""tick:{self.lower_tick},{self.upper_tick}"""
@@ -34,9 +36,13 @@ class UniDescription(NamedTuple):
     """
 
     type: str
+    """market type string"""
     name: str
+    """market name"""
     position_count: int
+    """current position count of user"""
     total_liquidity: int
+    """current total liquidity of user"""
 
 
 class UniV3Pool(object):
@@ -94,14 +100,20 @@ class UniLpBalance(MarketBalance):
     """
 
     base_uncollected: UnitDecimal
+    """base token uncollect fee in all the positions."""
     quote_uncollected: UnitDecimal
+    """quote token uncollect fee in all the positions."""
     base_in_position: UnitDecimal
+    """base token amount deposited in positions, calculated according to current price"""
     quote_in_position: UnitDecimal
+    """quote token amount deposited in positions, calculated according to current price"""
     position_count: int
+    """count of positions"""
 
     def get_output_str(self) -> str:
         """
         get colored and formatted string to output in console
+
         :return: formatted string
         :rtype: str
         """
@@ -224,22 +236,37 @@ class UniV3PoolStatus:
 
     # required by market class
     price: Decimal
+    """token price(price of quote token)"""
     currentLiquidity: int = None
+    """total liquidity of this pool"""
     inAmount0: int = None
+    """in amount of token 0 in this minute"""
     inAmount1: int = None
+    """in amount of token 1 in this minute"""
     closeTick: int = None
+    """last price tick of this minute"""
 
     # useless. just pass poperity to
     netAmount0: int = None
+    """total amount of token 0"""
     netAmount1: int = None
+    """total amount of token 1"""
     openTick: int = None
+    """start tick in this minute"""
     lowestTick: int = None
+    """lowest tick in this minute"""
     highestTick: int = None
+    """highest tick in this minute"""
     open: Decimal = None
+    """start price in this minute"""
     low: Decimal = None
+    """lowest price in this minute"""
     high: Decimal = None
+    """highest price in this minute"""
     volume0: Decimal = None
+    """swap volumn of token 0"""
     volume1: Decimal = None
+    """swap volumn of token 1"""
 
 
 @dataclass
@@ -247,7 +274,8 @@ class UniswapMarketStatus(MarketStatus):
     """
     MarketStatus properties
 
-    :type timestamp: datetime
+    :param data: current pool status
+    :type data: Union[pd.Series, UniV3PoolStatus]
     """
 
     data: Union[pd.Series, UniV3PoolStatus] = None
@@ -309,6 +337,7 @@ class AddLiquidityAction(UniLpBaseAction):
     def get_output_str(self) -> str:
         """
         get colored and formatted string to output in console
+
         :return: formatted string
         :rtype: str
         """
@@ -347,6 +376,7 @@ class CollectFeeAction(UniLpBaseAction):
     def get_output_str(self) -> str:
         """
         get colored and formatted string to output in console
+
         :return: formatted string
         :rtype: str
         """
@@ -388,6 +418,7 @@ class RemoveLiquidityAction(UniLpBaseAction):
     def get_output_str(self) -> str:
         """
         get colored and formatted string to output in console
+
         :return: formatted string
         :rtype: str
         """
@@ -432,6 +463,7 @@ class BuyAction(UniLpBaseAction):
     def get_output_str(self) -> str:
         """
         get colored and formatted string to output in console
+
         :return: formatted string
         :rtype: str
         """
@@ -472,6 +504,12 @@ class SellAction(UniLpBaseAction):
         self.action_type = ActionTypeEnum.uni_lp_sell
 
     def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
         return f"""\033[1;37m{"Sell":<20}\033[0m""" + get_formatted_from_dict(
             {
                 "price": self.price.to_str(),

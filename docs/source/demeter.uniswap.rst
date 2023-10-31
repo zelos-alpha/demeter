@@ -28,13 +28,6 @@ demeter.uniswap.helper module
    :undoc-members:
    :show-inheritance:
 
-demeter.uniswap.liquitidy\_math module
---------------------------------------
-
-.. automodule:: demeter.uniswap.liquitidy_math
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 demeter.uniswap.market module
 -----------------------------
