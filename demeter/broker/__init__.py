@@ -1,3 +1,7 @@
+"""
+Broker keeps cash, and manage markets.
+"""
+
 from ._typing import (
     BaseAction,
     MarketBalance,

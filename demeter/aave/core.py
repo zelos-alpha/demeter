@@ -12,13 +12,20 @@ class AaveV3CoreLib(object):
     | Note: All functions are static
     """
 
-    SECONDS_IN_A_YEAR = 31536000  # how many seconds in a year
-    # if CLOSE_FACTOR_HF_THRESHOLD < health factor <  DEFAULT_LIQUIDATION_CLOSE_FACTOR
-    # only DEFAULT_LIQUIDATION_CLOSE_FACTOR(50%) will be liquidated,
-    # otherwise HEALTH_FACTOR_LIQUIDATION_THRESHOLD(100%) will be liquidated
+    SECONDS_IN_A_YEAR = 31536000
+    """how many seconds in a year"""
+
     HEALTH_FACTOR_LIQUIDATION_THRESHOLD = Decimal("1")
+    """
+    if CLOSE_FACTOR_HF_THRESHOLD < health factor <  DEFAULT_LIQUIDATION_CLOSE_FACTOR
+    only DEFAULT_LIQUIDATION_CLOSE_FACTOR(50%) will be liquidated,
+    otherwise HEALTH_FACTOR_LIQUIDATION_THRESHOLD(100%) will be liquidated
+    """
+
     DEFAULT_LIQUIDATION_CLOSE_FACTOR = Decimal("0.5")
+
     MAX_LIQUIDATION_CLOSE_FACTOR = Decimal("1")
+
     CLOSE_FACTOR_HF_THRESHOLD = Decimal("0.95")
 
 
@@ -26,6 +33,11 @@ class AaveV3CoreLib(object):
     def rate_to_apy(rate: Decimal) -> Decimal:
         """
         Convert supply/borrow interest rate(get from ReserveDataUpdated event) to apy(annual interest rate)
+
+        :param rate: interest rate(time unit is second)
+        :type rate: Decimal
+        :return: apy (time unit is year)
+        :rtype: Decimal
         """
         return (1 + rate / AaveV3CoreLib.SECONDS_IN_A_YEAR) ** AaveV3CoreLib.SECONDS_IN_A_YEAR - 1
 

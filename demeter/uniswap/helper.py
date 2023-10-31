@@ -130,6 +130,7 @@ def get_delta_gamma(
 ):
     """
     get delta gamma
+
     :param lower_price: lower price
     :param upper_price: upper price
     :param price: price
@@ -170,6 +171,10 @@ def get_delta_gamma_sqrtX96(
     d1: int,
     is_0_base: bool,
 ):
+    """
+    Get delta gamma in sqrtX96 price
+
+    """
     """
     Delta is calculated by integrating net worth, and gamma is calculated by integrating delta,
     Therefore, the most important thing is to find the calculation formula of the net value (with tick range, price, and liquidity as parameters),

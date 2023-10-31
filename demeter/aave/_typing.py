@@ -16,9 +16,6 @@ K = TypeVar("K")
 class InterestRateMode(Enum):
     """
     Interest rate mode
-
-    * variable = 1
-    * stable = 2
     """
 
     variable = 1
@@ -41,6 +38,7 @@ class ActionKey:
     """
 
     token: TokenInfo
+    """token of this position"""
 
     def __str__(self):
         return self.token.name
@@ -61,6 +59,7 @@ class BorrowKey(ActionKey):
     """
 
     interest_rate_mode: InterestRateMode
+    """interest rate mode"""
 
     def __str__(self):
         return f"Borrow_{self.token.name}({self.interest_rate_mode.name})"
@@ -104,7 +103,9 @@ class SupplyInfo:
     """
 
     base_amount: Decimal
+    """Base amount of token. Note: base amount is the amount kept in aave contract. its value is amount/liquidity_index"""
     collateral: bool
+    """set this supply to collateral or not"""
 
 
 @dataclass
@@ -127,11 +128,17 @@ class Supply:
     """
 
     token: TokenInfo
+    """which token is supplied"""
     base_amount: Decimal
+    """Base amount of token. Note: base amount is the amount kept in aave contract. its value is amount/liquidity_index_at_supply_moment"""
     collateral: bool
+    """set this supply to collateral or not"""
     amount: Decimal
+    """Actual amount at this moment. value is amount * liquidity_index_at_this_moment, unit in token amount, eg: 1 eth"""
     apy: Decimal
+    """current apy (annual interest rate)"""
     value: Decimal
+    """value at this moment. unit is usd, eg: 1400 usd"""
 
 
 def supply_to_dataframe(supplies: Dict[SupplyKey, Supply]) -> pd.DataFrame:
@@ -166,6 +173,7 @@ class BorrowInfo:
     """
 
     base_amount: Decimal
+    """Base amount of token. Note: base amount is the amount kept in aave contract. its value is amount/liquidity_index"""
 
 
 @dataclass
@@ -188,11 +196,17 @@ class Borrow:
     """
 
     token: TokenInfo
+    """which token is borrowed"""
     base_amount: Decimal
+    """Base amount of token. Note: base amount is the amount kept in aave contract. its value is amount/variable_borrow_index_at_supply_moment"""
     interest_rate_mode: InterestRateMode
+    """Interest rate mode"""
     amount: Decimal
+    """Actual amount at this moment. value is amount * variable_borrow_index_at_this_moment, unit in token amount, eg: 1 eth"""
     apy: Decimal
+    """current apy (annual interest rate)"""
     value: Decimal
+    """value at this moment. unit is usd, eg: 1400 usd"""
 
 
 def borrow_to_dataframe(supplies: Dict[BorrowKey, Borrow]) -> pd.DataFrame:
@@ -248,19 +262,27 @@ class AaveBalance(MarketBalance):
     """
 
     supplies_count: int
+    """count of supplies"""
     borrows_count: int
-
+    """count of borrows"""
     borrows_value: Decimal
+    """total borrow value(in usd)"""
     supplies_value: Decimal
+    """total supply value(in usd)"""
     collaterals_value: Decimal
-
+    """total collateral value in supplies(in usd)"""
     health_factor: Decimal
+    """current health factor"""
     current_ltv: Decimal
+    """max ltv allowed, in decimal, eg: 0.7568"""
     liquidation_threshold: Decimal
-
+    """current liquidation threshold, in decimal, eg:0.8"""
     supply_apy: Decimal
+    """annual interest rate of supplies"""
     borrow_apy: Decimal
+    """annual interest rate of borrows"""
     net_apy: Decimal
+    """total annual interest rate of all supplies/borrows"""
 
 
 @dataclass
@@ -281,10 +303,15 @@ class AaveTokenStatus:
     """
 
     liquidity_rate: Decimal
+    """interest rate of supply in a second"""
     stable_borrow_rate: Decimal
+    """interest rate of stable borrow in a second"""
     variable_borrow_rate: Decimal
+    """interest rate of variable borrow rate in a second"""
     liquidity_index: Decimal
+    """Decide supply amount at this moment. consider it's the average interest rate"""
     variable_borrow_index: Decimal
+    """Decide borrow amount at this moment. consider it's the average borrow interest rate"""
 
 
 @dataclass
@@ -297,6 +324,7 @@ class AaveMarketStatus(MarketStatus):
     """
 
     data: Union[pd.Series, AaveTokenStatus] = None
+    """pool status"""
 
 
 class RiskParameter:
@@ -341,9 +369,13 @@ class SupplyAction(BaseAction):
     """
 
     token: TokenInfo
+    """which token is supplied"""
     amount: UnitDecimal
+    """amount supplied"""
     collateral: bool
+    """collateral the supply or not."""
     deposit_after: UnitDecimal
+    """total supply amount of this token after supply"""
 
     def set_type(self):
         self.action_type = ActionTypeEnum.aave_supply
@@ -363,8 +395,11 @@ class WithdrawAction(BaseAction):
     """
 
     token: TokenInfo
+    """which token is supplied"""
     amount: UnitDecimal
+    """amount supplied"""
     deposit_after: UnitDecimal
+    """total supply amount of this token after withdraw"""
 
     def set_type(self):
         self.action_type = ActionTypeEnum.aave_withdraw
@@ -386,9 +421,13 @@ class BorrowAction(BaseAction):
     """
 
     token: TokenInfo
+    """which token is borrowed"""
     interest_rate_mode: InterestRateMode
+    """interest rate mode"""
     amount: UnitDecimal
+    """amount borrowed"""
     debt_after: UnitDecimal
+    """total borrow amount of this token after borrow transaction"""
 
     def set_type(self):
         self.action_type = ActionTypeEnum.aave_borrow
@@ -410,9 +449,13 @@ class RepayAction(BaseAction):
     """
 
     token: TokenInfo
+    """which token is borrowed"""
     interest_rate_mode: InterestRateMode
+    """interest rate mode"""
     amount: UnitDecimal
+    """amount repaid"""
     debt_after: UnitDecimal
+    """total borrow amount of this token after repay transaction"""
 
     def set_type(self):
         self.action_type = ActionTypeEnum.aave_repay
@@ -448,16 +491,27 @@ class LiquidationAction(BaseAction):
     """
 
     collateral_token: TokenInfo
+    """which collateral token is used in liquidation"""
     debt_token: TokenInfo
+    """which debt token is used in liquidation"""
     delt_to_cover: UnitDecimal
+    """Debt amount to be liquidated, should be equal to variable_delt_liquidated+stable_delt_liquidated"""
     collateral_used: UnitDecimal
+    """Collateral amount to subtract in liquidation"""
     variable_delt_liquidated: UnitDecimal
+    """liquidated debt token amount in variable delt"""
     stable_delt_liquidated: UnitDecimal
+    """liquidated debt token amount in stable delt"""
     health_factor_before: Decimal
+    """health factor before liquidation"""
     health_factor_after: Decimal
+    """health factor after liquidation"""
     collateral_after: UnitDecimal
+    """collateral token amount after liquidation"""
     variable_debt_after: UnitDecimal
+    """variable debt token amount after liquidation"""
     stable_delt_after: UnitDecimal
+    """stable delt token amount after liquidation"""
 
     def set_type(self):
         self.action_type = ActionTypeEnum.aave_repay
@@ -525,6 +579,10 @@ class AaveMarketDescription(NamedTuple):
     """
 
     type: str
+    """market type"""
     name: str
+    """market name"""
     supplies_count: int
+    """count of supplies"""
     borrows_count: int
+    """count of borrows"""
