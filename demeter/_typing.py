@@ -76,13 +76,13 @@ class EvaluatorEnum(Enum):
     annualized_returns = 1
     benchmark_returns = 2
     max_draw_down = 3
-    NET_VALUE = 4
-    PROFIT = 5
-    NET_VALUE_UP_DOWN_RATE = 6
-    ETH_UP_DOWN_RATE = 7
-    POSITION_FEE_PROFIT = 8
-    POSITION_FEE_ANNUALIZED_RETURNS = 9
-    POSITION_MARKET_TIME_RATE = 10
+    net_value = 4
+    profit = 5
+    net_value_up_down_rate = 6
+    eth_up_down_rate = 7
+    position_fee_profit = 8
+    position_fee_annualized_returns = 9
+    position_market_time_rate = 10
 
     def __str__(self):
         return self.name

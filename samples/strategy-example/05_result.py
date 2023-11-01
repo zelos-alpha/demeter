@@ -90,13 +90,13 @@ if __name__ == "__main__":
     actuator.run(evaluator=[
         EvaluatorEnum.max_draw_down,
         EvaluatorEnum.annualized_returns,
-        EvaluatorEnum.NET_VALUE,
-        EvaluatorEnum.PROFIT,
-        EvaluatorEnum.NET_VALUE_UP_DOWN_RATE,
-        EvaluatorEnum.ETH_UP_DOWN_RATE,
-        EvaluatorEnum.POSITION_FEE_PROFIT,
-        EvaluatorEnum.POSITION_FEE_ANNUALIZED_RETURNS,
-        EvaluatorEnum.POSITION_MARKET_TIME_RATE,
+        EvaluatorEnum.net_value,
+        EvaluatorEnum.profit,
+        EvaluatorEnum.net_value_up_down_rate,
+        EvaluatorEnum.eth_up_down_rate,
+        EvaluatorEnum.position_fee_profit,
+        EvaluatorEnum.position_fee_annualized_returns,
+        EvaluatorEnum.position_market_time_rate,
     ])
     # get result
     evaluating_result: Dict[EvaluatorEnum, Decimal] = actuator.evaluating_indicator
