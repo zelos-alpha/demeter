@@ -6,7 +6,7 @@ import pandas as pd
 
 import demeter
 from demeter import TokenInfo, Broker, MarketInfo, ChainType, MarketStatus
-from demeter.uniswap import UniLpMarket, UniV3Pool, UniV3PoolStatus
+from demeter.uniswap import UniLpMarket, UniV3Pool, UniV3PoolStatus, UniswapMarketStatus
 
 test_market = MarketInfo("market1")
 
@@ -272,6 +272,9 @@ class TestUniLpMarket(unittest.TestCase):
         self.assertEqual(broker.assets[self.eth].balance, token1_before - Decimal(1))
 
     def test_net_value(self):
+        """
+        Test net value before and after add liquidity
+        """
         pool0p3 = UniV3Pool(self.usdc, self.eth, 0.3, self.usdc)
         broker = Broker(pool0p3)
         market = UniLpMarket(test_market, self.pool)
@@ -283,10 +286,33 @@ class TestUniLpMarket(unittest.TestCase):
         tick = market.price_to_tick(price)
         old_net_value = price * broker.assets[self.eth].balance + broker.assets[self.usdc].balance
         pos = market.add_liquidity_by_tick(market.price_to_tick(1200), market.price_to_tick(1000), tick=tick)
+        market.set_market_status(UniswapMarketStatus(timestamp=None, data=UniV3PoolStatus(price=price, currentLiquidity=0)), None)
         status = broker.get_account_status({self.usdc.name: Decimal(1), self.eth.name: price})
         print(pos)
         print(status)
         self.assertEqual(old_net_value, round(status.net_value, 4))
+
+    def test_net_value_with_different_pool_price(self):
+        """
+        Test net value if pool price and extern price is different
+        """
+        pool0p3 = UniV3Pool(self.usdc, self.eth, 0.3, self.usdc)
+        broker = Broker(pool0p3)
+        market = UniLpMarket(test_market, self.pool)
+        broker.add_market(market)
+
+        broker.set_balance(self.usdc, 2000)
+        broker.set_balance(self.eth, 1)
+        pool_price = Decimal(1100)
+        extern_price = Decimal(2200)
+        tick = market.price_to_tick(pool_price)
+        old_net_value = extern_price * broker.assets[self.eth].balance + broker.assets[self.usdc].balance
+        pos = market.add_liquidity_by_tick(market.price_to_tick(1200), market.price_to_tick(1000), tick=tick)
+        market.set_market_status(UniswapMarketStatus(timestamp=None, data=UniV3PoolStatus(price=pool_price, currentLiquidity=0)), None)
+        status = broker.get_account_status({self.usdc.name: Decimal(1), self.eth.name: extern_price})
+        print(pos)
+        print(status)
+        self.assertEqual(Decimal("4201.1246"), round(status.net_value, 4)) # Impermanent loss
 
     def test_net_value2(self):
         """

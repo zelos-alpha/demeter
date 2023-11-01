@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from typing import Dict, Callable
 
@@ -168,7 +169,7 @@ class Broker:
         """
         return UnitDecimal(self.get_token_balance(token), token.name)
 
-    def get_account_status(self, prices: pd.Series | Dict[str, Decimal], timestamp=None) -> AccountStatus:
+    def get_account_status(self, prices: pd.Series | Dict[str, Decimal], timestamp=datetime | None) -> AccountStatus:
         """
         Get account status, including net value, cash balance and balance in all markets
 

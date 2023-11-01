@@ -141,20 +141,30 @@ class UniLpMarket(Market):
 
     def set_market_status(
         self,
-        data: MarketStatus | None,
+        market_status: UniswapMarketStatus | None,
         price: pd.Series | None,
     ):
         """
         Set current pool status (total liquidity, price etc.) to Market
+
+        | Note: UniswapMarketStatus also have price attribute, but it's different price parameter.
+        | price parameter is used to evaluate token value. Often get from coingecko
+        | UniswapMarketStatus.price is the relative price of pool token pair. It's calculated from pool swap events.
+        | if base token in pool is stable coin and its price is 1, the two price will be the same. But if stable coin price is not 1, there will be a gap between two prices.
+
+        :param market_status: market data
+        :type market_status: UniswapMarketStatus
+        :param price: price of token at this moment
+        :type price: pd.Series
         """
         # update price tick
         total_virtual_liq = sum([p.liquidity for p in self._positions.values()])
         self.last_tick = self._market_status.data.closeTick if "closeTick" in self._market_status.data.index else np.nan
 
-        if data.data is None:
-            data.data = self.data.loc[data.timestamp].copy()
-        data.data["currentLiquidity"] = data.data["currentLiquidity"] + total_virtual_liq
-        self._market_status = data
+        if market_status.data is None:
+            market_status.data = self.data.loc[market_status.timestamp].copy()
+        market_status.data.currentLiquidity = market_status.data.currentLiquidity + total_virtual_liq
+        self._market_status = market_status
 
         self._price_status = price
         self.has_update = False
@@ -223,23 +233,21 @@ class UniLpMarket(Market):
         for position_info, position in self._positions.items():
             V3CoreLib.update_fee(self.last_tick, self.pool_info, position_info, position, self.market_status.data)
 
-    def get_market_balance(self, prices: pd.Series | Dict[str, Decimal] = None) -> MarketBalance:
+    def get_market_balance(self, external_prices: pd.Series | Dict[str, Decimal] = None) -> MarketBalance:
         """
         get current status, including positions, balances
 
-        :param prices: current price, used for calculate get_position value and net value, if set to None, will use price in current status
-        :type prices: pd.Series | Dict[str, Decimal]
+        :param external_prices: current price, used for calculate get_position value and net value, if set to None, will use token pair price of this pool
+        :type external_prices: pd.Series | Dict[str, Decimal]
 
         :return: MarketBalance
         """
-        if prices is None:
-            pool_price = self._market_status.data.price
-            prices = {
-                self.base_token.name: Decimal(1),
-                self.quote_token.name: self._market_status.data.price,
-            }
-        else:
-            pool_price = prices[self.quote_token.name] / prices[self.base_token.name]
+        pool_price = self._market_status.data.price
+        if external_prices is None:
+            if self._price_status is None:
+                external_prices = {self.base_token.name: Decimal(1), self.quote_token.name: pool_price}
+            else:
+                external_prices = self._price_status
 
         sqrt_price = quote_price_to_sqrt(
             pool_price,
@@ -261,9 +269,9 @@ class UniLpMarket(Market):
 
         base_deposit_amount, quote_deposit_amount = self._convert_pair(deposit_amount0, deposit_amount1)
         # net value here is calculated by external price, because we usually want a net value with usd base,
-        net_value = (base_fee_sum + base_deposit_amount) * prices[self.base_token.name] + (quote_fee_sum + quote_deposit_amount) * prices[
-            self.quote_token.name
-        ]
+        net_value = (base_fee_sum + base_deposit_amount) * external_prices[self.base_token.name] + (
+            quote_fee_sum + quote_deposit_amount
+        ) * external_prices[self.quote_token.name]
 
         val = UniLpBalance(
             net_value=net_value,
@@ -607,7 +615,7 @@ class UniLpMarket(Market):
 
         :param amount: amount to buy(in quote token)
         :type amount:  Decimal | float
-        :param price: price
+        :param price: price, e.g. 1234 eth/usdc, if leave to None, will use pool price
         :type price: Decimal | float
         :return: fee, base token amount spend, quote token amount got
         :rtype: (Decimal, Decimal, Decimal)
@@ -641,7 +649,7 @@ class UniLpMarket(Market):
 
         :param amount: amount to sell(in quote token)
         :type amount:  Decimal | float
-        :param price: price
+        :param price: price, e.g. 1234 eth/usdc, if leave to None, will use pool price
         :type price: Decimal | float
         :return: fee, base token amount got, quote token amount spend
         :rtype: (Decimal, Decimal, Decimal)
@@ -674,7 +682,7 @@ class UniLpMarket(Market):
         """
         Divide assets equally between two tokens.
 
-        :param price: price of quote token. e.g. 1234 eth/usdc
+        :param price: price of quote token. e.g. 1234 eth/usdc, if leave to None, will use pool price
         :type price: Decimal
         :return: fee, base token amount spend, quote token amount got
         :rtype: (Decimal, Decimal, Decimal)
@@ -791,7 +799,7 @@ class UniLpMarket(Market):
         self.data = df
         self.logger.info("data has been prepared")
 
-    def formatted_str(self)->str:
+    def formatted_str(self) -> str:
         """
         Return a brief description of this market in pretty format. Used for print in console.
         """
