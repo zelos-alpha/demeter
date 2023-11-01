@@ -432,8 +432,9 @@ class Actuator(object):
         if not self.__backtest_finished:
             raise DemeterError("Please run strategy first")
         self.logger.info(f"Print actuator summary")
+        print(get_formatted_predefined("Final account status", STYLE["header1"]))
         print(self.broker.formatted_str())
-        print(get_formatted_predefined("Account Status", STYLE["header1"]))
+        print(get_formatted_predefined("Account balance history", STYLE["header1"]))
         print(self._account_status_df)
         if len(self._enabled_evaluator) > 0:
             print("Evaluating indicator")
@@ -504,7 +505,7 @@ class Actuator(object):
         self._strategy.initialize()
 
     def __str__(self):
-        return '{{"broker":{}, "action_count":{}, "timestamp":"{}", "strategy":"{}", "price_df_rows":{}, "price_assets":{} }}'.format(
+        return '{{"Account status":{}, "action_count":{}, "timestamp":"{}", "strategy":"{}", "price_df_rows":{}, "price_assets":{} }}'.format(
             str(self.broker),
             len(self._action_list),
             self._currents.timestamp,

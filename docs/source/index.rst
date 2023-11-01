@@ -52,12 +52,12 @@ links
    :caption: Contents:
 
    install
-   demeter_fetch
+   download_data
    quickstart
    functions
    market_uniswap
    market_aave
-   demeter
+   references
 
 
 

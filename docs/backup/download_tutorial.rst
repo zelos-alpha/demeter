@@ -29,7 +29,6 @@ In BigQuery, you can query chain data with correct id and table name. the query 
 
 .. note:: If you have network issues on google, set proper proxy before download data.
 
-To use node, you can get sign up a data provider account like infura, quicknode, alchemy. or setup your node to short the request delay. If you have trouble on connection, demeter also provide proxy configuration.
 
 After download, data will be kept in CSV format, and resampled to 1 minute. raw data which before resample will also be kept. Their file name is started with "raw-", you can deleted them if they take too much disk.
 

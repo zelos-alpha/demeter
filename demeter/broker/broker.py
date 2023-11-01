@@ -199,14 +199,13 @@ class Broker:
         :return: str info of broker
         :rtype: str
         """
-        str_to_print = get_formatted_predefined("Broker", STYLE["header1"]) + "\n"
 
-        str_to_print += get_formatted_predefined("Asset amounts", STYLE["header2"]) + "\n"
+        str_to_print = get_formatted_predefined("Token balance in broker", STYLE["header2"]) + "\n"
         balances = {}
         for asset in self._assets.values():
             balances[asset.name] = asset.balance
         str_to_print += get_formatted_from_dict(balances) + "\n"
-        str_to_print += get_formatted_predefined("Markets", STYLE["header2"]) + "\n"
+        str_to_print += get_formatted_predefined("Position value in markets", STYLE["header2"]) + "\n"
         for market in self._markets.values():
             str_to_print += market.formatted_str() + "\n"
         return str_to_print
