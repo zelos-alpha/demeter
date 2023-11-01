@@ -54,7 +54,7 @@ links
    install
    download_data
    quickstart
-   functions
+   modules
    market_uniswap
    market_aave
    references

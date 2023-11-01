@@ -38,10 +38,11 @@ if __name__ == "__main__":
     )
 
     actuator = Actuator()
-    actuator.broker.set_balance(usdc, 10000)
-    actuator.broker.set_balance(eth, 10)
+    broker = actuator.broker
+    broker.set_balance(usdc, 10000)
+    broker.set_balance(eth, 10)
 
-    actuator.broker.add_market(market)
+    broker.add_market(market)
 
     actuator.strategy = MyFirstStrategy()
     actuator.set_price(market.get_price_from_data())
@@ -60,11 +61,12 @@ if __name__ == "__main__":
 1. ```market.data_path = "../data"``` Set data folder for uniswap markets. data_path is the target folder path for
    demeter-fetch.
 1. Call market.load_data. The most important parameter is start_date and end_date. It decides the time range of
+   backtesting. Since time range in this example is one day(1440 minutes), actuator will iterate 1440 times in
    backtesting.
 1. ```actuator = Actuator()``` Define actuator which controls the whole test process, and keeps backtest result.
-1. An actuator has a preset broker. Now you can set initial token balance to broker. These assets are the principal of
+1. ```broker = actuator.broker```. Actuator instance has a preset broker. Now you can set initial token balance to broker. These assets are the principal of
    your investment.
-1. ```actuator.broker.add_market(market)```, now broker will have a market to invest.
+1. ```broker.add_market(market)```, now broker will have a market to invest.
 1. ```actuator.strategy = MyFirstStrategy()```, set strategy for actuator.
 1. ```actuator.set_price(market.get_price_from_data())```. Set price. Those price will be used in all markets. Usually,
    you will have to find the price list from outer source. Luckily, Swap event log of uniswap contains price

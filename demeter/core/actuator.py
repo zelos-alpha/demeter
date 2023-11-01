@@ -337,8 +337,8 @@ class Actuator(object):
 
         * reset actuator
         * initialize strategy (set object to strategy, then run strategy.initialize())
-        * process each bar in data
-            * prepare data in each row
+        * process each row in data
+            * prepare data in this iteration
             * run trigger
             * run strategy.on_bar()
             * update market, e.g. calculate fee earned
