@@ -80,7 +80,7 @@ class TestActuator(unittest.TestCase):
         print(actuator)
         self.assertEqual(
             str(actuator),
-            """{"broker":{"assets":[{"name": "USDC", "value": 1067.0},{"name": "ETH", "value": 1.0}],"markets":[{"type": "UniLpMarket", "name": "market1", "position_count": 0, "total_liquidity": 0}]}, "action_count":0, "timestamp":"2023-08-14 23:59:00", "strategy":"EmptyStrategy", "price_df_rows":1439, "price_assets":["ETH","USDC"] }""",
+            """{"Account status":{"assets":[{"name": "USDC", "value": 1067.0},{"name": "ETH", "value": 1.0}],"markets":[{"type": "UniLpMarket", "name": "market1", "position_count": 0, "total_liquidity": 0}]}, "action_count":0, "timestamp":"2023-08-14 23:59:00", "strategy":"EmptyStrategy", "price_df_rows":1439, "price_assets":["ETH","USDC"] }""",
         )
 
     def test_run_buy_on_second(self):
