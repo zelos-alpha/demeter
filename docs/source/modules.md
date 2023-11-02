@@ -151,6 +151,9 @@ If set to True, demeter will print the following results at the end of backtesti
 2. Balance change during back test.
 3. If evaluating indicator is enabled, will print evaluating of strategy.
 
+The decimals will be outputed with unit, such as 1234.56 usdc/weth(price), 1234 usdc(amount). This is thanks to
+UnitDecimal class. It is an extend for Decimal. This design helps minimize confusion over amounts
+
 After run() funtion finished, you can access the latest value of account with ```self.get_account_status```, and access
 the history of account value by ```self.get_account_status_dataframe()```
 
@@ -160,7 +163,7 @@ analysis. As actions have different attributes, they can't be saved as csv.
 
 ## evaluating indicator
 
-Demeter also provide evaluating indicator for backtesting. Includes 
+Demeter also provide evaluating indicator for backtesting. Includes
 
 * annualized_returns
 * benchmark_returns

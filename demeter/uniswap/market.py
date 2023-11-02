@@ -521,7 +521,7 @@ class UniLpMarket(Market):
         remove_dry_pool: bool = True,
     ) -> (Decimal, Decimal):
         """
-        | remove liquidity from pool, liquidity will be reduced to 0,
+        | remove liquidity from the pool. Liquidity will be reduced to 0,
         | instead of send tokens to broker, tokens will be transferred to fee property in get_position.
         | get_position will be not deleted, until fees and tokens are collected.
 
@@ -529,7 +529,7 @@ class UniLpMarket(Market):
         :type position: PositionInfo
         :param liquidity: liquidity amount to remove, if set to None, all the liquidity will be removed
         :type liquidity: int
-        :param collect: collect or not, if collect, will call collect function. and tokens will be sent to broker. if not token will be kept in fee property of postion
+        :param collect: collect or not, if collect, will call collect function. and tokens will be sent to broker. if not, token will be kept in fee property of postion
         :type collect: bool
         :param sqrt_price_x96: precise price.  if set to none, it will be calculated from current price.
         :type sqrt_price_x96: int
