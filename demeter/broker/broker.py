@@ -14,7 +14,7 @@ class Broker:
     """
     Broker supports different order types, checking a submitted order cash requirements against current cash, keeping track of cash and value for each iteration of actuator and keeping the current position on different datas.
 
-    :param allow_negative_balance: allow cash balance can be negative value or not.
+    :param allow_negative_balance: allow cash balance can be negative value or not. Default is False
     :type allow_negative_balance: bool
     :param record_action_callback: A callback function used to notify actions(buy/sell). When new actions is taken, this function will be called, and action instance will be passed as parameter. function should be like: def callback(action:BaseAction)
     :type record_action_callback: Callable[[BaseAction], None]

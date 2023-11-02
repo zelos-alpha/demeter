@@ -461,7 +461,7 @@ class PositionManager:
 
 @dataclass
 class RowData:
-    timestamp: datetime
-    row_id: int
-    prices: pd.Series
-    market_status: MarketDict[pd.Series] = MarketDict()
+    timestamp: datetime # Time of this iteration
+    row_id: int # index of this iteration, start from 0
+    prices: pd.Series # price of tokens at this time
+    market_status: MarketDict[pd.Series] = MarketDict() # status of markets at this time

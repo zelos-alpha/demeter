@@ -10,7 +10,7 @@ from ..broker import MarketInfo, BaseAction, Market
 
 class Strategy(object):
     """
-    Parent class or strategy, all user strategy should inherit this class
+    Parent class of strategy, all user's strategy should inherit this class
     """
 
     def __init__(self):

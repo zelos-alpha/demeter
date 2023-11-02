@@ -423,11 +423,11 @@ class Actuator(object):
 
     def output(self):
         """
-        Print back test result to console, and it will print the following content
+        Print backtest result to console, and it will print the following content
 
-        1. Account status(including balances and positions) in the end of the back test.
+        1. Account status (including balances and positions) at the end of the back test.
         2. Balance change during back test.
-        3. if evaluating indicator is enabled, will print evaluating of strategy.
+        3. If evaluating indicator is enabled, will print evaluating of strategy.
         """
         if not self.__backtest_finished:
             raise DemeterError("Please run strategy first")
@@ -442,7 +442,7 @@ class Actuator(object):
 
     def save_result(self, path: str, account=True, actions=True) -> List[str]:
         """
-        save back test result
+        Save backtesting result
 
         :param path: path to save
         :type path: str

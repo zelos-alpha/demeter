@@ -54,7 +54,7 @@ if __name__ == "__main__":
 1. In import section, you need to import classes from demeter. As we will test a strategy on uniswap, we also need to
    import some class from demeter.uniswap.
 1. This script will run from ```if __name__ == "__main__":```
-1. Suppose we will backtest on usdc/eth(fee=0.05%) pool. First we define two tokens. eth and usdc. Then the pool
+1. Suppose we will backtest on usdc/eth(fee=0.05%) pool. First, we define two tokens. eth and usdc. Then the pool
 1. ```market_key = MarketInfo("U2EthPool")``` Declare a market key, which will be used to find the corresponding market
    in broker
 1. ```market = UniLpMarket(market_key, pool)``` Declare the market, it's the place to invest positions.
@@ -68,22 +68,24 @@ if __name__ == "__main__":
    your investment.
 1. ```broker.add_market(market)```, now broker will have a market to invest.
 1. ```actuator.strategy = MyFirstStrategy()```, set strategy for actuator.
-1. ```actuator.set_price(market.get_price_from_data())```. Set price. Those price will be used in all markets. Usually,
-   you will have to find the price list from outer source. Luckily, Swap event log of uniswap contains price
-   information. So UniLpMarket provides a function to retrieve price list.
-1. ```actuator.run()```. now start backtest.
+1. ```actuator.set_price(market.get_price_from_data())```. Set price. Those prices will be used in all markets. Usually,
+   you will have to find the price list from an outer source. Luckily, Swap event log of uniswap contains price
+   information. So UniLpMarket provides a function to retrieve a price list.
+1. ```actuator.run()```. now start backtesting.
 
 Now let's look into the strategy
 
 1. ```class MyFirstStrategy(Strategy):```. A strategy is a python class, and must inherit from demeter.Strategy.
 2. ```def on_bar(self, row_data: RowData)```. Override the on_bar function. This function will be called on every
-   iteration. Because market data is minutely, so one iteration is one minute.
+   iteration. Because the interval of market data is minute, one iteration means one minute.
 3. Parameter row_data contains timestamp, price and market status at this minute.
-4. We make a simple strategy, if price of eth is above 1500, then provide liquidity with all assets.
+4. We make a simple strategy, if the price of eth is above 1500, then provide liquidity with all assets.
 
-After back test, demeter will print result in console. Those result includes:
+After back test, demeter will print a result in console. Those results include:
 
 * Final account status: Account status at the end moment of backtesting. include token balance in broker, and position
   value in all markets.
 * Account balance history: list the change of net value, cash, position values during backtesting. Note: the column name
   of market positions is combined by "market name" + "attribute name"
+
+For more samples, [check here](https://github.com/zelos-alpha/demeter/tree/master/samples)
