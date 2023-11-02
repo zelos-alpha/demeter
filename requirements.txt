@@ -8,3 +8,4 @@ sphinx-rtd-theme>=1.0.0
 db-dtypes>=1.0.4
 tqdm>=4.64.1
 orjson>=3.8.10
+jupyter==1.0.0
