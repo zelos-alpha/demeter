@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from decimal import Decimal
 from typing import Dict
 
@@ -794,7 +794,11 @@ class UniLpMarket(Market):
         df = df.reindex(full_indexes)
         # df = Lines.from_dataframe(df)
         # df = df.fillna()
-        df = fillna(df)
+        df: pd.DataFrame = fillna(df)
+        if df.index[0] != datetime(start_date.year, start_date.month, start_date.day):
+            df.loc[datetime.combine(df.index[0].date(), datetime.min.time(), df.index[0].tzinfo)] = df.head(1).iloc[0]
+            df = df.resample("1T").last().ffill()
+
         self.add_statistic_column(df)
         self.data = df
         self.logger.info("data has been prepared")
