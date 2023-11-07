@@ -124,5 +124,5 @@ class Evaluator(object):
         """
         str_array = []
         for k, v in self._result.items():
-            str_array.append(f"{k.name}:{v}")
-        return "; ".join(str_array)
+            str_array.append(f"{k.name:<35}:{v:.15}")
+        return ";\n".join(str_array)
