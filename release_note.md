@@ -1,3 +1,8 @@
+# Ver 0.3.1 (Preparing)
+
+* Fix: When uniswap market load data, if the start time of the first day is not 00:00:00, row count of the first day will not be 1440.
+* Fix: to json of aave market actions.
+
 # Ver 0.3.0
 
 * Add aave market, support supply/withdraw/borrow/repay, and passive liquidate.
