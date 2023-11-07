@@ -359,7 +359,7 @@ class SupplyAction(BaseAction):
     Describe parameters and results of supply transaction
 
     :param token: which token is supplied
-    :type token: TokenInfo
+    :type token: str
     :param amount: amount supplied
     :type amount: UnitDecimal
     :param collateral: collateral the supply or not.
@@ -368,7 +368,7 @@ class SupplyAction(BaseAction):
     :type deposit_after: UnitDecimal
     """
 
-    token: TokenInfo
+    token: str
     """which token is supplied"""
     amount: UnitDecimal
     """amount supplied"""
@@ -387,14 +387,14 @@ class WithdrawAction(BaseAction):
     Describe parameters and results of withdraw transaction
 
     :param token: which token is supplied
-    :type token: TokenInfo
+    :type token: str
     :param amount: amount supplied
     :type amount: UnitDecimal
     :param deposit_after: total supply amount of this token after withdraw
     :type deposit_after: UnitDecimal
     """
 
-    token: TokenInfo
+    token: str
     """which token is supplied"""
     amount: UnitDecimal
     """amount supplied"""
@@ -411,7 +411,7 @@ class BorrowAction(BaseAction):
     Describe parameters and results of borrow transaction
 
     :param token: which token is borrowed
-    :type token: TokenInfo
+    :type token: str
     :param interest_rate_mode: interest rate mode
     :type interest_rate_mode: InterestRateMode
     :param amount: amount borrowed
@@ -420,7 +420,7 @@ class BorrowAction(BaseAction):
     :type debt_after: UnitDecimal
     """
 
-    token: TokenInfo
+    token: str
     """which token is borrowed"""
     interest_rate_mode: InterestRateMode
     """interest rate mode"""
@@ -439,7 +439,7 @@ class RepayAction(BaseAction):
     Describe parameters and results of RepayAction transaction
 
     :param token: which token is borrowed
-    :type token: TokenInfo
+    :type token: str
     :param interest_rate_mode: interest rate mode
     :type interest_rate_mode: InterestRateMode
     :param amount: amount repaid
@@ -448,7 +448,7 @@ class RepayAction(BaseAction):
     :type debt_after: UnitDecimal
     """
 
-    token: TokenInfo
+    token: str
     """which token is borrowed"""
     interest_rate_mode: InterestRateMode
     """interest rate mode"""
@@ -467,9 +467,9 @@ class LiquidationAction(BaseAction):
     Describe parameters and results of a liquidation
 
     :param collateral_token: which collateral token is used in liquidation
-    :type collateral_token: TokenInfo
+    :type collateral_token: str
     :param debt_token:  which debt token is used in liquidation
-    :type debt_token: TokenInfo
+    :type debt_token: str
     :param delt_to_cover: Debt amount to be liquidated, should be equal to variable_delt_liquidated+stable_delt_liquidated
     :type delt_to_cover: UnitDecimal
     :param collateral_used: Collateral amount to subtract in liquidation
@@ -490,9 +490,9 @@ class LiquidationAction(BaseAction):
     :type stable_delt_after: UnitDecimal
     """
 
-    collateral_token: TokenInfo
+    collateral_token: str
     """which collateral token is used in liquidation"""
-    debt_token: TokenInfo
+    debt_token: str
     """which debt token is used in liquidation"""
     delt_to_cover: UnitDecimal
     """Debt amount to be liquidated, should be equal to variable_delt_liquidated+stable_delt_liquidated"""

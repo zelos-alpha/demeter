@@ -606,7 +606,7 @@ class AaveV3Market(Market):
         self._record_action(
             SupplyAction(
                 market=self.market_info,
-                token=token_info,
+                token=token_info.name,
                 amount=UnitDecimal(amount, token_info.name),
                 collateral=collateral,
                 deposit_after=UnitDecimal(AaveV3CoreLib.get_amount(self._supplies[key].base_amount, token_status.liquidity_index), token_info.name),
@@ -697,7 +697,7 @@ class AaveV3Market(Market):
         self._record_action(
             WithdrawAction(
                 market=self.market_info,
-                token=token_info,
+                token=token_info.name,
                 amount=UnitDecimal(amount, token_info.name),
                 deposit_after=UnitDecimal(AaveV3CoreLib.get_amount(final_base_amount, token_status.liquidity_index), token_info.name),
             )
@@ -803,7 +803,7 @@ class AaveV3Market(Market):
         self._record_action(
             BorrowAction(
                 market=self.market_info,
-                token=token_info,
+                token=token_info.name,
                 amount=UnitDecimal(amount, token_info.name),
                 interest_rate_mode=interest_rate_mode,
                 debt_after=UnitDecimal(AaveV3CoreLib.get_amount(self._borrows[key].base_amount, token_status.variable_borrow_index), token_info.name),
@@ -904,7 +904,7 @@ class AaveV3Market(Market):
         self._record_action(
             RepayAction(
                 market=self.market_info,
-                token=borrow_token,
+                token=borrow_token.name,
                 amount=UnitDecimal(payback_amount, borrow_token.name),
                 interest_rate_mode=interest_rate_mode,
                 debt_after=UnitDecimal(AaveV3CoreLib.get_amount(debt, token_status.variable_borrow_index), borrow_token.name),
@@ -1080,8 +1080,8 @@ class AaveV3Market(Market):
         self._record_action(
             LiquidationAction(
                 market=self.market_info,
-                collateral_token=collateral_token,
-                debt_token=delt_token,
+                collateral_token=collateral_token.name,
+                debt_token=delt_token.name,
                 delt_to_cover=UnitDecimal(delt_value_to_cover, delt_token.name),
                 collateral_used=UnitDecimal(actual_collateral_to_liquidate, collateral_token.name),
                 variable_delt_liquidated=UnitDecimal(vari_debt_liquidated, delt_token.name),
