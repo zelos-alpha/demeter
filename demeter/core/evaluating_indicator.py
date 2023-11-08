@@ -81,7 +81,8 @@ class Evaluator(object):
                     result = UnitDecimal((self.end_status.net_value - self.init_status.net_value) /
                                          self.init_status.net_value)
                 case EvaluatorEnum.eth_up_down_rate:
-                    result = UnitDecimal((self.prices.iloc[-1]["ETH"] - self.prices.iloc[0]["ETH"]) / self.prices.iloc[0]["ETH"])
+                    result = UnitDecimal((self.prices.iloc[-1]["ETH"] - self.prices.iloc[0]["ETH"]) /
+                                         self.prices.iloc[0]["ETH"])
                 case EvaluatorEnum.position_fee_profit:
                     fee_value = UnitDecimal(0)
                     for _, market in self.markets.items():
@@ -92,8 +93,8 @@ class Evaluator(object):
                                                     ascending=[False, False])
                         fee_price_df = pd.merge(fee_df, self.prices, how="left", left_index=True, right_index=True)
                         latest_fee = fee_price_df.iloc[0]
-                        fee_value += (latest_fee[f"{market.market_info.name}_base_uncollected"] * latest_fee["ETH"] +
-                                      latest_fee[f"{market.market_info.name}_quote_uncollected"])
+                        fee_value += (latest_fee[f"{market.market_info.name}_base_uncollected"] +
+                                      latest_fee[f"{market.market_info.name}_quote_uncollected"] * latest_fee["ETH"])
                     result = UnitDecimal(fee_value)
                 case EvaluatorEnum.position_fee_annualized_returns:
                     fee_value = UnitDecimal(0)
@@ -108,8 +109,8 @@ class Evaluator(object):
                                                         ascending=[False, False])
                             fee_price_df = pd.merge(fee_df, self.prices, how="left", left_index=True, right_index=True)
                             latest_fee = fee_price_df.iloc[0]
-                            fee_value = (latest_fee[f"{market.market_info.name}_base_uncollected"] * latest_fee["ETH"] +
-                                         latest_fee[f"{market.market_info.name}_quote_uncollected"])
+                            fee_value = (latest_fee[f"{market.market_info.name}_base_uncollected"] +
+                                         latest_fee[f"{market.market_info.name}_quote_uncollected"] * latest_fee["ETH"])
                             fee_annualized_returns = ((fee_value / self.init_status.net_value) *
                                                       UnitDecimal(len(fee_df) / len(self.data) * 365))
                             fee_value += UnitDecimal(fee_annualized_returns)
