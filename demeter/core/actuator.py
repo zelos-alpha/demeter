@@ -3,6 +3,7 @@ import os
 import pickle
 import time
 from datetime import datetime
+from decimal import Decimal
 from typing import List, Dict, Union
 from dataclasses import dataclass, field
 import orjson
@@ -294,8 +295,8 @@ class Actuator(object):
             raise DemeterError("data length among markets are not same")
         default_market_data = self._broker.markets.default.data
         if (
-            self._token_prices.head(1).index[0] > default_market_data.head(1).index[0]
-            or self._token_prices.tail(1).index[0] < default_market_data.tail(1).index[0]
+                self._token_prices.head(1).index[0] > default_market_data.head(1).index[0]
+                or self._token_prices.tail(1).index[0] < default_market_data.tail(1).index[0]
         ):
             raise DemeterError("Time range of price doesn't cover market data")
         length = data_length[0]
@@ -365,8 +366,9 @@ class Actuator(object):
 
         # set initial status for strategy, so user can run some calculation in initial function.
         self.__set_row_to_markets(index_array[0], False)
+        self._currents.timestamp = index_array[0].to_pydatetime()
         # keep initial balance for evaluating
-        init_account_status = self._broker.get_account_status(self._token_prices.head(1).iloc[0])
+        init_account_status = self._broker.get_account_status(self._token_prices.head(1).iloc[0], index_array[0].to_pydatetime())
         self.init_strategy()
         row_id = 0
         data_length = len(index_array)
@@ -398,7 +400,7 @@ class Actuator(object):
                 row_data = self.__get_row_data(timestamp_index, row_id, current_price)
                 self._strategy.after_bar(row_data)
 
-                self._account_status_list.append(self._broker.get_account_status(current_price, timestamp_index))
+                self._account_status_list.append(self._broker.get_account_status(current_price, timestamp_index.to_pydatetime()))
                 # notify actions in current loop
                 self.notify(self.strategy, self._currents.actions)
                 self._currents.actions = []
@@ -521,6 +523,7 @@ class Currents:
     Values in current timestamp.
 
     """
+
     actions: List[BaseAction] = field(default_factory=list)
     """Actions in this iteration"""
     timestamp: datetime = None
@@ -536,8 +539,10 @@ def _json_default(obj):
     """
     if isinstance(obj, UnitDecimal):
         return obj.to_str()
+    elif isinstance(obj, Decimal):
+        return str(obj)
     elif isinstance(obj, MarketInfo):
-        return {"name": obj.name}
+        return f"{obj.name}({obj.type.name})"
     elif isinstance(obj, PositionInfo):
         return {"lower_tick": obj.lower_tick, "upper_tick": obj.upper_tick}
     else:
