@@ -413,7 +413,8 @@ class Actuator(object):
 
         if len(self._enabled_evaluator) > 0:
             self.logger.info("Start calculate evaluating indicator...")
-            self._evaluator = Evaluator(init_account_status, self._account_status_df, self._token_prices, self.actions)
+            self._evaluator = Evaluator(init_account_status, self._account_status_df, self._token_prices,
+                                        self._broker.markets)
             self._evaluator.run(self._enabled_evaluator)
             self.logger.info("Evaluating indicator has finished it's job.")
         self._strategy.finalize()
