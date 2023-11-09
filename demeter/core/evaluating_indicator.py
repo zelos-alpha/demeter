@@ -4,6 +4,7 @@ import pandas as pd
 
 from .._typing import UnitDecimal, DemeterError, EvaluatorEnum
 from ..broker import AccountStatus, AccountStatusCommon
+from ..broker._typing import MarketDict
 from .math_helper import max_draw_down_fast, annualized_returns, get_benchmark_returns
 
 
@@ -21,7 +22,7 @@ class Evaluator(object):
     :type actions: List
     """
 
-    def __init__(self, init_status: AccountStatus, data: pd.DataFrame, prices: pd.DataFrame, actions: List):
+    def __init__(self, init_status: AccountStatus, data: pd.DataFrame, prices: pd.DataFrame, markets: MarketDict):
         """
         init Evaluator
 
@@ -30,7 +31,7 @@ class Evaluator(object):
         self.end_status: AccountStatusCommon = data.iloc[-1]
         self.prices: pd.DataFrame = prices
         self.data: pd.DataFrame = data
-        self.actions = actions
+        self.markets = markets
         if len(data) < 2:
             raise DemeterError("not enough data")
         self.time_span_in_day = len(data.index) * (data.index[1] - data.index[0]).seconds / (60 * 60 * 24)
@@ -77,28 +78,52 @@ class Evaluator(object):
                 case EvaluatorEnum.profit:
                     result = UnitDecimal(self.end_status.net_value - self.init_status.net_value)
                 case EvaluatorEnum.net_value_up_down_rate:
-                    result = UnitDecimal((self.end_status.net_value - self.init_status.net_value) / self.init_status.net_value)
+                    result = UnitDecimal((self.end_status.net_value - self.init_status.net_value) /
+                                         self.init_status.net_value)
                 case EvaluatorEnum.eth_up_down_rate:
-                    result = UnitDecimal((self.prices.iloc[-1]["ETH"] - self.prices.iloc[0]["ETH"]) / self.prices.iloc[0]["ETH"])
+                    result = UnitDecimal((self.prices.iloc[-1]["ETH"] - self.prices.iloc[0]["ETH"]) /
+                                         self.prices.iloc[0]["ETH"])
                 case EvaluatorEnum.position_fee_profit:
-                    fee_df = self.data[["market1_base_uncollected", "market1_quote_uncollected"]]
-                    fee_df.sort_values(by=["market1_base_uncollected", "market1_quote_uncollected"], ascending=[False, False], inplace=True)
-                    fee_price_df = pd.merge(fee_df, self.prices, how="left", left_index=True, right_index=True)
-                    latest_fee = fee_price_df.iloc[0]
-                    fee_value = latest_fee["market1_base_uncollected"] * latest_fee["ETH"] + latest_fee["market1_quote_uncollected"]
+                    fee_value = UnitDecimal(0)
+                    for _, market in self.markets.items():
+                        fee_df = self.data[[f"{market.market_info.name}_base_uncollected",
+                                            f"{market.market_info.name}_quote_uncollected"]]
+                        fee_df = fee_df.sort_values(by=[f"{market.market_info.name}_base_uncollected",
+                                                    f"{market.market_info.name}_quote_uncollected"],
+                                                    ascending=[False, False])
+                        fee_price_df = pd.merge(fee_df, self.prices, how="left", left_index=True, right_index=True)
+                        latest_fee = fee_price_df.iloc[0]
+                        fee_value += (latest_fee[f"{market.market_info.name}_base_uncollected"] +
+                                      latest_fee[f"{market.market_info.name}_quote_uncollected"] * latest_fee["ETH"])
                     result = UnitDecimal(fee_value)
                 case EvaluatorEnum.position_fee_annualized_returns:
-                    fee_df = self.data[(self.data["market1_base_uncollected"] > 0) | (self.data["market1_quote_uncollected"] > 0)]
-                    fee_df = fee_df[["market1_base_uncollected", "market1_quote_uncollected"]]
-                    fee_df.sort_values(by=["market1_base_uncollected", "market1_quote_uncollected"], ascending=[False, False], inplace=True)
-                    fee_price_df = pd.merge(fee_df, self.prices, how="left", left_index=True, right_index=True)
-                    latest_fee = fee_price_df.iloc[0]
-                    fee_value = latest_fee["market1_base_uncollected"] * latest_fee["ETH"] + latest_fee["market1_quote_uncollected"]
-                    fee_annualized_returns = (fee_value / self.init_status.net_value) * UnitDecimal(len(fee_df) / len(self.data) * 365)
-                    result = UnitDecimal(fee_annualized_returns)
+                    fee_value = UnitDecimal(0)
+                    for _, market in self.markets.items():
+                        fee_df = self.data[(self.data[f"{market.market_info.name}_base_uncollected"] > 0) |
+                                           (self.data[f"{market.market_info.name}_quote_uncollected"] > 0)]
+                        fee_df = fee_df[[f"{market.market_info.name}_base_uncollected",
+                                         f"{market.market_info.name}_quote_uncollected"]]
+                        if not fee_df.empty:
+                            fee_df = fee_df.sort_values(by=[f"{market.market_info.name}_base_uncollected",
+                                                            f"{market.market_info.name}_quote_uncollected"],
+                                                        ascending=[False, False])
+                            fee_price_df = pd.merge(fee_df, self.prices, how="left", left_index=True, right_index=True)
+                            latest_fee = fee_price_df.iloc[0]
+                            fee_value = (latest_fee[f"{market.market_info.name}_base_uncollected"] +
+                                         latest_fee[f"{market.market_info.name}_quote_uncollected"] * latest_fee["ETH"])
+                            fee_annualized_returns = ((fee_value / self.init_status.net_value) *
+                                                      UnitDecimal(len(fee_df) / len(self.data) * 365))
+                            fee_value += UnitDecimal(fee_annualized_returns)
+                        else:
+                            fee_value += UnitDecimal(0)
+                    result = fee_value
                 case EvaluatorEnum.position_market_time_rate:
-                    fee_df = self.data[(self.data["market1_base_uncollected"] > 0) | (self.data["market1_quote_uncollected"] > 0)]
-                    result = UnitDecimal(len(fee_df) / len(self.data))
+                    market_time_rate = UnitDecimal(0)
+                    for _, market in self.markets.items():
+                        fee_df = self.data[(self.data[f"{market.market_info.name}_base_uncollected"] > 0) |
+                                           (self.data[f"{market.market_info.name}_quote_uncollected"] > 0)]
+                        market_time_rate += UnitDecimal(len(fee_df) / len(self.data))
+                    result = market_time_rate
                 case _:
                     raise DemeterError(f"{request} has not implied")
             result_dict[request] = result
@@ -121,5 +146,5 @@ class Evaluator(object):
         """
         str_array = []
         for k, v in self._result.items():
-            str_array.append(f"{k.name}:{v}")
-        return "; ".join(str_array)
+            str_array.append(f"{k.name:<35}:{v:.15}")
+        return ";\n".join(str_array)
