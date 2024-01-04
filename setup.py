@@ -20,7 +20,8 @@ setup(
     install_requires=["pandas>=1.4.4",
                       "tqdm>=4.64.1",
                       "db-dtypes>=1.0.4",
-                      "toml>=0.10.2"],
+                      "toml>=0.10.2",
+                      "orjson>=3.8.10"],
 )
 
 # rm -rf ./demeter.egg-info/ && python setup.py sdist upload -r private
