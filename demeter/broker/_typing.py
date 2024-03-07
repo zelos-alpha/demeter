@@ -33,8 +33,9 @@ class Rule(NamedTuple):
 
 
 class MarketTypeEnum(Enum):
-    uniswap = 1
+    uniswap_v3 = 1
     aave_v3 = 2
+    deribit_option = 3
 
 
 class MarketInfo(NamedTuple):
@@ -43,7 +44,7 @@ class MarketInfo(NamedTuple):
     """
 
     name: str  # uni_market
-    type: MarketTypeEnum = MarketTypeEnum.uniswap
+    type: MarketTypeEnum = MarketTypeEnum.uniswap_v3
 
     def __str__(self):
         return f"{self.name}({self.type.name})"
