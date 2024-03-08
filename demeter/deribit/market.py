@@ -8,12 +8,12 @@ from typing import Dict, List, Set
 import pandas as pd
 
 from . import helper
-from ._typing import DeribitOptionMarketDescription, DeribitTokenConfig
+from ._typing import DeribitOptionMarketDescription, DeribitTokenConfig, DeribitMarketStatus
 from .helper import round_decimal
 
 from .. import DemeterError, TokenInfo
 from .._typing import DECIMAL_0, UnitDecimal, ChainType
-from ..broker import Market, MarketInfo
+from ..broker import Market, MarketInfo, write_func
 from ..utils import get_formatted_predefined, STYLE, get_formatted_from_dict
 from ..utils.application import require, float_param_formatter, to_decimal
 
@@ -31,15 +31,13 @@ class DeribitOptionMarket(Market):
     def __init__(
         self,
         market_info: MarketInfo,
-        tokens: List[TokenInfo],
+        token: TokenInfo,
         data: pd.DataFrame = None,
         data_path: str = DEFAULT_DATA_PATH,
     ):
         super().__init__(market_info=market_info, data_path=data_path, data=data)
-        if len(tokens) != 1:
-            raise DemeterError("Only one token is supported for now")
-        self.token: TokenInfo = tokens[0]
-        self.token_config: DeribitTokenConfig = DeribitOptionMarket.TOKEN_CONFIGS[tokens[0]]
+        self.token: TokenInfo = token
+        self.token_config: DeribitTokenConfig = DeribitOptionMarket.TOKEN_CONFIGS[token]
 
     TOKEN_CONFIGS = {ETH: DeribitTokenConfig(Decimal(0.0003), 0), BTC: DeribitTokenConfig(Decimal(0.0003), -1)}
     MAX_FEE_RATE = 0.125
@@ -78,10 +76,8 @@ class DeribitOptionMarket(Market):
             )
             if not os.path.exists(path):
                 raise IOError(f"resource file {path} not found")
-            day_df = pd.read_csv(
-                path,
-                parse_dates=True,
-            )
+
+            day_df = pd.read_csv(path, parse_dates=["time", "exec_time"], index_col=["time", "instrument_name"])
             day_df = day_df[day_df["state"] == "open"]
             day_df.drop(columns=["state", "actual_time"], inplace=True)
             df = pd.concat([df, day_df])
@@ -90,6 +86,25 @@ class DeribitOptionMarket(Market):
         self._data = df
         self._data = self._data.resample("1min").ffill()
         self.logger.info("data has been prepared")
+
+    def set_market_status(
+        self,
+        data: DeribitMarketStatus,
+        price: pd.Series,
+    ):
+        """
+        Set up market status, such as liquidity, price
+
+        :param data: market status
+        :type data: Series | MarketStatus
+        :param price: current price
+        :type price: Series
+
+        """
+        super().set_market_status(data, price)
+        if data.data is None:
+            data.data = self._data.loc[data.timestamp]
+        self._market_status = data
 
     # region for option market only
 
@@ -100,7 +115,10 @@ class DeribitOptionMarket(Market):
         """
         return min(self.token_config.fee_amount, DeribitOptionMarket.MAX_FEE_RATE * trade_value)
 
-    def _get_price(self, token_prices: pd.Series) -> Decimal:
+    def __get_price(self, token_prices: pd.Series) -> Decimal:
+        """
+        a shortcut to get underlying token price of this market
+        """
         return token_prices[self.token.name]
 
     def __get_trade_amount(self, amount: Decimal):
@@ -108,6 +126,7 @@ class DeribitOptionMarket(Market):
             return self.token_config.min_amount
         return round_decimal(amount, self.token_config.min_decimal)
 
+    @write_func
     @float_param_formatter
     def buy(self, amount: Decimal, price_in_token: Decimal | float | None = None, price_in_usd: Decimal | float | None = None):
         """
@@ -116,10 +135,18 @@ class DeribitOptionMarket(Market):
 
         buy order price should in min_price and max_price
         """
+
+        # match order
+        # calc fee
+        # add position
+        # modify balance
+
         pass
 
+    @write_func
     @float_param_formatter
     def sell(self, amount: Decimal, price_in_token: Decimal | float | None = None, price_in_usd: Decimal | float | None = None):
+
         pass
 
     def check_option_expire(self):
@@ -130,6 +157,7 @@ class DeribitOptionMarket(Market):
         """
         pass
 
+    @write_func
     def _exercise(self, option_pos):
         """ """
         pass

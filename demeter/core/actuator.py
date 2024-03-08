@@ -295,8 +295,8 @@ class Actuator(object):
             raise DemeterError("data length among markets are not same")
         default_market_data = self._broker.markets.default.data
         if (
-                self._token_prices.head(1).index[0] > default_market_data.head(1).index[0]
-                or self._token_prices.tail(1).index[0] < default_market_data.tail(1).index[0]
+            self._token_prices.head(1).index[0] > default_market_data.head(1).index[0]
+            or self._token_prices.tail(1).index[0] < default_market_data.tail(1).index[0]
         ):
             raise DemeterError("Time range of price doesn't cover market data")
         length = data_length[0]
@@ -318,7 +318,7 @@ class Actuator(object):
         row_data.market_status.set_default_key(self.broker.markets.get_default_key())
         return row_data
 
-    def __set_row_to_markets(self, timestamp: Timestamp, update: bool = False):
+    def __set_market_timestamp(self, timestamp: Timestamp, update: bool = False):
         """
         set markets row data
         :param timestamp:
@@ -365,7 +365,7 @@ class Actuator(object):
         self.logger.info("init strategy...")
 
         # set initial status for strategy, so user can run some calculation in initial function.
-        self.__set_row_to_markets(index_array[0], False)
+        self.__set_market_timestamp(index_array[0], False)
         self._currents.timestamp = index_array[0].to_pydatetime()
         # keep initial balance for evaluating
         init_account_status = self._broker.get_account_status(self._token_prices.head(1).iloc[0], index_array[0].to_pydatetime())
@@ -378,7 +378,7 @@ class Actuator(object):
                 current_price = self._token_prices.loc[timestamp_index]
                 # prepare data of a row
 
-                self.__set_row_to_markets(timestamp_index, False)
+                self.__set_market_timestamp(timestamp_index, False)
                 # execute strategy, and some calculate
                 self._currents.timestamp = timestamp_index.to_pydatetime()
                 row_data = self.__get_row_data(timestamp_index, row_id, current_price)
@@ -386,11 +386,16 @@ class Actuator(object):
                     for trigger in self._strategy.triggers:
                         if trigger.when(row_data):
                             trigger.do(row_data)
+
+                for market in self.broker.markets.values():
+                    if market.is_open and market.open is not None:
+                        market.open(row_data)
+
                 self._strategy.on_bar(row_data)
 
                 # important, take uniswap market for example,
                 # if liquidity has changed in the head of this minute, this will add the new liquidity to total_liquidity in current minute.
-                self.__set_row_to_markets(timestamp_index, True)
+                self.__set_market_timestamp(timestamp_index, True)
 
                 # update broker status, e.g. re-calculate fee
                 # and read the latest status from broker
@@ -413,8 +418,7 @@ class Actuator(object):
 
         if len(self._enabled_evaluator) > 0:
             self.logger.info("Start calculate evaluating indicator...")
-            self._evaluator = Evaluator(init_account_status, self._account_status_df, self._token_prices,
-                                        self._broker.markets)
+            self._evaluator = Evaluator(init_account_status, self._account_status_df, self._token_prices, self._broker.markets)
             self._evaluator.run(self._enabled_evaluator)
             self.logger.info("Evaluating indicator has finished it's job.")
         self._strategy.finalize()

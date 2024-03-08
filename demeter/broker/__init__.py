@@ -18,4 +18,4 @@ from ._typing import (
     RowData,
 )
 from .broker import Broker
-from .market import Market
+from .market import Market, write_func

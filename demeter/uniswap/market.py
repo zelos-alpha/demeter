@@ -32,7 +32,7 @@ from .helper import (
 )
 from .liquitidy_math import get_sqrt_ratio_at_tick
 from .._typing import DemeterError, DECIMAL_0, UnitDecimal
-from ..broker import MarketBalance, Market, MarketInfo, MarketStatus
+from ..broker import MarketBalance, Market, MarketInfo, MarketStatus, write_func
 from ..utils import (
     get_formatted_from_dict,
     get_formatted_predefined,
@@ -158,6 +158,8 @@ class UniLpMarket(Market):
         :type price: pd.Series
         """
         # update price tick
+        super().set_market_status(market_status, price)
+
         total_virtual_liq = sum([p.liquidity for p in self._positions.values()])
         self.last_tick = self._market_status.data.closeTick if "closeTick" in self._market_status.data.index else np.nan
 
@@ -165,9 +167,6 @@ class UniLpMarket(Market):
             market_status.data = self.data.loc[market_status.timestamp].copy()
         market_status.data.currentLiquidity = market_status.data.currentLiquidity + total_virtual_liq
         self._market_status = market_status
-
-        self._price_status = price
-        self.has_update = False
 
     def get_price_from_data(self) -> pd.DataFrame:
         """
@@ -316,6 +315,7 @@ class UniLpMarket(Market):
             self._is_token0_base,
         )
 
+    @write_func
     def _add_liquidity_by_tick(
         self,
         token0_amount: Decimal,
@@ -348,9 +348,9 @@ class UniLpMarket(Market):
             self._positions[position_info] = Position(DECIMAL_0, DECIMAL_0, liquidity)
         self.broker.subtract_from_balance(self.token0, token0_used)
         self.broker.subtract_from_balance(self.token1, token1_used)
-        self.has_update = True
         return position_info, token0_used, token1_used, liquidity
 
+    @write_func
     def __remove_liquidity(self, position: PositionInfo, liquidity: int = None, sqrt_price_x96: int = -1):
         sqrt_price_x96 = int(sqrt_price_x96) if sqrt_price_x96 != -1 else get_sqrt_ratio_at_tick(self.market_status.data.closeTick)
         delta_liquidity = (
@@ -361,10 +361,10 @@ class UniLpMarket(Market):
         self._positions[position].liquidity = self.positions[position].liquidity - delta_liquidity
         self._positions[position].pending_amount0 += token0_get
         self._positions[position].pending_amount1 += token1_get
-        self.has_update = True
 
         return token0_get, token1_get, delta_liquidity
 
+    @write_func
     def __collect_fee(
         self,
         position: Position,
@@ -391,7 +391,6 @@ class UniLpMarket(Market):
         # add un_collect fee to current balance
         self.broker.add_to_balance(self.token0, token0_fee)
         self.broker.add_to_balance(self.token1, token1_fee)
-        self.has_update = True
         return token0_fee, token1_fee
 
     # action for strategy

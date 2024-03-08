@@ -2,7 +2,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Union
+
+import pandas as pd
+
+from demeter import MarketStatus
+from demeter.broker import MarketBalance
 
 
 class DeribitOptionMarketDescription(NamedTuple):
@@ -27,13 +32,11 @@ class DeribitOptionMarketDescription(NamedTuple):
 
 
 @dataclass
-class Orderbook:
+class InstrumentStatus:
     """
     all the price is in unit of underlying token!
     """
 
-    instrument_name: str
-    time: datetime
     actual_time: datetime
     state: str
     type: str
@@ -81,3 +84,20 @@ class OptionKind(Enum):
 class OptionPosition:
     instrument_name: str
     amount: Decimal
+
+
+@dataclass
+class DeribitMarketStatus(MarketStatus):
+    """
+    MarketStatus properties
+
+    :param data: current pool status
+    :type data: Union[pd.Series, UniV3PoolStatus]
+    """
+
+    data: Union[pd.DataFrame, List[InstrumentStatus]] = None
+
+
+@dataclass
+class OptionBalance(MarketBalance):
+

@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Generic, NamedTuple, List, Dict, TypeVar
+from typing import Generic, NamedTuple, List, Dict, TypeVar, Union
 
 import pandas as pd
 
@@ -462,7 +462,7 @@ class PositionManager:
 
 @dataclass
 class RowData:
-    timestamp: datetime # Time of this iteration
-    row_id: int # index of this iteration, start from 0
-    prices: pd.Series # price of tokens at this time
-    market_status: MarketDict[pd.Series] = MarketDict() # status of markets at this time
+    timestamp: datetime  # Time of this iteration
+    row_id: int  # index of this iteration, start from 0
+    prices: pd.Series  # price of tokens at this time
+    market_status: MarketDict[Union[pd.Series, pd.DataFrame]] = MarketDict()  # status of markets at this time

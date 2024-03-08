@@ -32,7 +32,7 @@ from ._typing import (
 from .core import AaveV3CoreLib
 from .. import DemeterError, TokenInfo
 from .._typing import DECIMAL_0, UnitDecimal, ChainType
-from ..broker import Market, MarketInfo
+from ..broker import Market, MarketInfo, write_func
 from ..utils import get_formatted_predefined, STYLE, get_formatted_from_dict
 from ..utils.application import require, float_param_formatter, to_decimal
 
@@ -352,19 +352,16 @@ class AaveV3Market(Market):
         :param price: current price of tokens involved
         :type price: Series
         """
+        super().set_market_status(data, price)
         if data.data is None:
             data.data = self.data.loc[data.timestamp]
         self._market_status = data
-
-        self._price_status: pd.Series = price
 
         self._borrows_amount_cache.reset()
         self._supplies_amount_cache.reset()
         self._collaterals_amount_cache.reset()
         self._borrows_cache.reset()
         self._supplies_cache.reset()
-
-        self.has_update = False
 
     @property
     def liquidation_threshold(self) -> Decimal:
@@ -567,6 +564,8 @@ class AaveV3Market(Market):
         return value
 
     # endregion
+
+    @write_func
     @float_param_formatter
     def supply(self, token_info: TokenInfo, amount: Decimal | float, collateral: bool = True) -> SupplyKey:
         """
@@ -612,7 +611,6 @@ class AaveV3Market(Market):
                 deposit_after=UnitDecimal(AaveV3CoreLib.get_amount(self._supplies[key].base_amount, token_status.liquidity_index), token_info.name),
             )
         )
-        self.has_update = True
 
         return key
 
@@ -627,6 +625,7 @@ class AaveV3Market(Market):
             raise DemeterError("supply_key or token should be specified")
         return key, token_info
 
+    @write_func
     def change_collateral(self, collateral: bool, supply_key: SupplyKey = None, token_info: TokenInfo = None) -> SupplyKey:
         """
         Change collateral type of supply position. Health factor will be checked to prevent liquidation
@@ -653,10 +652,10 @@ class AaveV3Market(Market):
             self._supplies[SupplyKey(token_info)].collateral = old_collateral
             self._collaterals_amount_cache.reset()
             raise AssertionError("health factor lower than liquidation threshold")
-        self.has_update = True
 
         return key
 
+    @write_func
     @float_param_formatter
     def withdraw(
         self,
@@ -702,7 +701,6 @@ class AaveV3Market(Market):
                 deposit_after=UnitDecimal(AaveV3CoreLib.get_amount(final_base_amount, token_status.liquidity_index), token_info.name),
             )
         )
-        self.has_update = True
 
         pass
 
@@ -734,6 +732,7 @@ class AaveV3Market(Market):
         value = AaveV3CoreLib.get_max_borrow_value(self.collateral_value, self.borrows_value, self.risk_parameters)
         return value / self._price_status[token_info.name]
 
+    @write_func
     @float_param_formatter
     def borrow(
         self,
@@ -809,7 +808,6 @@ class AaveV3Market(Market):
                 debt_after=UnitDecimal(AaveV3CoreLib.get_amount(self._borrows[key].base_amount, token_status.variable_borrow_index), token_info.name),
             )
         )
-        self.has_update = True
 
         return key
 
@@ -842,6 +840,7 @@ class AaveV3Market(Market):
     def _get_swap_amount(self, from_token: TokenInfo, to_token: TokenInfo, amount: Decimal, swap_fee=0):
         return amount * (1 - swap_fee) * self._price_status.loc[from_token.name] / self._price_status.loc[to_token.name]
 
+    @write_func
     @float_param_formatter
     def repay(
         self,
@@ -910,7 +909,6 @@ class AaveV3Market(Market):
                 debt_after=UnitDecimal(AaveV3CoreLib.get_amount(debt, token_status.variable_borrow_index), borrow_token.name),
             )
         )
-        self.has_update = True
 
         pass
 
@@ -952,6 +950,7 @@ class AaveV3Market(Market):
         else:
             return self._borrows[key].base_amount
 
+    @write_func
     def _liquidate(self):
         """
         | Do passive liquidate. If health factor is below 1, liquidate will be triggered. And user can not make a liquidation transaction. Because currently demeter doesn't support that.
@@ -996,7 +995,6 @@ class AaveV3Market(Market):
                 # if a liquidated is rejected, choose another delt token to liquidate
                 pass
             health_factor = self.health_factor
-        self.has_update = True
 
     def _do_liquidate(self, collateral_token: TokenInfo, delt_token: TokenInfo, delt_value_to_cover: Decimal):
         """

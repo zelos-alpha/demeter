@@ -1,13 +1,27 @@
 import logging
 from decimal import Decimal
+from functools import wraps
 from typing import Dict, Callable
 
 import pandas as pd
 
-from ._typing import BaseAction, MarketBalance, MarketStatus, MarketInfo
+from ._typing import BaseAction, MarketBalance, MarketStatus, MarketInfo, RowData
 from .._typing import DECIMAL_0, DemeterError
 
 DEFAULT_DATA_PATH = "./data"
+
+
+def write_func(func):
+    @wraps(func)
+    def wrapper_func(*args, **kwargs):
+        instance = args[0]
+        if not instance.is_open:
+            raise DemeterError(f"{instance.market_info.name} is not open.")
+        ret = func(*args, **kwargs)
+        instance.has_update = True
+        return ret
+
+    return wrapper_func
 
 
 class Market:
@@ -37,11 +51,16 @@ class Market:
         self.logger = logging.getLogger(__name__)
         self._market_status: MarketStatus = MarketStatus(None, pd.Series())
         self._price_status: pd.Series | None = None
-        # if some var that related to market status has changed, should set this to True, then the second set_market_status in every minute will be triggerd
+        # if some var that related to market status has changed, should set this to True,
+        # then the second set_market_status in every minute will be triggerd
         # e.g. At uniswap market, when add liquidity in the head of the minute, this flag will be set to True,
         # so user liquidity will be added to total liquidity in this minute, and get more fee
         # remember set this flag to False after set_market_status
         self.has_update = False
+        self.open: Callable[[RowData], None] = None
+        # if market interval is minutely, is_open will always true,
+        # or it will be false until timestamp is on it's interval
+        self.is_open: bool = True
 
     def __str__(self):
         return f"{self._market_info.name}:{type(self).__name__}"
@@ -118,8 +137,9 @@ class Market:
         :type price: Series
 
         """
-        self._market_status = data
+        # self._market_status = data
         self._price_status = price
+        self.is_open = True if data.timestamp in self._data.index else False
         self.has_update = False
 
     def get_market_balance(self, prices: pd.Series | Dict[str, Decimal]) -> MarketBalance:
