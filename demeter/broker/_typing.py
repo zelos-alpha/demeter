@@ -123,7 +123,10 @@ class Asset(object):
             if abs((self.balance - amount) / base) < 0.00001:
                 self.balance = Decimal(0)
             elif self.balance - amount < Decimal(0):
-                raise AssertionError(f"insufficient balance, balance is {self.balance}{self.name}, " f"but sub amount is {amount}{self.name}")
+                raise AssertionError(
+                    f"insufficient balance, balance is {self.balance}{self.name}, "
+                    f"but sub amount is {amount}{self.name}"
+                )
             else:
                 self.balance -= amount
 
@@ -162,6 +165,9 @@ class ActionTypeEnum(Enum):
     aave_borrow = "borrow"
     aave_repay = "repay"
     aave_liquidation = "liquidation"
+    option_buy = "option_buy"
+    option_sell = "option_sell"
+    option_exercise = "option_exercise"
 
     def __str__(self):
         return self.name
@@ -422,7 +428,9 @@ class AccountStatus(AccountStatusCommon):
         """
         index = [i.timestamp for i in status_list]
         if len(index) > 0:
-            return pd.DataFrame(columns=status_list[0].get_names(), index=index, data=map(lambda d: d.to_array(), status_list))
+            return pd.DataFrame(
+                columns=status_list[0].get_names(), index=index, data=map(lambda d: d.to_array(), status_list)
+            )
         else:
             return pd.DataFrame()
 

@@ -6,8 +6,8 @@ from typing import NamedTuple, List, Union
 
 import pandas as pd
 
-from demeter import MarketStatus
-from demeter.broker import MarketBalance
+from demeter import MarketStatus, BaseAction
+from demeter.broker import MarketBalance, ActionTypeEnum
 
 
 class DeribitOptionMarketDescription(NamedTuple):
@@ -67,23 +67,28 @@ class InstrumentStatus:
 
 
 class DeribitTokenConfig(NamedTuple):
-    fee_amount: Decimal
+    fee_amount: float
     min_decimal: int  # exponent, eg: 5 in 1e5, -2 in 1e-2
 
     @property
     def min_amount(self):
-        return Decimal(f"1e{self.min_decimal}")
+        return float(Decimal(f"1e{self.min_decimal}"))
 
 
 class OptionKind(Enum):
-    Put = "P"
-    Call = "C"
+    put = "PUT"
+    call = "CALL"
 
 
 @dataclass
 class OptionPosition:
     instrument_name: str
-    amount: Decimal
+    type: OptionKind
+    amount: float
+    avg_buy_price: float
+    buy_amount: float
+    avg_sell_price: float
+    sell_amount: float
 
 
 @dataclass
@@ -99,5 +104,36 @@ class DeribitMarketStatus(MarketStatus):
 
 
 @dataclass
-class OptionBalance(MarketBalance):
+class OptionMarketBalance(MarketBalance):
+    put_count: int
+    call_count: int
+    delta: float
+    gamma: float
 
+
+class Order(NamedTuple):
+    price: float
+    amount: float
+
+    @staticmethod
+    def get_average_price(orders: List):
+        total = sum([t.amount * t.price for t in orders])
+        total_amount = sum([t.amount for t in orders])
+        if total_amount == 0:
+            return 0
+        else:
+            return total / total_amount
+
+
+@dataclass
+class BuyAction(BaseAction):
+    instrument_name: str
+    type: OptionKind
+    amount: float
+    value: float
+    mark_price: float
+    underlying_price: float
+    orders: List[Order]
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.option_buy

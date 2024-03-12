@@ -1,21 +1,27 @@
 import json
 import os
-import token
 from _decimal import Decimal
 from datetime import date, timedelta
-from typing import Dict, List, Set
+from typing import List, Dict
 
 import pandas as pd
 
-from . import helper
-from ._typing import DeribitOptionMarketDescription, DeribitTokenConfig, DeribitMarketStatus
+from ._typing import (
+    DeribitOptionMarketDescription,
+    DeribitTokenConfig,
+    DeribitMarketStatus,
+    OptionMarketBalance,
+    OptionPosition,
+    OptionKind,
+    BuyAction,
+    InstrumentStatus,
+    Order,
+)
 from .helper import round_decimal
-
-from .. import DemeterError, TokenInfo
-from .._typing import DECIMAL_0, UnitDecimal, ChainType
-from ..broker import Market, MarketInfo, write_func
-from ..utils import get_formatted_predefined, STYLE, get_formatted_from_dict
-from ..utils.application import require, float_param_formatter, to_decimal
+from .. import TokenInfo
+from .._typing import ChainType, DemeterError
+from ..broker import Market, MarketInfo, write_func, ActionTypeEnum
+from ..utils.application import float_param_formatter
 
 DEFAULT_DATA_PATH = "./data"
 
@@ -38,6 +44,7 @@ class DeribitOptionMarket(Market):
         super().__init__(market_info=market_info, data_path=data_path, data=data)
         self.token: TokenInfo = token
         self.token_config: DeribitTokenConfig = DeribitOptionMarket.TOKEN_CONFIGS[token]
+        self.positions: Dict[str, OptionPosition] = {}
 
     TOKEN_CONFIGS = {ETH: DeribitTokenConfig(Decimal(0.0003), 0), BTC: DeribitTokenConfig(Decimal(0.0003), -1)}
     MAX_FEE_RATE = 0.125
@@ -49,7 +56,7 @@ class DeribitOptionMarket(Market):
         """
         Get a brief description of this market
         """
-        return DeribitOptionMarketDescription(type(self).__name__, self._market_info.name, 0)
+        return DeribitOptionMarketDescription(type(self).__name__, self._market_info.name, len(self.positions))
 
     def load_data(self, start_date: date, end_date: date):
         """
@@ -78,8 +85,7 @@ class DeribitOptionMarket(Market):
                 raise IOError(f"resource file {path} not found")
 
             day_df = pd.read_csv(path, parse_dates=["time", "exec_time"], index_col=["time", "instrument_name"])
-            day_df = day_df[day_df["state"] == "open"]
-            day_df.drop(columns=["state", "actual_time"], inplace=True)
+            day_df.drop(columns=["actual_time"], inplace=True)
             df = pd.concat([df, day_df])
             day += timedelta(days=1)
 
@@ -115,20 +121,25 @@ class DeribitOptionMarket(Market):
         """
         return min(self.token_config.fee_amount, DeribitOptionMarket.MAX_FEE_RATE * trade_value)
 
-    def __get_price(self, token_prices: pd.Series) -> Decimal:
+    def __get_extern_underlying_price(self, token_prices: pd.Series) -> float:
         """
         a shortcut to get underlying token price of this market
         """
-        return token_prices[self.token.name]
+        return float(token_prices[self.token.name])
 
-    def __get_trade_amount(self, amount: Decimal):
+    def __get_trade_amount(self, amount: float):
         if amount < self.token_config.min_amount:
             return self.token_config.min_amount
         return round_decimal(amount, self.token_config.min_decimal)
 
     @write_func
-    @float_param_formatter
-    def buy(self, amount: Decimal, price_in_token: Decimal | float | None = None, price_in_usd: Decimal | float | None = None):
+    def buy(
+        self,
+        instrument_name: str,
+        amount: float,
+        price_in_token: float | None = None,
+        price_in_usd: float | None = None,
+    ) -> List[Order]:
         """
         if price is not none, will set at that price
         or else will buy according to bids
@@ -140,12 +151,89 @@ class DeribitOptionMarket(Market):
         # calc fee
         # add position
         # modify balance
+        if instrument_name not in self._market_status.data.index:
+            raise DemeterError(f"{instrument_name} is not in current orderbook")
+        instrument: InstrumentStatus = self._market_status.data[instrument_name]
 
-        pass
+        if amount < self.token_config.min_amount:
+            raise DemeterError(
+                f"amount should greater than min amount {self.token_config.min_amount} {self.token.name}"
+            )
+        amount = self.__get_trade_amount(amount)
+
+        if price_in_usd is not None and price_in_token is None:
+            price_in_token = self.__get_extern_underlying_price(self._price_status)
+
+        if price_in_token is not None:
+            # to prevent error in decimal
+            match_bid = list[filter(lambda x: 0.995 * price_in_token < x[0] < 1.005 * price_in_token, instrument.bids)]
+            if len(match_bid) < 1:
+                raise DemeterError(
+                    f"{instrument_name} doesn't have a order in price {price_in_token} {self.token.name}"
+                )
+            price_in_token = match_bid[0][0]
+            available_amount = match_bid[0][1]
+        else:
+            available_amount = sum([x[1] for x in instrument.bids])
+        if amount < available_amount:
+            raise DemeterError(
+                f"insufficient order to buy, required amount is {amount}, available amount is {available_amount}"
+            )
+
+        # deduct bids amount
+        bids = instrument.bids
+        bid_list = []
+        if price_in_token is not None:
+            for bid in bids:
+                if price_in_token == bid[0]:
+                    bid[1] -= amount
+                    bid_list.append(Order(bid[0], amount))
+        else:
+            amount_to_deduct = amount
+            for bid in bids:
+                should_deduct = min(bid[1], amount_to_deduct)
+                amount_to_deduct -= should_deduct
+                bid[1] -= should_deduct
+                bid_list.append(Order(bid[0], should_deduct))
+                if bid[1] > 0:
+                    break
+
+        total_value = sum([t.amount * t.price for t in bid_list])
+        self.broker.subtract_from_balance(total_value)
+
+        instrument.bids = bids
+        # add position
+        average_price = Order.get_average_price(bid_list)
+        if instrument_name not in self.positions.keys():
+            self.positions[instrument_name] = OptionPosition(
+                instrument_name, OptionKind(instrument.type), amount, average_price, amount, 0, 0
+            )
+        else:
+            position = self.positions[instrument_name]
+            position.avg_buy_price = Order.get_average_price(
+                [Order(average_price, amount), Order(position.avg_buy_price, position.buy_amount)]
+            )
+            position.buy_amount += amount
+            position.amount += amount
+
+        self._record_action(
+            BuyAction(
+                market=self._market_info,
+                instrument_name=instrument_name,
+                type=OptionKind(instrument.type),
+                amount=amount,
+                value=total_value,
+                mark_price=instrument.mark_price,
+                underlying_price=instrument.underlying_price,
+                orders=bid_list,
+            )
+        )
+        return bid_list
 
     @write_func
-    @float_param_formatter
-    def sell(self, amount: Decimal, price_in_token: Decimal | float | None = None, price_in_usd: Decimal | float | None = None):
+    def sell(
+        self, instrument: str, amount: Decimal, price_in_token: float | None = None, price_in_usd: float | None = None
+    ):
 
         pass
 
@@ -162,7 +250,7 @@ class DeribitOptionMarket(Market):
         """ """
         pass
 
-    def get_market_balance(self, prices: pd.Series | Dict[str, Decimal]) -> MarketBalance:
+    def get_market_balance(self, prices: pd.Series | Dict[str, Decimal]) -> OptionMarketBalance:
         """
         Get market asset balance, such as current positions, net values
 
@@ -171,6 +259,21 @@ class DeribitOptionMarket(Market):
         :return: Balance in this market includes net value, position value
         :rtype: MarketBalance
         """
-        return MarketBalance(DECIMAL_0)
+        put_count = len(filter(lambda x: x.type == OptionKind.put, self.positions.values()))
+        call_count = len(filter(lambda x: x.type == OptionKind.call, self.positions.values()))
+
+        net_value = Decimal(0)
+        delta = gamma = 0.0
+        for position in self.positions.values():
+            instr_status = self.market_status.data[position.instrument_name]
+            net_value_instrument = position.amount * instr_status.mark_price
+            net_value += net_value_instrument
+            delta += float(net_value_instrument) * instr_status.delta
+            gamma += float(net_value_instrument) * instr_status.gamma
+
+        delta /= float(net_value)
+        gamma /= float(net_value)
+
+        return OptionMarketBalance(net_value, put_count, call_count, delta, gamma)
 
     # endregion
