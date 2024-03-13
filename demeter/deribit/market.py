@@ -47,7 +47,7 @@ class DeribitOptionMarket(Market):
         self.token_config: DeribitTokenConfig = DeribitOptionMarket.TOKEN_CONFIGS[token]
         self.positions: Dict[str, OptionPosition] = {}
 
-    TOKEN_CONFIGS = {ETH: DeribitTokenConfig(0.0003, 0), BTC: DeribitTokenConfig(0.0003, -1)}
+    TOKEN_CONFIGS = {ETH: DeribitTokenConfig(0.0003, 0.00015, 0), BTC: DeribitTokenConfig(0.0003, 0.00015, -1)}
     MAX_FEE_RATE = 0.125
 
     def __str__(self):
@@ -115,16 +115,24 @@ class DeribitOptionMarket(Market):
 
     # region for option market only
 
-    def get_fee_rate(self, trade_value: float) -> float:
+    def get_trade_fee(self, amount: float, total_premium: float) -> float:
         """
         https://www.deribit.com/kb/fees
         """
-        return min(self.token_config.fee_amount, DeribitOptionMarket.MAX_FEE_RATE * trade_value)
+        return min(self.token_config.trade_fee_rate * amount, DeribitOptionMarket.MAX_FEE_RATE * total_premium)
 
-    def __get_extern_underlying_price(self, token_prices: pd.Series) -> float:
+    def get_deliver_fee(self, amount: float, total_premium: float) -> float:
+        """
+        https://www.deribit.com/kb/fees
+        """
+        return min(self.token_config.delivery_fee_rate * amount, DeribitOptionMarket.MAX_FEE_RATE * total_premium)
+
+    def __get_extern_underlying_price(self, token_prices: pd.Series | None = None) -> float:
         """
         a shortcut to get underlying token price of this market
         """
+        if token_prices is None:
+            token_prices = self._price_status
         return float(token_prices[self.token.name])
 
     def __get_trade_amount(self, amount: float):
@@ -156,14 +164,23 @@ class DeribitOptionMarket(Market):
         # write positions back
         self.data.loc[(self._market_status.timestamp, instrument_name), "bids"] = bids
 
-        total_value = sum([t.amount * t.price for t in bid_list])
-        self.broker.subtract_from_balance(self.token, total_value)
+        total_premium = sum([t.amount * t.price for t in bid_list])
+        fee_amount = self.get_trade_fee(amount, total_premium)
+        self.broker.subtract_from_balance(self.token, total_premium + fee_amount)
 
         # add position
         average_price = Order.get_average_price(bid_list)
         if instrument_name not in self.positions.keys():
             self.positions[instrument_name] = OptionPosition(
-                instrument_name, OptionKind(instrument.type), amount, average_price, amount, 0, 0
+                instrument_name,
+                instrument.expiry_time,
+                instrument.strike_price,
+                OptionKind(instrument.type),
+                amount,
+                average_price,
+                amount,
+                0,
+                0,
             )
         else:
             position = self.positions[instrument_name]
@@ -180,9 +197,10 @@ class DeribitOptionMarket(Market):
                 type=OptionKind(instrument.type),
                 average_price=average_price,
                 amount=amount,
-                value=total_value,
+                total_premium=total_premium,
                 mark_price=instrument.mark_price,
                 underlying_price=instrument.underlying_price,
+                fee=fee_amount,
                 orders=bid_list,
             )
         )
@@ -191,7 +209,7 @@ class DeribitOptionMarket(Market):
     @staticmethod
     def _find_available_orders(price, order_list) -> List:
         error = 0.005
-        return list[filter(lambda x: (1 - error) * price < x[0] < (1 + error) * price, order_list)]
+        return list(filter(lambda x: (1 - error) * price < x[0] < (1 + error) * price, order_list))
 
     @write_func
     def sell(
@@ -212,8 +230,9 @@ class DeribitOptionMarket(Market):
         # write positions back
         self.data.loc[(self._market_status.timestamp, instrument_name), "asks"] = asks
 
-        total_value = sum([t.amount * t.price for t in ask_list])
-        self.broker.add_to_balance(self.token, total_value)
+        total_premium = sum([t.amount * t.price for t in ask_list])
+        fee = self.get_trade_fee(amount, total_premium)
+        self.broker.add_to_balance(self.token, total_premium - fee)
 
         # subtract position
         average_price = Order.get_average_price(ask_list)
@@ -237,9 +256,10 @@ class DeribitOptionMarket(Market):
                 type=OptionKind(instrument.type),
                 average_price=average_price,
                 amount=amount,
-                value=total_value,
+                total_premium=total_premium,
                 mark_price=instrument.mark_price,
                 underlying_price=instrument.underlying_price,
+                fee=fee,
                 orders=ask_list,
             )
         )
@@ -298,16 +318,32 @@ class DeribitOptionMarket(Market):
 
         return amount, instrument, price_in_token
 
-    def check_option_expire(self):
+    def check_option_exercise(self):
         """
         loop all the option position,
         if expired, if option position is in the money, then exercise.
         if out of the money, then abandon
         """
+        for position in self.positions.values():
+            if self._market_status.timestamp > position.expiry_time:
+                # should
+                if position.type == OptionKind.put and position.strike_price < self.__get_extern_underlying_price():
+                    self._delivery_put_option(position)
+                elif position.type == OptionKind.call and position.strike_price > self.__get_extern_underlying_price():
+                    self._delivery_call_option(position)
+
+        pass
+
+    def update(self):
+        self.check_option_exercise()
+
+    @write_func
+    def _delivery_put_option(self, option_pos):
+        """ """
         pass
 
     @write_func
-    def _exercise(self, option_pos):
+    def _delivery_call_option(self, option_pos):
         """ """
         pass
 
@@ -327,7 +363,7 @@ class DeribitOptionMarket(Market):
         delta = gamma = 0.0
         for position in self.positions.values():
             instr_status = self.market_status.data[position.instrument_name]
-            net_value_instrument = position.amount * instr_status.mark_price
+            net_value_instrument = position.amount * instr_status.settlement_price
             net_value += net_value_instrument
             delta += float(net_value_instrument) * instr_status.delta
             gamma += float(net_value_instrument) * instr_status.gamma

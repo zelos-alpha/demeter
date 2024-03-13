@@ -48,7 +48,7 @@ class Evaluator(object):
         """
         if EvaluatorEnum.all in enables:
             enables = [x for x in EvaluatorEnum]
-            enables = filter(lambda x: x.value > 0, enables)
+            enables = filter(lambda x: x.total_premium > 0, enables)
         result_dict: Dict[EvaluatorEnum, UnitDecimal] = {}
         for request in enables:
             match request:

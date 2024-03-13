@@ -40,9 +40,9 @@ class InstrumentStatus:
     actual_time: datetime
     state: str
     type: str
-    k: float
+    strike_price: float
     t: float
-    exec_time: datetime
+    expiry_time: datetime
     vega: float
     theta: float
     rho: float
@@ -67,7 +67,8 @@ class InstrumentStatus:
 
 
 class DeribitTokenConfig(NamedTuple):
-    fee_amount: float
+    trade_fee_rate: float
+    delivery_fee_rate: float
     min_decimal: int  # exponent, eg: 5 in 1e5, -2 in 1e-2
 
     @property
@@ -83,6 +84,8 @@ class OptionKind(Enum):
 @dataclass
 class OptionPosition:
     instrument_name: str
+    expiry_time: datetime
+    strike_price: float
     type: OptionKind
     amount: float
     avg_buy_price: float
@@ -126,30 +129,27 @@ class Order(NamedTuple):
 
 
 @dataclass
-class BuyAction(BaseAction):
+class OptionTradeAction(BaseAction):
     instrument_name: str
     type: OptionKind
     average_price: float
     amount: float
-    value: float
+    total_premium: float
     mark_price: float
     underlying_price: float
+    fee: float
     orders: List[Order]
+
+
+@dataclass
+class BuyAction(OptionTradeAction):
 
     def set_type(self):
         self.action_type = ActionTypeEnum.option_buy
 
 
 @dataclass
-class SellAction(BaseAction):
-    instrument_name: str
-    type: OptionKind
-    average_price: float
-    amount: float
-    value: float
-    mark_price: float
-    underlying_price: float
-    orders: List[Order]
+class SellAction(OptionTradeAction):
 
     def set_type(self):
         self.action_type = ActionTypeEnum.option_sell
