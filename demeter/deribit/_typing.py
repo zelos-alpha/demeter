@@ -129,6 +129,7 @@ class Order(NamedTuple):
 class BuyAction(BaseAction):
     instrument_name: str
     type: OptionKind
+    average_price: float
     amount: float
     value: float
     mark_price: float
@@ -137,3 +138,18 @@ class BuyAction(BaseAction):
 
     def set_type(self):
         self.action_type = ActionTypeEnum.option_buy
+
+
+@dataclass
+class SellAction(BaseAction):
+    instrument_name: str
+    type: OptionKind
+    average_price: float
+    amount: float
+    value: float
+    mark_price: float
+    underlying_price: float
+    orders: List[Order]
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.option_sell

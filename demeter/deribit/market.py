@@ -16,6 +16,7 @@ from ._typing import (
     BuyAction,
     InstrumentStatus,
     Order,
+    SellAction,
 )
 from .helper import round_decimal
 from .. import TokenInfo
@@ -46,7 +47,7 @@ class DeribitOptionMarket(Market):
         self.token_config: DeribitTokenConfig = DeribitOptionMarket.TOKEN_CONFIGS[token]
         self.positions: Dict[str, OptionPosition] = {}
 
-    TOKEN_CONFIGS = {ETH: DeribitTokenConfig(Decimal(0.0003), 0), BTC: DeribitTokenConfig(Decimal(0.0003), -1)}
+    TOKEN_CONFIGS = {ETH: DeribitTokenConfig(0.0003, 0), BTC: DeribitTokenConfig(0.0003, -1)}
     MAX_FEE_RATE = 0.125
 
     def __str__(self):
@@ -85,7 +86,7 @@ class DeribitOptionMarket(Market):
                 raise IOError(f"resource file {path} not found")
 
             day_df = pd.read_csv(path, parse_dates=["time", "exec_time"], index_col=["time", "instrument_name"])
-            day_df.drop(columns=["actual_time"], inplace=True)
+            day_df.drop(columns=["actual_time", "min_price", "max_price"], inplace=True)
             df = pd.concat([df, day_df])
             day += timedelta(days=1)
 
@@ -114,8 +115,7 @@ class DeribitOptionMarket(Market):
 
     # region for option market only
 
-    @float_param_formatter
-    def get_fee_rate(self, trade_value: float | Decimal) -> Decimal:
+    def get_fee_rate(self, trade_value: float) -> float:
         """
         https://www.deribit.com/kb/fees
         """
@@ -144,64 +144,21 @@ class DeribitOptionMarket(Market):
         if price is not none, will set at that price
         or else will buy according to bids
 
-        buy order price should in min_price and max_price
         """
-
-        # match order
-        # calc fee
-        # add position
-        # modify balance
-        if instrument_name not in self._market_status.data.index:
-            raise DemeterError(f"{instrument_name} is not in current orderbook")
-        instrument: InstrumentStatus = self._market_status.data[instrument_name]
-
-        if amount < self.token_config.min_amount:
-            raise DemeterError(
-                f"amount should greater than min amount {self.token_config.min_amount} {self.token.name}"
-            )
-        amount = self.__get_trade_amount(amount)
-
-        if price_in_usd is not None and price_in_token is None:
-            price_in_token = self.__get_extern_underlying_price(self._price_status)
-
-        if price_in_token is not None:
-            # to prevent error in decimal
-            match_bid = list[filter(lambda x: 0.995 * price_in_token < x[0] < 1.005 * price_in_token, instrument.bids)]
-            if len(match_bid) < 1:
-                raise DemeterError(
-                    f"{instrument_name} doesn't have a order in price {price_in_token} {self.token.name}"
-                )
-            price_in_token = match_bid[0][0]
-            available_amount = match_bid[0][1]
-        else:
-            available_amount = sum([x[1] for x in instrument.bids])
-        if amount < available_amount:
-            raise DemeterError(
-                f"insufficient order to buy, required amount is {amount}, available amount is {available_amount}"
-            )
+        amount, instrument, price_in_token = self._check_transaction(
+            amount, instrument_name, price_in_token, price_in_usd, True
+        )
 
         # deduct bids amount
         bids = instrument.bids
-        bid_list = []
-        if price_in_token is not None:
-            for bid in bids:
-                if price_in_token == bid[0]:
-                    bid[1] -= amount
-                    bid_list.append(Order(bid[0], amount))
-        else:
-            amount_to_deduct = amount
-            for bid in bids:
-                should_deduct = min(bid[1], amount_to_deduct)
-                amount_to_deduct -= should_deduct
-                bid[1] -= should_deduct
-                bid_list.append(Order(bid[0], should_deduct))
-                if bid[1] > 0:
-                    break
+        bid_list = self._deduct_order_amount(amount, bids, price_in_token)
+
+        # write positions back
+        self.data.loc[(self._market_status.timestamp, instrument_name), "bids"] = bids
 
         total_value = sum([t.amount * t.price for t in bid_list])
-        self.broker.subtract_from_balance(total_value)
+        self.broker.subtract_from_balance(self.token, total_value)
 
-        instrument.bids = bids
         # add position
         average_price = Order.get_average_price(bid_list)
         if instrument_name not in self.positions.keys():
@@ -221,6 +178,7 @@ class DeribitOptionMarket(Market):
                 market=self._market_info,
                 instrument_name=instrument_name,
                 type=OptionKind(instrument.type),
+                average_price=average_price,
                 amount=amount,
                 value=total_value,
                 mark_price=instrument.mark_price,
@@ -230,12 +188,115 @@ class DeribitOptionMarket(Market):
         )
         return bid_list
 
+    @staticmethod
+    def _find_available_orders(price, order_list) -> List:
+        error = 0.005
+        return list[filter(lambda x: (1 - error) * price < x[0] < (1 + error) * price, order_list)]
+
     @write_func
     def sell(
-        self, instrument: str, amount: Decimal, price_in_token: float | None = None, price_in_usd: float | None = None
-    ):
+        self,
+        instrument_name: str,
+        amount: Decimal,
+        price_in_token: float | None = None,
+        price_in_usd: float | None = None,
+    ) -> List[Order]:
+        amount, instrument, price_in_token = self._check_transaction(
+            amount, instrument_name, price_in_token, price_in_usd, False
+        )
 
-        pass
+        # deduct asks amount
+        asks = instrument.asks
+        ask_list = self._deduct_order_amount(amount, asks, price_in_token)
+
+        # write positions back
+        self.data.loc[(self._market_status.timestamp, instrument_name), "asks"] = asks
+
+        total_value = sum([t.amount * t.price for t in ask_list])
+        self.broker.add_to_balance(self.token, total_value)
+
+        # subtract position
+        average_price = Order.get_average_price(ask_list)
+        if instrument_name not in self.positions.keys():
+            raise DemeterError("No such instrument position")
+
+        position = self.positions[instrument_name]
+        position.avg_sell_price = Order.get_average_price(
+            [Order(average_price, amount), Order(position.avg_sell_price, position.sell_amount)]
+        )
+        position.sell_amount += amount
+        position.amount -= amount
+
+        if position.amount < 0:
+            del self.positions[instrument_name]
+
+        self._record_action(
+            SellAction(
+                market=self._market_info,
+                instrument_name=instrument_name,
+                type=OptionKind(instrument.type),
+                average_price=average_price,
+                amount=amount,
+                value=total_value,
+                mark_price=instrument.mark_price,
+                underlying_price=instrument.underlying_price,
+                orders=ask_list,
+            )
+        )
+        return ask_list
+
+    def _deduct_order_amount(self, amount, orders, price_in_token):
+        order_list = []
+        if price_in_token is not None:
+            for order in orders:
+                if price_in_token == order[0]:
+                    order[1] -= amount
+                    order_list.append(Order(order[0], amount))
+        else:
+            amount_to_deduct = amount
+            for order in orders:
+                should_deduct = min(order[1], amount_to_deduct)
+                amount_to_deduct -= should_deduct
+                order[1] -= should_deduct
+                order_list.append(Order(order[0], should_deduct))
+                if order[1] > 0:
+                    break
+        return order_list
+
+    def _check_transaction(self, amount, instrument_name, price_in_token, price_in_usd, is_buy):
+        if instrument_name not in self._market_status.data.index:
+            raise DemeterError(f"{instrument_name} is not in current orderbook")
+        instrument: InstrumentStatus = self._market_status.data[instrument_name]
+        if amount < self.token_config.min_amount:
+            raise DemeterError(
+                f"amount should greater than min amount {self.token_config.min_amount} {self.token.name}"
+            )
+        amount = self.__get_trade_amount(amount)
+        if price_in_usd is not None and price_in_token is None:
+            price_in_token = self.__get_extern_underlying_price(self._price_status)
+
+        if is_buy:
+            orders = instrument.bids
+        else:
+            orders = instrument.asks
+
+        if price_in_token is not None:
+            # to prevent error in decimal
+            orders = DeribitOptionMarket._find_available_orders(price_in_token, orders)
+            if len(orders) < 1:
+                raise DemeterError(
+                    f"{instrument_name} doesn't have a order in price {price_in_token} {self.token.name}"
+                )
+            price_in_token = orders[0][0]
+            available_amount = orders[0][1]
+        else:
+            available_amount = sum([x[1] for x in orders])
+        if amount < available_amount:
+            raise DemeterError(
+                f"insufficient order to buy, required amount is {amount}, available amount is {available_amount}"
+            )
+
+        return amount, instrument, price_in_token
 
     def check_option_expire(self):
         """
