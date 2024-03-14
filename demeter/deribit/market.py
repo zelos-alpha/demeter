@@ -127,14 +127,6 @@ class DeribitOptionMarket(Market):
         """
         return min(self.token_config.delivery_fee_rate * amount, DeribitOptionMarket.MAX_FEE_RATE * total_premium)
 
-    def __get_extern_underlying_price(self, token_prices: pd.Series | None = None) -> float:
-        """
-        a shortcut to get underlying token price of this market
-        """
-        if token_prices is None:
-            token_prices = self._price_status
-        return float(token_prices[self.token.name])
-
     def __get_trade_amount(self, amount: float):
         if amount < self.token_config.min_amount:
             return self.token_config.min_amount
@@ -154,7 +146,7 @@ class DeribitOptionMarket(Market):
 
         """
         amount, instrument, price_in_token = self._check_transaction(
-            amount, instrument_name, price_in_token, price_in_usd, True
+            instrument_name, amount, price_in_token, price_in_usd, True
         )
 
         # deduct bids amount
@@ -220,7 +212,7 @@ class DeribitOptionMarket(Market):
         price_in_usd: float | None = None,
     ) -> List[Order]:
         amount, instrument, price_in_token = self._check_transaction(
-            amount, instrument_name, price_in_token, price_in_usd, False
+            instrument_name, amount, price_in_token, price_in_usd, False
         )
 
         # deduct asks amount
@@ -283,7 +275,7 @@ class DeribitOptionMarket(Market):
                     break
         return order_list
 
-    def _check_transaction(self, amount, instrument_name, price_in_token, price_in_usd, is_buy):
+    def _check_transaction(self, instrument_name, amount, price_in_token, price_in_usd, is_buy):
         if instrument_name not in self._market_status.data.index:
             raise DemeterError(f"{instrument_name} is not in current orderbook")
         instrument: InstrumentStatus = self._market_status.data[instrument_name]
@@ -293,7 +285,7 @@ class DeribitOptionMarket(Market):
             )
         amount = self.__get_trade_amount(amount)
         if price_in_usd is not None and price_in_token is None:
-            price_in_token = self.__get_extern_underlying_price(self._price_status)
+            price_in_token = instrument.underlying_price
 
         if is_buy:
             orders = instrument.bids
@@ -324,28 +316,41 @@ class DeribitOptionMarket(Market):
         if expired, if option position is in the money, then exercise.
         if out of the money, then abandon
         """
-        for position in self.positions.values():
+        for pos_key, position in self.positions.items():
             if self._market_status.timestamp > position.expiry_time:
                 # should
-                if position.type == OptionKind.put and position.strike_price < self.__get_extern_underlying_price():
-                    self._delivery_put_option(position)
-                elif position.type == OptionKind.call and position.strike_price > self.__get_extern_underlying_price():
-                    self._delivery_call_option(position)
-
-        pass
+                if position.instrument_name not in self._market_status.data.index:
+                    raise DemeterError(f"{position.instrument_name} is not in current orderbook")
+                instrument: InstrumentStatus = self.market_status.data[position.instrument_name]
+                if position.type == OptionKind.put and position.strike_price > instrument.underlying_price:
+                    self._deliver_put_option(pos_key, position, instrument)
+                elif position.type == OptionKind.call and position.strike_price < instrument.underlying_price:
+                    self._deliver_call_option(pos_key, position, instrument)
 
     def update(self):
         self.check_option_exercise()
 
     @write_func
-    def _delivery_put_option(self, option_pos):
+    def _deliver_put_option(self, key, option_pos, instrument: InstrumentStatus):
         """ """
-        pass
+
+        fee = self.get_deliver_fee(option_pos.amount, option_pos.amount * instrument.settlement_price)
+        total_value_to_subtract = fee + option_pos.amount * (option_pos.strike_price / instrument.underlying_price - 1)
+
+        self.broker.subtract_from_balance(self.token, total_value_to_subtract)
+        del self.positions[key]
 
     @write_func
-    def _delivery_call_option(self, option_pos):
+    def _deliver_call_option(self, key, option_pos, instrument: InstrumentStatus):
         """ """
-        pass
+
+        fee = self.get_deliver_fee(option_pos.amount, option_pos.amount * instrument.settlement_price)
+
+        self.broker.add_to_balance(
+            self.token, option_pos.amount * (1 - option_pos.strike_price / instrument.underlying_price)
+        )
+        self.broker.subtract_from_balance(self.token, fee)
+        del self.positions[key]
 
     def get_market_balance(self, prices: pd.Series | Dict[str, Decimal]) -> OptionMarketBalance:
         """
@@ -359,18 +364,18 @@ class DeribitOptionMarket(Market):
         put_count = len(filter(lambda x: x.type == OptionKind.put, self.positions.values()))
         call_count = len(filter(lambda x: x.type == OptionKind.call, self.positions.values()))
 
-        net_value = Decimal(0)
+        premium = Decimal(0)
         delta = gamma = 0.0
         for position in self.positions.values():
             instr_status = self.market_status.data[position.instrument_name]
-            net_value_instrument = position.amount * instr_status.settlement_price
-            net_value += net_value_instrument
-            delta += float(net_value_instrument) * instr_status.delta
-            gamma += float(net_value_instrument) * instr_status.gamma
+            instrument_premium = position.amount * instr_status.settlement_price
+            premium += instrument_premium
+            delta += float(instrument_premium) * instr_status.delta
+            gamma += float(instrument_premium) * instr_status.gamma
 
-        delta /= float(net_value)
-        gamma /= float(net_value)
+        delta /= float(premium)
+        gamma /= float(premium)
 
-        return OptionMarketBalance(net_value, put_count, call_count, delta, gamma)
+        return OptionMarketBalance(premium, put_count, call_count, delta, gamma)
 
     # endregion
