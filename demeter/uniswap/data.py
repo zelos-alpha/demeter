@@ -99,11 +99,8 @@ def get_line_rules_safe(key: str) -> Rule:
 def resample(
     df: pd.DataFrame,
     rule,
-    axis=0,
     closed: str | None = None,
     label: str | None = None,
-    convention: str = "start",
-    kind: str | None = None,
     on=None,
     level=None,
     origin: str | pd_typing.TimestampConvertibleTypes = "start_day",
@@ -116,11 +113,8 @@ def resample(
 
     :param df: data in dataframe
     :param rule: resample rule, see Dataframe.resample doc
-    :param axis: resample axis, see Dataframe.resample doc
     :param closed: resample closed, see Dataframe.resample doc
     :param label: resample label, see Dataframe.resample doc
-    :param convention: resample convention, see Dataframe.resample doc
-    :param kind: resample kind, see Dataframe.resample doc
     :param on: resample on, see Dataframe.resample doc
     :param level: resample level, see Dataframe.resample doc
     :param origin: resample origin, see Dataframe.resample doc
@@ -132,11 +126,8 @@ def resample(
     agg = agg if agg else {}
     resampler = df.resample(
         rule=rule,
-        axis=axis,
         closed=closed,
         label=label,
-        convention=convention,
-        kind=kind,
         on=on,
         level=level,
         origin=origin,
@@ -164,7 +155,6 @@ def fillna(
     axis: pd_typing.Axis | None = None,
     inplace: bool = False,
     limit=None,
-    downcast=None,
 ) -> pd.DataFrame | None:
     """
     fill empty item. param is the same to pandas.Series.fillna
@@ -176,20 +166,21 @@ def fillna(
 
     # fill close tick first, it will be used later.
     if LineTypeEnum.closeTick.name in new_df.columns:
-        new_df[LineTypeEnum.closeTick.name] = new_df[LineTypeEnum.closeTick.name].fillna(
-            value=None,
+        new_df[LineTypeEnum.closeTick.name] = df_fill_na(
+            new_df[LineTypeEnum.closeTick.name],
             method=get_line_rules_safe(LineTypeEnum.closeTick.name).fillna_method,
             axis=axis,
             inplace=inplace,
             limit=limit,
-            downcast=downcast,
         )
     for column_name in new_df.columns:
         if column_name == LineTypeEnum.closeTick.name:
             continue
         rule = get_line_rules_safe(column_name)
         if rule.fillna_method is None and rule.fillna_value is None:
-            new_df[column_name] = new_df[column_name].fillna(value=value, method=method, axis=axis, inplace=inplace, limit=limit, downcast=downcast)
+            new_df[column_name] = df_fill_na(
+                new_df[column_name], value=value, method=method, axis=axis, inplace=inplace, limit=limit
+            )
         else:
             current_method = rule.fillna_method if rule.fillna_method else method
             current_value = rule.fillna_value if rule.fillna_value is not None else value
@@ -205,12 +196,30 @@ def fillna(
             ):
                 current_method = None
                 current_value = new_df[LineTypeEnum.closeTick.name]
-            new_df[column_name] = new_df[column_name].fillna(
+            new_df[column_name] = df_fill_na(
+                new_df[column_name],
                 value=current_value,
                 method=current_method,
                 axis=axis,
                 inplace=inplace,
                 limit=limit,
-                downcast=downcast,
             )
     return new_df
+
+
+def df_fill_na(
+    df: pd.DataFrame,
+    value=None,
+    method: pd_typing.FillnaOptions | None = None,
+    axis: pd_typing.Axis | None = None,
+    inplace: bool = False,
+    limit: int | None = None,
+) -> pd.DataFrame:
+    if value is not None:
+        return df.fillna(value=value, axis=axis, inplace=inplace, limit=limit)
+    elif method == "ffill":
+        return df.ffill(axis=axis, inplace=inplace, limit=limit)
+    elif method == "bfill":
+        return df.bfill(axis=axis, inplace=inplace, limit=limit)
+    else:
+        raise ValueError(f"{method} is not supported, use bfill or ffill")

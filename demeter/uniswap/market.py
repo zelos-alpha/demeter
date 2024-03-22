@@ -57,7 +57,9 @@ class UniLpMarket(Market):
     :type data_path: str
     """
 
-    def __init__(self, market_info: MarketInfo, pool_info: UniV3Pool, data: pd.DataFrame = None, data_path: str = "./data"):
+    def __init__(
+        self, market_info: MarketInfo, pool_info: UniV3Pool, data: pd.DataFrame = None, data_path: str = "./data"
+    ):
         super().__init__(market_info=market_info, data=data, data_path=data_path)
         self._pool: UniV3Pool = pool_info
         # init balance
@@ -80,7 +82,12 @@ class UniLpMarket(Market):
 
     @property
     def description(self) -> UniDescription:
-        return UniDescription(type(self).__name__, self._market_info.name, len(self._positions), sum([p.liquidity for p in self._positions.values()]))
+        return UniDescription(
+            type(self).__name__,
+            self._market_info.name,
+            len(self._positions),
+            sum([p.liquidity for p in self._positions.values()]),
+        )
 
     @property
     def positions(self) -> Dict[PositionInfo, Position]:
@@ -138,6 +145,7 @@ class UniLpMarket(Market):
         :rtype: Position
         """
         return self._positions[position_info]
+
 
     def set_market_status(
         self,
@@ -352,9 +360,13 @@ class UniLpMarket(Market):
 
     @write_func
     def __remove_liquidity(self, position: PositionInfo, liquidity: int = None, sqrt_price_x96: int = -1):
-        sqrt_price_x96 = int(sqrt_price_x96) if sqrt_price_x96 != -1 else get_sqrt_ratio_at_tick(self.market_status.data.closeTick)
+        sqrt_price_x96 = (
+            int(sqrt_price_x96) if sqrt_price_x96 != -1 else get_sqrt_ratio_at_tick(self.market_status.data.closeTick)
+        )
         delta_liquidity = (
-            liquidity if (liquidity is not None) and liquidity < self.positions[position].liquidity else self.positions[position].liquidity
+            liquidity
+            if (liquidity is not None) and liquidity < self.positions[position].liquidity
+            else self.positions[position].liquidity
         )
         token0_get, token1_get = V3CoreLib.close_position(self._pool, position, delta_liquidity, sqrt_price_x96)
 
@@ -380,10 +392,14 @@ class UniLpMarket(Market):
         :return:
         """
         token0_fee = (
-            max_collect_amount0 if max_collect_amount0 is not None and max_collect_amount0 < position.pending_amount0 else position.pending_amount0
+            max_collect_amount0
+            if max_collect_amount0 is not None and max_collect_amount0 < position.pending_amount0
+            else position.pending_amount0
         )
         token1_fee = (
-            max_collect_amount1 if max_collect_amount1 is not None and max_collect_amount1 < position.pending_amount1 else position.pending_amount1
+            max_collect_amount1
+            if max_collect_amount1 is not None and max_collect_amount1 < position.pending_amount1
+            else position.pending_amount1
         )
 
         position.pending_amount0 -= token0_fee
@@ -419,7 +435,9 @@ class UniLpMarket(Market):
         :rtype: (PositionInfo, Decimal, Decimal)
         """
         base_max_amount = self.broker.get_token_balance(self.base_token) if base_max_amount is None else base_max_amount
-        quote_max_amount = self.broker.get_token_balance(self.quote_token) if quote_max_amount is None else quote_max_amount
+        quote_max_amount = (
+            self.broker.get_token_balance(self.quote_token) if quote_max_amount is None else quote_max_amount
+        )
 
         token0_amt, token1_amt = self._convert_pair(base_max_amount, quote_max_amount)
         lower_tick, upper_tick = V3CoreLib.quote_price_pair_to_tick(self._pool, lower_quote_price, upper_quote_price)
@@ -483,7 +501,9 @@ class UniLpMarket(Market):
             sqrt_price_x96 = tick_to_sqrtPriceX96(tick)
 
         base_max_amount = self.broker.get_token_balance(self.base_token) if base_max_amount is None else base_max_amount
-        quote_max_amount = self.broker.get_token_balance(self.quote_token) if quote_max_amount is None else quote_max_amount
+        quote_max_amount = (
+            self.broker.get_token_balance(self.quote_token) if quote_max_amount is None else quote_max_amount
+        )
 
         token0_amt, token1_amt = self._convert_pair(base_max_amount, quote_max_amount)
         (
@@ -689,7 +709,9 @@ class UniLpMarket(Market):
         if price is None:
             price = self._market_status.data.price
 
-        total_capital = self.broker.get_token_balance(self.base_token) + self.broker.get_token_balance(self.quote_token) * price
+        total_capital = (
+            self.broker.get_token_balance(self.base_token) + self.broker.get_token_balance(self.quote_token) * price
+        )
         target_base_amount = total_capital / 2
         quote_amount_diff = target_base_amount / price - self.broker.get_token_balance(self.quote_token)
         if quote_amount_diff > 0:
@@ -725,7 +747,9 @@ class UniLpMarket(Market):
         # add statistic column
         df["open"] = df["openTick"].map(lambda x: self.tick_to_price(x))
         df["price"] = df["closeTick"].map(lambda x: self.tick_to_price(x))
-        high_name, low_name = ("lowestTick", "highestTick") if self.pool_info.is_token0_base else ("highestTick", "lowestTick")
+        high_name, low_name = (
+            ("lowestTick", "highestTick") if self.pool_info.is_token0_base else ("highestTick", "lowestTick")
+        )
         df["low"] = df[high_name].map(lambda x: self.tick_to_price(x))
         df["high"] = df[low_name].map(lambda x: self.tick_to_price(x))
         df["volume0"] = df["inAmount0"].map(lambda x: Decimal(x) / 10**self.pool_info.token0.decimal)
@@ -796,7 +820,7 @@ class UniLpMarket(Market):
         df: pd.DataFrame = fillna(df)
         if df.index[0] != datetime(start_date.year, start_date.month, start_date.day):
             df.loc[datetime.combine(df.index[0].date(), datetime.min.time(), df.index[0].tzinfo)] = df.head(1).iloc[0]
-            df = df.resample("1T").last().ffill()
+            df = df.resample("1min").last().ffill()
 
         self.add_statistic_column(df)
         self.data = df

@@ -188,7 +188,7 @@ class UniLpDataTest(unittest.TestCase):
         market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "./aave_risk_parameters/polygon.csv")
         start = datetime(2023, 10, 1, 0, 0)
         data_size = 10
-        df_index = pd.date_range(start, start + timedelta(minutes=data_size - 1), freq="1T")
+        df_index = pd.date_range(start, start + timedelta(minutes=data_size - 1), freq="1min")
         token_data = {
             "liquidity_rate": np.zeros(shape=data_size),
             "stable_borrow_rate": np.zeros(shape=data_size),

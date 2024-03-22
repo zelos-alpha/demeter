@@ -139,7 +139,7 @@ class Market:
         """
         # self._market_status = data
         self._price_status = price
-        self.is_open = True if data.timestamp in self._data.index else False
+        self.is_open = True if self._data is None or data.timestamp in self._data.index else False
         self.has_update = False
 
     def get_market_balance(self, prices: pd.Series | Dict[str, Decimal]) -> MarketBalance:

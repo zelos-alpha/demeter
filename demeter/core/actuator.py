@@ -236,7 +236,7 @@ class Actuator(object):
         :param prices: dataframe or series contains prices
         :type prices: Union[pd.DataFrame, pd.Series]
         """
-        prices = prices.applymap(lambda y: to_decimal(y))
+        prices = prices.map(lambda y: to_decimal(y))
         if isinstance(prices, pd.DataFrame):
             if self._token_prices is None:
                 self._token_prices = prices

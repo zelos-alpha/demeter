@@ -19,7 +19,7 @@ class UniLpCoreTest(unittest.TestCase):
     @staticmethod
     def __get_price_df() -> pd.DataFrame:
         return pd.DataFrame(
-            index=pd.date_range(datetime(2023, 5, 1), datetime(2023, 5, 1, 23, 59, 59), freq="1T"),
+            index=pd.date_range(datetime(2023, 5, 1), datetime(2023, 5, 1, 23, 59, 59), freq="1min"),
             data={"eth": np.arange(1700, 1700 + (1440 - 1) / 100, step=0.01)},
         )
 
@@ -31,14 +31,18 @@ class UniLpCoreTest(unittest.TestCase):
     def test_price_trigger(self):
         match_price = []
         price_df = UniLpCoreTest.__get_price_df()
-        pt = PriceTrigger(condition=lambda p: p["eth"] > 1714.35, do=lambda row_data: match_price.append(row_data.prices["eth"]))
+        pt = PriceTrigger(
+            condition=lambda p: p["eth"] > 1714.35, do=lambda row_data: match_price.append(row_data.prices["eth"])
+        )
         self.__run(price_df, pt)
         self.assertEqual(len(match_price), 4)
 
     def test_at_time_trigger(self):
         match_time = []
         price_df = UniLpCoreTest.__get_price_df()
-        pt = AtTimeTrigger(time=datetime(2023, 5, 1, 23, 59, 0), do=lambda row_data: match_time.append(row_data.timestamp))
+        pt = AtTimeTrigger(
+            time=datetime(2023, 5, 1, 23, 59, 0), do=lambda row_data: match_time.append(row_data.timestamp)
+        )
         self.__run(price_df, pt)
         self.assertEqual(len(match_time), 1)
         self.assertEqual(price_df.index[1440 - 1], datetime(2023, 5, 1, 23, 59, 0))

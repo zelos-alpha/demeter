@@ -170,7 +170,7 @@ class AaveV3Market(Market):
         if self._data is not None and token_info.name in self._data:
             raise DemeterError(f"{token_info.name} has already set to data")
         if isinstance(token_data, pd.DataFrame):
-            token_data = token_data.applymap(to_decimal)
+            token_data = token_data.map(to_decimal)
             token_data.columns = pd.MultiIndex.from_tuples([(token_info.name, c) for c in token_data.columns])
             self._data = pd.concat([self._data, token_data], axis="columns")
         else:

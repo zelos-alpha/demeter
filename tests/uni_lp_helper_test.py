@@ -41,7 +41,7 @@ class UniLpDataTest(unittest.TestCase):
         :return:
         :rtype:
         """
-        k = 2 ** 96
+        k = 2**96
         price = Decimal(1100)
         price_float = float(price)
         d0 = 6
@@ -59,10 +59,12 @@ class UniLpDataTest(unittest.TestCase):
         net_value_old = amount0 + amount1 * price
         print(amount0, amount1)
 
-        net_value_new = liquidity * 10 ** (0.5 * d) / 10 ** d0 * price_float ** 0.5 - \
-                        k / upper_sqrt * liquidity / 10 ** d0 + \
-                        liquidity * price_float ** 0.5 / 10 ** d1 / 10 ** (0.5 * d) - \
-                        lower_sqrt / k * price_float * liquidity / 10 ** d1
+        net_value_new = (
+            liquidity * 10 ** (0.5 * d) / 10**d0 * price_float**0.5
+            - k / upper_sqrt * liquidity / 10**d0
+            + liquidity * price_float**0.5 / 10**d1 / 10 ** (0.5 * d)
+            - lower_sqrt / k * price_float * liquidity / 10**d1
+        )
         print(net_value_old, net_value_new)
         self.assertTrue(assert_equal_with_error(net_value_old, Decimal(net_value_new), allowed_error=0.001))
 
@@ -88,8 +90,7 @@ class UniLpDataTest(unittest.TestCase):
         self.assertTrue(assert_equal_with_error(amount0, Decimal(delta), allowed_error=0.01))
         self.assertTrue(gamma == 0)
 
-        delta, gamma = helper.get_delta_gamma(low_price_float, high_price_float, float(price), liquidity, 18, 6,
-                                              False)
+        delta, gamma = helper.get_delta_gamma(low_price_float, high_price_float, float(price), liquidity, 18, 6, False)
         print(delta, gamma)
         self.assertTrue(assert_equal_with_error(delta, 0.9074351443912998))
         self.assertTrue(assert_equal_with_error(gamma, -0.009749523337042907))
@@ -100,7 +101,7 @@ class UniLpDataTest(unittest.TestCase):
         :return:
         :rtype:
         """
-        k = 2 ** 96
+        k = 2**96
         price = Decimal(850)
         price_float = float(price)
         d0 = 18
@@ -118,9 +119,11 @@ class UniLpDataTest(unittest.TestCase):
         net_value_old = amount0 * price + amount1
         print(amount0, amount1)
 
-        net_value_new = liquidity * price_float ** 0.5 * 10 ** (0.5 * d) / 10 ** d0 - \
-                        k / upper_sqrt * liquidity * price_float / 10 ** d0 + \
-                        liquidity * price_float ** 0.5 / 10 ** d1 / 10 ** (0.5 * d) - \
-                        lower_sqrt / k * liquidity / 10 ** d1
+        net_value_new = (
+            liquidity * price_float**0.5 * 10 ** (0.5 * d) / 10**d0
+            - k / upper_sqrt * liquidity * price_float / 10**d0
+            + liquidity * price_float**0.5 / 10**d1 / 10 ** (0.5 * d)
+            - lower_sqrt / k * liquidity / 10**d1
+        )
         print(net_value_old, net_value_new)
         self.assertTrue(assert_equal_with_error(net_value_old, Decimal(net_value_new), allowed_error=0.001))

@@ -14,7 +14,6 @@ def simple_moving_average(
     center: bool = False,
     win_type: str | None = None,
     on: str | None = None,
-    axis: Axis = 0,
     closed: str | None = None,
     method: str = "single",
 ) -> pd.Series:
@@ -38,7 +37,6 @@ def simple_moving_average(
         center=center,
         win_type=win_type,
         on=on,
-        axis=axis,
         closed=closed,
         method=method,
     ).mean()
@@ -53,7 +51,6 @@ def exponential_moving_average(
     min_periods: int | None = 0,
     adjust: bool = True,
     ignore_na: bool = False,
-    axis: Axis = 0,
     times: str | np.ndarray | pd.DataFrame | pd.Series | None = None,
     method: str = "single",
 ):
@@ -70,7 +67,6 @@ def exponential_moving_average(
         min_periods=min_periods,
         adjust=adjust,
         ignore_na=ignore_na,
-        axis=axis,
         times=times,
         method=method,
     ).mean()

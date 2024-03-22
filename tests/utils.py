@@ -7,7 +7,7 @@ from demeter.uniswap import UniLpMarket
 
 def get_mock_data(market: UniLpMarket, tick, amount0=0, amount1=0, total_l=Decimal(0)):
     DATA_SIZE = 5
-    index = pd.date_range("2022-10-8 8:0:0", periods=DATA_SIZE, freq="T")
+    index = pd.date_range("2022-10-8 8:0:0", periods=DATA_SIZE, freq="min")
     netAmount0 = pd.Series(data=[0] * DATA_SIZE, index=index)
     netAmount1 = pd.Series(data=[0] * DATA_SIZE, index=index)
     closeTick = pd.Series(data=[tick] * DATA_SIZE, index=index)
