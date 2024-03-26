@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import NamedTuple, List, Union
+from typing import NamedTuple, List, Union, Tuple
 
 import pandas as pd
 
@@ -40,7 +40,7 @@ class InstrumentStatus:
     actual_time: datetime
     state: str
     type: str
-    strike_price: float
+    strike_price: int
     t: float
     expiry_time: datetime
     vega: float
@@ -62,18 +62,19 @@ class InstrumentStatus:
     ask_iv: float
     best_ask_price: float
     best_ask_amount: float
-    asks: List[List[float, float]]  # price and amount
-    bids: List[List[float, float]]
+    asks: List[Tuple[float, float]]  # price and amount
+    bids: List[Tuple[float, float]]
 
 
 class DeribitTokenConfig(NamedTuple):
-    trade_fee_rate: float
-    delivery_fee_rate: float
-    min_decimal: int  # exponent, eg: 5 in 1e5, -2 in 1e-2
+    trade_fee_rate: Decimal
+    delivery_fee_rate: Decimal
+    min_trade_decimal: int  # exponent, eg: 5 in 1e5, -2 in 1e-2
+    min_fee_decimal: int
 
     @property
     def min_amount(self):
-        return float(Decimal(f"1e{self.min_decimal}"))
+        return Decimal(f"1e{self.min_trade_decimal}")
 
 
 class OptionKind(Enum):
@@ -85,13 +86,13 @@ class OptionKind(Enum):
 class OptionPosition:
     instrument_name: str
     expiry_time: datetime
-    strike_price: float
+    strike_price: int
     type: OptionKind
-    amount: float
-    avg_buy_price: float
-    buy_amount: float
-    avg_sell_price: float
-    sell_amount: float
+    amount: Decimal
+    avg_buy_price: Decimal
+    buy_amount: Decimal
+    avg_sell_price: Decimal
+    sell_amount: Decimal
 
 
 @dataclass
@@ -110,13 +111,13 @@ class DeribitMarketStatus(MarketStatus):
 class OptionMarketBalance(MarketBalance):
     put_count: int
     call_count: int
-    delta: float
-    gamma: float
+    delta: Decimal
+    gamma: Decimal
 
 
 class Order(NamedTuple):
-    price: float
-    amount: float
+    price: Decimal
+    amount: Decimal
 
     @staticmethod
     def get_average_price(orders: List):
@@ -132,12 +133,12 @@ class Order(NamedTuple):
 class OptionTradeAction(BaseAction):
     instrument_name: str
     type: OptionKind
-    average_price: float
-    amount: float
-    total_premium: float
-    mark_price: float
-    underlying_price: float
-    fee: float
+    average_price: Decimal
+    amount: Decimal
+    total_premium: Decimal
+    mark_price: Decimal
+    underlying_price: Decimal
+    fee: Decimal
     orders: List[Order]
 
 

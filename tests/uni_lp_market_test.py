@@ -32,7 +32,7 @@ class TestUniLpMarket(unittest.TestCase):
         tick = 200000
         price = market.tick_to_price(tick)
         market.set_market_status(
-            MarketStatus(
+            UniswapMarketStatus(
                 timestamp=None,
                 data=pd.Series(
                     data=[840860039126296093, 18714189922, 58280013108171131649, tick, price],
@@ -233,7 +233,7 @@ class TestUniLpMarket(unittest.TestCase):
         eth_amount = 10000000000000000000
         usdc_amount = 10000000
         market.set_market_status(
-            MarketStatus(
+            UniswapMarketStatus(
                 timestamp=None,
                 data=pd.Series(
                     data=[
@@ -366,7 +366,7 @@ class TestUniLpMarket(unittest.TestCase):
         print(old_net_value)
         tick = market.price_to_tick(price)
         market.set_market_status(
-            MarketStatus(
+            UniswapMarketStatus(
                 timestamp=None,
                 data=pd.Series(
                     data=[tick, Decimal(0), Decimal(0), Decimal(0), price],
