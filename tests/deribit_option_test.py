@@ -5,9 +5,14 @@ from decimal import Decimal
 import pandas as pd
 
 from demeter import Broker, MarketInfo, MarketTypeEnum, DemeterError
-from demeter.deribit import DeribitOptionMarket, DeribitMarketStatus
-from demeter.deribit._typing import OptionPosition, OptionKind
-from demeter.deribit.helper import round_decimal
+from demeter.deribit import (
+    DeribitOptionMarket,
+    DeribitMarketStatus,
+    OptionPosition,
+    OptionKind,
+    round_decimal,
+    OptionMarketBalance,
+)
 from io import StringIO
 
 from demeter.deribit.market import order_converter
@@ -335,11 +340,105 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
         self.assertEqual(orders1[1][0], Decimal("0.0445"))
         self.assertEqual(orders2[0][0], Decimal("0.0445"))
         balance = broker.get_token_balance(DeribitOptionMarket.ETH)
-        self.assertEqual(balance, Decimal('5.013000'))
+        self.assertEqual(balance, Decimal("5.013000"))
         op = market.positions[instrument_name]
         self.assertEqual(op.amount, Decimal(10))
         self.assertEqual(op.avg_buy_price, Decimal("0.05"))
         self.assertEqual(op.buy_amount, Decimal(100))
-        self.assertEqual(op.avg_sell_price, Decimal('0.04488888888888888888888888889'))
+        self.assertEqual(op.avg_sell_price, Decimal("0.04488888888888888888888888889"))
         self.assertEqual(op.sell_amount, Decimal(90))
+        pass
+
+    def test_balance_1_position(self):
+        broker = self.get_broker()
+        market: DeribitOptionMarket = broker.markets.default
+        instrument_name = "ETH-22SEP23-1600-C"
+        market.positions[instrument_name] = OptionPosition(
+            instrument_name=instrument_name,
+            expiry_time=datetime(2023, 9, 22, 8),
+            strike_price=1600,
+            type=OptionKind.call,
+            amount=Decimal(100),
+            avg_buy_price=Decimal(Decimal("0.05")),
+            buy_amount=Decimal(100),
+            avg_sell_price=Decimal(0),
+            sell_amount=Decimal(0),
+        )
+        balance: OptionMarketBalance = market.get_market_balance()
+        self.assertEqual(balance.net_value, Decimal("4.79"))
+        self.assertEqual(balance.call_count, 1)
+        pass
+
+    def test_balance_2_position(self):
+        broker = self.get_broker()
+        market: DeribitOptionMarket = broker.markets.default
+        market.positions["ETH-22SEP23-1600-C"] = OptionPosition(
+            instrument_name="ETH-22SEP23-1600-C",
+            expiry_time=datetime(2023, 9, 22, 8),
+            strike_price=1600,
+            type=OptionKind.call,
+            amount=Decimal(100),
+            avg_buy_price=Decimal(Decimal("0.05")),
+            buy_amount=Decimal(100),
+            avg_sell_price=Decimal(0),
+            sell_amount=Decimal(0),
+        )
+        market.positions["ETH-22SEP23-1650-C"] = OptionPosition(
+            instrument_name="ETH-22SEP23-1650-C",
+            expiry_time=datetime(2023, 9, 22, 8),
+            strike_price=1600,
+            type=OptionKind.call,
+            amount=Decimal(100),
+            avg_buy_price=Decimal(Decimal("0.05")),
+            buy_amount=Decimal(100),
+            avg_sell_price=Decimal(0),
+            sell_amount=Decimal(0),
+        )
+        balance: OptionMarketBalance = market.get_market_balance()
+        self.assertEqual(balance.net_value, Decimal("7.66"))
+        self.assertEqual(balance.call_count, 2)
+        pass
+
+    def test_exercise(self):
+        broker = self.get_broker()
+        market = broker.markets.default
+        market.market_status.timestamp = datetime(2023, 9, 22, 8)
+        instrument_name = "ETH-22SEP23-1600-C"
+        market.positions[instrument_name] = OptionPosition(
+            instrument_name=instrument_name,
+            expiry_time=datetime(2023, 9, 22, 8),
+            strike_price=1600,
+            type=OptionKind.call,
+            amount=Decimal(100),
+            avg_buy_price=Decimal(Decimal("0.05")),
+            buy_amount=Decimal(100),
+            avg_sell_price=Decimal(0),
+            sell_amount=Decimal(0),
+        )
+        self.assertEqual(broker.get_token_balance(market.token), Decimal(1))
+        market.update()
+        self.assertEqual(len(market.positions), 0)
+        self.assertEqual(broker.get_token_balance(market.token), Decimal("4.129182"))
+        pass
+
+    def test_no_exercise(self):
+        broker = self.get_broker()
+        market = broker.markets.default
+        market.market_status.timestamp = datetime(2023, 9, 22, 8)
+        instrument_name = "ETH-22SEP23-1700-C"
+        market.positions[instrument_name] = OptionPosition(
+            instrument_name=instrument_name,
+            expiry_time=datetime(2023, 9, 22, 8),
+            strike_price=1700,
+            type=OptionKind.call,
+            amount=Decimal(100),
+            avg_buy_price=Decimal(Decimal("0.05")),
+            buy_amount=Decimal(100),
+            avg_sell_price=Decimal(0),
+            sell_amount=Decimal(0),
+        )
+        self.assertEqual(broker.get_token_balance(market.token), Decimal(1))
+        market.update()
+        self.assertEqual(len(market.positions), 0)
+        self.assertEqual(broker.get_token_balance(market.token), Decimal(1))
         pass

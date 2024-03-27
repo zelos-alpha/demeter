@@ -37,33 +37,30 @@ class InstrumentStatus:
     all the price is in unit of underlying token!
     """
 
-    actual_time: datetime
-    state: str
-    type: str
-    strike_price: int
-    t: float
-    expiry_time: datetime
-    vega: float
-    theta: float
-    rho: float
-    gamma: float
-    delta: float
-    underlying_price: float
-    settlement_price: float
-    min_price: float
-    max_price: float
-    mark_price: float
-    mark_iv: float
-    last_price: float
-    interest_rate: float
-    bid_iv: float
-    best_bid_price: float
-    best_bid_amount: float
-    ask_iv: float
-    best_ask_price: float
-    best_ask_amount: float
-    asks: List[Tuple[float, float]]  # price and amount
-    bids: List[Tuple[float, float]]
+    state: str | None = None
+    type: str | None = None
+    strike_price: int | None = None
+    t: float | None = None
+    expiry_time: datetime | None = None
+    vega: float | None = None
+    theta: float | None = None
+    rho: float | None = None
+    gamma: float | None = None
+    delta: float | None = None
+    underlying_price: float | None = None
+    settlement_price: float | None = None
+    mark_price: float | None = None
+    mark_iv: float | None = None
+    last_price: float | None = None
+    interest_rate: float | None = None
+    bid_iv: float | None = None
+    best_bid_price: float | None = None
+    best_bid_amount: float | None = None
+    ask_iv: float | None = None
+    best_ask_price: float | None = None
+    best_ask_amount: float | None = None
+    asks: List[Tuple[float, float]] | None = None  # price and amount
+    bids: List[Tuple[float, float]] | None = None
 
 
 class DeribitTokenConfig(NamedTuple):
@@ -154,3 +151,28 @@ class SellAction(OptionTradeAction):
 
     def set_type(self):
         self.action_type = ActionTypeEnum.option_sell
+
+
+@dataclass
+class DeliverAction(BaseAction):
+    instrument_name: str
+    type: OptionKind
+    mark_price: Decimal
+    amount: Decimal
+    total_premium: Decimal
+    strike_price: int
+    underlying_price: Decimal
+    deriver_amount: Decimal
+    fee: Decimal
+    income_amount: Decimal
+
+
+@dataclass
+class ExpiredAction(BaseAction):
+    instrument_name: str
+    type: OptionKind
+    mark_price: Decimal
+    amount: Decimal
+    total_premium: Decimal
+    strike_price: int
+    underlying_price: Decimal

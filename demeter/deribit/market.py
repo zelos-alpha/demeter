@@ -2,7 +2,7 @@ import json
 import os
 from _decimal import Decimal
 from datetime import date, timedelta
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 import pandas as pd
 
@@ -17,6 +17,8 @@ from ._typing import (
     InstrumentStatus,
     Order,
     SellAction,
+    ExpiredAction,
+    DeliverAction,
 )
 from .helper import round_decimal
 from .. import TokenInfo
@@ -47,6 +49,7 @@ class DeribitOptionMarket(Market):
         self.token: TokenInfo = token
         self.token_config: DeribitTokenConfig = DeribitOptionMarket.TOKEN_CONFIGS[token]
         self.positions: Dict[str, OptionPosition] = {}
+        self.decimal = self.token_config.min_fee_decimal
 
     MAX_FEE_RATE = Decimal("0.125")
     ETH = TokenInfo("eth", 18)
@@ -137,7 +140,7 @@ class DeribitOptionMarket(Market):
         """
         return round_decimal(
             min(self.token_config.trade_fee_rate * amount, DeribitOptionMarket.MAX_FEE_RATE * total_premium),
-            self.token_config.min_fee_decimal,
+            self.decimal,
         )
 
     def get_deliver_fee(self, amount: Decimal, total_premium: Decimal):
@@ -146,7 +149,7 @@ class DeribitOptionMarket(Market):
         """
         return round_decimal(
             min(self.token_config.delivery_fee_rate * amount, DeribitOptionMarket.MAX_FEE_RATE * total_premium),
-            self.token_config.min_fee_decimal,
+            self.decimal,
         )
 
     def __get_trade_amount(self, amount: Decimal):
@@ -224,7 +227,7 @@ class DeribitOptionMarket(Market):
 
     @staticmethod
     def _find_available_orders(price, order_list) -> List:
-        error = Decimal("0.005")
+        error = Decimal("0.001")
         return list(filter(lambda x: (1 - error) * price < x[0] < (1 + error) * price, order_list))
 
     @write_func
@@ -234,7 +237,7 @@ class DeribitOptionMarket(Market):
         instrument_name: str,
         amount: float | Decimal,
         price_in_token: float | Decimal | None = None,
-        price_in_usd: float  | Decimal| None = None,
+        price_in_usd: float | Decimal | None = None,
     ) -> List[Order]:
         amount, instrument, price_in_token = self._check_transaction(
             instrument_name, amount, price_in_token, price_in_usd, False
@@ -341,49 +344,10 @@ class DeribitOptionMarket(Market):
 
         return amount, instrument, price_in_token
 
-    def check_option_exercise(self):
-        """
-        loop all the option position,
-        if expired, if option position is in the money, then exercise.
-        if out of the money, then abandon
-        """
-        for pos_key, position in self.positions.items():
-            if self._market_status.timestamp > position.expiry_time:
-                # should
-                if position.instrument_name not in self._market_status.data.index:
-                    raise DemeterError(f"{position.instrument_name} is not in current orderbook")
-                instrument: InstrumentStatus = self.market_status.data.loc[position.instrument_name]
-                if position.type == OptionKind.put and position.strike_price > instrument.underlying_price:
-                    self._deliver_put_option(pos_key, position, instrument)
-                elif position.type == OptionKind.call and position.strike_price < instrument.underlying_price:
-                    self._deliver_call_option(pos_key, position, instrument)
-
     def update(self):
         self.check_option_exercise()
 
-    @write_func
-    def _deliver_put_option(self, key, option_pos, instrument: InstrumentStatus):
-        """ """
-
-        fee = self.get_deliver_fee(option_pos.amount, option_pos.amount * instrument.settlement_price)
-        total_value_to_subtract = fee + option_pos.amount * (option_pos.strike_price / instrument.underlying_price - 1)
-
-        self.broker.subtract_from_balance(self.token, total_value_to_subtract)
-        del self.positions[key]
-
-    @write_func
-    def _deliver_call_option(self, key, option_pos, instrument: InstrumentStatus):
-        """ """
-
-        fee = self.get_deliver_fee(option_pos.amount, option_pos.amount * instrument.settlement_price)
-
-        self.broker.add_to_balance(
-            self.token, option_pos.amount * (1 - option_pos.strike_price / instrument.underlying_price)
-        )
-        self.broker.subtract_from_balance(self.token, fee)
-        del self.positions[key]
-
-    def get_market_balance(self, prices: pd.Series | Dict[str, Decimal]) -> OptionMarketBalance:
+    def get_market_balance(self, prices: pd.Series | Dict[str, Decimal] = None) -> OptionMarketBalance:
         """
         Get market asset balance, such as current positions, net values
 
@@ -392,21 +356,100 @@ class DeribitOptionMarket(Market):
         :return: Balance in this market includes net value, position value
         :rtype: MarketBalance
         """
-        put_count = len(filter(lambda x: x.type == OptionKind.put, self.positions.values()))
-        call_count = len(filter(lambda x: x.type == OptionKind.call, self.positions.values()))
+        put_count = len(list(filter(lambda x: x.type == OptionKind.put, self.positions.values())))
+        call_count = len(list(filter(lambda x: x.type == OptionKind.call, self.positions.values())))
 
         premium = Decimal(0)
         delta = gamma = Decimal(0)
         for position in self.positions.values():
             instr_status = self.market_status.data.loc[position.instrument_name]
-            instrument_premium = position.amount * instr_status.settlement_price
+            instrument_premium = position.amount * round_decimal(instr_status.mark_price, self.decimal)
             premium += instrument_premium
-            delta += instrument_premium * Decimal(instr_status.delta)
-            gamma += instrument_premium * Decimal(instr_status.gamma)
+            delta += instrument_premium * round_decimal(instr_status.delta, self.decimal)
+            gamma += instrument_premium * round_decimal(instr_status.gamma, self.decimal)
 
         delta /= premium
         gamma /= premium
 
         return OptionMarketBalance(premium, put_count, call_count, delta, gamma)
+
+    # region exercise
+    @write_func
+    def check_option_exercise(self):
+        """
+        loop all the option position,
+        if expired, if option position is in the money, then exercise.
+        if out of the money, then abandon
+        """
+        key_to_remove = []
+        for pos_key, position in self.positions.items():
+            if self._market_status.timestamp >= position.expiry_time:
+                # should
+                if position.instrument_name not in self._market_status.data.index:
+                    raise DemeterError(f"{position.instrument_name} is not in current orderbook")
+                instrument: InstrumentStatus = self.market_status.data.loc[position.instrument_name]
+                deliver_amount = deliver_fee = None
+                if position.type == OptionKind.put and position.strike_price > instrument.underlying_price:
+                    deliver_amount, deliver_fee = self._deliver_option(position, instrument, False)
+                elif position.type == OptionKind.call and position.strike_price < instrument.underlying_price:
+                    deliver_amount, deliver_fee = self._deliver_option(position, instrument, True)
+                if deliver_amount is not None:
+                    self._record_action(
+                        DeliverAction(
+                            market=self._market_info,
+                            instrument_name=pos_key,
+                            type=position.type,
+                            mark_price=round_decimal(instrument.mark_price, self.decimal),
+                            amount=position.amount,
+                            total_premium=position.amount * round_decimal(instrument.mark_price, self.decimal),
+                            strike_price=position.strike_price,
+                            underlying_price=round_decimal(instrument.underlying_price, self.decimal),
+                            deriver_amount=deliver_amount,
+                            fee=deliver_fee,
+                            income_amount=deliver_amount - deliver_fee,
+                        )
+                    )
+                key_to_remove.append(pos_key)
+
+        for pos_key in key_to_remove:
+            position = self.positions[pos_key]
+            if pos_key in self.market_status.data.index:
+                instrument: InstrumentStatus = self.market_status.data.loc[position.instrument_name]
+            else:
+                instrument = InstrumentStatus(mark_price=0, underlying_price=0)
+            self._record_action(
+                ExpiredAction(
+                    market=self._market_info,
+                    instrument_name=pos_key,
+                    type=position.type,
+                    mark_price=round_decimal(instrument.mark_price, self.decimal),
+                    amount=position.amount,
+                    total_premium=position.amount * round_decimal(instrument.mark_price, self.decimal),
+                    strike_price=position.strike_price,
+                    underlying_price=round_decimal(instrument.underlying_price, self.decimal),
+                )
+            )
+            del self.positions[pos_key]
+
+    def _deliver_option(
+        self, option_pos, instrument: InstrumentStatus, is_call
+    ) -> Tuple[Decimal | None, Decimal | None]:
+        fee = self.get_deliver_fee(
+            option_pos.amount, option_pos.amount * round_decimal(instrument.mark_price, self.decimal)
+        )
+        if is_call:
+            price_diff = instrument.underlying_price - option_pos.strike_price
+        else:
+            price_diff = option_pos.strike_price - instrument.underlying_price
+
+        balance_to_add = round_decimal(
+            option_pos.amount * Decimal(price_diff / instrument.underlying_price), self.decimal
+        )
+        if balance_to_add <= fee:
+            return None, None
+        self.broker.add_to_balance(self.token, balance_to_add - fee)
+        return balance_to_add, fee
+
+    # endregion
 
     # endregion
