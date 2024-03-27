@@ -27,6 +27,10 @@ from ..utils import float_param_formatter
 DEFAULT_DATA_PATH = "./data"
 
 
+def order_converter(array_str) -> List:
+    return json.loads(array_str)
+
+
 class DeribitOptionMarket(Market):
     """
     You can backtest as a taker only.
@@ -93,7 +97,12 @@ class DeribitOptionMarket(Market):
             if not os.path.exists(path):
                 raise IOError(f"resource file {path} not found")
 
-            day_df = pd.read_csv(path, parse_dates=["time", "exec_time"], index_col=["time", "instrument_name"])
+            day_df = pd.read_csv(
+                path,
+                parse_dates=["time", "expiry_time"],
+                index_col=["time", "instrument_name"],
+                converters={"asks": order_converter, "bids": order_converter},
+            )
             day_df.drop(columns=["actual_time", "min_price", "max_price"], inplace=True)
             df = pd.concat([df, day_df])
             day += timedelta(days=1)
@@ -151,8 +160,8 @@ class DeribitOptionMarket(Market):
         self,
         instrument_name: str,
         amount: float | Decimal,
-        price_in_token: float | None = None,
-        price_in_usd: float | None = None,
+        price_in_token: float | Decimal | None = None,
+        price_in_usd: float | Decimal | None = None,
     ) -> List[Order]:
         """
         if price is not none, will set at that price
@@ -164,29 +173,30 @@ class DeribitOptionMarket(Market):
         )
 
         # deduct bids amount
-        bids = instrument.bids
-        bid_list = self._deduct_order_amount(amount, bids, price_in_token)
+        asks = instrument.asks
+        ask_list = self._deduct_order_amount(amount, asks, price_in_token)
 
         # write positions back
-        self.data.loc[(self._market_status.timestamp, instrument_name), "bids"] = bids
+        if self.data is not None:
+            self.data.loc[(self._market_status.timestamp, instrument_name), "asks"] = asks
 
-        total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in bid_list]))
+        total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in ask_list]))
         fee_amount = self.get_trade_fee(amount, total_premium)
         self.broker.subtract_from_balance(self.token, total_premium + fee_amount)
 
         # add position
-        average_price = Order.get_average_price(bid_list)
+        average_price = Order.get_average_price(ask_list)
         if instrument_name not in self.positions.keys():
             self.positions[instrument_name] = OptionPosition(
-                instrument_name,
-                instrument.expiry_time,
-                instrument.strike_price,
-                OptionKind(instrument.type),
-                amount,
-                average_price,
-                amount,
-                Decimal(0),
-                Decimal(0),
+                instrument_name=instrument_name,
+                expiry_time=instrument.expiry_time,
+                strike_price=instrument.strike_price,
+                type=OptionKind(instrument.type),
+                amount=amount,
+                avg_buy_price=average_price,
+                buy_amount=amount,
+                avg_sell_price=Decimal(0),
+                sell_amount=Decimal(0),
             )
         else:
             position = self.positions[instrument_name]
@@ -207,14 +217,14 @@ class DeribitOptionMarket(Market):
                 mark_price=Decimal(instrument.mark_price),
                 underlying_price=Decimal(instrument.underlying_price),
                 fee=fee_amount,
-                orders=bid_list,
+                orders=ask_list,
             )
         )
-        return bid_list
+        return ask_list
 
     @staticmethod
     def _find_available_orders(price, order_list) -> List:
-        error = 0.005
+        error = Decimal("0.005")
         return list(filter(lambda x: (1 - error) * price < x[0] < (1 + error) * price, order_list))
 
     @write_func
@@ -223,26 +233,27 @@ class DeribitOptionMarket(Market):
         self,
         instrument_name: str,
         amount: float | Decimal,
-        price_in_token: float | None = None,
-        price_in_usd: float | None = None,
+        price_in_token: float | Decimal | None = None,
+        price_in_usd: float  | Decimal| None = None,
     ) -> List[Order]:
         amount, instrument, price_in_token = self._check_transaction(
             instrument_name, amount, price_in_token, price_in_usd, False
         )
 
-        # deduct asks amount
-        asks = instrument.asks
-        ask_list = self._deduct_order_amount(amount, asks, price_in_token)
+        # deduct  amount
+        bids = instrument.bids
+        bid_list = self._deduct_order_amount(amount, bids, price_in_token)
 
         # write positions back
-        self.data.loc[(self._market_status.timestamp, instrument_name), "asks"] = asks
+        if self.data is not None:
+            self.data.loc[(self._market_status.timestamp, instrument_name), "bids"] = bids
 
-        total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in ask_list]))
+        total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in bid_list]))
         fee = self.get_trade_fee(amount, total_premium)
         self.broker.add_to_balance(self.token, total_premium - fee)
 
         # subtract position
-        average_price = Order.get_average_price(ask_list)
+        average_price = Order.get_average_price(bid_list)
         if instrument_name not in self.positions.keys():
             raise DemeterError("No such instrument position")
 
@@ -253,7 +264,7 @@ class DeribitOptionMarket(Market):
         position.sell_amount += amount
         position.amount -= amount
 
-        if position.amount < 0:
+        if position.amount <= Decimal(0):
             del self.positions[instrument_name]
 
         self._record_action(
@@ -267,26 +278,28 @@ class DeribitOptionMarket(Market):
                 mark_price=Decimal(instrument.mark_price),
                 underlying_price=Decimal(instrument.underlying_price),
                 fee=fee,
-                orders=ask_list,
+                orders=bid_list,
             )
         )
-        return ask_list
+        return bid_list
 
     def _deduct_order_amount(self, amount, orders, price_in_token):
         order_list = []
         if price_in_token is not None:
             for order in orders:
-                if price_in_token == order[0]:
+                if price_in_token == Decimal(str(order[0])):
                     order[1] -= amount
-                    order_list.append(Order(order[0], amount))
+                    order_list.append(Order(price_in_token, amount))
         else:
             amount_to_deduct = amount
             for order in orders:
-                should_deduct = min(order[1], amount_to_deduct)
+                if order[1] == 0 or orders[1] == Decimal(0):
+                    continue
+                should_deduct = min(Decimal(str(order[1])), amount_to_deduct)
                 amount_to_deduct -= should_deduct
                 order[1] -= should_deduct
-                order_list.append(Order(order[0], should_deduct))
-                if order[1] > 0:
+                order_list.append(Order(Decimal(str(order[0])), should_deduct))
+                if order[1] > 0 or amount_to_deduct == Decimal(0):
                     break
         return order_list
 
@@ -317,11 +330,11 @@ class DeribitOptionMarket(Market):
                 raise DemeterError(
                     f"{instrument_name} doesn't have a order in price {price_in_token} {self.token.name}"
                 )
-            price_in_token = available_orders[0][0]
-            available_amount = available_orders[0][1]
+            price_in_token = Decimal(str(available_orders[0][0]))
+            available_amount = Decimal(available_orders[0][1])
         else:
-            available_amount = sum([x[1] for x in available_orders])
-        if amount < available_amount:
+            available_amount = sum([Decimal(x[1]) for x in available_orders])
+        if amount > available_amount:
             raise DemeterError(
                 f"insufficient order to buy, required amount is {amount}, available amount is {available_amount}"
             )

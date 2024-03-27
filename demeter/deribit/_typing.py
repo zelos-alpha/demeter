@@ -121,7 +121,7 @@ class Order(NamedTuple):
 
     @staticmethod
     def get_average_price(orders: List):
-        total = sum([t.amount * t.price for t in orders])
+        total = sum([t.amount * Decimal(t.price) for t in orders])
         total_amount = sum([t.amount for t in orders])
         if total_amount == 0:
             return 0

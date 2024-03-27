@@ -1,3 +1,3 @@
 
 from .market import DeribitOptionMarket
-from ._typing import DeribitMarketStatus
+from ._typing import DeribitMarketStatus,OptionPosition
