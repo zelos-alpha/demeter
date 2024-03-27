@@ -296,7 +296,7 @@ class DeribitOptionMarket(Market):
         else:
             amount_to_deduct = amount
             for order in orders:
-                if order[1] == 0 or orders[1] == Decimal(0):
+                if order[1] == 0 or order[1] == Decimal(0):
                     continue
                 should_deduct = min(Decimal(str(order[1])), amount_to_deduct)
                 amount_to_deduct -= should_deduct
