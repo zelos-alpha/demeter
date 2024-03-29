@@ -18,7 +18,7 @@ def to_decimal(value: Any) -> Decimal:
     :rtype: Decimal
 
     """
-    return Decimal(value)
+    return Decimal(str(value))
 
 
 def object_to_decimal(num: Any) -> Any:

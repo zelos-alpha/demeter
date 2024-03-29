@@ -282,9 +282,9 @@ class Actuator(object):
                     self.set_price(market.get_price_from_data())
             if self._token_prices is None:
                 raise DemeterError("token prices is not set")
-        for token in self._broker.assets.keys():  # dict_keys([TokenInfo(name='usdc', decimal=6), TokenInfo(name='eth', decimal=18)])
-            if token.name not in self._token_prices:
-                raise DemeterError(f"Price of {token.name} has not set yet")
+        # for token in self._broker.assets.keys():  # dict_keys([TokenInfo(name='usdc', decimal=6), TokenInfo(name='eth', decimal=18)])
+        #     if token.name not in self._token_prices:
+        #         raise DemeterError(f"Price of {token.name} has not set yet")
 
         data_length = []  # [1440]
         for market in self._broker.markets.values():
@@ -295,21 +295,22 @@ class Actuator(object):
             raise DemeterError("data length among markets are not same")
         default_market_data = self._broker.markets.default.data
         if (
-            self._token_prices.head(1).index[0] > default_market_data.head(1).index[0]
-            or self._token_prices.tail(1).index[0] < default_market_data.tail(1).index[0]
+            self._token_prices.head(1).index[0] > default_market_data.head(1).index.get_level_values(0).unique()[0]
+            or self._token_prices.tail(1).index[0] < default_market_data.tail(1).index.get_level_values(0).unique()[0]
         ):
             raise DemeterError("Time range of price doesn't cover market data")
-        length = data_length[0]
+
         # ensure data interval same
-        data_interval = []
-        if length > 1:
-            for market in self._broker.markets.values():
-                data_interval.append(market.data.index[1] - market.data.index[0])
-            if List.count(data_interval, data_interval[0]) != len(data_interval):
-                raise DemeterError("data interval among markets are not same")
-            price_interval = self._token_prices.index[1] - self._token_prices.index[0]
-            if price_interval != data_interval[0]:
-                raise DemeterError("price list interval and data interval are not same")
+        # length = data_length[0]
+        # data_interval = []
+        # if length > 1:
+        #     for market in self._broker.markets.values():
+        #         data_interval.append(market.data.index[1] - market.data.index[0])
+        #     if List.count(data_interval, data_interval[0]) != len(data_interval):
+        #         raise DemeterError("data interval among markets are not same")
+        #     price_interval = self._token_prices.index[1] - self._token_prices.index[0]
+        #     if price_interval != data_interval[0]:
+        #         raise DemeterError("price list interval and data interval are not same")
 
     def __get_row_data(self, timestamp, row_id, current_price) -> RowData:
         row_data = RowData(timestamp.to_pydatetime(), row_id, current_price)
@@ -361,14 +362,16 @@ class Actuator(object):
 
         self._enabled_evaluator = evaluator
         self._check_backtest()
-        index_array: pd.DatetimeIndex = list(self._broker.markets.values())[0].data.index
+        index_array: pd.DatetimeIndex = list(self._broker.markets.values())[0].data.index.get_level_values(0).unique()
         self.logger.info("init strategy...")
 
         # set initial status for strategy, so user can run some calculation in initial function.
         self.__set_market_timestamp(index_array[0], False)
         self._currents.timestamp = index_array[0].to_pydatetime()
         # keep initial balance for evaluating
-        init_account_status = self._broker.get_account_status(self._token_prices.head(1).iloc[0], index_array[0].to_pydatetime())
+        init_account_status = self._broker.get_account_status(
+            self._token_prices.head(1).iloc[0], index_array[0].to_pydatetime()
+        )
         self.init_strategy()
         row_id = 0
         data_length = len(index_array)
@@ -405,7 +408,9 @@ class Actuator(object):
                 row_data = self.__get_row_data(timestamp_index, row_id, current_price)
                 self._strategy.after_bar(row_data)
 
-                self._account_status_list.append(self._broker.get_account_status(current_price, timestamp_index.to_pydatetime()))
+                self._account_status_list.append(
+                    self._broker.get_account_status(current_price, timestamp_index.to_pydatetime())
+                )
                 # notify actions in current loop
                 self.notify(self.strategy, self._currents.actions)
                 self._currents.actions = []
@@ -418,7 +423,9 @@ class Actuator(object):
 
         if len(self._enabled_evaluator) > 0:
             self.logger.info("Start calculate evaluating indicator...")
-            self._evaluator = Evaluator(init_account_status, self._account_status_df, self._token_prices, self._broker.markets)
+            self._evaluator = Evaluator(
+                init_account_status, self._account_status_df, self._token_prices, self._broker.markets
+            )
             self._evaluator.run(self._enabled_evaluator)
             self.logger.info("Evaluating indicator has finished it's job.")
         self._strategy.finalize()
@@ -518,7 +525,11 @@ class Actuator(object):
             self._currents.timestamp,
             type(self._strategy).__name__,
             len(self._token_prices.index) if self._token_prices is not None else 0,
-            "[" + ",".join(f'"{x}"' for x in self._token_prices.columns) + "]" if self._token_prices is not None else str([]),
+            (
+                "[" + ",".join(f'"{x}"' for x in self._token_prices.columns) + "]"
+                if self._token_prices is not None
+                else str([])
+            ),
         )
 
 

@@ -113,6 +113,13 @@ class DeribitOptionMarket(Market):
         self._data = df
         self.logger.info("data has been prepared")
 
+    def check_market(self):
+        """
+        check market before back test
+        """
+        if not isinstance(self.data, pd.DataFrame):
+            raise DemeterError("data must be type of data frame")
+
     def set_market_status(
         self,
         data: DeribitMarketStatus,
@@ -142,6 +149,16 @@ class DeribitOptionMarket(Market):
             min(self.token_config.trade_fee_rate * amount, DeribitOptionMarket.MAX_FEE_RATE * total_premium),
             self.decimal,
         )
+
+    def get_price_from_data(self):
+        if self._data is None:
+            raise DemeterError("data is empty")
+        price = []
+        for hour, hour_df in self._data.groupby(level=0):
+            price.append({"time": hour, self.token.name: hour_df.iloc[0]["underlying_price"]})
+        price_df = pd.DataFrame(price)
+        price_df.set_index(["time"], inplace=True)
+        return price_df
 
     def get_deliver_fee(self, amount: Decimal, total_premium: Decimal):
         """
@@ -359,19 +376,19 @@ class DeribitOptionMarket(Market):
         put_count = len(list(filter(lambda x: x.type == OptionKind.put, self.positions.values())))
         call_count = len(list(filter(lambda x: x.type == OptionKind.call, self.positions.values())))
 
-        premium = Decimal(0)
+        total_premium = Decimal(0)
         delta = gamma = Decimal(0)
         for position in self.positions.values():
             instr_status = self.market_status.data.loc[position.instrument_name]
             instrument_premium = position.amount * round_decimal(instr_status.mark_price, self.decimal)
-            premium += instrument_premium
+            total_premium += instrument_premium
             delta += instrument_premium * round_decimal(instr_status.delta, self.decimal)
             gamma += instrument_premium * round_decimal(instr_status.gamma, self.decimal)
 
-        delta /= premium
-        gamma /= premium
+        delta = Decimal(0) if total_premium == Decimal(0) else delta / total_premium
+        gamma = Decimal(0) if total_premium == Decimal(0) else gamma / total_premium
 
-        return OptionMarketBalance(premium, put_count, call_count, delta, gamma)
+        return OptionMarketBalance(total_premium, put_count, call_count, delta, gamma)
 
     # region exercise
     @write_func
