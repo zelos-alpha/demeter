@@ -237,8 +237,8 @@ class DeribitOptionMarket(Market):
                 average_price=average_price,
                 amount=amount,
                 total_premium=total_premium,
-                mark_price=Decimal(instrument.mark_price),
-                underlying_price=Decimal(instrument.underlying_price),
+                mark_price=Decimal(str(instrument.mark_price)),
+                underlying_price=Decimal(str(instrument.underlying_price)),
                 fee=fee_amount,
                 orders=ask_list,
             )
@@ -298,8 +298,8 @@ class DeribitOptionMarket(Market):
                 average_price=average_price,
                 amount=amount,
                 total_premium=total_premium,
-                mark_price=Decimal(instrument.mark_price),
-                underlying_price=Decimal(instrument.underlying_price),
+                mark_price=Decimal(str(instrument.mark_price)),
+                underlying_price=Decimal(str(instrument.underlying_price)),
                 fee=fee,
                 orders=bid_list,
             )

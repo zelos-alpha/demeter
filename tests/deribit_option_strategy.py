@@ -26,6 +26,19 @@ class SimpleStrategy(Strategy):
         market.buy("ETH-26APR24-2700-C", 20)
 
 
+class SimpleEventStrategy(Strategy):
+    def initialize(self):
+        new_trigger = AtTimeTrigger(time=datetime(2024, 2, 15, 12, 0, 0), do=self.buy)
+        self.triggers.append(new_trigger)
+
+    def buy(self, row_data: RowData):
+        market: DeribitOptionMarket = self.broker.markets.default
+        market.buy("ETH-26APR24-2700-C", 20)
+
+    def notify(self, action):
+        print(action)
+
+
 class OptionStrategyTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(OptionStrategyTest, self).__init__(*args, **kwargs)
@@ -47,5 +60,15 @@ class OptionStrategyTest(unittest.TestCase):
         actuator.broker.add_market(market)
         actuator.broker.set_balance(DeribitOptionMarket.ETH, 10)
         actuator.strategy = SimpleStrategy()
+        actuator.set_price(market.get_price_from_data())
+        actuator.run()
+
+    def test_event(self):
+        market = DeribitOptionMarket(market_key, DeribitOptionMarket.ETH, data_path="data")
+        market.load_data(date(2024, 2, 15), date(2024, 2, 16))
+        actuator = Actuator()
+        actuator.broker.add_market(market)
+        actuator.broker.set_balance(DeribitOptionMarket.ETH, 10)
+        actuator.strategy = SimpleEventStrategy()
         actuator.set_price(market.get_price_from_data())
         actuator.run()
