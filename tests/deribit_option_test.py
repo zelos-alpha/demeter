@@ -50,7 +50,7 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
         )
         # data.set_index("instrument_name", inplace=True)
         market.set_market_status(
-            DeribitMarketStatus(timestamp=datetime(2023, 9, 1, 6), data=data),
+            DeribitMarketStatus(timestamp=pd.Timestamp("2023-9-1 6:0:0"), data=data),
             price=pd.Series([1651.94], index=["eth"]),
         )
 
@@ -402,7 +402,7 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
     def test_exercise(self):
         broker = self.get_broker()
         market = broker.markets.default
-        market.market_status.timestamp = datetime(2023, 9, 22, 8)
+        market.market_status.timestamp = pd.Timestamp("2023-9-22 8:0:0")
         instrument_name = "ETH-22SEP23-1600-C"
         market.positions[instrument_name] = OptionPosition(
             instrument_name=instrument_name,
@@ -424,7 +424,7 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
     def test_no_exercise(self):
         broker = self.get_broker()
         market = broker.markets.default
-        market.market_status.timestamp = datetime(2023, 9, 22, 8)
+        market.market_status.timestamp = pd.Timestamp("2023-9-22 8:0:0")
         instrument_name = "ETH-22SEP23-1700-C"
         market.positions[instrument_name] = OptionPosition(
             instrument_name=instrument_name,

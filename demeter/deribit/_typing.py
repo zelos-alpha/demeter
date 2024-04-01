@@ -176,3 +176,6 @@ class ExpiredAction(BaseAction):
     total_premium: Decimal
     strike_price: int
     underlying_price: Decimal
+
+
+DERIBIT_OPTION_FREQ = "1h"

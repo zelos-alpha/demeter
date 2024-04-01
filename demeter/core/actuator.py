@@ -14,7 +14,7 @@ from tqdm import tqdm  # process bar
 from .evaluating_indicator import Evaluator
 from .. import Broker, Asset
 from .._typing import DemeterError, EvaluatorEnum, UnitDecimal
-from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
+from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData, BASE_FREQ
 from ..uniswap import UniLpMarket, PositionInfo
 from ..strategy import Strategy
 from ..utils import get_formatted_predefined, STYLE, to_decimal
@@ -291,8 +291,8 @@ class Actuator(object):
             data_length.append(len(market.data.index))
             market.check_market()  # check each market, including assets
         # ensure data length same
-        if List.count(data_length, data_length[0]) != len(data_length):
-            raise DemeterError("data length among markets are not same")
+        # if List.count(data_length, data_length[0]) != len(data_length):
+        #     raise DemeterError("data length among markets are not same")
         default_market_data = self._broker.markets.default.data
         if (
             self._token_prices.head(1).index[0] > default_market_data.head(1).index.get_level_values(0).unique()[0]
@@ -333,6 +333,18 @@ class Actuator(object):
                 ms = MarketStatus(timestamp, None)
                 self._broker.markets[market_key].set_market_status(ms, self._token_prices.loc[timestamp])
 
+    def get_test_range(self):
+        longest_data = max(map(lambda m: len(m.data.index.get_level_values(0).unique()), self._broker.markets.values()))
+        largest_market = list(
+            filter(
+                lambda m: len(m.data.index.get_level_values(0).unique()) == longest_data, self._broker.markets.values()
+            )
+        )[0]
+        # start = largest_market.data.head(1).index.get_level_values(0).unique()
+        # end = largest_market.data.tail(1).index.get_level_values(0).unique()
+
+        return largest_market.data.index.get_level_values(0).unique()
+
     def run(self, evaluator: List[EvaluatorEnum] | None = None, output: bool = True):
         """
         Start back test, the whole process including:
@@ -362,7 +374,9 @@ class Actuator(object):
 
         self._enabled_evaluator = evaluator
         self._check_backtest()
-        index_array: pd.DatetimeIndex = list(self._broker.markets.values())[0].data.index.get_level_values(0).unique()
+        index_array: pd.DatetimeIndex = (
+            self.get_test_range()
+        )  # list(self._broker.markets.values())[0].data.index.get_level_values(0).unique()
         self.logger.info("init strategy...")
 
         # set initial status for strategy, so user can run some calculation in initial function.

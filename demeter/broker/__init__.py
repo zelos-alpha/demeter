@@ -16,6 +16,7 @@ from ._typing import (
     Rule,
     MarketTypeEnum,
     RowData,
+    BASE_FREQ,
 )
 from .broker import Broker
 from .market import Market, write_func

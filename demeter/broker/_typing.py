@@ -474,3 +474,5 @@ class RowData:
     row_id: int  # index of this iteration, start from 0
     prices: pd.Series  # price of tokens at this time
     market_status: MarketDict[Union[pd.Series, pd.DataFrame]] = MarketDict()  # status of markets at this time
+
+BASE_FREQ = "1min"

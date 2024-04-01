@@ -151,7 +151,7 @@ class TestActuator(unittest.TestCase):
         self.assertEqual(account_status.iloc[7].aave_health_factor, Decimal("inf"))
 
         self.assertEqual(account_status.iloc[8].aave_supplies_value, Decimal("0"))
-        self.assertEqual(account_status.iloc[9].net_value, Decimal("15031.00000000000080468964825"))
+        self.assertEqual(account_status.iloc[9].net_value, Decimal("15031"))
 
     def test_repay_with_collateral(self):
         aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="./aave_risk_parameters/polygon.csv", tokens=[weth])

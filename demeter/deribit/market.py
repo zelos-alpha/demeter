@@ -19,11 +19,12 @@ from ._typing import (
     SellAction,
     ExpiredAction,
     DeliverAction,
+    DERIBIT_OPTION_FREQ,
 )
 from .helper import round_decimal
 from .. import TokenInfo
 from .._typing import DemeterError
-from ..broker import Market, MarketInfo, write_func
+from ..broker import Market, MarketInfo, write_func, BASE_FREQ
 from ..utils import float_param_formatter
 
 DEFAULT_DATA_PATH = "./data"
@@ -50,6 +51,7 @@ class DeribitOptionMarket(Market):
         self.token_config: DeribitTokenConfig = DeribitOptionMarket.TOKEN_CONFIGS[token]
         self.positions: Dict[str, OptionPosition] = {}
         self.decimal = self.token_config.min_fee_decimal
+        self._balance_cache = None
 
     MAX_FEE_RATE = Decimal("0.125")
     ETH = TokenInfo("eth", 18)
@@ -136,7 +138,7 @@ class DeribitOptionMarket(Market):
         """
         super().set_market_status(data, price)
         if data.data is None:
-            data.data = self._data.loc[data.timestamp]
+            data.data = self._data.loc[data.timestamp.floor(DERIBIT_OPTION_FREQ)]
         self._market_status = data
 
     # region for option market only
@@ -158,7 +160,10 @@ class DeribitOptionMarket(Market):
             price.append({"time": hour, self.token.name: hour_df.iloc[0]["underlying_price"]})
         price_df = pd.DataFrame(price)
         price_df.set_index(["time"], inplace=True)
-        return price_df
+        # expend to the end of the day
+        price_df.loc[price_df.tail(1).index[0].ceil("1d")] = 0
+        price_df = price_df.resample(BASE_FREQ).ffill()
+        return price_df.drop(price_df.index[-1])
 
     def get_deliver_fee(self, amount: Decimal, total_premium: Decimal):
         """
@@ -192,13 +197,11 @@ class DeribitOptionMarket(Market):
             instrument_name, amount, price_in_token, price_in_usd, True
         )
 
-        # deduct bids amount
+        # this actually pass reference of the array, so asks array will be updated in _deduct_order_amount.
+        # so when orders are deducted, asks order number will be changed.
         asks = instrument.asks
+        # deduct bids amount
         ask_list = self._deduct_order_amount(amount, asks, price_in_token)
-
-        # write positions back
-        if self.data is not None:
-            self.data.loc[(self._market_status.timestamp, instrument_name), "asks"] = asks
 
         total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in ask_list]))
         fee_amount = self.get_trade_fee(amount, total_premium)
@@ -362,7 +365,11 @@ class DeribitOptionMarket(Market):
         return amount, instrument, price_in_token
 
     def update(self):
-        self.check_option_exercise()
+        if self._is_open():
+            self.check_option_exercise()
+
+    def _is_open(self):
+        return self._market_status.timestamp == self._market_status.timestamp.floor(DERIBIT_OPTION_FREQ)
 
     def get_market_balance(self, prices: pd.Series | Dict[str, Decimal] = None) -> OptionMarketBalance:
         """
@@ -373,25 +380,26 @@ class DeribitOptionMarket(Market):
         :return: Balance in this market includes net value, position value
         :rtype: MarketBalance
         """
-        put_count = len(list(filter(lambda x: x.type == OptionKind.put, self.positions.values())))
-        call_count = len(list(filter(lambda x: x.type == OptionKind.call, self.positions.values())))
+        if self._is_open():
+            put_count = len(list(filter(lambda x: x.type == OptionKind.put, self.positions.values())))
+            call_count = len(list(filter(lambda x: x.type == OptionKind.call, self.positions.values())))
 
-        total_premium = Decimal(0)
-        delta = gamma = Decimal(0)
-        for position in self.positions.values():
-            instr_status = self.market_status.data.loc[position.instrument_name]
-            instrument_premium = position.amount * round_decimal(instr_status.mark_price, self.decimal)
-            total_premium += instrument_premium
-            delta += instrument_premium * round_decimal(instr_status.delta, self.decimal)
-            gamma += instrument_premium * round_decimal(instr_status.gamma, self.decimal)
+            total_premium = Decimal(0)
+            delta = gamma = Decimal(0)
+            for position in self.positions.values():
+                instr_status = self.market_status.data.loc[position.instrument_name]
+                instrument_premium = position.amount * round_decimal(instr_status.mark_price, self.decimal)
+                total_premium += instrument_premium
+                delta += instrument_premium * round_decimal(instr_status.delta, self.decimal)
+                gamma += instrument_premium * round_decimal(instr_status.gamma, self.decimal)
 
-        delta = Decimal(0) if total_premium == Decimal(0) else delta / total_premium
-        gamma = Decimal(0) if total_premium == Decimal(0) else gamma / total_premium
+            delta = Decimal(0) if total_premium == Decimal(0) else delta / total_premium
+            gamma = Decimal(0) if total_premium == Decimal(0) else gamma / total_premium
 
-        return OptionMarketBalance(total_premium, put_count, call_count, delta, gamma)
+            self._balance_cache = OptionMarketBalance(total_premium, put_count, call_count, delta, gamma)
+        return self._balance_cache
 
     # region exercise
-    @write_func
     def check_option_exercise(self):
         """
         loop all the option position,

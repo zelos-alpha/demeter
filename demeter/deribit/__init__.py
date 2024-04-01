@@ -8,5 +8,6 @@ from ._typing import (
     SellAction,
     ExpiredAction,
     DeliverAction,
+    DERIBIT_OPTION_FREQ,
 )
 from .helper import round_decimal
