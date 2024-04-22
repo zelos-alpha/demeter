@@ -4,12 +4,14 @@ References
 .. toctree::
    :maxdepth: 4
 
-   demeter.aave
-   demeter.broker
    demeter.core
-   demeter.indicator
+   demeter.broker
    demeter.strategy
-   demeter.uniswap
    demeter.utils
+   demeter.uniswap
+   demeter.aave
+   demeter.deribit
+   demeter.indicator
+
 
 
