@@ -34,7 +34,56 @@ class DeribitOptionMarketDescription(NamedTuple):
 @dataclass
 class InstrumentStatus:
     """
-    all the price is in unit of underlying token!
+    Property of an instrument(order)
+
+    :param: state: status of an instrument(open, closed)
+    :type state: str | None
+    :param: type: order type, CALL/PUT
+    :type type: str | None
+    :param: strike_price: strike price
+    :type strike_price: int | None
+    :param: t: Time remaining until expiration
+    :type t: float | None
+    :param: expiry_time: expiration time
+    :type expiry_time: datetime | None
+    :param: vega: greeks, vega
+    :type vega: float | None
+    :param: theta: greeks, theta
+    :type theta: float | None
+    :param: rho: greeks, rho
+    :type rho: float | None
+    :param: gamma: greeks, gamma
+    :type gamma: float | None
+    :param: delta: greeks, delta
+    :type delta: float | None
+    :param: underlying_price: underlying price for implied volatility calculations, if token is eth, the unit is eth
+    :type underlying_price: float | None
+    :param: settlement_price: The settlement price for the instrument, if token is eth, the unit is eth
+    :type settlement_price: float | None
+    :param: mark_price: The mark price for the instrument, if token is eth, the unit is eth
+    :type mark_price: float | None
+    :param: mark_iv: implied volatility for mark price
+    :type mark_iv: float | None
+    :param: last_price: The price for the last trade, if token is eth, the unit is eth
+    :type last_price: float | None
+    :param: interest_rate: Interest rate used in implied volatility calculations
+    :type interest_rate:  float | None
+    :param: bid_iv:  implied volatility for best bid
+    :type bid_iv: float | None
+    :param: best_bid_price: The current best bid price, null if there aren't any bids, if token is eth, the unit is eth
+    :type best_bid_price: float | None
+    :param: best_bid_amount: It represents the requested order size of all best bids
+    :type best_bid_amount: float | None
+    :param: ask_iv: implied volatility for best ask
+    :type ask_iv: float | None
+    :param: best_ask_price: The current best ask price, null if there aren't any asks, if token is eth, the unit is eth
+    :type best_ask_price: float | None
+    :param: best_ask_amount: It represents the requested order size of all best asks
+    :type best_ask_amount: float | None
+    :param: asks: List of asks, in price and amount
+    :type asks: List[Tuple[float, float]] | None
+    :param: bids: List of bids, in price and amount
+    :type bids: List[Tuple[float, float]] | None
     """
 
     state: str | None = None
@@ -64,6 +113,19 @@ class InstrumentStatus:
 
 
 class DeribitTokenConfig(NamedTuple):
+    """
+    Config for token in deribit
+
+    :param trade_fee_rate: fee rate for take or make order
+    :type trade_fee_rate: Decimal
+    :param delivery_fee_rate: fee rate for delivery when exercising
+    :type delivery_fee_rate: Decimal
+    :param min_trade_decimal: minimal decimal for trade
+    :type min_trade_decimal: int
+    :param min_fee_decimal: minimal decimal for fee
+    :type min_fee_decimal: int
+    """
+
     trade_fee_rate: Decimal
     delivery_fee_rate: Decimal
     min_trade_decimal: int  # exponent, eg: 5 in 1e5, -2 in 1e-2
@@ -75,12 +137,40 @@ class DeribitTokenConfig(NamedTuple):
 
 
 class OptionKind(Enum):
+    """
+    Option kind, call/put
+    """
+
     put = "PUT"
     call = "CALL"
 
 
 @dataclass
 class OptionPosition:
+    """
+    Information for an option position
+
+    :param instrument_name: instrument name
+    :type instrument_name: str
+    :param expiry_time: expiry time
+    :type expiry_time: datetime
+    :param strike_price: strike price, if token is eth, the unit is eth
+    :type strike_price: int
+    :param type: option type
+    :type type: OptionKind
+    :param amount: amount of a instrument
+    :type amount: Decimal
+    :param avg_buy_price: average buy price, if token is eth, the unit is eth
+    :type avg_buy_price: Decimal
+    :param buy_amount: total amount brought
+    :type buy_amount: Decimal
+    :param avg_sell_price: average sell price, if token is eth, the unit is eth
+    :type avg_sell_price: Decimal
+    :param sell_amount:  total amount sold
+    :type sell_amount: Decimal
+
+    """
+
     instrument_name: str
     expiry_time: datetime
     strike_price: int
@@ -106,6 +196,19 @@ class DeribitMarketStatus(MarketStatus):
 
 @dataclass
 class OptionMarketBalance(MarketBalance):
+    """
+    Balance of an option market
+
+    :param put_count: count of put option position
+    :type put_count: int
+    :param call_count: count of call option position
+    :type call_count: int
+    :param delta: delta of current exposure
+    :type delta: Decimal
+    :param gamma: gamma of current exposure
+    :type gamma: Decimal
+    """
+
     put_count: int
     call_count: int
     delta: Decimal
@@ -113,6 +216,15 @@ class OptionMarketBalance(MarketBalance):
 
 
 class Order(NamedTuple):
+    """
+    Order instance when buy/sell option
+
+    :param price: price, if token is eth, the unit is eth
+    :type price: Decimal
+    :param amount: amount to buy
+    :type amount: Decimal
+    """
+
     price: Decimal
     amount: Decimal
 
@@ -128,6 +240,29 @@ class Order(NamedTuple):
 
 @dataclass
 class OptionTradeAction(BaseAction):
+    """
+    Recording information about options trades
+
+    :param instrument_name: instrument name
+    :type instrument_name: str
+    :param type: option type, call/put
+    :type type: OptionKind
+    :param average_price: average price, if token is eth, the unit is eth
+    :type average_price: Decimal
+    :param amount: amount to trade
+    :type amount: Decimal
+    :param total_premium: total premium of this trade
+    :type total_premium: Decimal
+    :param mark_price: mark price
+    :type mark_price: Decimal
+    :param underlying_price: underlying price
+    :type underlying_price: Decimal
+    :param fee: fee of this trade
+    :type fee: Decimal
+    :param orders: orders in price-amount,
+    :type orders: List[Order]
+    """
+
     instrument_name: str
     type: OptionKind
     average_price: Decimal
@@ -141,6 +276,9 @@ class OptionTradeAction(BaseAction):
 
 @dataclass
 class BuyAction(OptionTradeAction):
+    """
+    buy action
+    """
 
     def set_type(self):
         self.action_type = ActionTypeEnum.option_buy
@@ -148,6 +286,9 @@ class BuyAction(OptionTradeAction):
 
 @dataclass
 class SellAction(OptionTradeAction):
+    """
+    sell action
+    """
 
     def set_type(self):
         self.action_type = ActionTypeEnum.option_sell
@@ -155,6 +296,29 @@ class SellAction(OptionTradeAction):
 
 @dataclass
 class DeliverAction(BaseAction):
+    """
+    :param instrument_name: instrument name
+    :type instrument_name: str
+    :param type: option type, call/put
+    :type type: OptionKind
+    :param mark_price: mark price, if token is eth, the unit is eth
+    :type mark_price: Decimal
+    :param amount: total amount
+    :type amount: Decimal
+    :param total_premium: Decimal
+    :type total_premium: Decimal
+    :param strike_price: strike price
+    :type strike_price: int
+    :param underlying_price: underlying price
+    :type underlying_price: Decimal
+    :param deriver_amount: deriver amount
+    :type deriver_amount: Decimal
+    :param fee: fee
+    :type fee: Decimal
+    :param income_amount: income amount
+    :type income_amount: Decimal
+    """
+
     instrument_name: str
     type: OptionKind
     mark_price: Decimal
@@ -169,6 +333,23 @@ class DeliverAction(BaseAction):
 
 @dataclass
 class ExpiredAction(BaseAction):
+    """
+    :param instrument_name: instrument name
+    :type instrument_name: str
+    :param type: option type, call/put
+    :type type: OptionKind
+    :param mark_price: mark price
+    :type mark_price: Decimal
+    :param amount: total amount
+    :type amount: Decimal
+    :param total_premium: Decimal
+    :type total_premium: Decimal
+    :param strike_price: strike price
+    :type strike_price: int
+    :param underlying_price: underlying price
+    :type underlying_price: Decimal
+    """
+
     instrument_name: str
     type: OptionKind
     mark_price: Decimal

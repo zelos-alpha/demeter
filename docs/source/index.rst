@@ -19,6 +19,7 @@ Features
 - **Data feeding:** Backtesting requires real market data. Thanks to the transparency of blockchain, those data can be fetched from event logs of transaction. We provided demeter-fetch_ to do this work. It can download event logs from rpc or google big query and decode them to market data.
 - **Uniswap market:** As a popular automated market maker, uniswap is famous for its complexity. To raise fund utilization rate, uniswap add tick range to position, which makes it difficult to estimate the return on investment. Demeter provides comprehensive calculation and evaluation tools to help users test the returns of various positions.
 - **Aave market:** Aave is a popular liquidity protocol which allow user to deposit and borrow assets. Through supply asset to aave, user can earn interest, and borrowing allow user to earn extra profit or to hedging price changes. Demeter support supply/repay/borrow/repay/liquidation transactions on aave.
+- **Deribit option market:** To hedge against Greek values, we supported the Deribit options market.
 - **Accuracy:** In the design of demeter, accuracy is an important consideration. In order to provide higher accuracy, the core calculations of uniswap and aave do not follow theoretical formulas, but draw on the code of the contract. This allows demeter to have higher calculations accuracy.
 - **Rich output:** In order to allow users to evaluate strategies intuitively, demeter provides a wealth of output, including asset changes in accounts and position adjustment records. With the indicator calculation module, users can choose the best investment strategy.
 - **Indicators:** Besides the simulation of defi market, demeter also provides various indicators. Those indicators will help user to decide how and when to make transactions, and evaluate their strategies.
@@ -57,6 +58,7 @@ links
    modules
    market_uniswap
    market_aave
+   market_deribit_option
    references
 
 

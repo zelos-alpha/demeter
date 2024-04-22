@@ -9,7 +9,7 @@ is widely used in our analysis reports.
 In uniswap market, you can simulate transactions like add liquidity, swap etc. Demeter can accurately calculate fee
 income.
 
-One uniswap market instance corresponds to a uniswap pool. So you have to set UniV3Pool parameter to uniswap market
+One uniswap market instance corresponds to an uniswap pool. So you have to set UniV3Pool parameter to uniswap market
 instance. In this class, you need to specify the tokens and fee rate. Base token means which token is used to indicate
 the price. E.g., if token0 is usdc, token1 is weth, then token0 should be set as base token, so you can get the price
 unit in usdc/eth.

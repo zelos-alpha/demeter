@@ -36,7 +36,19 @@ def order_converter(array_str) -> List:
 
 class DeribitOptionMarket(Market):
     """
-    You can backtest as a taker only.
+    The Deribit options market can be utilized for options investment or backtesting of Greek hedging strategies.
+    In this market, you can buy or sell options based on the current order book.
+    Currently, this market only supports taker orders and does not support maker orders.
+
+    :param market_info: key of this market,
+    :type market_info: MarketInfo,
+    :param token: token for this market, if you want to trade another token, you can initial another market,
+    :type token: TokenInfo,
+    :param data: hourly orderbook data of deribit option market for this token
+    :type data: pd.DataFrame = None,
+    :param data_path: str = path to load data,
+    :type data_path: str = DEFAULT_DATA_PATH,
+
     """
 
     def __init__(
@@ -84,6 +96,7 @@ class DeribitOptionMarket(Market):
         """
         Load data from folder set in data_path. Those data file should be downloaded by demeter, and meet name rule.
         Deribit-option-book-{token}-{day.strftime('%Y%m%d')}.csv
+        data can be downloaded from dropbox: https://www.dropbox.com/scl/fo/kwk5kgiseu5rvccjscd0f/ANswtRLzpCxOc6cMTH0oRlE?rlkey=ai071f9695uz287lt8k0bci5e&dl=0
 
         :param start_date: start day
         :type start_date: date
@@ -131,8 +144,8 @@ class DeribitOptionMarket(Market):
         Set up market status, such as liquidity, price
 
         :param data: market status
-        :type data: Series | MarketStatus
-        :param price: current price
+        :type data: Series | DeribitMarketStatus
+        :param price: current price of all relative token, based in usd
         :type price: Series
 
         """
@@ -145,14 +158,36 @@ class DeribitOptionMarket(Market):
 
     def get_trade_fee(self, amount: Decimal, total_premium: Decimal) -> Decimal:
         """
-        https://www.deribit.com/kb/fees
+        Calculate trade fee, according to https://www.deribit.com/kb/fees
+
+        :param amount: instrument amount
+        :type amount: Decimal
+        :param total_premium: total value of instruments
+        :type total_premium: Decimal
         """
         return round_decimal(
             min(self.token_config.trade_fee_rate * amount, DeribitOptionMarket.MAX_FEE_RATE * total_premium),
             self.decimal,
         )
 
-    def get_price_from_data(self):
+    def get_deliver_fee(self, amount: Decimal, total_premium: Decimal):
+        """
+        Calculate fee of deliver when exercising, according to https://www.deribit.com/kb/fees
+
+        :param amount: instrument amount
+        :type amount: Decimal
+        :param total_premium: total value of instruments
+        :type total_premium: Decimal
+        """
+        return round_decimal(
+            min(self.token_config.delivery_fee_rate * amount, DeribitOptionMarket.MAX_FEE_RATE * total_premium),
+            self.decimal,
+        )
+
+    def get_price_from_data(self) -> pd.Series:
+        """
+        Get hourly underlying price.
+        """
         if self._data is None:
             raise DemeterError("data is empty")
         price = []
@@ -165,16 +200,13 @@ class DeribitOptionMarket(Market):
         price_df = price_df.resample(BASE_FREQ).ffill()
         return price_df.drop(price_df.index[-1])
 
-    def get_deliver_fee(self, amount: Decimal, total_premium: Decimal):
-        """
-        https://www.deribit.com/kb/fees
-        """
-        return round_decimal(
-            min(self.token_config.delivery_fee_rate * amount, DeribitOptionMarket.MAX_FEE_RATE * total_premium),
-            self.decimal,
-        )
-
     def __get_trade_amount(self, amount: Decimal):
+        """
+        Round trade amount, and ensure amount is above dust amount
+
+        :param amount: option amount to buy/sell
+        :param amount: Decimal
+        """
         if amount < self.token_config.min_amount:
             return self.token_config.min_amount
         return round_decimal(amount, self.token_config.min_trade_decimal)
@@ -189,8 +221,18 @@ class DeribitOptionMarket(Market):
         price_in_usd: float | Decimal | None = None,
     ) -> List[Order]:
         """
-        if price is not none, will set at that price
+        Buy option.
+        if price is not none, will buy at specific price
         or else will buy according to bids
+
+        :param instrument_name: instrument name
+        :type instrument_name: str,
+        :param amount: amount to buy,
+        :type amount: float | Decimal,
+        :param price_in_token: price, based in token,
+        :type price_in_token: float | Decimal | None = None,
+        :param price_in_usd: price, based in usd,
+        :type price_in_usd: float | Decimal | None = None,
 
         """
         amount, instrument, price_in_token = self._check_transaction(
@@ -259,6 +301,20 @@ class DeribitOptionMarket(Market):
         price_in_token: float | Decimal | None = None,
         price_in_usd: float | Decimal | None = None,
     ) -> List[Order]:
+        """
+        Sell option.
+        if price is not none, will sell at specific price
+        or else will sell according to asks
+
+        :param instrument_name: instrument name
+        :type instrument_name: str,
+        :param amount: amount to buy,
+        :type amount: float | Decimal,
+        :param price_in_token: price, based in token,
+        :type price_in_token: float | Decimal | None = None,
+        :param price_in_usd: price, based in usd,
+        :type price_in_usd: float | Decimal | None = None,
+        """
         amount, instrument, price_in_token = self._check_transaction(
             instrument_name, amount, price_in_token, price_in_usd, False
         )
@@ -307,6 +363,9 @@ class DeribitOptionMarket(Market):
         return bid_list
 
     def _deduct_order_amount(self, amount, orders, price_in_token):
+        """
+        subtract amount from asks/bids. e.g. if bid1 is run out, will deduct bid2. etc.
+        """
         order_list = []
         if price_in_token is not None:
             for order in orders:
@@ -326,7 +385,16 @@ class DeribitOptionMarket(Market):
                     break
         return order_list
 
-    def _check_transaction(self, instrument_name, amount, price_in_token, price_in_usd, is_buy):
+    def _check_transaction(
+        self, instrument_name, amount, price_in_token, price_in_usd, is_buy
+    ) -> Tuple[Decimal, InstrumentStatus, Decimal]:
+        """
+        | Check transaction,
+        | - ensure instrument exists
+        | - ensure instrument is open
+        | - ensure there are enough amount
+        | - ensure price is in asks/bids
+        """
         if instrument_name not in self._market_status.data.index:
             raise DemeterError(f"{instrument_name} is not in current orderbook")
         instrument: InstrumentStatus = self._market_status.data.loc[instrument_name]
@@ -365,10 +433,18 @@ class DeribitOptionMarket(Market):
         return amount, instrument, price_in_token
 
     def update(self):
+        """
+        Trigger update of this market
+        """
         if self._is_open():
             self.check_option_exercise()
 
     def _is_open(self):
+        """
+        ensure this market is writable. e.g. deribit option market only has data at the hour,
+        but uniswap data is minutely. so at the rest 59 minutes, deribit option market is readonly.
+        which means, you can read status, but you can not buy or sell options.
+        """
         return self._market_status.timestamp == self._market_status.timestamp.floor(DERIBIT_OPTION_FREQ)
 
     def get_market_balance(self, prices: pd.Series | Dict[str, Decimal] = None) -> OptionMarketBalance:
@@ -402,9 +478,9 @@ class DeribitOptionMarket(Market):
     # region exercise
     def check_option_exercise(self):
         """
-        loop all the option position,
-        if expired, if option position is in the money, then exercise.
-        if out of the money, then abandon
+        | loop all the option position,
+        | if expired, if option position is in the money, then exercise.
+        | if out of the money, then abandon
         """
         key_to_remove = []
         for pos_key, position in self.positions.items():
@@ -459,6 +535,9 @@ class DeribitOptionMarket(Market):
     def _deliver_option(
         self, option_pos, instrument: InstrumentStatus, is_call
     ) -> Tuple[Decimal | None, Decimal | None]:
+        """
+        deliver option
+        """
         fee = self.get_deliver_fee(
             option_pos.amount, option_pos.amount * round_decimal(instrument.mark_price, self.decimal)
         )
