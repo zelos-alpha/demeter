@@ -1,3 +1,7 @@
+# Ver 0.4.0
+
+* Add Deribit option market
+
 # Ver 0.3.1
 
 * Fix: When uniswap market load data, if the start time of the first day is not 00:00:00, row count of the first day
