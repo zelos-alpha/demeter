@@ -5,7 +5,7 @@ Submodules
 ----------
 
 demeter.deribit.market module
----------------------------
+---------------------------------
 
 .. automodule:: demeter.deribit.market
    :members:
@@ -13,7 +13,7 @@ demeter.deribit.market module
    :show-inheritance:
 
 demeter.deribit.helper module
----------------------------
+---------------------------------
 
 .. automodule:: demeter.deribit.helper
    :members:
@@ -22,7 +22,7 @@ demeter.deribit.helper module
 
 
 Module contents
----------------
+-----------------
 
 .. automodule:: demeter.deribit
    :members:
