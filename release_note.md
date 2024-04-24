@@ -1,3 +1,7 @@
+# Ver 0.5.0
+
+* Add Squeeth market
+
 # Ver 0.4.0
 
 * Add Deribit option market
