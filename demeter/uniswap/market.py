@@ -2,7 +2,7 @@ import json
 import os
 from datetime import date, timedelta, datetime
 from decimal import Decimal
-from typing import Dict
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -58,7 +58,7 @@ class UniLpMarket(Market):
     """
 
     def __init__(
-        self, market_info: MarketInfo, pool_info: UniV3Pool, data: pd.DataFrame = None, data_path: str = "./data"
+            self, market_info: MarketInfo, pool_info: UniV3Pool, data: pd.DataFrame = None, data_path: str = "./data"
     ):
         super().__init__(market_info=market_info, data=data, data_path=data_path)
         self._pool: UniV3Pool = pool_info
@@ -146,11 +146,10 @@ class UniLpMarket(Market):
         """
         return self._positions[position_info]
 
-
     def set_market_status(
-        self,
-        market_status: UniswapMarketStatus | None,
-        price: pd.Series | None,
+            self,
+            market_status: UniswapMarketStatus | None,
+            price: pd.Series | None,
     ):
         """
         Set current pool status (total liquidity, price etc.) to Market
@@ -240,6 +239,20 @@ class UniLpMarket(Market):
         for position_info, position in self._positions.items():
             V3CoreLib.update_fee(self.last_tick, self.pool_info, position_info, position, self.market_status.data)
 
+    def get_position_amount(self, position_info: PositionInfo) -> Tuple[Decimal, Decimal]:
+        if position_info not in self.positions:
+            return DECIMAL_0, DECIMAL_0
+        pool_price = self._market_status.data.price
+        sqrt_price = quote_price_to_sqrt(
+            pool_price,
+            self._pool.token0.decimal,
+            self._pool.token1.decimal,
+            self._is_token0_base,
+        )
+        position = self.positions[position_info]
+        amount0, amount1 = V3CoreLib.get_token_amounts(self._pool, position_info, sqrt_price, position.liquidity)
+        return amount0, amount1
+
     def get_market_balance(self, external_prices: pd.Series | Dict[str, Decimal] = None) -> MarketBalance:
         """
         get current status, including positions, balances
@@ -267,6 +280,8 @@ class UniLpMarket(Market):
         deposit_amount0 = Decimal(0)
         deposit_amount1 = Decimal(0)
         for position_info, position in self._positions.items():
+            if position.transferred:
+                continue
             base_fee, quote_fee = self._convert_pair(position.pending_amount0, position.pending_amount1)
             base_fee_sum += base_fee
             quote_fee_sum += quote_fee
@@ -277,7 +292,7 @@ class UniLpMarket(Market):
         base_deposit_amount, quote_deposit_amount = self._convert_pair(deposit_amount0, deposit_amount1)
         # net value here is calculated by external price, because we usually want a net value with usd base,
         net_value = (base_fee_sum + base_deposit_amount) * external_prices[self.base_token.name] + (
-            quote_fee_sum + quote_deposit_amount
+                quote_fee_sum + quote_deposit_amount
         ) * external_prices[self.quote_token.name]
 
         val = UniLpBalance(
@@ -289,6 +304,18 @@ class UniLpMarket(Market):
             position_count=len(self._positions),
         )
         return val
+
+    def transfer_position_out(self, position_info: PositionInfo):
+        if position_info in self.positions and not self.positions[position_info].transferred:
+            self.positions[position_info].transferred = True
+        else:
+            raise DemeterError("position not exist or has transferred out ")
+
+    def transfer_position_in(self, position_info: PositionInfo):
+        if position_info in self.positions and self.positions[position_info].transferred:
+            self.positions[position_info].transferred = False
+        else:
+            raise DemeterError("position not exist or has not transferred yet ")
 
     def tick_to_price(self, tick: int) -> Decimal:
         """
@@ -325,12 +352,12 @@ class UniLpMarket(Market):
 
     @write_func
     def _add_liquidity_by_tick(
-        self,
-        token0_amount: Decimal,
-        token1_amount: Decimal,
-        lower_tick: int,
-        upper_tick: int,
-        sqrt_price_x96: int = -1,
+            self,
+            token0_amount: Decimal,
+            token1_amount: Decimal,
+            lower_tick: int,
+            upper_tick: int,
+            sqrt_price_x96: int = -1,
     ):
         lower_tick = int(lower_tick)
         upper_tick = int(upper_tick)
@@ -378,10 +405,10 @@ class UniLpMarket(Market):
 
     @write_func
     def __collect_fee(
-        self,
-        position: Position,
-        max_collect_amount0: Decimal = None,
-        max_collect_amount1: Decimal = None,
+            self,
+            position: Position,
+            max_collect_amount0: Decimal = None,
+            max_collect_amount1: Decimal = None,
     ):
         """
         Collect fee
@@ -413,11 +440,11 @@ class UniLpMarket(Market):
 
     @float_param_formatter
     def add_liquidity(
-        self,
-        lower_quote_price: Decimal | float,
-        upper_quote_price: Decimal | float,
-        base_max_amount: Decimal | float = None,
-        quote_max_amount: Decimal | float = None,
+            self,
+            lower_quote_price: Decimal | float,
+            upper_quote_price: Decimal | float,
+            base_max_amount: Decimal | float = None,
+            quote_max_amount: Decimal | float = None,
     ) -> (PositionInfo, Decimal, Decimal, int):
         """
 
@@ -467,13 +494,13 @@ class UniLpMarket(Market):
         return created_position, base_used, quote_used, liquidity
 
     def add_liquidity_by_tick(
-        self,
-        lower_tick: int,
-        upper_tick: int,
-        base_max_amount: Decimal | float = None,
-        quote_max_amount: Decimal | float = None,
-        sqrt_price_x96: int = -1,
-        tick: int = -1,
+            self,
+            lower_tick: int,
+            upper_tick: int,
+            base_max_amount: Decimal | float = None,
+            quote_max_amount: Decimal | float = None,
+            sqrt_price_x96: int = -1,
+            tick: int = -1,
     ):
         """
 
@@ -532,12 +559,12 @@ class UniLpMarket(Market):
 
     @float_param_formatter
     def remove_liquidity(
-        self,
-        position: PositionInfo,
-        liquidity: int = None,
-        collect: bool = True,
-        sqrt_price_x96: int = -1,
-        remove_dry_pool: bool = True,
+            self,
+            position: PositionInfo,
+            liquidity: int = None,
+            collect: bool = True,
+            sqrt_price_x96: int = -1,
+            remove_dry_pool: bool = True,
     ) -> (Decimal, Decimal):
         """
         | remove liquidity from the pool. Liquidity will be reduced to 0,
@@ -581,11 +608,11 @@ class UniLpMarket(Market):
 
     @float_param_formatter
     def collect_fee(
-        self,
-        position: PositionInfo,
-        max_collect_amount0: Decimal = None,
-        max_collect_amount1: Decimal = None,
-        remove_dry_pool: bool = True,
+            self,
+            position: PositionInfo,
+            max_collect_amount0: Decimal = None,
+            max_collect_amount1: Decimal = None,
+            remove_dry_pool: bool = True,
     ) -> (Decimal, Decimal):
         """
         | collect fee and token from positions,
@@ -619,10 +646,10 @@ class UniLpMarket(Market):
                 )
             )
         if (
-            self._positions[position].pending_amount0 == Decimal(0)
-            and self._positions[position].pending_amount1 == Decimal(0)
-            and self._positions[position].liquidity == 0
-            and remove_dry_pool
+                self._positions[position].pending_amount0 == Decimal(0)
+                and self._positions[position].pending_amount1 == Decimal(0)
+                and self._positions[position].liquidity == 0
+                and remove_dry_pool
         ):
             del self.positions[position]
         return base_get, quote_get
@@ -710,7 +737,7 @@ class UniLpMarket(Market):
             price = self._market_status.data.price
 
         total_capital = (
-            self.broker.get_token_balance(self.base_token) + self.broker.get_token_balance(self.quote_token) * price
+                self.broker.get_token_balance(self.base_token) + self.broker.get_token_balance(self.quote_token) * price
         )
         target_base_amount = total_capital / 2
         quote_amount_diff = target_base_amount / price - self.broker.get_token_balance(self.quote_token)
@@ -752,8 +779,8 @@ class UniLpMarket(Market):
         )
         df["low"] = df[high_name].map(lambda x: self.tick_to_price(x))
         df["high"] = df[low_name].map(lambda x: self.tick_to_price(x))
-        df["volume0"] = df["inAmount0"].map(lambda x: Decimal(x) / 10**self.pool_info.token0.decimal)
-        df["volume1"] = df["inAmount1"].map(lambda x: Decimal(x) / 10**self.pool_info.token1.decimal)
+        df["volume0"] = df["inAmount0"].map(lambda x: Decimal(x) / 10 ** self.pool_info.token0.decimal)
+        df["volume1"] = df["inAmount1"].map(lambda x: Decimal(x) / 10 ** self.pool_info.token1.decimal)
 
     def load_data(self, chain: str, contract_addr: str, start_date: date, end_date: date):
         """
@@ -777,7 +804,7 @@ class UniLpMarket(Market):
         df = pd.DataFrame()
         day = start_date
         if start_date > end_date:
-            raise DemeterError(f"start date {start_date} should eariler than end date {end_date}")
+            raise DemeterError(f"start date {start_date} should earlier than end date {end_date}")
         while day <= end_date:
             new_type_path = os.path.join(
                 self.data_path,
@@ -832,15 +859,15 @@ class UniLpMarket(Market):
         """
         value = get_formatted_predefined(f"{self.market_info.name}({type(self).__name__})", STYLE["header3"]) + "\n"
         value += (
-            get_formatted_from_dict(
-                {
-                    "token0": self.pool_info.token0.name,
-                    "token1": self.pool_info.token1.name,
-                    "fee": self.pool_info.fee_rate * 100,
-                    "is 0 base": self.pool_info.is_token0_base,
-                }
-            )
-            + "\n"
+                get_formatted_from_dict(
+                    {
+                        "token0": self.pool_info.token0.name,
+                        "token1": self.pool_info.token1.name,
+                        "fee": self.pool_info.fee_rate * 100,
+                        "is 0 base": self.pool_info.is_token0_base,
+                    }
+                )
+                + "\n"
         )
         value += get_formatted_predefined("positions", STYLE["key"]) + "\n"
         df = position_dict_to_dataframe(self.positions)

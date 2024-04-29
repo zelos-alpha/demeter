@@ -71,10 +71,10 @@ class UniV3Pool(object):
 
     def __str__(self):
         return (
-            "PoolBaseInfo(Token0: {},".format(self.token0)
-            + "Token1: {},".format(self.token1)
-            + "fee: {},".format(self.fee_rate * Decimal(100))
-            + "base token: {})".format(self.token0.name if self.is_token0_base else self.token1.name)
+                "PoolBaseInfo(Token0: {},".format(self.token0)
+                + "Token1: {},".format(self.token1)
+                + "fee: {},".format(self.fee_rate * Decimal(100))
+                + "base token: {})".format(self.token0.name if self.is_token0_base else self.token1.name)
         )
 
     def __repr__(self):
@@ -209,6 +209,7 @@ class Position(object):
     pending_amount0: Decimal
     pending_amount1: Decimal
     liquidity: int
+    transferred: bool = False  # this position(nft) has been transferred, so owner is not current user.
 
 
 def position_dict_to_dataframe(positions: Dict[PositionInfo, Position]) -> pd.DataFrame:

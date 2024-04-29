@@ -36,6 +36,7 @@ class MarketTypeEnum(Enum):
     uniswap_v3 = 1
     aave_v3 = 2
     deribit_option = 3
+    squeeth = 4
 
 
 class MarketInfo(NamedTuple):
@@ -474,5 +475,6 @@ class RowData:
     row_id: int  # index of this iteration, start from 0
     prices: pd.Series  # price of tokens at this time
     market_status: MarketDict[Union[pd.Series, pd.DataFrame]] = MarketDict()  # status of markets at this time
+
 
 BASE_FREQ = "1min"
