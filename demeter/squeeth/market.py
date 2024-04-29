@@ -73,22 +73,6 @@ class SqueethMarket(Market):
         self.data = df
         self.logger.info("data has been prepared")
 
-    def buy_squeeth(self, eth_amount=None, osqth_amount=None) -> Tuple[Decimal, Decimal, Decimal]:
-        if eth_amount is None and osqth_amount is not None:
-            eth_amount = osqth_amount * self._market_status["osqth"]
-        self.broker.subtract_from_balance(WETH, eth_amount)
-        fee, eth_amount, osqth_amount = self._squeeth_uni_pool.buy(eth_amount)
-        self.broker.add_to_balance(oSQTH, osqth_amount)
-        return fee, eth_amount, osqth_amount
-
-    def sell_squeeth(self, eth_amount=None, osqth_amount=None) -> Tuple[Decimal, Decimal, Decimal]:
-        if osqth_amount is None and eth_amount is not None:
-            osqth_amount = osqth_amount / self._market_status["osqth"]
-        self.broker.subtract_from_balance(oSQTH, osqth_amount)
-        fee, eth_amount, osqth_amount = self._squeeth_uni_pool.buy(eth_amount)
-        self.broker.add_to_balance(WETH, eth_amount)
-        return fee, eth_amount, osqth_amount
-
     def set_market_status(self, market_status: MarketStatus | None, price: pd.Series | None):
         super().set_market_status(market_status, price)
         self._market_status = market_status
@@ -106,6 +90,7 @@ class SqueethMarket(Market):
         price_df = self._data[["eth", "osqth"]]
         return price_df
 
+    # region short
     def open_deposit_mint(self,
                           deposit_eth_amount: Decimal,
                           osqth_mint_amount: Decimal,
@@ -134,14 +119,7 @@ class SqueethMarket(Market):
             self.vault[vault_id].collateral_amount += deposit_amount_with_fee
 
         if uni_position is not None:
-            if uni_position not in self.squeeth_uni_pool.positions:
-                raise DemeterError("Position is not in squeeth-eth pool")
-            if self.squeeth_uni_pool.positions[uni_position].liquidity <= 0:
-                raise DemeterError("Require liquidity in squeeth-eth pool")
-            if self.vault[vault_id].uni_nft_id is not None:
-                raise DemeterError("This vault already has a NFT collateral")
-            self.vault[vault_id].uni_nft_id = uni_position
-            self.squeeth_uni_pool.transfer_position_out(uni_position)
+            self._deposit_uni_position(vault_id, uni_position)
 
         # check vault
         self._check_vault(vault_id, norm_factor)
@@ -205,6 +183,22 @@ class SqueethMarket(Market):
         # As current fee rate is 0
         return Decimal(0), deposit_eth_amount
 
+    def deposit(self, vault_id, eth_value):
+        self.vault[vault_id].collateral_amount += eth_value
+
+    def deposit_uni_position(self, vault_id: int, uni_position_info: PositionInfo):
+        self._deposit_uni_position(vault_id, uni_position_info)
+
+    def _deposit_uni_position(self, vault_id: int, uni_position: PositionInfo):
+        if uni_position not in self.squeeth_uni_pool.positions:
+            raise DemeterError("Position is not in squeeth-eth pool")
+        if self.squeeth_uni_pool.positions[uni_position].liquidity <= 0:
+            raise DemeterError("Require liquidity in squeeth-eth pool")
+        if self.vault[vault_id].uni_nft_id is not None:
+            raise DemeterError("This vault already has a NFT collateral")
+        self.vault[vault_id].uni_nft_id = uni_position
+        self.squeeth_uni_pool.transfer_position_out(uni_position)
+
     def mint(self):
         pass
 
@@ -217,6 +211,26 @@ class SqueethMarket(Market):
     def update(self):
         pass
 
+    # endregion
+
+    # region long
+    def buy_squeeth(self, eth_amount=None, osqth_amount=None) -> Tuple[Decimal, Decimal, Decimal]:
+        if eth_amount is None and osqth_amount is not None:
+            eth_amount = osqth_amount * self._market_status["osqth"]
+        self.broker.subtract_from_balance(WETH, eth_amount)
+        fee, eth_amount, osqth_amount = self._squeeth_uni_pool.buy(eth_amount)
+        self.broker.add_to_balance(oSQTH, osqth_amount)
+        return fee, eth_amount, osqth_amount
+
+    def sell_squeeth(self, eth_amount=None, osqth_amount=None) -> Tuple[Decimal, Decimal, Decimal]:
+        if osqth_amount is None and eth_amount is not None:
+            osqth_amount = osqth_amount / self._market_status["osqth"]
+        self.broker.subtract_from_balance(oSQTH, osqth_amount)
+        fee, eth_amount, osqth_amount = self._squeeth_uni_pool.buy(eth_amount)
+        self.broker.add_to_balance(WETH, eth_amount)
+        return fee, eth_amount, osqth_amount
+
+    # endregion
     def get_norm_factor(self) -> Decimal:
         """Maybe I should calculate this myself, as transactions are too few in a day"""
         return self._market_status["norm_factor"]
