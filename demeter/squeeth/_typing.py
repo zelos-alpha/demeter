@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
-from demeter import TokenInfo, ChainType
+from demeter import TokenInfo, ChainType, MarketStatus
 from demeter.uniswap import PositionInfo
 
 oSQTH = TokenInfo("oSQTH", 18)
@@ -31,7 +31,7 @@ class Vault:
     id: int
     collateral_amount: Decimal = Decimal(0)
     osqth_short_amount: Decimal = Decimal(0)
-    uni_nft_id: PositionInfo | None =None
+    uni_nft_id: PositionInfo | None = None
 
 
 @dataclass
@@ -41,3 +41,6 @@ class ShortStatus:
     premium: Decimal
     collateral_ratio: Decimal
     liquidation_price: Decimal
+
+
+

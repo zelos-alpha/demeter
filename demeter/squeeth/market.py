@@ -7,7 +7,7 @@ from typing import Tuple, Dict
 import numpy as np
 import pandas as pd
 
-from .. import MarketInfo, TokenInfo, DemeterError, MarketStatus
+from .. import MarketInfo, TokenInfo, DemeterError, MarketStatus, DECIMAL_0
 from ..broker import Market
 from ._typing import ETH_MAINNET, oSQTH, WETH, Vault
 from ..uniswap import UniLpMarket, PositionInfo
@@ -18,11 +18,11 @@ import random
 class SqueethMarket(Market):
 
     def __init__(
-            self,
-            market_info: MarketInfo,
-            squeeth_uni_pool: UniLpMarket,
-            data: pd.DataFrame = None,
-            data_path: str = "./data",
+        self,
+        market_info: MarketInfo,
+        squeeth_uni_pool: UniLpMarket,
+        data: pd.DataFrame = None,
+        data_path: str = "./data",
     ):
         super().__init__(market_info=market_info, data_path=data_path, data=data)
         self.network = ETH_MAINNET
@@ -35,6 +35,9 @@ class SqueethMarket(Market):
     # a user is safe if - collateral value >= (COLLAT_RATIO_NUMER/COLLAT_RATIO_DENOM)* debt value
     CR_NUMERATOR = Decimal(3)
     CR_DENOMINATOR = Decimal(2)
+    REDUCE_DEBT_BOUNTY = Decimal("0.02")
+    LIQUIDATION_BOUNTY = Decimal("0.1")
+    MIN_COLLATERAL = Decimal("0.5")  # eth
 
     @property
     def osqth_amount(self):
@@ -68,13 +71,16 @@ class SqueethMarket(Market):
         df = df.ffill()
         if pd.isnull(df.index[0]):
             raise DemeterError(
-                f"start date {start_date} does not have available data, Consider start from previous day")
+                f"start date {start_date} does not have available data, Consider start from previous day"
+            )
 
         self.data = df
         self.logger.info("data has been prepared")
 
     def set_market_status(self, market_status: MarketStatus | None, price: pd.Series | None):
         super().set_market_status(market_status, price)
+        if market_status.data is None:
+            market_status.data = self.data.loc[market_status.timestamp]
         self._market_status = market_status
 
     def get_price_from_data(self) -> pd.DataFrame:
@@ -91,11 +97,13 @@ class SqueethMarket(Market):
         return price_df
 
     # region short
-    def open_deposit_mint(self,
-                          deposit_eth_amount: Decimal,
-                          osqth_mint_amount: Decimal,
-                          vault_id: int = 0,
-                          uni_position: PositionInfo | None = None) -> Tuple[int, Decimal]:
+    def open_deposit_mint(
+        self,
+        deposit_eth_amount: Decimal,
+        osqth_mint_amount: Decimal,
+        vault_id: int = 0,
+        uni_position: PositionInfo | None = None,
+    ) -> Tuple[int, Decimal]:
         """
         follow controller contract,  function _openDepositMint
         """
@@ -109,9 +117,9 @@ class SqueethMarket(Market):
             self.vault[new_vault_id] = Vault(new_vault_id)
         fee_amount = Decimal(0)
         if osqth_mint_amount > 0:
-            fee_amount, deposit_amount_with_fee = self.get_fee(self.vault[vault_id],
-                                                               osqth_mint_amount,
-                                                               deposit_eth_amount)
+            fee_amount, deposit_amount_with_fee = self.get_fee(
+                self.vault[vault_id], osqth_mint_amount, deposit_eth_amount
+            )
             self.vault[vault_id].osqth_short_amount += osqth_mint_amount
             self.broker.add_to_balance(oSQTH, osqth_mint_amount)
 
@@ -145,7 +153,9 @@ class SqueethMarket(Market):
         total_collateral = self._get_effective_collateral(vault_id, norm_factor, eth_price)
 
         is_dust = total_collateral < SqueethMarket.MIN_DEPOSIT_AMOUNT
-        is_above_water = total_collateral * SqueethMarket.CR_DENOMINATOR >= debt_value_in_eth * SqueethMarket.CR_NUMERATOR
+        is_above_water = (
+            total_collateral * SqueethMarket.CR_DENOMINATOR >= debt_value_in_eth * SqueethMarket.CR_NUMERATOR
+        )
 
         return is_above_water, is_dust
 
@@ -199,60 +209,182 @@ class SqueethMarket(Market):
         self.vault[vault_id].uni_nft_id = uni_position
         self.squeeth_uni_pool.transfer_position_out(uni_position)
 
-    def mint(self):
-        pass
+    def _withdraw_collateral(self, vault_id: int, amount: Decimal | None = None):
+        if vault_id not in self.vault:
+            raise DemeterError(f"{vault_id} not exist")
+        if amount is None or amount > self.vault[vault_id].collateral_amount:
+            amount = self.vault[vault_id].collateral_amount
 
-    def withdraw(self):
-        pass
+        self.vault[vault_id].collateral_amount -= amount
+        self.broker.add_to_balance(WETH, amount)
+        self._check_vault(vault_id, self.get_norm_factor())
 
-    def burn(self):
-        pass
+    def _withdraw_uni_position(self, vault_id: int, uni_position: PositionInfo):
+        if vault_id not in self.vault:
+            raise DemeterError(f"{vault_id} not exist")
+        if self.vault[vault_id].uni_nft_id != uni_position:
+            raise DemeterError(f"{uni_position} is not deposit in vault {vault_id}")
+        self.vault[vault_id].uni_nft_id = None
+        self.squeeth_uni_pool.transfer_position_in(uni_position)
+        self._check_vault(vault_id, self.get_norm_factor())
 
-    def update(self):
-        pass
+    def burn_and_withdraw(self, vault_id: int, osqth_burn_amount: Decimal, withdraw_eth_amount: Decimal):
+        if vault_id not in self.vault:
+            raise DemeterError(f"{vault_id} not exist")
+        vault = self.vault[vault_id]
+        if osqth_burn_amount > 0:
+            if vault.osqth_short_amount >= osqth_burn_amount:
+                vault.osqth_short_amount -= osqth_burn_amount
+            else:
+                vault.osqth_short_amount = 0
+        if withdraw_eth_amount > 0:
+            self._withdraw_collateral(vault_id, withdraw_eth_amount)
+
+        self._check_vault(vault_id, self.get_norm_factor())
+
+    # def update(self):
+    #     pass
 
     # endregion
 
     # region long
     def buy_squeeth(self, eth_amount=None, osqth_amount=None) -> Tuple[Decimal, Decimal, Decimal]:
         if eth_amount is None and osqth_amount is not None:
-            eth_amount = osqth_amount * self._market_status["osqth"]
-        self.broker.subtract_from_balance(WETH, eth_amount)
+            eth_amount = osqth_amount * self._market_status.data["osqth"]
         fee, eth_amount, osqth_amount = self._squeeth_uni_pool.buy(eth_amount)
+        self.broker.subtract_from_balance(WETH, eth_amount + fee)
         self.broker.add_to_balance(oSQTH, osqth_amount)
         return fee, eth_amount, osqth_amount
 
     def sell_squeeth(self, eth_amount=None, osqth_amount=None) -> Tuple[Decimal, Decimal, Decimal]:
         if osqth_amount is None and eth_amount is not None:
-            osqth_amount = osqth_amount / self._market_status["osqth"]
-        self.broker.subtract_from_balance(oSQTH, osqth_amount)
-        fee, eth_amount, osqth_amount = self._squeeth_uni_pool.buy(eth_amount)
+            osqth_amount = eth_amount / self._market_status.data["osqth"]
+        fee, eth_amount, osqth_amount = self._squeeth_uni_pool.sell(osqth_amount)
+        self.broker.subtract_from_balance(oSQTH, osqth_amount + fee)
         self.broker.add_to_balance(WETH, eth_amount)
         return fee, eth_amount, osqth_amount
 
     # endregion
+
+    # region liquidate
+    def liquidate(self, vault_id: int) -> Decimal:
+        if vault_id not in self.vault:
+            raise DemeterError(f"{vault_id} not exist")
+        norm_factor = self.get_norm_factor()
+        vault = self.vault[vault_id]
+        is_safe, is_dust = self._get_vault_status(vault_id, norm_factor)
+        if not is_safe:
+            raise DemeterError("Can not liquidate safe vault")
+        # try to save target vault before liquidation by reducing debt
+        bounty: Decimal = self._reduce_debt(vault_id, True)
+
+        is_safe, is_dust = self._get_vault_status(vault_id, self.get_norm_factor())
+        if is_safe:
+            # should transfer bounty to liquidater
+            return DECIMAL_0
+
+        vault.collateral_amount += bounty
+        debt_amount, collateral_paid = self._liquidate(vault, vault.osqth_short_amount, self.get_norm_factor())
+        return debt_amount
+
+    def _liquidate(self, vault: Vault, max_debt_amount, norm_factor) -> Tuple[Decimal, Decimal]:
+        liquidate_amount, collateral_to_pay = self._get_liquidation_result(
+            max_debt_amount, vault.osqth_short_amount, vault.collateral_amount
+        )
+        # if the liquidator didn't specify enough wPowerPerp to burn, revert.
+        if max_debt_amount < liquidate_amount:
+            raise DemeterError("Need full liquidation")
+
+        vault.osqth_short_amount -= liquidate_amount
+        vault.collateral_amount -= collateral_to_pay
+
+        is_safe, is_dust = self._get_vault_status(vault.id, norm_factor)
+        if is_dust:
+            raise DemeterError("Dust vault left")
+
+        return liquidate_amount, collateral_to_pay
+
+    def _get_liquidation_result(
+        self, max_osqth_amount, vault_short_amount, vault_collateral_amount
+    ) -> Tuple[Decimal, Decimal]:
+        final_liquidate_amount, collateral_to_pay = self._get_single_liquidation_amount(
+            max_osqth_amount, vault_short_amount / 2
+        )
+
+        if vault_collateral_amount > collateral_to_pay:
+            if vault_collateral_amount - collateral_to_pay < SqueethMarket.MIN_COLLATERAL:
+                # the vault is left with dust after liquidation, allow liquidating full vault
+                # calculate the new liquidation amount and collateral again based on the new limit
+                final_liquidate_amount, collateral_to_pay = self._get_single_liquidation_amount(
+                    max_osqth_amount, vault_short_amount
+                )
+
+        # check if final collateral to pay is greater than vault amount.
+        # if so the system only pays out the amount the vault has, which may not be profitable
+        if collateral_to_pay > vault_collateral_amount:
+            final_liquidate_amount = vault_short_amount
+            collateral_to_pay = vault_collateral_amount
+
+        return final_liquidate_amount, collateral_to_pay
+
+    def _get_single_liquidation_amount(
+        self, max_input_osqth: Decimal, max_liquidatable_osqth: Decimal
+    ) -> Tuple[Decimal, Decimal]:
+        final_amount = max_liquidatable_osqth if max_input_osqth > max_liquidatable_osqth else max_input_osqth
+
+        osqth_price = self._get_twap_price(oSQTH)
+        collateral_to_pay: Decimal = final_amount * osqth_price
+
+        # add 10% bonus for liquidators
+        collateral_to_pay += collateral_to_pay * SqueethMarket.LIQUIDATION_BOUNTY
+
+        return final_amount, collateral_to_pay
+
+    def _reduce_debt(self, vault_id: int, pay_bounty: bool) -> Decimal:
+        vault = self.vault[vault_id]
+
+        if vault.uni_nft_id is None:
+            return DECIMAL_0
+
+        withdrawn_eth_amount, withdrawn_osqth_amount = self._redeem_uni_token(vault.uni_nft_id)
+        burn_amount, excess, bounty = self._get_reduce_debt_result_in_vault(
+            vault, withdrawn_eth_amount, withdrawn_osqth_amount, pay_bounty
+        )
+        if excess > 0:
+            self.broker.add_to_balance(oSQTH, excess)
+
+        return bounty
+
+    def _get_reduce_debt_result_in_vault(self, vault: Vault, nft_eth_amount, nft_osqth_amount, pay_bounty):
+        bounty = 0
+        if pay_bounty:
+            bounty = self._get_reduce_debt_bounty(nft_eth_amount, nft_osqth_amount)
+
+        burn_amount = nft_osqth_amount
+        osqth_excess = 0
+        if nft_osqth_amount > vault.osqth_short_amount:
+            osqth_excess = nft_osqth_amount - vault.osqth_short_amount
+            burn_amount = vault.osqth_short_amount
+
+        vault.osqth_short_amount -= burn_amount
+        vault.uni_nft_id = None
+        vault.collateral_amount += nft_eth_amount
+        vault.collateral_amount -= bounty
+
+        return burn_amount, osqth_excess, bounty
+
+    def _get_reduce_debt_bounty(self, eth_withdrawn: Decimal, osqth_reduced: Decimal) -> Decimal:
+        price = self._get_twap_price(oSQTH)
+        return (osqth_reduced * price + eth_withdrawn) * Decimal(SqueethMarket.REDUCE_DEBT_BOUNTY)
+
+    def _redeem_uni_token(self, position_info: PositionInfo) -> Tuple[Decimal, Decimal]:
+        weth_get, osqth_get = self.squeeth_uni_pool.remove_liquidity(position_info)
+        return weth_get, osqth_get
+
+    def reduce_debt(self):
+        pass
+
+    # endregion
     def get_norm_factor(self) -> Decimal:
         """Maybe I should calculate this myself, as transactions are too few in a day"""
-        return self._market_status["norm_factor"]
-
-    # -------------------------------------------------------
-    # short cut methods
-    # -------------------------------------------------------
-    def long_open(self):
-        # buy
-        pass
-
-    def long_close(self):
-        # sell
-        pass
-
-    def short_open(self):
-        # deposit
-        # mint
-        # sell
-        pass
-
-    def short_close(self):
-        # buy
-        # withdraw
-        pass
+        return self._market_status.data["norm_factor"]
