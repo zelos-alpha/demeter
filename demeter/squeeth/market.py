@@ -9,7 +9,7 @@ import pandas as pd
 
 from .. import MarketInfo, TokenInfo, DemeterError, MarketStatus, DECIMAL_0
 from ..broker import Market
-from ._typing import ETH_MAINNET, oSQTH, WETH, Vault
+from ._typing import ETH_MAINNET, oSQTH, WETH, Vault, SqueethChain
 from ..uniswap import UniLpMarket, PositionInfo
 from ..utils import to_decimal
 import random
@@ -25,7 +25,7 @@ class SqueethMarket(Market):
         data_path: str = "./data",
     ):
         super().__init__(market_info=market_info, data_path=data_path, data=data)
-        self.network = ETH_MAINNET
+        self._network = ETH_MAINNET
         self._squeeth_uni_pool = squeeth_uni_pool
         self.vault: Dict[int, Vault] = {}
 
@@ -40,14 +40,29 @@ class SqueethMarket(Market):
     MIN_COLLATERAL = Decimal("0.5")  # eth
 
     @property
-    def osqth_amount(self):
+    def osqth_balance(self):
+        """
+        Get balance of osqth
+        """
         return self.broker.get_token_balance(oSQTH)
 
     @property
     def squeeth_uni_pool(self) -> UniLpMarket:
         return self._squeeth_uni_pool
 
+    @property
+    def network(self) -> SqueethChain:
+        """
+        Get chain config of this market.
+        """
+        return self._network
+
     def load_data(self, start_date: date, end_date: date):
+        """
+        Load data from .minute.csv, then update index and fill null data.
+
+
+        """
         self.logger.info(f"start load files from {start_date} to {end_date}...")
         df = pd.DataFrame()
         day = start_date
@@ -56,7 +71,7 @@ class SqueethMarket(Market):
         while day <= end_date:
             path = os.path.join(
                 self.data_path,
-                f"{self.network.chain.name.lower()}-squeeth-controller-{day.strftime('%Y-%m-%d')}.minute.csv",
+                f"{self._network.chain.name.lower()}-squeeth-controller-{day.strftime('%Y-%m-%d')}.minute.csv",
             )
             day_df = pd.read_csv(
                 path,
@@ -85,15 +100,12 @@ class SqueethMarket(Market):
 
     def get_price_from_data(self) -> pd.DataFrame:
         """
-        Extract token pair price from pool data.
-
-        :return: a dataframe includes quote token price, and base token price will be set to 1
-        :rtype: DataFrame
-
+        Extract token price from relative uniswap pool. All price is based in usd
         """
         if self.data is None:
             raise DemeterError("data has not set")
-        price_df = self._data[["eth", "osqth"]]
+        price_df = self._data[[WETH.name, oSQTH.name]].copy()
+        price_df[oSQTH.name] = price_df[oSQTH.name] * price_df[WETH.name]
         return price_df
 
     # region short
@@ -248,20 +260,16 @@ class SqueethMarket(Market):
     # endregion
 
     # region long
-    def buy_squeeth(self, eth_amount=None, osqth_amount=None) -> Tuple[Decimal, Decimal, Decimal]:
-        if eth_amount is None and osqth_amount is not None:
-            eth_amount = osqth_amount * self._market_status.data["osqth"]
-        fee, eth_amount, osqth_amount = self._squeeth_uni_pool.buy(eth_amount)
-        self.broker.subtract_from_balance(WETH, eth_amount + fee)
-        self.broker.add_to_balance(oSQTH, osqth_amount)
+    def buy_squeeth(self, osqth_amount=None, eth_amount=None) -> Tuple[Decimal, Decimal, Decimal]:
+        if osqth_amount is None and eth_amount is not None:
+            osqth_amount = eth_amount * self._market_status.data["osqth"]
+        fee, eth_amount, osqth_amount = self._squeeth_uni_pool.buy(osqth_amount)
         return fee, eth_amount, osqth_amount
 
-    def sell_squeeth(self, eth_amount=None, osqth_amount=None) -> Tuple[Decimal, Decimal, Decimal]:
+    def sell_squeeth(self, osqth_amount=None, eth_amount=None) -> Tuple[Decimal, Decimal, Decimal]:
         if osqth_amount is None and eth_amount is not None:
             osqth_amount = eth_amount / self._market_status.data["osqth"]
         fee, eth_amount, osqth_amount = self._squeeth_uni_pool.sell(osqth_amount)
-        self.broker.subtract_from_balance(oSQTH, osqth_amount + fee)
-        self.broker.add_to_balance(WETH, eth_amount)
         return fee, eth_amount, osqth_amount
 
     # endregion

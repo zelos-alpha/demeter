@@ -1,6 +1,7 @@
 # Ver 0.5.0
 
 * Add Squeeth market
+* Change unit of sell fee in uniswap from quote token to base token
 
 # Ver 0.4.0
 

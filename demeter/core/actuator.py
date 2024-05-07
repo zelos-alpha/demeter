@@ -2,10 +2,11 @@ import logging
 import os
 import pickle
 import time
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Dict, Union
-from dataclasses import dataclass, field
+
 import orjson
 import pandas as pd
 from pandas import Timestamp
@@ -14,9 +15,9 @@ from tqdm import tqdm  # process bar
 from .evaluating_indicator import Evaluator
 from .. import Broker, Asset
 from .._typing import DemeterError, EvaluatorEnum, UnitDecimal
-from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData, BASE_FREQ
-from ..uniswap import UniLpMarket, PositionInfo
+from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
 from ..strategy import Strategy
+from ..uniswap import UniLpMarket, PositionInfo
 from ..utils import get_formatted_predefined, STYLE, to_decimal
 
 
@@ -51,7 +52,7 @@ class Actuator(object):
         # logging
         logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
         self.logger = logging.getLogger(__name__)
-
+        self._number_format = ".8g"
         # internal var
         self.__backtest_finished = False
 
@@ -323,7 +324,6 @@ class Actuator(object):
         """
         set markets row data
         :param timestamp:
-        :param market_row_dict:
         :param update: enable or disable has_update flag in markets, if set to false, will always update, if set to true, just update when necessary
         :return:
         """

@@ -236,7 +236,7 @@ class MarketStatus:
     """
 
     timestamp: datetime | None
-    data: pd.Series = None
+    data: pd.Series | None = None
 
 
 T = TypeVar("T")

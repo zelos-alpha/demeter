@@ -12,7 +12,8 @@ from ..utils import get_formatted_from_dict, get_formatted_predefined, STYLE, fl
 
 class Broker:
     """
-    Broker supports different order types, checking a submitted order cash requirements against current cash, keeping track of cash and value for each iteration of actuator and keeping the current position on different datas.
+    Broker supports different order types, checking a submitted order cash requirements against current cash,
+    keeping track of cash and value for each iteration of actuator and keeping the current position on different datas.
 
     :param allow_negative_balance: allow cash balance can be negative value or not. Default is False
     :type allow_negative_balance: bool
