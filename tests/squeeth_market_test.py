@@ -70,24 +70,31 @@ class TestSqueethMarket(TestCase):
     def test_long_buy(self):
         broker = self.get_broker()
         market: SqueethMarket = broker.markets[squeeth_key]
-        from_amount = OSQTH_ETH
+        from_amount = OSQTH_ETH * Decimal(1)
         fee, eth_amount, osqth_amount = market.buy_squeeth(from_amount)
         self.assertEqual(osqth_amount, from_amount)
         self.assertEqual(eth_amount.quantize(d4), Decimal(1).quantize(d4))
         self.assertEqual(fee.quantize(d4), Decimal("0.003").quantize(d4))
         self.assertEqual(broker.get_token_balance(weth).quantize(d4), (10 - fee - eth_amount).quantize(d4))
         self.assertEqual(broker.get_token_balance(oSQTH).quantize(d4), (OSQTH_ETH * 10 + osqth_amount).quantize(d4))
+        self.assertEqual(market.osqth_balance.quantize(d4), (OSQTH_ETH * 10 + osqth_amount).quantize(d4))
 
     def test_long_sell(self):
         broker = self.get_broker()
         market: SqueethMarket = broker.markets[squeeth_key]
-        from_amount = OSQTH_ETH
+        from_amount = OSQTH_ETH * Decimal(1)
         fee, eth_amount, osqth_amount = market.sell_squeeth(from_amount)
         # self.assertEqual(osqth_amount, from_amount)
         self.assertEqual(eth_amount.quantize(d4), Decimal("0.997").quantize(d4))
         self.assertEqual(fee.quantize(d4), Decimal("0.003").quantize(d4))
         self.assertEqual(broker.get_token_balance(weth).quantize(d4), Decimal(10.997).quantize(d4))
         self.assertEqual(broker.get_token_balance(oSQTH).quantize(d4), (OSQTH_ETH * 10 - from_amount).quantize(d4))
+
+    def test_status(self):
+        broker = self.get_broker()
+        market: SqueethMarket = broker.markets[squeeth_key]
+        market.get_market_balance()
+
 
     def get_broker(self):
         broker = Broker()

@@ -85,35 +85,35 @@ def tick_to_quote_price(tick: int, token_0_decimal, token_1_decimal, is_token0_b
     return Decimal(1 / pool_price) if is_token0_base else pool_price
 
 
-def quote_price_to_tick(based_price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token_base) -> int:
+def quote_price_to_tick(based_price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token0_base) -> int:
     """
     quote price to tick price
 
     :param based_price: base price
     :param token_0_decimal: token0 decimal
     :param token_1_decimal: token1 decimal
-    :param is_token_base: base on token
+    :param is_token0_base: base on token
     :return: tick price
     """
     # quote price->add decimal pool price->sqrt_price ->ticker
-    sqrt_price = quote_price_to_sqrt(based_price, token_0_decimal, token_1_decimal, is_token_base)
+    sqrt_price = quote_price_to_sqrt(based_price, token_0_decimal, token_1_decimal, is_token0_base)
     tick = sqrt_price_to_tick(sqrt_price)
     return tick
 
 
-def quote_price_to_sqrt(based_price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token_base) -> int:
+def quote_price_to_sqrt(based_price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token0_base) -> int:
     """
     convert quote price to sqrt
 
     :param based_price: price of base token
     :param token_0_decimal: token 0 decimal
     :param token_1_decimal: token 1 decimal
-    :param is_token_base: if is base token
+    :param is_token0_base: if is base token
     :return: sqrt price
     """
     # quote price->add decimal pool price->sqrt_price ->ticker
 
-    price = 1 / based_price if is_token_base else based_price
+    price = 1 / based_price if is_token0_base else based_price
     pool_price = price / Decimal(10 ** (token_0_decimal - token_1_decimal))
     decimal_price = Decimal.sqrt(pool_price)
     return decimal_to_x96(decimal_price)

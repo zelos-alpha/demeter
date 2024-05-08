@@ -7,9 +7,10 @@ from typing import Tuple, Dict
 import numpy as np
 import pandas as pd
 
+from .helper import calc_twap_price
 from .. import MarketInfo, TokenInfo, DemeterError, MarketStatus, DECIMAL_0
-from ..broker import Market
-from ._typing import ETH_MAINNET, oSQTH, WETH, Vault, SqueethChain
+from ..broker import Market, MarketBalance
+from ._typing import ETH_MAINNET, oSQTH, WETH, Vault, SqueethChain, SqueethBalance
 from ..uniswap import UniLpMarket, PositionInfo
 from ..utils import to_decimal
 import random
@@ -56,6 +57,49 @@ class SqueethMarket(Market):
         Get chain config of this market.
         """
         return self._network
+
+    def get_collat_ratio_and_liq_price(self, vault_id: int) -> Tuple[Decimal, Decimal]:
+        """
+        forked from useGetCollatRatioAndLiqPrice function in hooks.ts
+        """
+        collateral_in_eth = self._get_effective_collateral_in_eth(vault_id)
+        # this debt is calc with acutal osqth price
+        debt_with_mark_price = self.vault[vault_id].osqth_short_amount * self._get_twap_price(oSQTH)
+        if debt_with_mark_price == 0:
+            return DECIMAL_0, DECIMAL_0
+        debt_with_index_price = self.vault[vault_id].osqth_short_amount * self.get_norm_factor() / 1e4
+        return collateral_in_eth / debt_with_mark_price, collateral_in_eth / (debt_with_index_price * Decimal("1.5"))
+
+    def get_market_balance(self, price=None) -> SqueethBalance:
+        current_data = self._market_status.data
+        osqth_price_to_u = current_data[oSQTH.name] * current_data[WETH.name]
+
+        long_amount = self.osqth_balance
+        long_value = long_amount * osqth_price_to_u
+        short_amount = Decimal(sum([x.osqth_short_amount for x in self.vault.values()]))
+        short_value = short_amount * osqth_price_to_u
+
+        collateral_eth = Decimal(sum(self._get_effective_collateral_in_eth(v.id) for v in self.vault.values()))
+        collateral_value = collateral_eth * current_data[WETH.name]
+        return SqueethBalance(
+            net_value=collateral_value - short_value,
+            collateral_amount=collateral_value,
+            osqth_long_amount=long_value,
+            osqth_short_amount=short_value,
+            osqth_net_amount=long_value - short_value,
+            vault_count=len(self.vault),
+            delta=Decimal(2) * current_data[WETH.name],
+            gamma=Decimal(2),
+        )
+
+    def get_denormalized_mark(self):
+        eth_price = self._get_twap_price(WETH)
+        osqth_price = self._get_twap_price(oSQTH)
+        return eth_price * osqth_price / self.get_norm_factor() * 1e14
+
+    def get_index(self) -> Decimal:
+        self._get_twap_price(WETH)
+        return self._get_twap_price(WETH) ** 2 * 1e10
 
     def load_data(self, start_date: date, end_date: date):
         """
@@ -162,7 +206,7 @@ class SqueethMarket(Market):
             return True, False
 
         debt_value_in_eth = self.vault[vault_id].osqth_short_amount * norm_factor * eth_price
-        total_collateral = self._get_effective_collateral(vault_id, norm_factor, eth_price)
+        total_collateral = self._get_effective_collateral_in_eth(vault_id, norm_factor, eth_price)
 
         is_dust = total_collateral < SqueethMarket.MIN_DEPOSIT_AMOUNT
         is_above_water = (
@@ -171,7 +215,13 @@ class SqueethMarket(Market):
 
         return is_above_water, is_dust
 
-    def _get_effective_collateral(self, vault_id: int, norm_factor: Decimal, eth_price: Decimal):
+    def _get_effective_collateral_in_eth(
+        self, vault_id: int, norm_factor: Decimal | None = None, eth_price: Decimal | None = None
+    ) -> Decimal:
+        if norm_factor is None:
+            norm_factor = self.get_norm_factor()
+        if eth_price is None:
+            eth_price = self._get_twap_price(WETH.name)
         if self.vault[vault_id].uni_nft_id is not None:
             position_info = self.vault[vault_id].uni_nft_id
             nft_weth_amount, nft_squeeth_amount = self.squeeth_uni_pool.get_position_amount(position_info)
@@ -185,7 +235,7 @@ class SqueethMarket(Market):
         osqth_index_val_in_eth = nft_squeeth_amount * norm_factor / eth_price
         return nft_weth_amount + osqth_index_val_in_eth + self.vault[vault_id].collateral_amount
 
-    def _get_twap_price(self, token: TokenInfo, now: datetime | None = None):
+    def _get_twap_price(self, token: TokenInfo, now: datetime | None = None) -> Decimal:
         if now is None:
             now = self._market_status.timestamp
         start = now - timedelta(minutes=SqueethMarket.TWAP_PERIOD - 1)
@@ -193,13 +243,7 @@ class SqueethMarket(Market):
             start = self.data.index[0].to_pydatetime()
         # remember 1 minute has 1 data point
         prices: pd.Series = self.data[start:now][token.name]
-        logged = prices.apply(lambda x: math.log(x, 1.0001))
-        logged_sum = logged.sum()
-        t_delta = now - start
-        power = logged_sum / (1 + t_delta.seconds / 60)
-        avg_price = math.pow(1.0001, power)
-
-        return Decimal(avg_price)
+        return calc_twap_price(prices)
 
     def get_fee(self, vault: Vault, deposit_eth_amount: Decimal, osqth_mint_amount: Decimal) -> Tuple[Decimal, Decimal]:
         # As current fee rate is 0

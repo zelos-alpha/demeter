@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from demeter import TokenInfo, ChainType
+from demeter.broker import MarketBalance
 from demeter.uniswap import PositionInfo
 
 oSQTH = TokenInfo("oSQTH", 18)
@@ -41,3 +42,14 @@ class ShortStatus:
     premium: Decimal
     collateral_ratio: Decimal
     liquidation_price: Decimal
+
+
+@dataclass
+class SqueethBalance(MarketBalance):
+    collateral_amount: Decimal
+    osqth_long_amount: Decimal
+    osqth_short_amount: Decimal
+    osqth_net_amount: Decimal
+    vault_count: int
+    delta:Decimal
+    gamma:Decimal
