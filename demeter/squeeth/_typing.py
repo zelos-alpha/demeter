@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import NamedTuple
 
 from demeter import TokenInfo, ChainType
 from demeter.broker import MarketBalance
@@ -7,6 +8,7 @@ from demeter.uniswap import PositionInfo
 
 oSQTH = TokenInfo("oSQTH", 18)
 WETH = TokenInfo("weth", 18)
+USDC = TokenInfo("usdc", 6)
 
 
 @dataclass
@@ -51,5 +53,14 @@ class SqueethBalance(MarketBalance):
     osqth_short_amount: Decimal
     osqth_net_amount: Decimal
     vault_count: int
-    delta:Decimal
-    gamma:Decimal
+    delta: Decimal
+    gamma: Decimal
+
+
+class VaultKey(NamedTuple):
+    """
+    I have to use a Namedtuple as vault key other than int,
+    so it will not be converted into Decimal when used as a function param
+    """
+
+    id: int

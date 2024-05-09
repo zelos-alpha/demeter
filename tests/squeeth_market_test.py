@@ -33,7 +33,7 @@ class TestSqueethMarket(TestCase):
         )
         market = SqueethMarket(squeeth_key, None, data)
         market.set_market_status(MarketStatus(datetime(2024, 1, 1, 0, 7)), None)
-        price = market._get_twap_price(TokenInfo("eth", 18))
+        price = market.get_twap_price(TokenInfo("eth", 18))
         self.assertEqual(price, 1003.9980079631864)
 
     def test_get_twap_price_short(self):
@@ -48,7 +48,7 @@ class TestSqueethMarket(TestCase):
         )
         market = SqueethMarket(squeeth_key, None, data)
         market.set_market_status(MarketStatus(datetime(2024, 1, 1, 0, 1)), None)
-        price = market._get_twap_price(TokenInfo("eth", 18))
+        price = market.get_twap_price(TokenInfo("eth", 18))
         self.assertEqual(price, 1000.49987506246)
 
     def test_load_data(self):
@@ -95,7 +95,6 @@ class TestSqueethMarket(TestCase):
         market: SqueethMarket = broker.markets[squeeth_key]
         market.get_market_balance()
 
-
     def get_broker(self):
         broker = Broker()
         uni_market = UniLpMarket(
@@ -111,7 +110,7 @@ class TestSqueethMarket(TestCase):
             UniswapMarketStatus(
                 timestamp=None,
                 data=pd.Series(
-                    data=[0, 0, 0, tick, price],
+                    data=[0, 0, 0, Decimal(tick), Decimal(price)],
                     index=["inAmount0", "inAmount1", "currentLiquidity", "closeTick", "price"],
                 ),
             ),
@@ -121,7 +120,7 @@ class TestSqueethMarket(TestCase):
             MarketStatus(
                 timestamp=None,
                 data=pd.Series(
-                    data=[0.2894, 1839.2227, float(ETH_OSQTH)],
+                    data=[ Decimal("0.2894"), Decimal("1839.2227"), ETH_OSQTH],
                     index=["norm_factor", "WETH", "OSQTH"],
                 ),
             ),
