@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import NamedTuple
 
-from demeter import TokenInfo, ChainType
-from demeter.broker import MarketBalance
+from demeter import TokenInfo, ChainType, BaseAction, UnitDecimal
+from demeter.broker import MarketBalance, ActionTypeEnum
 from demeter.uniswap import PositionInfo
 
 oSQTH = TokenInfo("oSQTH", 18)
@@ -64,3 +64,77 @@ class VaultKey(NamedTuple):
     """
 
     id: int
+
+
+@dataclass
+class VaultAction(BaseAction):
+    vault_id: int
+
+
+@dataclass
+class AddVaultAction(VaultAction):
+    vault_count: int
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.squeeth_open_vault
+
+
+@dataclass
+class UpdateCollateralAction(VaultAction):
+    collateral_amount: UnitDecimal
+    collateral_after: UnitDecimal
+    fee: UnitDecimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.squeeth_update_collateral
+
+
+@dataclass
+class UpdateShortAction(VaultAction):
+    short_amount: UnitDecimal
+    short_after: UnitDecimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.squeeth_update_short
+
+
+@dataclass
+class DepositLpAction(VaultAction):
+    position: PositionInfo
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.squeeth_deposit_lp
+
+
+@dataclass
+class WithdrawLpAction(VaultAction):
+    position: PositionInfo
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.squeeth_withdraw_lp
+
+
+@dataclass
+class ReduceDebtAction(VaultAction):
+    position: PositionInfo
+    withdrawn_eth_amount: UnitDecimal
+    withdrawn_osqth_amount: UnitDecimal
+    burn_amount: UnitDecimal
+    excess: UnitDecimal
+    bounty: UnitDecimal
+    short_amount_after: UnitDecimal
+    collateral_after: UnitDecimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.squeeth_reduce_debt
+
+
+@dataclass
+class LiquidationAction(VaultAction):
+    liquidate_amount: UnitDecimal
+    short_amount_after: UnitDecimal
+    collateral_to_pay: UnitDecimal
+    collateral_after: UnitDecimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.squeeth_liquidation

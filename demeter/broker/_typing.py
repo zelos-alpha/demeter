@@ -169,6 +169,14 @@ class ActionTypeEnum(Enum):
     option_buy = "option_buy"
     option_sell = "option_sell"
     option_exercise = "option_exercise"
+    squeeth_open_vault = "open_vault"
+    squeeth_update_collateral = "update_collateral"
+    squeeth_add_short = "add_short"
+    squeeth_remove_short = "remove_short"
+    squeeth_deposit_lp = "deposit_uni_lp"
+    squeeth_withdraw_lp = "withdraw_uni_lp"
+    squeeth_reduce_debt = "reduce_debt"
+    squeeth_liquidation = "liquidation"
 
     def __str__(self):
         return self.name

@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from demeter import MarketStatus, TokenInfo, Broker, MarketInfo, MarketTypeEnum
+from demeter.squeeth import SqueethBalance
 from demeter.squeeth.market import SqueethMarket
 from demeter.uniswap import UniLpMarket, UniV3Pool, UniswapMarketStatus
 
@@ -93,7 +94,16 @@ class TestSqueethMarket(TestCase):
     def test_status(self):
         broker = self.get_broker()
         market: SqueethMarket = broker.markets[squeeth_key]
-        market.get_market_balance()
+        balance: SqueethBalance = market.get_market_balance()
+        self.assertEqual(balance.osqth_short_amount, Decimal(0))
+        self.assertEqual(balance.net_value, Decimal(0))
+        self.assertEqual(balance.osqth_long_amount, OSQTH_ETH * 10)
+        self.assertEqual(balance.gamma, Decimal(2))
+        pass
+
+    def test_collateral_rate_and_liq_price(self):
+        raise NotImplemented()
+
 
     def get_broker(self):
         broker = Broker()
@@ -120,7 +130,7 @@ class TestSqueethMarket(TestCase):
             MarketStatus(
                 timestamp=None,
                 data=pd.Series(
-                    data=[ Decimal("0.2894"), Decimal("1839.2227"), ETH_OSQTH],
+                    data=[Decimal("0.2894"), Decimal("1839.2227"), ETH_OSQTH],
                     index=["norm_factor", "WETH", "OSQTH"],
                 ),
             ),
