@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from demeter import MarketStatus, TokenInfo, Broker, MarketInfo, MarketTypeEnum
-from demeter.squeeth import SqueethBalance
+from demeter.squeeth import SqueethBalance, VaultKey
 from demeter.squeeth.market import SqueethMarket
 from demeter.uniswap import UniLpMarket, UniV3Pool, UniswapMarketStatus
 
@@ -104,6 +104,45 @@ class TestSqueethMarket(TestCase):
     def test_collateral_rate_and_liq_price(self):
         raise NotImplemented()
 
+    def test_get_mint_amount(self):
+        broker = self.get_broker()
+        market: SqueethMarket = broker.markets[squeeth_key]
+        amount1 = market.collateral_amount_to_osqth(2, 2)
+        self.assertEqual(amount1, Decimal("18.78742045363579454725969526"))
+
+    def test_deposit_mint_by_collat_rate(self):
+        broker = self.get_broker()
+        market: SqueethMarket = broker.markets[squeeth_key]
+        vault_key, osqth_mint_amount = market.open_deposit_mint_by_collat_rate(2, 2)
+        self.assertEqual(osqth_mint_amount, Decimal("18.78742045363579454725969526"))
+        self.assertEqual(market.vault[vault_key].collateral_amount, Decimal(2))
+        self.assertEqual(broker.get_token_balance(weth), Decimal(8))
+        self.assertEqual(market.vault[vault_key].osqth_short_amount, osqth_mint_amount)
+        self.assertEqual(broker.get_token_balance(oSQTH), osqth_mint_amount + OSQTH_ETH * 10)
+        # index and mark is not same
+        self.assertNotEqual(osqth_mint_amount, OSQTH_ETH)
+
+    def test_deposit_mint_by_collat_rate_not_exist_vault(self):
+        broker = self.get_broker()
+        market: SqueethMarket = broker.markets[squeeth_key]
+        try:
+            vault_key, osqth_mint_amount = market.open_deposit_mint_by_collat_rate(2, 2, VaultKey(2))
+        except Exception as e:
+            self.assertIn("VaultKey", str(e))
+
+    def test_deposit_mint_twice(self):
+        broker = self.get_broker()
+        market: SqueethMarket = broker.markets[squeeth_key]
+        amount1 = market.collateral_amount_to_osqth(2, 4)
+
+        vault_key, osqth_mint_amount = market.open_deposit_mint(2, amount1)
+        self.assertEqual(osqth_mint_amount, Decimal("18.78742045363579454725969526") / 2)
+        self.assertEqual(market.vault[vault_key].osqth_short_amount, osqth_mint_amount)
+        self.assertEqual(broker.get_token_balance(oSQTH), osqth_mint_amount + OSQTH_ETH * 10)
+
+        vault_key, osqth_mint_amount2 = market.open_deposit_mint(0, amount1)
+        self.assertEqual(market.vault[vault_key].osqth_short_amount, osqth_mint_amount * 2)
+        self.assertEqual(broker.get_token_balance(oSQTH), osqth_mint_amount * 2 + OSQTH_ETH * 10)
 
     def get_broker(self):
         broker = Broker()
