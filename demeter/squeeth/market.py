@@ -95,29 +95,41 @@ class SqueethMarket(Market):
         long_amount = self.osqth_balance
         short_amount = Decimal(sum([x.osqth_short_amount for x in self.vault.values()]))
         short_value = short_amount * osqth_price_to_u
-
+        eth_price = self.get_twap_price(WETH)
         collateral_eth = Decimal(
             sum(self._get_effective_collateral_in_eth(VaultKey(v.id)) for v in self.vault.values())
         )
         collateral_value = collateral_eth * current_data[WETH.name]
+        short_in_eth = short_amount * self.get_norm_factor() * eth_price / SqueethMarket.INDEX_SCALE
         return SqueethBalance(
             # squeeth token is hold by broker. so net value is only calculated from short position
             net_value=UnitDecimal(collateral_value - short_value, USDC.name),
-            collateral_amount=UnitDecimal(collateral_value, WETH.name),
+            collateral_amount=UnitDecimal(collateral_eth, WETH.name),
             osqth_long_amount=UnitDecimal(long_amount, oSQTH.name),
             osqth_short_amount=UnitDecimal(short_amount, oSQTH.name),
             osqth_net_amount=UnitDecimal(long_amount - short_amount, oSQTH.name),
             vault_count=len(self.vault),
             delta=Decimal(2) * current_data[WETH.name],
             gamma=Decimal(2),
+            collateral_value=collateral_value,
+            osqth_short_in_eth=short_in_eth,
+            collateral_ratio=collateral_eth / short_in_eth if short_in_eth != DECIMAL_0 else 0,
         )
 
     def get_denormalized_mark(self):
+        """
+        Keep it's value equal to contract
+        :return:
+        """
         eth_price = self.get_twap_price(WETH)
         osqth_price = self.get_twap_price(oSQTH)
         return eth_price * osqth_price / self.get_norm_factor() * Decimal(1e14)
 
     def get_index(self) -> Decimal:
+        """
+        Keep it's value equal to contract
+        :return:
+        """
         self.get_twap_price(WETH)
         return self.get_twap_price(WETH) ** 2 * Decimal(1e10)
 
@@ -137,7 +149,7 @@ class SqueethMarket(Market):
             )
             day_df = pd.read_csv(
                 path,
-                converters={"norm_factor": to_decimal, "eth": to_decimal, "osqth": to_decimal},
+                converters={"norm_factor": to_decimal, "WETH": to_decimal, "OSQTH": to_decimal},
             )
             df = pd.concat([df, day_df])
             day = day + timedelta(days=1)
@@ -203,15 +215,13 @@ class SqueethMarket(Market):
     def open_deposit_mint(
         self,
         deposit_eth_amount: Decimal | float,
-        osqth_mint_amount: Decimal | float | None = None,
+        osqth_mint_amount: Decimal | float = DECIMAL_0,
         vault_key: VaultKey | None = None,
         uni_position: PositionInfo | None = None,
     ) -> Tuple[VaultKey, Decimal]:
         """
         fork function _openDepositMint in controller.sol,
         """
-        if osqth_mint_amount is None:
-            osqth_mint_amount = DECIMAL_0
         norm_factor = self.get_norm_factor()
         deposit_amount_with_fee = deposit_eth_amount
         if vault_key is None:
@@ -295,8 +305,11 @@ class SqueethMarket(Market):
         fee_squeeth = self.squeeth_uni_pool.positions[position_info].pending_amount1
         nft_weth_amount += fee_weth
         nft_squeeth_amount += fee_squeeth
-
-        osqth_index_val_in_eth = nft_squeeth_amount * norm_factor / eth_price
+        # IMPORTANT:
+        # According to _getEffectiveCollateral function in controller.sol,
+        # we calculate osqth amount to eth amount by index price,
+        # so it's different to net value calculated by uniswap pool(who uses mark price).
+        osqth_index_val_in_eth = nft_squeeth_amount / SqueethMarket.INDEX_SCALE * norm_factor * eth_price
 
         return nft_weth_amount + osqth_index_val_in_eth + self.vault[vault_key].collateral_amount
 
@@ -372,7 +385,7 @@ class SqueethMarket(Market):
             )
         )
 
-    def _withdraw_uni_position(self, vault_key: VaultKey, uni_position: PositionInfo):
+    def withdraw_uni_position(self, vault_key: VaultKey, uni_position: PositionInfo):
         if vault_key not in self.vault:
             raise DemeterError(f"{vault_key.id} not exist")
         if self.vault[vault_key].uni_nft_id != uni_position:
@@ -396,13 +409,13 @@ class SqueethMarket(Market):
             raise DemeterError(f"{vault_key.id} not exist")
         vault = self.vault[vault_key]
         if osqth_burn_amount > 0:
-            removed_amount = 0
             if vault.osqth_short_amount >= osqth_burn_amount:
                 removed_amount = osqth_burn_amount
                 vault.osqth_short_amount -= osqth_burn_amount
             else:
                 removed_amount = vault.osqth_short_amount
                 vault.osqth_short_amount = 0
+            self.broker.subtract_from_balance(oSQTH, removed_amount)
             self._record_action(
                 UpdateShortAction(
                     market=self.market_info,

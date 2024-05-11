@@ -290,7 +290,7 @@ class UniLpMarket(Market):
             deposit_amount1 += amount1
 
         base_deposit_amount, quote_deposit_amount = self._convert_pair(deposit_amount0, deposit_amount1)
-        # net value here is calculated by external price, because we usually want a net value with usd base,
+        # net value here is calculated by external price, If you want a net value with usd base,
         net_value = (base_fee_sum + base_deposit_amount) * external_prices[self.base_token.name] + (
             quote_fee_sum + quote_deposit_amount
         ) * external_prices[self.quote_token.name]
@@ -301,7 +301,7 @@ class UniLpMarket(Market):
             quote_uncollected=UnitDecimal(quote_fee_sum, self.quote_token.name),
             base_in_position=UnitDecimal(base_deposit_amount, self.base_token.name),
             quote_in_position=UnitDecimal(quote_deposit_amount, self.quote_token.name),
-            position_count=len(self._positions),
+            position_count=len(list(filter(lambda p: not p.transferred, self._positions.values()))),
         )
         return val
 
@@ -501,7 +501,7 @@ class UniLpMarket(Market):
         quote_max_amount: Decimal | float = None,
         sqrt_price_x96: int = -1,
         tick: int = -1,
-    ):
+    ) -> (PositionInfo, Decimal, Decimal, int):
         """
 
         add liquidity, you need to set tick instead of price.

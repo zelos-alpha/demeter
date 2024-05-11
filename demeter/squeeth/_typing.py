@@ -48,10 +48,13 @@ class ShortStatus:
 
 @dataclass
 class SqueethBalance(MarketBalance):
-    collateral_amount: Decimal
-    osqth_long_amount: Decimal
-    osqth_short_amount: Decimal
-    osqth_net_amount: Decimal
+    collateral_amount: UnitDecimal
+    collateral_value: UnitDecimal
+    osqth_long_amount: UnitDecimal
+    osqth_short_amount: UnitDecimal
+    osqth_short_in_eth: UnitDecimal
+    osqth_net_amount: UnitDecimal
+    collateral_ratio: Decimal
     vault_count: int
     delta: Decimal
     gamma: Decimal
