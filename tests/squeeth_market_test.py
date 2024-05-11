@@ -130,7 +130,7 @@ class TestSqueethMarket(TestCase):
         except Exception as e:
             self.assertIn("VaultKey", str(e))
 
-    def test_deposit_mint_twice(self):
+    def test_deposit_mint_multiple_times(self):
         broker = self.get_broker()
         market: SqueethMarket = broker.markets[squeeth_key]
         amount1 = market.collateral_amount_to_osqth(2, 4)
@@ -140,9 +140,35 @@ class TestSqueethMarket(TestCase):
         self.assertEqual(market.vault[vault_key].osqth_short_amount, osqth_mint_amount)
         self.assertEqual(broker.get_token_balance(oSQTH), osqth_mint_amount + OSQTH_ETH * 10)
 
-        vault_key, osqth_mint_amount2 = market.open_deposit_mint(0, amount1)
+        vault_key, osqth_mint_amount2 = market.open_deposit_mint(0, amount1, vault_key)
+        vault = market.vault[vault_key]
+        self.assertEqual(vault.collateral_amount, 2)
         self.assertEqual(market.vault[vault_key].osqth_short_amount, osqth_mint_amount * 2)
-        self.assertEqual(broker.get_token_balance(oSQTH), osqth_mint_amount * 2 + OSQTH_ETH * 10)
+        self.assertEqual(
+            broker.get_token_balance(oSQTH).quantize(d4), (osqth_mint_amount * 2 + OSQTH_ETH * 10).quantize(d4)
+        )
+        # append collateral
+        vault_key, osqth_mint_amount2 = market.open_deposit_mint(2, amount1, vault_key)
+        vault = market.vault[vault_key]
+        self.assertEqual(vault.collateral_amount, 4)
+        self.assertEqual(market.vault[vault_key].osqth_short_amount, amount1 * 3)
+        self.assertEqual(
+            broker.get_token_balance(oSQTH).quantize(d4), (osqth_mint_amount * 3 + OSQTH_ETH * 10).quantize(d4)
+        )
+
+    def test_collateral_rate(self):
+        broker = self.get_broker()
+        market: SqueethMarket = broker.markets[squeeth_key]
+        amount1 = market.collateral_amount_to_osqth(2, 2)
+
+        vault_key, osqth_mint_amount = market.open_deposit_mint(2, amount1)
+        self.assertEqual(osqth_mint_amount, Decimal("18.78742045363579454725969526"))
+        self.assertEqual(market.vault[vault_key].osqth_short_amount, osqth_mint_amount)
+        self.assertEqual(broker.get_token_balance(oSQTH), osqth_mint_amount + OSQTH_ETH * 10)
+
+        ratio, price = market.get_collat_ratio_and_liq_price(vault_key)
+        self.assertEqual(ratio, Decimal(2))
+        self.assertEqual(price.quantize(d4), Decimal("2452.2969").quantize(d4))
 
     def get_broker(self):
         broker = Broker()

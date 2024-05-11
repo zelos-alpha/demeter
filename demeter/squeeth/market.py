@@ -78,15 +78,15 @@ class SqueethMarket(Market):
         """
         forked from useGetCollatRatioAndLiqPrice function in hooks.ts
         """
+        nf = self.get_norm_factor()
         collateral_in_eth = self._get_effective_collateral_in_eth(vault_key)
-        # this debt is calc with acutal osqth price
-        debt_with_mark_price = self.vault[vault_key].osqth_short_amount * self.get_twap_price(oSQTH)
-        if debt_with_mark_price == 0:
+        eth_price = self.get_twap_price(WETH)
+
+        debt_amount_in_index = self.vault[vault_key].osqth_short_amount * nf / SqueethMarket.INDEX_SCALE * eth_price
+        if debt_amount_in_index == 0:
             return DECIMAL_0, DECIMAL_0
-        debt_with_index_price = (
-            self.vault[vault_key].osqth_short_amount * self.get_norm_factor() / SqueethMarket.INDEX_SCALE
-        )
-        return collateral_in_eth / debt_with_mark_price, collateral_in_eth / (debt_with_index_price * Decimal("1.5"))
+        r_squeeth = self.vault[vault_key].osqth_short_amount * nf / SqueethMarket.INDEX_SCALE
+        return collateral_in_eth / debt_amount_in_index, collateral_in_eth / (r_squeeth * Decimal("1.5"))
 
     def get_market_balance(self, price=None) -> SqueethBalance:
         current_data = self._market_status.data
@@ -173,14 +173,19 @@ class SqueethMarket(Market):
 
     @float_param_formatter
     def collateral_amount_to_osqth(
-        self, collateral_amount: Decimal | float, collateral_rate: Decimal | float | None = None
+        self, collateral_amount: Decimal | float, collateral_rate: Decimal | float = CR_DENOMINATOR
     ) -> Decimal:
-        if collateral_rate is None:
-            collateral_rate = SqueethMarket.CR_DENOMINATOR
+        """
+        forked from useGetShortAmountFromDebt in hook.ts
+        :param collateral_amount:
+        :param collateral_rate:
+        :return:
+        """
         eth_price = self.get_twap_price(WETH)
         norm_factor = self.get_norm_factor()
-        collateral_in_osqth = collateral_amount * SqueethMarket.INDEX_SCALE / norm_factor / eth_price
-        return collateral_in_osqth / collateral_rate
+        debt_amount = collateral_amount / collateral_rate
+        collateral_in_osqth = debt_amount * SqueethMarket.INDEX_SCALE / norm_factor / eth_price
+        return collateral_in_osqth
 
     @float_param_formatter
     def open_deposit_mint_by_collat_rate(
