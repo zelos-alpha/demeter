@@ -276,11 +276,13 @@ class SqueethMarket(Market):
         self, vault_key: VaultKey, norm_factor: Decimal, eth_price: Decimal | None = None
     ) -> Tuple[bool, bool]:
         if eth_price is None:
-            eth_price = self.get_twap_price(WETH) / SqueethMarket.INDEX_SCALE
+            eth_price = self.get_twap_price(WETH)
         if self.vault[vault_key].osqth_short_amount == 0:
             return True, False
 
-        debt_value_in_eth = self.vault[vault_key].osqth_short_amount * norm_factor * eth_price
+        debt_value_in_eth = (
+            self.vault[vault_key].osqth_short_amount * norm_factor * eth_price / SqueethMarket.INDEX_SCALE
+        )
         total_collateral = self._get_effective_collateral_in_eth(vault_key, norm_factor, eth_price)
 
         is_dust = total_collateral < SqueethMarket.MIN_DEPOSIT_AMOUNT
@@ -470,17 +472,17 @@ class SqueethMarket(Market):
         norm_factor = self.get_norm_factor()
         vault = self.vault[vault_key]
         is_safe, is_dust = self._get_vault_status(vault_key, norm_factor)
-        if not is_safe:
+        if is_safe:
             raise DemeterError("Can not liquidate safe vault")
         # try to save target vault before liquidation by reducing debt
-        bounty: Decimal = self._reduce_debt(vault_key, True)
+        osqth_burn_amount, osqth_excess, bounty, eth_collected = self._reduce_debt(vault_key, True)
 
         is_safe, is_dust = self._get_vault_status(vault_key, self.get_norm_factor())
         if is_safe:
             # should transfer bounty to liquidater
             return DECIMAL_0
 
-        vault.collateral_amount += bounty
+        vault.collateral_amount += bounty  # add bounty back, will re-calculate liq bounty
         debt_amount, collateral_paid = self._liquidate(vault, vault.osqth_short_amount, self.get_norm_factor())
         return debt_amount
 
@@ -546,21 +548,21 @@ class SqueethMarket(Market):
 
         return final_amount, collateral_to_pay
 
-    def _reduce_debt(self, vault_key: VaultKey, pay_bounty: bool) -> Decimal:
+    def _reduce_debt(self, vault_key: VaultKey, pay_bounty: bool) -> Tuple[Decimal, Decimal, Decimal, Decimal]:
         """
         Redeem uni lp, and burn those osqth, to save the account
         """
         vault = self.vault[vault_key]
 
         if vault.uni_nft_id is None:
-            return DECIMAL_0
+            return DECIMAL_0, DECIMAL_0, DECIMAL_0, DECIMAL_0
         position = vault.uni_nft_id
-        withdrawn_eth_amount, withdrawn_osqth_amount = self._redeem_uni_token(vault.uni_nft_id)
-        burn_amount, excess, bounty = self._get_reduce_debt_result_in_vault(
+        withdrawn_eth_amount, withdrawn_osqth_amount = self._redeem_uni_token(position)
+        osqth_burn_amount, osqth_excess, bounty = self._get_reduce_debt_result_in_vault(
             vault, withdrawn_eth_amount, withdrawn_osqth_amount, pay_bounty
         )
-        if excess > 0:
-            self.broker.add_to_balance(oSQTH, excess)
+        if osqth_excess > 0:
+            self.broker.add_to_balance(oSQTH, osqth_excess)
 
         self._record_action(
             ReduceDebtAction(
@@ -569,24 +571,24 @@ class SqueethMarket(Market):
                 position=position,
                 withdrawn_eth_amount=UnitDecimal(withdrawn_eth_amount, WETH.name),
                 withdrawn_osqth_amount=UnitDecimal(withdrawn_osqth_amount, oSQTH.name),
-                burn_amount=UnitDecimal(burn_amount, oSQTH.name),
-                excess=UnitDecimal(excess, oSQTH.name),
+                burn_amount=UnitDecimal(osqth_burn_amount, oSQTH.name),
+                excess=UnitDecimal(osqth_excess, oSQTH.name),
                 bounty=UnitDecimal(bounty, WETH.name),
                 short_amount_after=UnitDecimal(vault.osqth_short_amount, oSQTH.name),
                 collateral_after=UnitDecimal(vault.collateral_amount, WETH.name),
             )
         )
-        return bounty
+        return osqth_burn_amount, osqth_excess, bounty, withdrawn_eth_amount
 
     def _get_reduce_debt_result_in_vault(
         self, vault: Vault, nft_eth_amount: Decimal, nft_osqth_amount: Decimal, pay_bounty: bool
     ):
-        bounty = 0
+        bounty = DECIMAL_0
         if pay_bounty:
             bounty = self._get_reduce_debt_bounty(nft_eth_amount, nft_osqth_amount)
 
         burn_amount = nft_osqth_amount
-        osqth_excess = 0
+        osqth_excess = DECIMAL_0
         if nft_osqth_amount > vault.osqth_short_amount:
             osqth_excess = nft_osqth_amount - vault.osqth_short_amount
             burn_amount = vault.osqth_short_amount
@@ -603,7 +605,8 @@ class SqueethMarket(Market):
         return (osqth_reduced * price + eth_withdrawn) * Decimal(SqueethMarket.REDUCE_DEBT_BOUNTY)
 
     def _redeem_uni_token(self, position_info: PositionInfo) -> Tuple[Decimal, Decimal]:
-        weth_get, osqth_get = self.squeeth_uni_pool.remove_liquidity(position_info)
+        self.squeeth_uni_pool.remove_liquidity(position_info, collect=False)
+        weth_get, osqth_get = self.squeeth_uni_pool.collect_fee(position_info, collect_to_user=False)
         return weth_get, osqth_get
 
     # endregion

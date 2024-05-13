@@ -409,6 +409,7 @@ class UniLpMarket(Market):
         position: Position,
         max_collect_amount0: Decimal = None,
         max_collect_amount1: Decimal = None,
+        collect_to_user: bool = True,
     ):
         """
         Collect fee
@@ -416,6 +417,7 @@ class UniLpMarket(Market):
         :param position: get_position
         :param max_collect_amount0: max collect amount0
         :param max_collect_amount1: max collect amount1
+        :param collect_to_user: Transfer collected token to user balance, default is true
         :return:
         """
         token0_fee = (
@@ -432,8 +434,9 @@ class UniLpMarket(Market):
         position.pending_amount0 -= token0_fee
         position.pending_amount1 -= token1_fee
         # add un_collect fee to current balance
-        self.broker.add_to_balance(self.token0, token0_fee)
-        self.broker.add_to_balance(self.token1, token1_fee)
+        if collect_to_user:
+            self.broker.add_to_balance(self.token0, token0_fee)
+            self.broker.add_to_balance(self.token1, token1_fee)
         return token0_fee, token1_fee
 
     # action for strategy
@@ -613,6 +616,7 @@ class UniLpMarket(Market):
         max_collect_amount0: Decimal = None,
         max_collect_amount1: Decimal = None,
         remove_dry_pool: bool = True,
+        collect_to_user: bool = True,
     ) -> (Decimal, Decimal):
         """
         | collect fee and token from positions,
@@ -626,12 +630,16 @@ class UniLpMarket(Market):
         :type max_collect_amount1: Decimal
         :param remove_dry_pool: remove pool which liquidity==0, effect when collect==True
         :type remove_dry_pool: bool
+        :param collect_to_user: Transfer collected token to user balance, default is true
+        :type collect_to_user: bool
         :return: (base_got,quote_get), base and quote token amounts collected from get_position
         :rtype:  (Decimal,Decimal)
         """
         if (max_collect_amount0 and max_collect_amount0 < 0) or (max_collect_amount1 and max_collect_amount1 < 0):
             raise DemeterError("collect amount should large than 0")
-        token0_get, token1_get = self.__collect_fee(self._positions[position], max_collect_amount0, max_collect_amount1)
+        token0_get, token1_get = self.__collect_fee(
+            self._positions[position], max_collect_amount0, max_collect_amount1, collect_to_user
+        )
 
         base_get, quote_get = self._convert_pair(token0_get, token1_get)
         if self._positions[position]:
