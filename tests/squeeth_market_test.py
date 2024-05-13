@@ -452,20 +452,23 @@ class TestSqueethMarket(TestCase):
         broker = self.get_broker()
         market: SqueethMarket = broker.markets[squeeth_key]
 
-        osqth_to_mint = market.collateral_amount_to_osqth(Decimal(1), 1.500001)
-        vault_key, osqth_mint_amount = market.open_deposit_mint(1, osqth_to_mint)
+        coll_amount = Decimal(3)
+        osqth_to_mint = market.collateral_amount_to_osqth(coll_amount, 1.50000)
+        vault_key, osqth_mint_amount = market.open_deposit_mint(coll_amount, osqth_to_mint)
         vault = market.vault[vault_key]
         self.raise_price(broker)
-        market._liquidate(vault, vault.osqth_short_amount, market.get_norm_factor())
+        liquidate_amount, collateral_to_pay = market._liquidate(
+            vault, vault.osqth_short_amount, market.get_norm_factor()
+        )
 
-        # self.assertEqual(
-        #     broker.get_token_balance(oSQTH).quantize(d5),
-        #     (OSQTH_ETH * 10 - quote_used + osqth_to_mint + osqth_excess).quantize(d5),
-        # )
         # # eth balance should not change
-        # self.assertEqual(broker.get_token_balance(weth).quantize(d5), (Decimal(10) - base_used).quantize(d5))
-        # self.assertEqual(market.vault[vault_key].osqth_short_amount, osqth_mint_amount - osqth_burn_amount)
-        # self.assertEqual(market.vault[vault_key].collateral_amount, eth_collected - bounty)
+        self.assertEqual(broker.get_token_balance(oSQTH).quantize(d5), (OSQTH_ETH * 10 + osqth_to_mint).quantize(d5))
+        self.assertEqual(vault.osqth_short_amount, osqth_mint_amount - liquidate_amount)
+
+        self.assertEqual(broker.get_token_balance(weth).quantize(d5), (Decimal(10) - coll_amount).quantize(d5))
+        collateral_should_pay = (SqueethMarket.LIQUIDATION_BOUNTY + Decimal("1")) * osqth_to_mint / 2 * ETH_OSQTH_RAISED
+        self.assertEqual(collateral_to_pay, collateral_should_pay)
+        self.assertEqual(vault.collateral_amount, coll_amount - collateral_to_pay)
 
         pass
 
