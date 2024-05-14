@@ -1,6 +1,5 @@
 from ._typing import (
     Vault,
-    ShortStatus,
     SqueethBalance,
     VaultKey,
     AddVaultAction,

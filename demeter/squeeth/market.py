@@ -31,6 +31,20 @@ from ..utils import to_decimal, float_param_formatter
 
 
 class SqueethMarket(Market):
+    """
+    | Simulation of squeeth market. Support long and short.
+    | In long, you can buy or sell squeeth.
+    | In short, you can deposit eth or uniswap lp token to mint squeeth, if collateral is low, vault will be liquidated.
+
+    :param market_info: key of this market
+    :type market_info: MarketInfo
+    :param squeeth_uni_pool: Instance of oSQTH-ETH uniswap pool, Squeeth depends on this pool to swap.
+    :type squeeth_uni_pool: UniLpMarket
+    :param data: pool data for back test. downloaded by demeter-fetch
+    :type data: pd.DataFrame
+    :param data_path: path to load pool data
+    :type data_path: str
+    """
 
     def __init__(
         self,
@@ -53,30 +67,44 @@ class SqueethMarket(Market):
     CR_DENOMINATOR = Decimal(2)
     REDUCE_DEBT_BOUNTY = Decimal("0.02")
     LIQUIDATION_BOUNTY = Decimal("0.1")
-    MIN_COLLATERAL = Decimal("0.5")  # eth
     INDEX_SCALE = Decimal(1e4)
 
     @property
-    def osqth_balance(self):
+    def osqth_balance(self) -> Decimal:
         """
-        Get balance of osqth
+        Get balance of osqth in your broker account
+        :return: osqth balance
+        :rtype: Decimal
         """
         return self.broker.get_token_balance(oSQTH)
 
     @property
     def squeeth_uni_pool(self) -> UniLpMarket:
+        """
+        Instance of oSQTH-ETH uniswap pool
+        :return: oSQTH-ETH uniswap pool
+        :rtype: UniLpMarket
+        """
         return self._squeeth_uni_pool
 
     @property
     def network(self) -> SqueethChain:
         """
-        Get chain config of this market.
+        Get chain config of this market. Currently, squeeth is only available on Ethereum
+        :return: chain config
+        :rtype: SqueethChain
         """
         return self._network
 
     def get_collat_ratio_and_liq_price(self, vault_key: VaultKey) -> Tuple[Decimal, Decimal]:
         """
-        forked from useGetCollatRatioAndLiqPrice function in hooks.ts
+        |Get collateral ratio and liquidation price of a vault.
+        |forked from useGetCollatRatioAndLiqPrice function in hooks.ts
+
+        :param vault_key: key of vault
+        :type vault_key: VaultKey
+        :return: collateral ratio and liquidation price
+        :rtype: Tuple[Decimal, Decimal]
         """
         nf = self.get_norm_factor()
         collateral_in_eth = self._get_effective_collateral_in_eth(vault_key)
@@ -89,8 +117,18 @@ class SqueethMarket(Market):
         return collateral_in_eth / debt_amount_in_index, collateral_in_eth / (r_squeeth * Decimal("1.5"))
 
     def get_market_balance(self, price=None) -> SqueethBalance:
-        current_data = self._market_status.data
-        osqth_price_to_u = current_data[oSQTH.name] * current_data[WETH.name]
+        """
+        Get current status, including positions, balances
+
+        :param price: external price, is set to none, will use price in current market status
+        :type price: pd.Series | Dict[str, Decimal]
+        :return: MarketBalance
+        :rtype: SqueethBalance
+        """
+        if price is None:
+            current_data = self._market_status.data
+            price = {oSQTH.name: current_data[oSQTH.name], WETH.name: current_data[WETH.name]}
+        osqth_price_to_u = price[oSQTH.name] * price[WETH.name]
 
         long_amount = self.osqth_balance
         short_amount = Decimal(sum([x.osqth_short_amount for x in self.vault.values()]))
@@ -99,7 +137,7 @@ class SqueethMarket(Market):
         collateral_eth = Decimal(
             sum(self._get_effective_collateral_in_eth(VaultKey(v.id)) for v in self.vault.values())
         )
-        collateral_value = collateral_eth * current_data[WETH.name]
+        collateral_value = collateral_eth * price[WETH.name]
         short_in_eth = short_amount * self.get_norm_factor() * eth_price / SqueethMarket.INDEX_SCALE
         return SqueethBalance(
             # squeeth token is hold by broker. so net value is only calculated from short position
@@ -109,16 +147,16 @@ class SqueethMarket(Market):
             osqth_short_amount=UnitDecimal(short_amount, oSQTH.name),
             osqth_net_amount=UnitDecimal(long_amount - short_amount, oSQTH.name),
             vault_count=len(self.vault),
-            delta=Decimal(2) * current_data[WETH.name],
+            delta=Decimal(2) * price[WETH.name],
             gamma=Decimal(2),
             collateral_value=collateral_value,
             osqth_short_in_eth=short_in_eth,
             collateral_ratio=collateral_eth / short_in_eth if short_in_eth != DECIMAL_0 else 0,
         )
 
-    def get_denormalized_mark(self):
+    def get_denormalized_mark(self) -> Decimal:
         """
-        Keep it's value equal to contract
+        Get denormalized mark price,
         :return:
         """
         eth_price = self.get_twap_price(WETH)
@@ -127,7 +165,7 @@ class SqueethMarket(Market):
 
     def get_index(self) -> Decimal:
         """
-        Keep it's value equal to contract
+        Get index price
         :return:
         """
         self.get_twap_price(WETH)
@@ -136,6 +174,11 @@ class SqueethMarket(Market):
     def load_data(self, start_date: date, end_date: date):
         """
         Load data from .minute.csv, then update index and fill null data.
+
+        :param start_date: start test date
+        :type start_date: date
+        :param end_date: end test date
+        :type end_date: date
         """
         self.logger.info(f"start load files from {start_date} to {end_date}...")
         df = pd.DataFrame()
@@ -166,6 +209,15 @@ class SqueethMarket(Market):
         self.logger.info("data has been prepared")
 
     def set_market_status(self, market_status: MarketStatus, price: pd.Series | None):
+        """
+        Set current status (normalize factor, price in uniswap pool) to Market
+
+        :param market_status: market data
+        :type market_status: MarketStatus
+        :param price: price of token at this moment
+        :type price: pd.Series
+        """
+
         super().set_market_status(market_status, price)
         if market_status.data is None:
             market_status.data = self.data.loc[market_status.timestamp]
@@ -173,7 +225,7 @@ class SqueethMarket(Market):
 
     def get_price_from_data(self) -> pd.DataFrame:
         """
-        Extract token price from relative uniswap pool. All price is based in usd
+        Extract token price from relative uniswap pool. All price is quoted in usd
         """
         if self.data is None:
             raise DemeterError("data has not set")
@@ -188,10 +240,13 @@ class SqueethMarket(Market):
         self, collateral_amount: Decimal | float, collateral_rate: Decimal | float = CR_DENOMINATOR
     ) -> Decimal:
         """
-        forked from useGetShortAmountFromDebt in hook.ts
-        :param collateral_amount:
-        :param collateral_rate:
-        :return:
+        Calculate osqth amount based on eth amount. Forked from useGetShortAmountFromDebt in hook.ts
+        :param collateral_amount: eth amount to collateral
+        :type collateral_amount: Decimal | float
+        :param collateral_rate: collateral rate, default is 2
+        :type collateral_rate: Decimal | float
+        :return: osqth amount
+        :rtype: Decimal
         """
         eth_price = self.get_twap_price(WETH)
         norm_factor = self.get_norm_factor()
@@ -206,8 +261,20 @@ class SqueethMarket(Market):
         collateral_rate: Decimal | float | None = None,
         vault_key: VaultKey | None = None,
         uni_position: PositionInfo | None = None,
-    ):
-
+    ) -> Tuple[VaultKey, Decimal]:
+        """
+        open deposit and mint osqth, you can decide mint amount by collateral_rate,
+        :param deposit_eth_amount: eth amount to collate
+        :type deposit_eth_amount: Decimal
+        :param collateral_rate: collateral_rate
+        :type collateral_rate: Decimal
+        :param vault_key: vault key, if set to None, will create a new vault. or else append collateral to existing vault
+        :type vault_key: VaultKey
+        :param uni_position: Uniswap liquid position of osqth-weth pool. You can deposit this position to raise collateral rate
+        :type uni_position: PositionInfo
+        :return: vault created, and osqth mint amount
+        :rtype: Tuple[VaultKey, Decimal]:
+        """
         osqth_amount = self.collateral_amount_to_osqth(deposit_eth_amount, collateral_rate)
         return self.open_deposit_mint(deposit_eth_amount, osqth_amount, vault_key, uni_position)
 
@@ -220,8 +287,20 @@ class SqueethMarket(Market):
         uni_position: PositionInfo | None = None,
     ) -> Tuple[VaultKey, Decimal]:
         """
-        fork function _openDepositMint in controller.sol,
+        open deposit and mint osqth, Forked function _openDepositMint in controller.sol,
+
+        :param deposit_eth_amount: eth amount to collate
+        :type deposit_eth_amount: Decimal
+        :param osqth_mint_amount: osqth mint amount
+        :type osqth_mint_amount: Decimal
+        :param vault_key: vault key, if set to None, will create a new vault. or else append collateral to existing vault
+        :type vault_key: VaultKey
+        :param uni_position: Uniswap liquid position of osqth-weth pool. You can deposit this position to raise collateral rate
+        :type uni_position: PositionInfo
+        :return: vault created, and osqth mint amount
+        :rtype: Tuple[VaultKey, Decimal]:
         """
+
         norm_factor = self.get_norm_factor()
         deposit_amount_with_fee = deposit_eth_amount
         if vault_key is None:
@@ -266,24 +345,42 @@ class SqueethMarket(Market):
         return vault_key, osqth_mint_amount
 
     def _check_vault(self, vault_key: VaultKey, norm_factor: Decimal):
-        is_safe, is_dust = self._get_vault_status(vault_key, norm_factor)
+        """
+        Check vault is safe (collateral is above 150%), or is above minimal collateral amount(0.5eth)
+        :param vault_key: Which vault to operate.
+        :type vault_key: VaultKey
+        :param norm_factor: normalize factor
+        :type norm_factor: Decimal
+        :return:
+        """
+        is_safe, is_dust = self.get_vault_status(vault_key, norm_factor)
         if not is_safe:
             raise DemeterError("Vault collateral rate is not safe")
         if is_dust:
             raise DemeterError("Vault collateral is below dust")
 
-    def _get_vault_status(
-        self, vault_key: VaultKey, norm_factor: Decimal, eth_price: Decimal | None = None
+    def get_vault_status(
+        self, vault_key: VaultKey, norm_factor: Decimal, twap_eth_price: Decimal | None = None
     ) -> Tuple[bool, bool]:
-        if eth_price is None:
-            eth_price = self.get_twap_price(WETH)
+        """
+        Check vault is safe (collateral is above 150%), or is above minimal collateral amount(0.5eth)
+        :param vault_key: Which vault to operate.
+        :type vault_key: VaultKey
+        :param norm_factor: normalize factor
+        :type norm_factor: Decimal
+        :param twap_eth_price: twap eth price.
+        :type twap_eth_price: Decimal
+        :return:
+        """
+        if twap_eth_price is None:
+            twap_eth_price = self.get_twap_price(WETH)
         if self.vault[vault_key].osqth_short_amount == 0:
             return True, False
 
         debt_value_in_eth = (
-            self.vault[vault_key].osqth_short_amount * norm_factor * eth_price / SqueethMarket.INDEX_SCALE
+            self.vault[vault_key].osqth_short_amount * norm_factor * twap_eth_price / SqueethMarket.INDEX_SCALE
         )
-        total_collateral = self._get_effective_collateral_in_eth(vault_key, norm_factor, eth_price)
+        total_collateral = self._get_effective_collateral_in_eth(vault_key, norm_factor, twap_eth_price)
 
         is_dust = total_collateral < SqueethMarket.MIN_DEPOSIT_AMOUNT
         is_above_water = (
@@ -295,6 +392,10 @@ class SqueethMarket(Market):
     def _get_effective_collateral_in_eth(
         self, vault_key: VaultKey, norm_factor: Decimal | None = None, eth_price: Decimal | None = None
     ) -> Decimal:
+        """
+        | Get total collateral amount, including: eth deposited, uniswap lp value(eth and osqth)
+        | Note: Osqth amount is converted to eth by index price.
+        """
         if self.vault[vault_key].uni_nft_id is None:
             return self.vault[vault_key].collateral_amount
         if norm_factor is None:
@@ -316,6 +417,18 @@ class SqueethMarket(Market):
         return nft_weth_amount + osqth_index_val_in_eth + self.vault[vault_key].collateral_amount
 
     def get_twap_price(self, token: TokenInfo, now: datetime | None = None) -> Decimal:
+        """
+        Get twap(time weighted average price) price, Just like what uniswap oracle contract did.
+
+        Depends on price stored in self.data
+
+        :param token: Which token to calculate
+        :type token: TokenInfo
+        :param now: end time.
+        :type now: datetime
+        :return: twap price
+        :rtype: Decimal
+        """
         # for test case
         if self._market_status.timestamp is None:
             return self._market_status.data[token.name]
@@ -331,11 +444,21 @@ class SqueethMarket(Market):
     def _get_fee(
         self, vault: Vault, deposit_eth_amount: Decimal, osqth_mint_amount: Decimal
     ) -> Tuple[Decimal, Decimal]:
-        # As current fee rate is 0
+        """
+        Get fee of deposit, currently fee rate is 0 and unlikely to change, so this part is omitted.
+        """
         return Decimal(0), deposit_eth_amount
 
     @float_param_formatter
     def deposit(self, vault_key: VaultKey, eth_value: Decimal | float):
+        """
+        Deposit eth to current vault
+
+        :param vault_key: Vault key
+        :type vault_key:VaultKey
+        :param eth_value: Eth amount to collate
+        :type eth_value: Decimal
+        """
         self.vault[vault_key].collateral_amount += eth_value
         self.broker.subtract_from_balance(WETH, eth_value)
         self._record_action(
@@ -349,6 +472,15 @@ class SqueethMarket(Market):
         )
 
     def deposit_uni_position(self, vault_key: VaultKey, uni_position_info: PositionInfo):
+        """
+        Deposit uniswap lp position to vault. After deposit, position will be transferred to this market.
+        and its net value will not be counted in uniswap market.
+
+        :param vault_key: Vault key
+        :type vault_key: VaultKey
+        :param uni_position_info: Uniswap lp position
+        :type uni_position_info: PositionInfo
+        """
         self._deposit_uni_position(vault_key, uni_position_info)
 
     def _deposit_uni_position(self, vault_key: VaultKey, uni_position: PositionInfo):
@@ -359,6 +491,7 @@ class SqueethMarket(Market):
         if self.vault[vault_key].uni_nft_id is not None:
             raise DemeterError("This vault already has a NFT collateral")
         self.vault[vault_key].uni_nft_id = uni_position
+        # transfer lp position to current market.
         self.squeeth_uni_pool.transfer_position_out(uni_position)
         self._record_action(
             DepositLpAction(
@@ -388,6 +521,14 @@ class SqueethMarket(Market):
         )
 
     def withdraw_uni_position(self, vault_key: VaultKey, uni_position: PositionInfo):
+        """
+        Withdraw uniswap lp position.
+
+        :param vault_key: Vault key
+        :type vault_key: VaultKey
+        :param uni_position_info: Uniswap lp position
+        :type uni_position_info: PositionInfo
+        """
         if vault_key not in self.vault:
             raise DemeterError(f"{vault_key.id} not exist")
         if self.vault[vault_key].uni_nft_id != uni_position:
@@ -407,6 +548,17 @@ class SqueethMarket(Market):
     def burn_and_withdraw(
         self, vault_key: VaultKey, osqth_burn_amount: Decimal | float, withdraw_eth_amount: Decimal | float
     ):
+        """
+        Burn osqth and withdraw. uniswap lp position is not handled here.
+
+        :param vault_key: Vault key
+        :type vault_key: VaultKey
+        :param osqth_burn_amount: osqth to burn
+        :type osqth_burn_amount: Decimal
+        :param withdraw_eth_amount: eth to withdraw
+        :type withdraw_eth_amount: Decimal
+        :return:
+        """
         if vault_key not in self.vault:
             raise DemeterError(f"{vault_key.id} not exist")
         vault = self.vault[vault_key]
@@ -439,6 +591,16 @@ class SqueethMarket(Market):
     def buy_squeeth(
         self, osqth_amount: float | Decimal | None = None, eth_amount: float | Decimal | None = None
     ) -> Tuple[Decimal, Decimal, Decimal]:
+        """
+        Buy osqth, you can specify osqth amount to buy. or how many eth to swap to osqth
+
+        :param osqth_amount: osqth amount to buy
+        :type osqth_amount: Decimal
+        :param eth_amount: eth amount to swap to osqth
+        :type eth_amount: Decimal
+        :return: swap fee, eth spent, osqth got
+        :rtype: Tuple[Decimal, Decimal, Decimal]
+        """
         if osqth_amount is None and eth_amount is not None:
             osqth_amount = eth_amount * self._market_status.data["osqth"]
         fee, eth_amount, osqth_amount = self._squeeth_uni_pool.buy(osqth_amount)
@@ -449,6 +611,16 @@ class SqueethMarket(Market):
     def sell_squeeth(
         self, osqth_amount: float | Decimal | None = None, eth_amount: float | Decimal | None = None
     ) -> Tuple[Decimal, Decimal, Decimal]:
+        """
+        Sell osqth, you can specify osqth amount to sell. or how many eth to get
+
+        :param osqth_amount: osqth amount to sell
+        :type osqth_amount: Decimal
+        :param eth_amount: eth amount to got
+        :type eth_amount: Decimal
+        :return: swap fee, eth got, osqth sold
+        :rtype: Tuple[Decimal, Decimal, Decimal]
+        """
         if osqth_amount is None and eth_amount is not None:
             osqth_amount = eth_amount / self._market_status.data["osqth"]
         fee, eth_amount, osqth_amount = self._squeeth_uni_pool.sell(osqth_amount)
@@ -459,25 +631,37 @@ class SqueethMarket(Market):
     # region liquidate
 
     def update(self):
+        """
+        Check and trigger liquidation
+        """
         norm_factor = self.get_norm_factor()
         eth_price = self.get_twap_price(WETH)
         for vk, v in self.vault.items():
-            is_above_water, is_dust = self._get_vault_status(vk, norm_factor, eth_price)
+            is_above_water, is_dust = self.get_vault_status(vk, norm_factor, eth_price)
             if not is_above_water:
                 self.liquidate(vk)
 
     def liquidate(self, vault_key: VaultKey) -> Decimal:
+        """
+        |liquidate if collateral ratio is blow 150%.
+        |liquidate process will first try to redeem unswap lp position, then burn collected osqth, and deposit collected eth.
+        |if the vault is still not safe, will liquidate 50% osqth debt. you will have to pay corresponding collateral, and liquidate bounty.
+        |If after liquidation, collateral is blow minial amount(0.5eth), will liquidate all debt.
+        :param vault_key: vault key
+        :type vault_key: VaultKey
+        :return: Liquidated debt amount
+        """
         if vault_key not in self.vault:
             raise DemeterError(f"{vault_key.id} not exist")
         norm_factor = self.get_norm_factor()
         vault = self.vault[vault_key]
-        is_safe, is_dust = self._get_vault_status(vault_key, norm_factor)
+        is_safe, is_dust = self.get_vault_status(vault_key, norm_factor)
         if is_safe:
             raise DemeterError("Can not liquidate safe vault")
         # try to save target vault before liquidation by reducing debt
         osqth_burn_amount, osqth_excess, bounty, eth_collected = self._reduce_debt(vault_key, True)
 
-        is_safe, is_dust = self._get_vault_status(vault_key, self.get_norm_factor())
+        is_safe, is_dust = self.get_vault_status(vault_key, self.get_norm_factor())
         if is_safe:
             # should transfer bounty to liquidater
             return DECIMAL_0
@@ -497,7 +681,7 @@ class SqueethMarket(Market):
         vault.osqth_short_amount -= liquidate_amount
         vault.collateral_amount -= collateral_to_pay
 
-        is_safe, is_dust = self._get_vault_status(VaultKey(vault.id), norm_factor)
+        is_safe, is_dust = self.get_vault_status(VaultKey(vault.id), norm_factor)
         if is_dust:
             raise DemeterError("Dust vault left")
         self._record_action(
@@ -520,7 +704,7 @@ class SqueethMarket(Market):
         )
 
         if vault_collateral_amount > collateral_to_pay:
-            if vault_collateral_amount - collateral_to_pay < SqueethMarket.MIN_COLLATERAL:
+            if vault_collateral_amount - collateral_to_pay < SqueethMarket.MIN_DEPOSIT_AMOUNT:
                 # the vault is left with dust after liquidation, allow liquidating full vault
                 # calculate the new liquidation amount and collateral again based on the new limit
                 final_liquidate_amount, collateral_to_pay = self._get_single_liquidation_amount(
@@ -611,5 +795,11 @@ class SqueethMarket(Market):
 
     # endregion
     def get_norm_factor(self) -> Decimal:
-        """Maybe I should calculate this myself, as transactions are too few in a day"""
+        """
+        Get current normalize factor. It is downloaded from event log in squeeth contract.
+
+        :return: normalize factor at current time
+        :rtype: Decimal
+        """
+        # Maybe I should calculate this myself, as transactions are too few in a day
         return self._market_status.data["norm_factor"]
