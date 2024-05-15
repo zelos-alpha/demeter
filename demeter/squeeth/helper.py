@@ -7,8 +7,9 @@ import pandas as pd
 def calc_twap_price(prices: pd.Series) -> Decimal:
     """
     Calc TWAP(time weighted average price) as uniswap oracle.
+
     :param prices: given price array.
-    :param prices: Series
+    :type prices: Series
     :return: TWAP price
     :rtype: Decimal
     """

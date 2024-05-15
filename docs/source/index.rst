@@ -60,6 +60,7 @@ links
    market_uniswap
    market_aave
    market_deribit_option
+   market_squeeth
    references
 
 

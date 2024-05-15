@@ -98,8 +98,8 @@ class SqueethMarket(Market):
 
     def get_collat_ratio_and_liq_price(self, vault_key: VaultKey) -> Tuple[Decimal, Decimal]:
         """
-        |Get collateral ratio and liquidation price of a vault.
-        |forked from useGetCollatRatioAndLiqPrice function in hooks.ts
+        | Get collateral ratio and liquidation price of a vault.
+        | forked from useGetCollatRatioAndLiqPrice function in hooks.ts
 
         :param vault_key: key of vault
         :type vault_key: VaultKey
@@ -240,6 +240,7 @@ class SqueethMarket(Market):
     ) -> Decimal:
         """
         Calculate osqth amount based on eth amount. Forked from useGetShortAmountFromDebt in hook.ts
+
         :param collateral_amount: eth amount to collateral
         :type collateral_amount: Decimal | float
         :param collateral_rate: collateral rate, default is 2
@@ -263,6 +264,7 @@ class SqueethMarket(Market):
     ) -> Tuple[VaultKey, Decimal]:
         """
         open deposit and mint osqth, you can decide mint amount by collateral_rate,
+
         :param deposit_eth_amount: eth amount to collate
         :type deposit_eth_amount: Decimal
         :param collateral_rate: collateral_rate
@@ -346,6 +348,7 @@ class SqueethMarket(Market):
     def _check_vault(self, vault_key: VaultKey, norm_factor: Decimal):
         """
         Check vault is safe (collateral is above 150%), or is above minimal collateral amount(0.5eth)
+
         :param vault_key: Which vault to operate.
         :type vault_key: VaultKey
         :param norm_factor: normalize factor
@@ -363,13 +366,15 @@ class SqueethMarket(Market):
     ) -> Tuple[bool, bool]:
         """
         Check vault is safe (collateral is above 150%), or is above minimal collateral amount(0.5eth)
+
         :param vault_key: Which vault to operate.
         :type vault_key: VaultKey
         :param norm_factor: normalize factor
         :type norm_factor: Decimal
         :param twap_eth_price: twap eth price.
         :type twap_eth_price: Decimal
-        :return:
+        :return: vault status, is safe, is below min-amount
+        :rtype: Tuple[bool, bool]
         """
         if twap_eth_price is None:
             twap_eth_price = self.get_twap_price(WETH)
@@ -417,9 +422,8 @@ class SqueethMarket(Market):
 
     def get_twap_price(self, token: TokenInfo, now: datetime | None = None) -> Decimal:
         """
-        Get twap(time weighted average price) price, Just like what uniswap oracle contract did.
-
-        Depends on price stored in self.data
+        | Get twap(time weighted average price) price, Just like what uniswap oracle contract did.
+        | Depends on price stored in self.data
 
         :param token: Which token to calculate
         :type token: TokenInfo
@@ -454,7 +458,7 @@ class SqueethMarket(Market):
         Deposit eth to current vault
 
         :param vault_key: Vault key
-        :type vault_key:VaultKey
+        :type vault_key: VaultKey
         :param eth_value: Eth amount to collate
         :type eth_value: Decimal
         """
@@ -642,13 +646,15 @@ class SqueethMarket(Market):
 
     def liquidate(self, vault_key: VaultKey) -> Decimal:
         """
-        |liquidate if collateral ratio is blow 150%.
-        |liquidate process will first try to redeem unswap lp position, then burn collected osqth, and deposit collected eth.
-        |if the vault is still not safe, will liquidate 50% osqth debt. you will have to pay corresponding collateral, and liquidate bounty.
-        |If after liquidation, collateral is blow minial amount(0.5eth), will liquidate all debt.
+        | liquidate if collateral ratio is blow 150%.
+        | liquidate process will first try to redeem unswap lp position, then burn collected osqth, and deposit collected eth.
+        | if the vault is still not safe, will liquidate 50% osqth debt. you will have to pay corresponding collateral, and liquidate bounty.
+        | If after liquidation, collateral is blow minial amount(0.5eth), will liquidate all debt.
+
         :param vault_key: vault key
         :type vault_key: VaultKey
         :return: Liquidated debt amount
+        :rtype: Decimal
         """
         if vault_key not in self.vault:
             raise DemeterError(f"{vault_key.id} not exist")
