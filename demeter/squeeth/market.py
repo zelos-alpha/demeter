@@ -127,12 +127,11 @@ class SqueethMarket(Market):
         """
         if price is None:
             current_data = self._market_status.data
-            price = {oSQTH.name: current_data[oSQTH.name], WETH.name: current_data[WETH.name]}
-        osqth_price_to_u = price[oSQTH.name] * price[WETH.name]
+            price = {oSQTH.name: current_data[oSQTH.name] * current_data[WETH.name], WETH.name: current_data[WETH.name]}
 
         long_amount = self.osqth_balance
         short_amount = Decimal(sum([x.osqth_short_amount for x in self.vault.values()]))
-        short_value = short_amount * osqth_price_to_u
+        short_value = short_amount * price[oSQTH.name]
         eth_price = self.get_twap_price(WETH)
         collateral_eth = Decimal(
             sum(self._get_effective_collateral_in_eth(VaultKey(v.id)) for v in self.vault.values())
