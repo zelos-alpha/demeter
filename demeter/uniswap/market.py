@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, time
 from decimal import Decimal
 from typing import Dict, Tuple
 
@@ -222,7 +222,7 @@ class UniLpMarket(Market):
         if self.base_token not in self.broker.assets:
             raise DemeterError(f"base token {self.base_token.name} not exist in asset dict")
         if self.quote_token not in self.broker.assets:
-            raise DemeterError(f"quote token {self.quote_token.name} not exist in asset dict")
+            self.broker.set_balance(self.quote_token, DECIMAL_0)
 
     def update(self):
         """
@@ -849,14 +849,17 @@ class UniLpMarket(Market):
         df.set_index("timestamp", inplace=True)
 
         # fill empty row (first minutes in a day, might be blank)
-        full_indexes = pd.date_range(start=df.index[0], end=df.index[df.index.size - 1], freq="1min")
+        full_indexes = pd.date_range(
+            start=start_date,
+            end=datetime.combine(end_date, time(0, 0, 0)) + timedelta(days=1) - timedelta(minutes=1),
+            freq="1min",
+        )
         df = df.reindex(full_indexes)
         # df = Lines.from_dataframe(df)
         # df = df.fillna()
         df: pd.DataFrame = fillna(df)
-        if df.index[0] != datetime(start_date.year, start_date.month, start_date.day):
-            df.loc[datetime.combine(df.index[0].date(), datetime.min.time(), df.index[0].tzinfo)] = df.head(1).iloc[0]
-            df = df.resample("1min").last().ffill()
+        if pd.isna(df.iloc[0]["closeTick"]):
+            df = df.bfill()
 
         self.add_statistic_column(df)
         self.data = df

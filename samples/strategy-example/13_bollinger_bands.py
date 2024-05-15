@@ -42,7 +42,7 @@ class AddByVolatility(Strategy):
         self.add_column(market_key, "sma_1_day", simple_moving_average(self.data[market_key].price, timedelta(days=1)))
         self.add_column(market_key, "volatility", realized_volatility(self.data[market_key].price, timedelta(days=1), timedelta(days=1)))
         self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=4), trigger_immediately=True, do=self.work))
-        self.markets.default.even_rebalance(self.data[market_key].price[0])
+        self.markets.default.even_rebalance(self.data[market_key].iloc[0]["price"])
 
     def work(self, row_data: RowData):
         lp_market: UniLpMarket = self.broker.markets[market_key]

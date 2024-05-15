@@ -258,7 +258,7 @@ class SqueethMarket(Market):
     def open_deposit_mint_by_collat_rate(
         self,
         deposit_eth_amount: Decimal | float,
-        collateral_rate: Decimal | float | None = None,
+        collateral_rate: Decimal | float = CR_DENOMINATOR,
         vault_key: VaultKey | None = None,
         uni_position: PositionInfo | None = None,
     ) -> Tuple[VaultKey, Decimal]:
@@ -602,7 +602,7 @@ class SqueethMarket(Market):
         :rtype: Tuple[Decimal, Decimal, Decimal]
         """
         if osqth_amount is None and eth_amount is not None:
-            osqth_amount = eth_amount * self._market_status.data["osqth"]
+            osqth_amount = eth_amount / self._market_status.data["OSQTH"]
         fee, eth_amount, osqth_amount = self._squeeth_uni_pool.buy(osqth_amount)
 
         return fee, eth_amount, osqth_amount
@@ -622,7 +622,7 @@ class SqueethMarket(Market):
         :rtype: Tuple[Decimal, Decimal, Decimal]
         """
         if osqth_amount is None and eth_amount is not None:
-            osqth_amount = eth_amount / self._market_status.data["osqth"]
+            osqth_amount = eth_amount / self._market_status.data["OSQTH"]
         fee, eth_amount, osqth_amount = self._squeeth_uni_pool.sell(osqth_amount)
         return fee, eth_amount, osqth_amount
 

@@ -3,6 +3,8 @@
 * Add Squeeth market
 * Change unit of sell fee in uniswap from quote token to base token
 * add a parameter on collect fee of uniswap market, to decide transfer token to user or not
+* fix issue: data head or tail may be blank in uniswap market
+
 # Ver 0.4.0
 
 * Add Deribit option market
