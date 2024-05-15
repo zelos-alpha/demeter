@@ -1,26 +1,10 @@
-import unittest
 from datetime import datetime, date
-from decimal import Decimal
 
 import pandas as pd
 
-from demeter import (
-    TokenInfo,
-    MarketInfo,
-    MarketTypeEnum,
-    Strategy,
-    Actuator,
-    AtTimeTrigger,
-    RowData,
-)
-from demeter.broker import ActionTypeEnum
+from demeter import TokenInfo, MarketInfo, MarketTypeEnum, Strategy, Actuator, AtTimeTrigger, RowData
 from demeter.squeeth import SqueethMarket
 from demeter.uniswap import UniLpMarket, UniV3Pool
-
-pd.options.display.max_columns = None
-pd.set_option("display.width", 5000)
-
-market_key = MarketInfo("option_test")
 
 pd.options.display.max_columns = None
 pd.set_option("display.width", 5000)
