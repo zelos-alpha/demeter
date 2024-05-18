@@ -35,7 +35,7 @@ class SimpleStrategy(Strategy):
         self.triggers.append(new_trigger)
 
     def buy(self, row_data: RowData):
-        market: DeribitOptionMarket = self.broker.markets.default
+        market = self.broker.markets.default
         market.buy("ETH-26APR24-2700-C", 20)
 
     def notify(self, action):
