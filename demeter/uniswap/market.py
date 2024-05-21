@@ -674,15 +674,17 @@ class UniLpMarket(Market):
     ):
         if from_token == to_token:
             raise DemeterError("from and to token can not same")
+        if from_token not in [self.quote_token, self.base_token] or to_token not in [self.quote_token, self.base_token]:
+            raise DemeterError("from or to token not in pool")
+
         if from_token == self.base_token:
             # e.g. swap 1 eth for 3000 usdc
             price = price if price else self.market_status.data.price
         else:
             # e.g. swap 3000 usdc for 1 eth
             price = price if price else 1 / self.market_status.data.price
-        to_amount_with_fee = from_amount * price
-        fee = to_amount_with_fee * self.pool_info.fee_rate
-        to_amount = to_amount_with_fee - fee
+        fee_in_from = from_amount * self.pool_info.fee_rate
+        to_amount = (from_amount - fee_in_from) * price
         self.broker.subtract_from_balance(from_token, from_amount)
         self.broker.add_to_balance(to_token, to_amount)
         if throw_action:
@@ -691,11 +693,11 @@ class UniLpMarket(Market):
                     market=self.market_info,
                     amount=UnitDecimal(from_amount, from_token.name),
                     price=UnitDecimal(price, f"{from_token.name}/{to_token.name}"),
-                    fee=UnitDecimal(fee, to_token.name),
+                    fee=UnitDecimal(fee_in_from, from_token.name),
                     to_amount=UnitDecimal(to_amount, to_token.name),
                 )
             )
-        return fee, to_amount
+        return fee_in_from, to_amount
 
     @float_param_formatter
     def buy(self, base_token_amount: Decimal | float, price: Decimal | float = None) -> (Decimal, Decimal, Decimal):
@@ -712,8 +714,8 @@ class UniLpMarket(Market):
         if base_token_amount == 0:
             return DECIMAL_0, DECIMAL_0, DECIMAL_0
         price = price if price else self.market_status.data.price
-        quote_amount_with_fee = base_token_amount * price * (1 + self._pool.fee_rate)
-        fee_in_base, base_amount_got = self.swap(
+        quote_amount_with_fee = base_token_amount * price / (1 - self._pool.fee_rate)
+        fee_in_quote, base_amount_got = self.swap(
             quote_amount_with_fee, self.quote_token, self.base_token, 1 / price, False
         )
         self._record_action(
@@ -723,12 +725,12 @@ class UniLpMarket(Market):
                 quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
                 amount=UnitDecimal(base_token_amount, self.base_token.name),
                 price=UnitDecimal(price, self._pool_price_unit),
-                fee=UnitDecimal(fee_in_base, self.base_token.name),
+                fee=UnitDecimal(fee_in_quote, self.quote_token.name),
                 base_change=UnitDecimal(base_amount_got, self.base_token.name),
                 quote_change=UnitDecimal(quote_amount_with_fee, self.quote_token.name),
             )
         )
-        return fee_in_base, quote_amount_with_fee, base_amount_got
+        return fee_in_quote, quote_amount_with_fee, base_amount_got
 
     @float_param_formatter
     def sell(self, base_token_amount: Decimal | float, price: Decimal | float = None) -> (Decimal, Decimal, Decimal):
@@ -746,7 +748,7 @@ class UniLpMarket(Market):
             return DECIMAL_0, DECIMAL_0, DECIMAL_0
         price = price if price else self.market_status.data.price
 
-        fee_in_quote, quote_amount_got = self.swap(base_token_amount, self.base_token, self.quote_token, price, False)
+        fee_in_base, quote_amount_got = self.swap(base_token_amount, self.base_token, self.quote_token, price, False)
 
         self._record_action(
             SellAction(
@@ -755,13 +757,13 @@ class UniLpMarket(Market):
                 quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
                 amount=UnitDecimal(base_token_amount, self.base_token.name),
                 price=UnitDecimal(price, self._pool_price_unit),
-                fee=UnitDecimal(fee_in_quote, self.quote_token.name),
+                fee=UnitDecimal(fee_in_base, self.base_token.name),
                 base_change=UnitDecimal(base_token_amount, self.base_token.name),
                 quote_change=UnitDecimal(quote_amount_got, self.quote_token.name),
             )
         )
 
-        return fee_in_quote, base_token_amount, quote_amount_got
+        return fee_in_base, base_token_amount, quote_amount_got
 
     def even_rebalance(self, price: Decimal | None = None):
         """
@@ -773,15 +775,9 @@ class UniLpMarket(Market):
         if price is None:
             price = self._market_status.data.price
 
-        total_capital = (
-            self.broker.get_token_balance(self.quote_token) + self.broker.get_token_balance(self.base_token) * price
-        )
-        target_quote_amount = total_capital / 2
-        quote_amount_diff = target_quote_amount - self.broker.get_token_balance(self.quote_token)
-
         amount_quote = self.broker.get_token_balance(self.quote_token)
         amount_base = self.broker.get_token_balance(self.base_token)
-        # if quote_amount_diff > 0:
+
         delta_base = (amount_quote / price - amount_base) / (Decimal(2) + self.pool_info.fee_rate)
         if delta_base >= 0:
             self.buy(delta_base)

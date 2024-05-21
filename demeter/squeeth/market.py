@@ -621,13 +621,13 @@ class SqueethMarket(Market):
         :type osqth_amount: Decimal
         :param eth_amount: eth amount to got
         :type eth_amount: Decimal
-        :return: swap fee, eth got, osqth sold
+        :return: swap fee,  osqth sold,eth got,
         :rtype: Tuple[Decimal, Decimal, Decimal]
         """
         if osqth_amount is None and eth_amount is not None:
             osqth_amount = eth_amount / self._market_status.data["OSQTH"]
-        fee, eth_amount, osqth_amount = self._squeeth_uni_pool.sell(osqth_amount)
-        return fee, eth_amount, osqth_amount
+        fee, osqth_amount, eth_amount = self._squeeth_uni_pool.sell(osqth_amount)
+        return fee, osqth_amount, eth_amount
 
     # endregion
 

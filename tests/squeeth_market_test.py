@@ -76,7 +76,7 @@ class TestSqueethMarket(TestCase):
         price_df = market.get_price_from_data()
         self.assertTrue(isinstance(price_df.iloc[0]["WETH"], Decimal))
         self.assertEqual(price_df.iloc[0]["WETH"], Decimal("1839.222732716025"))
-        self.assertEqual(price_df.iloc[0]["OSQTH"], Decimal("98.64923946816276798066711581"))
+        self.assertEqual(price_df.iloc[0]["OSQTH"], Decimal("98.6492394681627679806671158125"))
         pass
 
     ############################################################################################
@@ -115,11 +115,11 @@ class TestSqueethMarket(TestCase):
         broker = self.get_broker()
         market: SqueethMarket = broker.markets[squeeth_key]
         from_amount = OSQTH_ETH * Decimal(1)
-        fee, eth_amount, osqth_amount = market.buy_squeeth(from_amount)
-        self.assertEqual(osqth_amount, from_amount)
-        self.assertEqual(eth_amount.quantize(d5), Decimal(1).quantize(d5))
-        self.assertEqual(fee.quantize(d5), Decimal("0.003").quantize(d5))
-        self.assertEqual(broker.get_token_balance(weth).quantize(d5), (10 - fee - eth_amount).quantize(d5))
+        eth_fee, eth_amount, osqth_amount = market.buy_squeeth(from_amount)
+        self.assertEqual(osqth_amount.quantize(d5), from_amount.quantize(d5))
+        self.assertEqual(eth_amount.quantize(d5), (Decimal(1) + eth_fee).quantize(d5))
+        self.assertEqual(eth_fee.quantize(d5), Decimal("0.00301").quantize(d5))
+        self.assertEqual(broker.get_token_balance(weth).quantize(d5), (10 - eth_amount).quantize(d5))
         self.assertEqual(broker.get_token_balance(oSQTH).quantize(d5), (OSQTH_ETH * 10 + osqth_amount).quantize(d5))
         self.assertEqual(market.osqth_balance.quantize(d5), (OSQTH_ETH * 10 + osqth_amount).quantize(d5))
 
@@ -127,10 +127,10 @@ class TestSqueethMarket(TestCase):
         broker = self.get_broker()
         market: SqueethMarket = broker.markets[squeeth_key]
         from_amount = OSQTH_ETH * Decimal(1)
-        fee, eth_amount, osqth_amount = market.sell_squeeth(from_amount)
+        fee, osqth_amount, eth_amount = market.sell_squeeth(from_amount)
         # self.assertEqual(osqth_amount, from_amount)
         self.assertEqual(eth_amount.quantize(d5), Decimal("0.997").quantize(d5))
-        self.assertEqual(fee.quantize(d5), Decimal("0.003").quantize(d5))
+        self.assertEqual(fee.quantize(d5), Decimal("0.02727").quantize(d5))
         self.assertEqual(broker.get_token_balance(weth).quantize(d5), Decimal(10.997).quantize(d5))
         self.assertEqual(broker.get_token_balance(oSQTH).quantize(d5), (OSQTH_ETH * 10 - from_amount).quantize(d5))
 
@@ -292,7 +292,7 @@ class TestSqueethMarket(TestCase):
         market: SqueethMarket = broker.markets[squeeth_key]
         vault_key, osqth_mint_amount = market.open_deposit_mint_by_collat_rate(2, 2)
         pos_key, base_used, quote_used, liquidity = market.squeeth_uni_pool.add_liquidity_by_tick(
-            TICK - 1000, TICK + 1000, 3, 9999
+            TICK - 1000, TICK + 1000, 9999, 3
         )
         market.deposit_uni_position(vault_key, pos_key)
 
@@ -302,14 +302,14 @@ class TestSqueethMarket(TestCase):
         market: SqueethMarket = broker.markets[squeeth_key]
         vault_key, osqth_mint_amount = market.open_deposit_mint_by_collat_rate(2, 2)
         pos_key, base_used, quote_used, liquidity = market.squeeth_uni_pool.add_liquidity_by_tick(
-            TICK - 1000, TICK + 1000,  9999,3
+            TICK - 1000, TICK + 1000, 9999, 3
         )
-        quote_used_in_eth = (
-            quote_used / SqueethMarket.INDEX_SCALE * market.get_norm_factor() * market.get_twap_price(weth)
+        base_used_in_eth = (
+            base_used / SqueethMarket.INDEX_SCALE * market.get_norm_factor() * market.get_twap_price(weth)
         )
         uni_balance: UniLpBalance = market.squeeth_uni_pool.get_market_balance()
         net_value_in_uni = uni_balance.net_value
-        self.assertEqual(net_value_in_uni.quantize(d5), (base_used* ETH_OSQTH + quote_used ).quantize(d5))
+        self.assertEqual(net_value_in_uni.quantize(d5), (base_used * ETH_OSQTH + quote_used).quantize(d5))
 
         market.deposit_uni_position(vault_key, pos_key)
         self.assertEqual(market.squeeth_uni_pool.positions[pos_key].transferred, True)
@@ -321,7 +321,9 @@ class TestSqueethMarket(TestCase):
 
         market_balance: SqueethBalance = market.get_market_balance()
         self.assertEqual(market_balance.osqth_long_amount, OSQTH_ETH * 10 - base_used + OSQTH_OF_1_ETH)
-        self.assertEqual(market_balance.collateral_amount.quantize(d5), (Decimal(5) + quote_used_in_eth).quantize(d5))
+        self.assertEqual(
+            market_balance.collateral_amount.quantize(d5), (Decimal(2 + 3) + base_used_in_eth).quantize(d5)
+        )
 
         pass
 
@@ -329,16 +331,18 @@ class TestSqueethMarket(TestCase):
     def test_safe_with_lp(self):
         broker = self.get_broker()
         market: SqueethMarket = broker.markets[squeeth_key]
-        pos_key, base_used, quote_used, liquidity = market.squeeth_uni_pool.add_liquidity_by_tick(
-            TICK - 1000, TICK + 1000, 3, 9999
+        pos_key, lp_osqth_used, lp_eth_used, liquidity = market.squeeth_uni_pool.add_liquidity_by_tick(
+            TICK - 1000, TICK + 1000, 9999, 3
         )
         vault_key, osqth_mint_amount = market.open_deposit_mint_by_collat_rate(2, 2, uni_position=pos_key)
         market.burn_and_withdraw(vault_key, 0, 2)
         market_balance: SqueethBalance = market.get_market_balance()
-        quote_used_in_eth = (
-            quote_used / SqueethMarket.INDEX_SCALE * market.get_norm_factor() * market.get_twap_price(weth)
+        lp_quote_used_in_eth = (
+            lp_osqth_used / SqueethMarket.INDEX_SCALE * market.get_norm_factor() * market.get_twap_price(weth)
         )
-        self.assertEqual(market_balance.collateral_amount.quantize(d5), (Decimal(3) + quote_used_in_eth).quantize(d5))
+        self.assertEqual(
+            market_balance.collateral_amount.quantize(d5), (Decimal(3) + lp_quote_used_in_eth).quantize(d5)
+        )
 
     # remove lp
     def test_remove_lp(self):
@@ -353,8 +357,8 @@ class TestSqueethMarket(TestCase):
         self.assertEqual(market_balance.collateral_amount, Decimal(2))
 
         uni_balance: UniLpBalance = market.squeeth_uni_pool.get_market_balance()
-        quote_used_in_eth = quote_used * ETH_OSQTH
-        self.assertEqual(uni_balance.net_value.quantize(d5), (quote_used_in_eth + base_used).quantize(d5))
+        base_used_in_eth = base_used * ETH_OSQTH
+        self.assertEqual(uni_balance.net_value.quantize(d5), (base_used_in_eth + quote_used).quantize(d5))
         self.assertEqual(uni_balance.position_count, 1)
         pass
 
@@ -394,10 +398,10 @@ class TestSqueethMarket(TestCase):
             TICK - 1000, TICK + 1000, 1, 9999
         )
 
-        quote_used_in_eth = (
-            quote_used / SqueethMarket.INDEX_SCALE * market.get_norm_factor() * market.get_twap_price(weth)
+        base_used_in_eth = (
+            base_used / SqueethMarket.INDEX_SCALE * market.get_norm_factor() * market.get_twap_price(weth)
         )
-        osqth_to_mint = market.collateral_amount_to_osqth(quote_used_in_eth + base_used + 1, 1.500001)
+        osqth_to_mint = market.collateral_amount_to_osqth(base_used_in_eth + quote_used + 1, 1.500001)
         vault_key, osqth_mint_amount = market.open_deposit_mint(1, osqth_to_mint, uni_position=pos_key)
         osqth_balance_old = broker.get_token_balance(oSQTH)
 
@@ -407,11 +411,11 @@ class TestSqueethMarket(TestCase):
         self.assertIsNone(market.vault[vault_key].uni_nft_id)
         self.assertEqual(broker.get_token_balance(oSQTH).quantize(d5), osqth_balance_old.quantize(d5))
         self.assertEqual(
-            broker.get_token_balance(oSQTH).quantize(d5), (OSQTH_ETH * 10 - quote_used + osqth_to_mint).quantize(d5)
+            broker.get_token_balance(oSQTH).quantize(d5), (OSQTH_ETH * 10 - base_used + osqth_to_mint).quantize(d5)
         )
         # eth balance should not change
         self.assertEqual(
-            broker.get_token_balance(weth).quantize(d5), (Decimal(10) - base_used - Decimal(1)).quantize(d5)
+            broker.get_token_balance(weth).quantize(d5), (Decimal(10) - quote_used - Decimal(1)).quantize(d5)
         )
         self.assertEqual(market.vault[vault_key].osqth_short_amount, osqth_mint_amount - osqth_burn_amount)
         self.assertEqual(market.vault[vault_key].collateral_amount, Decimal(1) + eth_collected - bounty)
@@ -421,14 +425,14 @@ class TestSqueethMarket(TestCase):
     def test_redeem_lp_excess(self):
         broker = self.get_broker()
         market: SqueethMarket = broker.markets[squeeth_key]
-        pos_key, base_used, quote_used, _ = market.squeeth_uni_pool.add_liquidity_by_tick(
-            TICK - 1000, TICK + 1000, 1, 9999
+        pos_key, lp_osqth_used, lp_eth_used, _ = market.squeeth_uni_pool.add_liquidity_by_tick(
+            TICK - 1000, TICK + 1000, 9999, 1
         )
 
-        quote_used_in_eth = (
-            quote_used / SqueethMarket.INDEX_SCALE * market.get_norm_factor() * market.get_twap_price(weth)
+        base_used_in_eth = (
+            lp_osqth_used / SqueethMarket.INDEX_SCALE * market.get_norm_factor() * market.get_twap_price(weth)
         )
-        osqth_to_mint = market.collateral_amount_to_osqth(quote_used_in_eth + base_used, 1.500001)
+        osqth_to_mint = market.collateral_amount_to_osqth(base_used_in_eth + lp_eth_used, 1.500001)
         vault_key, osqth_mint_amount = market.open_deposit_mint(0, osqth_to_mint, uni_position=pos_key)
         self.raise_price(broker)
 
@@ -436,10 +440,10 @@ class TestSqueethMarket(TestCase):
         self.assertIsNone(market.vault[vault_key].uni_nft_id)
         self.assertEqual(
             broker.get_token_balance(oSQTH).quantize(d5),
-            (OSQTH_ETH * 10 - quote_used + osqth_to_mint + osqth_excess).quantize(d5),
+            (OSQTH_ETH * 10 - lp_osqth_used + osqth_to_mint + osqth_excess).quantize(d5),
         )
         # eth balance should not change
-        self.assertEqual(broker.get_token_balance(weth).quantize(d5), (Decimal(10) - base_used).quantize(d5))
+        self.assertEqual(broker.get_token_balance(weth).quantize(d5), (Decimal(10) - lp_eth_used).quantize(d5))
         self.assertEqual(market.vault[vault_key].osqth_short_amount, osqth_mint_amount - osqth_burn_amount)
         self.assertEqual(market.vault[vault_key].collateral_amount, eth_collected - bounty)
 

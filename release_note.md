@@ -5,7 +5,7 @@
   * in even_rebalance function, balance calculation did not count swap fee
   * [breaking change]Base and quote is reversed in older version. To accommodate this change, you need to:
     1. When creating a uniswap market instance, is_token0_base has changed to is_token0_quote, You don't have to change anything unless you init with keywords, e.g. You have to change is_token0_base here: UniLpMarket(is_token0_base=True)
-    2. In add_liquidity function, order of quote_max_amount and base_max_amount is changed.
+    2. In add_liquidity and add_liquidity_by_tick function, order of quote_max_amount and base_max_amount is changed.
 * Update uniswap market:
   * Add swap function. Keep in line with the contract.
   * Decimal precision has raised from 28 to 36
