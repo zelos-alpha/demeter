@@ -24,7 +24,7 @@ if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)
     eth = TokenInfo(name="eth", decimal=18)
 
-    pool = UniV3Pool(token0=usdc, token1=eth, fee=0.05, base_token=usdc)
+    pool = UniV3Pool(token0=usdc, token1=eth, fee=0.05, quote_token=usdc)
 
     market_key = MarketInfo("U2EthPool")
     market = UniLpMarket(market_key, pool)

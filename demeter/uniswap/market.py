@@ -21,14 +21,15 @@ from ._typing import (
     PositionInfo,
     UniDescription,
     UniswapMarketStatus,
+    SwapAction,
 )
 from .core import V3CoreLib
 from .data import fillna
 from .helper import (
-    tick_to_quote_price,
-    quote_price_to_tick,
-    quote_price_to_sqrt,
-    tick_to_sqrtPriceX96,
+    tick_to_base_unit_price,
+    base_unit_price_to_tick,
+    base_unit_price_to_sqrt_price_x96,
+    tick_to_sqrt_price_x96,
 )
 from .liquitidy_math import get_sqrt_ratio_at_tick
 from .._typing import DemeterError, DECIMAL_0, UnitDecimal
@@ -63,7 +64,7 @@ class UniLpMarket(Market):
         super().__init__(market_info=market_info, data=data, data_path=data_path)
         self._pool: UniV3Pool = pool_info
         # init balance
-        self._is_token0_base = pool_info.is_token0_base
+        self._is_token0_quote = pool_info.is_token0_quote
         # reference for super().assets dict.
         self.base_token, self.quote_token = self._convert_pair(self.pool_info.token0, self.pool_info.token1)
         # status
@@ -186,13 +187,13 @@ class UniLpMarket(Market):
         if self.data is None:
             raise DemeterError("data has not set")
         price_series: pd.Series = self.data.price
-        df = pd.DataFrame(index=price_series.index, data={self.quote_token.name: price_series})
-        df[self.base_token.name] = 1
+        df = pd.DataFrame(index=price_series.index, data={self.base_token.name: price_series})
+        df[self.quote_token.name] = 1
         return df
 
     def _convert_pair(self, any0, any1):
         """
-        convert order of token0/token1 to base_token/quote_token, according to self.is_token0_base.
+        convert order of token0/token1 to base_token/quote_token, according to self.is_token0_quote.
 
         Or convert order of base_token/quote_token to token0/token1
 
@@ -200,7 +201,7 @@ class UniLpMarket(Market):
         :param any1: token1 or any property of token1, e.g. balance...
         :return: (base,qoute) or (token0,token1)
         """
-        return (any0, any1) if self._is_token0_base else (any1, any0)
+        return (any1, any0) if self._is_token0_quote else (any0, any1)
 
     def check_market(self):
         """
@@ -220,7 +221,7 @@ class UniLpMarket(Market):
         if not self._pool:
             raise DemeterError("set up pool info first")
         if self.base_token not in self.broker.assets:
-            raise DemeterError(f"base token {self.base_token.name} not exist in asset dict")
+            self.broker.set_balance(self.base_token, DECIMAL_0)
         if self.quote_token not in self.broker.assets:
             self.broker.set_balance(self.quote_token, DECIMAL_0)
 
@@ -243,11 +244,11 @@ class UniLpMarket(Market):
         if position_info not in self.positions:
             return DECIMAL_0, DECIMAL_0
         pool_price = self._market_status.data.price
-        sqrt_price = quote_price_to_sqrt(
+        sqrt_price = base_unit_price_to_sqrt_price_x96(
             pool_price,
             self._pool.token0.decimal,
             self._pool.token1.decimal,
-            self._is_token0_base,
+            self._is_token0_quote,
         )
         position = self.positions[position_info]
         amount0, amount1 = V3CoreLib.get_token_amounts(self._pool, position_info, sqrt_price, position.liquidity)
@@ -265,15 +266,15 @@ class UniLpMarket(Market):
         pool_price = self._market_status.data.price
         if external_prices is None:
             if self._price_status is None:
-                external_prices = {self.base_token.name: Decimal(1), self.quote_token.name: pool_price}
+                external_prices = {self.quote_token.name: Decimal(1), self.base_token.name: pool_price}
             else:
                 external_prices = self._price_status
 
-        sqrt_price = quote_price_to_sqrt(
+        sqrt_price = base_unit_price_to_sqrt_price_x96(
             pool_price,
             self._pool.token0.decimal,
             self._pool.token1.decimal,
-            self._is_token0_base,
+            self._is_token0_quote,
         )
         base_fee_sum = Decimal(0)
         quote_fee_sum = Decimal(0)
@@ -326,11 +327,11 @@ class UniLpMarket(Market):
         :return: price
         :rtype: Decimal
         """
-        return tick_to_quote_price(
+        return tick_to_base_unit_price(
             int(tick),
             self._pool.token0.decimal,
             self._pool.token1.decimal,
-            self._is_token0_base,
+            self._is_token0_quote,
         )
 
     @float_param_formatter
@@ -343,11 +344,11 @@ class UniLpMarket(Market):
         :return: tick
         :rtype: int
         """
-        return quote_price_to_tick(
+        return base_unit_price_to_tick(
             price,
             self._pool.token0.decimal,
             self._pool.token1.decimal,
-            self._is_token0_base,
+            self._is_token0_quote,
         )
 
     @write_func
@@ -446,8 +447,8 @@ class UniLpMarket(Market):
         self,
         lower_quote_price: Decimal | float,
         upper_quote_price: Decimal | float,
-        base_max_amount: Decimal | float = None,
         quote_max_amount: Decimal | float = None,
+        base_max_amount: Decimal | float = None,
     ) -> (PositionInfo, Decimal, Decimal, int):
         """
 
@@ -471,7 +472,7 @@ class UniLpMarket(Market):
 
         token0_amt, token1_amt = self._convert_pair(base_max_amount, quote_max_amount)
         lower_tick, upper_tick = V3CoreLib.quote_price_pair_to_tick(self._pool, lower_quote_price, upper_quote_price)
-        lower_tick, upper_tick = self._convert_pair(upper_tick, lower_tick)
+        # lower_tick, upper_tick = self._convert_pair(upper_tick, lower_tick)
         (
             created_position,
             token0_used,
@@ -528,7 +529,7 @@ class UniLpMarket(Market):
             lower_tick, upper_tick = upper_tick, lower_tick
 
         if sqrt_price_x96 == -1 and tick != -1:
-            sqrt_price_x96 = tick_to_sqrtPriceX96(tick)
+            sqrt_price_x96 = tick_to_sqrt_price_x96(tick)
 
         base_max_amount = self.broker.get_token_balance(self.base_token) if base_max_amount is None else base_max_amount
         quote_max_amount = (
@@ -663,97 +664,134 @@ class UniLpMarket(Market):
         return base_get, quote_get
 
     @float_param_formatter
-    def buy(self, amount: Decimal | float, price: Decimal | float = None) -> (Decimal, Decimal, Decimal):
-        """
-        buy token, swap from base token to quote token.
+    def swap(
+        self,
+        from_amount: Decimal | float,
+        from_token: TokenInfo,
+        to_token: TokenInfo,
+        price: Decimal | float = None,
+        throw_action=True,
+    ):
+        if from_token == to_token:
+            raise DemeterError("from and to token can not same")
+        if from_token == self.base_token:
+            # e.g. swap 1 eth for 3000 usdc
+            price = price if price else self.market_status.data.price
+        else:
+            # e.g. swap 3000 usdc for 1 eth
+            price = price if price else 1 / self.market_status.data.price
+        to_amount_with_fee = from_amount * price
+        fee = to_amount_with_fee * self.pool_info.fee_rate
+        to_amount = to_amount_with_fee - fee
+        self.broker.subtract_from_balance(from_token, from_amount)
+        self.broker.add_to_balance(to_token, to_amount)
+        if throw_action:
+            self._record_action(
+                SwapAction(
+                    market=self.market_info,
+                    amount=UnitDecimal(from_amount, from_token.name),
+                    price=UnitDecimal(price, f"{from_token.name}/{to_token.name}"),
+                    fee=UnitDecimal(fee, to_token.name),
+                    to_amount=UnitDecimal(to_amount, to_token.name),
+                )
+            )
+        return fee, to_amount
 
-        :param amount: amount to buy(in quote token)
-        :type amount:  Decimal | float
-        :param price: price, e.g. 1234 eth/usdc, if leave to None, will use pool price
+    @float_param_formatter
+    def buy(self, base_token_amount: Decimal | float, price: Decimal | float = None) -> (Decimal, Decimal, Decimal):
+        """
+        buy base token, swap from quote token to base token.
+
+        :param base_token_amount: amount to buy(in base token)
+        :type base_token_amount:  Decimal | float
+        :param price: price in base/quote, e.g. 1234 eth/usdc, if leave to None, will use pool price
         :type price: Decimal | float
-        :return: fee, base token amount spend, quote token amount got
+        :return: fee in base token, quote token amount spend, base token amount got
         :rtype: (Decimal, Decimal, Decimal)
         """
+        if base_token_amount == 0:
+            return DECIMAL_0, DECIMAL_0, DECIMAL_0
         price = price if price else self.market_status.data.price
-        from_amount = price * amount
-        from_amount_with_fee = from_amount * (1 + self._pool.fee_rate)
-        fee = from_amount_with_fee - from_amount
-        from_token, to_token = self._convert_pair(self.token0, self.token1)
-        self.broker.subtract_from_balance(from_token, from_amount_with_fee)
-        self.broker.add_to_balance(to_token, amount)
-        base_amount, quote_amount = self._convert_pair(from_amount, amount)
+        quote_amount_with_fee = base_token_amount * price * (1 + self._pool.fee_rate)
+        fee_in_base, base_amount_got = self.swap(
+            quote_amount_with_fee, self.quote_token, self.base_token, 1 / price, False
+        )
         self._record_action(
             BuyAction(
                 market=self.market_info,
                 base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
                 quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
-                amount=UnitDecimal(amount, self.quote_token.name),
+                amount=UnitDecimal(base_token_amount, self.base_token.name),
                 price=UnitDecimal(price, self._pool_price_unit),
-                fee=UnitDecimal(fee, self.base_token.name),
-                base_change=UnitDecimal(base_amount, self.base_token.name),
-                quote_change=UnitDecimal(quote_amount, self.quote_token.name),
+                fee=UnitDecimal(fee_in_base, self.base_token.name),
+                base_change=UnitDecimal(base_amount_got, self.base_token.name),
+                quote_change=UnitDecimal(quote_amount_with_fee, self.quote_token.name),
             )
         )
-        return fee, base_amount, quote_amount
+        return fee_in_base, quote_amount_with_fee, base_amount_got
 
     @float_param_formatter
-    def sell(self, amount: Decimal | float, price: Decimal | float = None) -> (Decimal, Decimal, Decimal):
+    def sell(self, base_token_amount: Decimal | float, price: Decimal | float = None) -> (Decimal, Decimal, Decimal):
         """
-        sell token, swap from quote token to base token.
+        Sell base token, swap from base token to quote token.
 
-        :param amount: amount to sell(in quote token)
-        :type amount:  Decimal | float
+        :param base_token_amount: amount to sell(in base token)
+        :type base_token_amount:  Decimal | float
         :param price: price, e.g. 1234 eth/usdc, if leave to None, will use pool price
         :type price: Decimal | float
-        :return: fee, base token amount got, quote token amount spend
+        :return: fee in quote token, base token amount spend, quote token amount got
         :rtype: (Decimal, Decimal, Decimal)
         """
+        if base_token_amount == 0:
+            return DECIMAL_0, DECIMAL_0, DECIMAL_0
         price = price if price else self.market_status.data.price
-        from_amount_with_fee = amount
-        from_amount = from_amount_with_fee * (1 - self._pool.fee_rate)
-        to_amount = from_amount * price
-        fee = from_amount_with_fee - from_amount
-        fee_in_base = fee * price
-        to_token, from_token = self._convert_pair(self.token0, self.token1)
-        self.broker.subtract_from_balance(from_token, from_amount_with_fee)
-        self.broker.add_to_balance(to_token, to_amount)
-        base_amount, quote_amount = self._convert_pair(to_amount, from_amount)
+
+        fee_in_quote, quote_amount_got = self.swap(base_token_amount, self.base_token, self.quote_token, price, False)
+
         self._record_action(
             SellAction(
                 market=self.market_info,
                 base_balance_after=self.broker.get_token_balance_with_unit(self.base_token),
                 quote_balance_after=self.broker.get_token_balance_with_unit(self.quote_token),
-                amount=UnitDecimal(amount, self.base_token.name),
+                amount=UnitDecimal(base_token_amount, self.base_token.name),
                 price=UnitDecimal(price, self._pool_price_unit),
-                fee=UnitDecimal(fee_in_base, self.base_token.name),
-                base_change=UnitDecimal(base_amount, self.base_token.name),
-                quote_change=UnitDecimal(quote_amount, self.quote_token.name),
+                fee=UnitDecimal(fee_in_quote, self.quote_token.name),
+                base_change=UnitDecimal(base_token_amount, self.base_token.name),
+                quote_change=UnitDecimal(quote_amount_got, self.quote_token.name),
             )
         )
 
-        return fee_in_base, base_amount, quote_amount
+        return fee_in_quote, base_token_amount, quote_amount_got
 
-    def even_rebalance(self, price: Decimal = None) -> (Decimal, Decimal, Decimal):
+    def even_rebalance(self, price: Decimal | None = None):
         """
         Divide assets equally between two tokens.
 
         :param price: price of quote token. e.g. 1234 eth/usdc, if leave to None, will use pool price
         :type price: Decimal
-        :return: fee, base token amount spend, quote token amount got
-        :rtype: (Decimal, Decimal, Decimal)
         """
         if price is None:
             price = self._market_status.data.price
 
         total_capital = (
-            self.broker.get_token_balance(self.base_token) + self.broker.get_token_balance(self.quote_token) * price
+            self.broker.get_token_balance(self.quote_token) + self.broker.get_token_balance(self.base_token) * price
         )
-        target_base_amount = total_capital / 2
-        quote_amount_diff = target_base_amount / price - self.broker.get_token_balance(self.quote_token)
-        if quote_amount_diff > 0:
-            return self.buy(quote_amount_diff)
-        elif quote_amount_diff < 0:
-            return self.sell(0 - quote_amount_diff)
+        target_quote_amount = total_capital / 2
+        quote_amount_diff = target_quote_amount - self.broker.get_token_balance(self.quote_token)
+
+        amount_quote = self.broker.get_token_balance(self.quote_token)
+        amount_base = self.broker.get_token_balance(self.base_token)
+        # if quote_amount_diff > 0:
+        delta_base = (amount_quote / price - amount_base) / (Decimal(2) + self.pool_info.fee_rate)
+        if delta_base >= 0:
+            self.buy(delta_base)
+            return
+
+        delta_quote = (amount_base - amount_quote / price) / (Decimal(2) - self.pool_info.fee_rate)
+        if delta_quote >= 0:
+            self.sell(delta_quote)
+            return
+        pass
 
     def remove_all_liquidity(self):
         """
@@ -784,7 +822,7 @@ class UniLpMarket(Market):
         df["open"] = df["openTick"].map(lambda x: self.tick_to_price(x))
         df["price"] = df["closeTick"].map(lambda x: self.tick_to_price(x))
         high_name, low_name = (
-            ("lowestTick", "highestTick") if self.pool_info.is_token0_base else ("highestTick", "lowestTick")
+            ("lowestTick", "highestTick") if self.pool_info.is_token0_quote else ("highestTick", "lowestTick")
         )
         df["low"] = df[high_name].map(lambda x: self.tick_to_price(x))
         df["high"] = df[low_name].map(lambda x: self.tick_to_price(x))
@@ -876,7 +914,7 @@ class UniLpMarket(Market):
                     "token0": self.pool_info.token0.name,
                     "token1": self.pool_info.token1.name,
                     "fee": self.pool_info.fee_rate * 100,
-                    "is 0 base": self.pool_info.is_token0_base,
+                    "is 0 quote": self.pool_info.is_token0_quote,
                 }
             )
             + "\n"

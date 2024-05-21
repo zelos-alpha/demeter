@@ -48,7 +48,7 @@ if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)  # declare token usdc
     eth = TokenInfo(name="eth", decimal=18)  # declare token eth
     # Declare an Uniswap V3 pool. We will set the parameters according to the real pool on chain.
-    pool = UniV3Pool(token0=usdc, token1=eth, fee=0.05, base_token=usdc)
+    pool = UniV3Pool(token0=usdc, token1=eth, fee=0.05, quote_token=usdc)
 
     # Declare a market key, which will be used to find the corresponding market in broker
     market_key = MarketInfo("U2EthPool")

@@ -75,5 +75,5 @@ class TestActuator(unittest.TestCase):
         # so the liquidity we just provided should be added to total liquidity
         # so the share will be position_liquidity / (pool_total_liquidity+position_liquidity) == 1/(100+1)
         # the total fee will be: minute_swap_amount(1000) * fee(0.0005) *  share(1/(100+1)) * 5 times = usdc_fee(0.024752475247524754)
-        self.assertEqual(status.base_uncollected.quantize(Decimal("1.0000")), Decimal("0.0248"))
-        self.assertEqual(status.quote_uncollected.quantize(Decimal("1.0000000")), Decimal("0.0000248"))
+        self.assertEqual(status.quote_uncollected.quantize(Decimal("1.0000")), Decimal("0.0248"))
+        self.assertEqual(status.base_uncollected.quantize(Decimal("1.0000000")), Decimal("0.0000248"))

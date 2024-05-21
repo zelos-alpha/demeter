@@ -17,7 +17,6 @@ class Strategy(object):
         self.broker: Broker | None = None
         self.data: MarketDict[pd.DataFrame] = MarketDict()
         self.markets: MarketDict[Market] = MarketDict()
-        self.number_format = ".8g"
         self.prices: pd.DataFrame | None = None
         self.triggers: [Trigger] = []
         self.account_status: List[AccountStatus] = []

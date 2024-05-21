@@ -1,5 +1,10 @@
+from decimal import Decimal
 from enum import Enum
 from typing import Dict
+
+import pandas as pd
+
+global_num_format: str = ".8g"
 
 
 class ForColorEnum(Enum):
@@ -122,7 +127,7 @@ def get_formatted(
     return string
 
 
-def get_formatted_predefined(string: str, style: Dict)->str:
+def get_formatted_predefined(string: str, style: Dict) -> str:
     """
     Get formatted string with predefined rule
 
@@ -147,5 +152,18 @@ def get_formatted_from_dict(values: Dict[str, str]) -> str:
     """
     str_array = []
     for k, v in values.items():
-        str_array.append(f"{get_formatted_predefined(k, STYLE['key'])}:{get_formatted_predefined(str(v), STYLE['value'])}")
+        if isinstance(v, (float, Decimal)):
+            v_str = "{num:{f}}".format(num=v, f=global_num_format)
+        else:
+            v_str = v
+        str_array.append(
+            f"{get_formatted_predefined(k, STYLE['key'])}:{get_formatted_predefined(v_str, STYLE['value'])}"
+        )
     return "".join(str_array)
+
+
+def print_dataframe_with_precision(df):
+    format_str = "{:" + global_num_format + "}"
+    df_float = df.apply(pd.to_numeric, downcast="float")
+    with pd.option_context("display.float_format", format_str.format):
+        print(df_float)

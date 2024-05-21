@@ -160,6 +160,7 @@ class ActionTypeEnum(Enum):
     uni_lp_remove_liquidity = "remove_liquidity"
     uni_lp_buy = "buy"
     uni_lp_sell = "sell"
+    uni_lp_swap = "swap"
     uni_lp_collect = "collect"
     aave_supply = "supply"
     aave_withdraw = "withdraw"

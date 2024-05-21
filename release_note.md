@@ -1,3 +1,26 @@
+# Ver 0.5.1
+
+* Fix issue: Precision setting not working in console output
+* Fix issues in uniswap market:
+  * in even_rebalance function, balance calculation did not count swap fee
+  * [breaking change]Base and quote is reversed in older version. To accommodate this change, you need to:
+    1. When creating a uniswap market instance, is_token0_base has changed to is_token0_quote, You don't have to change anything unless you init with keywords, e.g. You have to change is_token0_base here: UniLpMarket(is_token0_base=True)
+    2. In add_liquidity function, order of quote_max_amount and base_max_amount is changed.
+* Update uniswap market:
+  * Add swap function. Keep in line with the contract.
+  * Decimal precision has raised from 28 to 36
+  * [breaking change]Update function name in Uniswap.helper as the old names are confusing.
+    * _x96_to_decimal -> _from_x96
+    * decimal_to_x96 -> _to_x96
+    * _x96_sqrt_to_decimal -> sqrt_price_x96_to_base_unit_price
+    * sqrt_price_to_tick -> sqrt_price_x96_to_tick
+    * pool_price_to_tick -> _sqrt_price_to_tick
+    * tick_to_sqrtPriceX96 -> tick_to_sqrt_price_x96
+    * tick_to_quote_price -> tick_to_base_unit_price
+    * quote_price_to_tick -> base_unit_price_to_tick
+    * quote_price_to_sqrt -> base_unit_price_to_sqrt_price_x96
+    * from_wei -> from_atomic_unit
+
 # Ver 0.5.0
 
 * Add Squeeth market

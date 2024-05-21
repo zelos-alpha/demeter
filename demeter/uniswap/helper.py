@@ -1,65 +1,97 @@
 import math
-from decimal import Decimal
+from decimal import Decimal, getcontext
 from typing import Tuple
 
 from .liquitidy_math import get_sqrt_ratio_at_tick
 
+Q96 = Decimal(2**96)
+SQRT_1p0001 = math.sqrt(Decimal(1.0001))
+getcontext().prec = 35  # default is 28, 33 is good enough for 3000
 
-def _x96_to_decimal(number: int):
+
+def _from_x96(number: int) -> Decimal:
     """
     decimal divide 2 ** 96
 
-    :param number: sqrt x96 price
-    :return: result
+    :param number: sqrted x96 price
+    :return: sqrted price
     """
-    return Decimal(number) / 2**96
+    return Decimal(number) / Q96
 
 
-def decimal_to_x96(number: Decimal):
+def _to_x96(sqrt_price: Decimal) -> int:
     """
     decimal multiple 2 ** 96
 
-    :param number: decimal price
+    :param sqrt_price: price in base unit
     :return: result
     """
-    return int(Decimal(number) * 2**96)
+    if not isinstance(sqrt_price, Decimal):
+        sqrt_price = Decimal(sqrt_price)
+    return int(sqrt_price * Q96)
 
 
-def _x96_sqrt_to_decimal(sqrt_priceX96, token_decimal_diff=12):
+def sqrt_price_x96_to_base_unit_price(
+    sqrt_price_x96, token_0_decimal: int, token_1_decimal: int, is_token0_quote: bool
+) -> Decimal:
     """
     convert sqrt x96 price to decimal
 
-    :param sqrt_priceX96: sqrt x96 price
-    :param token_decimal_diff: decimal different between two tokens
-    :return: decimal price
+    :param sqrt_price_x96: sqrt x96 price
+    :param token_0_decimal: decimal of token 0
+    :param token_1_decimal: decimal of token 1
+    :param is_token0_quote: is token 0 the quote token
+    :return: price in base unit, e.g. 1234.56 eth/usdc
     """
-    price = _x96_to_decimal(sqrt_priceX96)
-    return (price**2) / 10**token_decimal_diff
+    sqrt_price = _from_x96(sqrt_price_x96)
+    pool_price = sqrt_price**2 * Decimal(10 ** (token_0_decimal - token_1_decimal))
+
+    return Decimal(1 / pool_price) if is_token0_quote else pool_price
 
 
-## can round by spacing?
-def sqrt_price_to_tick(sqrt_priceX96: int) -> int:
+def base_unit_price_to_sqrt_price_x96(
+    price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token0_quote: bool
+) -> int:
     """
-    convert sqrt_priceX96 to tick data
+    convert quote price to sqrt
 
-    :param sqrt_priceX96: sqrt x96 price
+    :param price: price in base/quote
+    :param token_0_decimal: token0 decimal
+    :param token_1_decimal: token1 decimal
+    :param is_token0_quote: token 0 is quote token
+    :return: sqrt price x96
+    """
+    # quote price->add decimal pool price->sqrt_price ->ticker
+
+    price = 1 / price if is_token0_quote else price
+    atomic_unit_price = price / Decimal(10 ** (token_0_decimal - token_1_decimal))
+    sqrt_price = Decimal.sqrt(atomic_unit_price)
+    return _to_x96(sqrt_price)
+
+
+# can round by spacing?
+def sqrt_price_x96_to_tick(sqrt_price_x96: int) -> int:
+    """
+    convert sqrt_priceX96 to tick
+
+    :param sqrt_price_x96: sqrt x96 price
     :return: tick price
     """
-    decimal_price = _x96_to_decimal(sqrt_priceX96)
-    return pool_price_to_tick(decimal_price)
+    sqrt_price = _from_x96(sqrt_price_x96)
+    return _sqrt_price_to_tick(sqrt_price)
 
 
-def pool_price_to_tick(price_decimal: Decimal):
+def _sqrt_price_to_tick(sqrt_price: Decimal) -> int:
     """
     pool price to tick price
 
-    :param price_decimal: decimal price to tick price
+    :param sqrt_price: sqrt price
     :return: tick price
     """
-    return int(math.log(price_decimal, math.sqrt(1.0001)))
+    return int(math.log(sqrt_price, SQRT_1p0001))
 
 
-def tick_to_sqrtPriceX96(tick: int):
+def tick_to_sqrt_price_x96(tick: int) -> int:
     """
     convert tick data to sqrt X96 price
 
@@ -69,65 +101,49 @@ def tick_to_sqrtPriceX96(tick: int):
     return get_sqrt_ratio_at_tick(tick)
 
 
-def tick_to_quote_price(tick: int, token_0_decimal, token_1_decimal, is_token0_base: bool):
+def tick_to_base_unit_price(tick: int, token_0_decimal: int, token_1_decimal: int, is_token0_quote: bool):
     """
     get quote price from tick price
 
     :param tick: tick data
     :param token_0_decimal: token0 decimal
     :param token_1_decimal: token1 decimal
-    :param is_token0_base: base on token0
+    :param is_token0_quote: quote on token0
     :return: quote price
     """
-    sqrt_price = get_sqrt_ratio_at_tick(tick)
-    decimal_price = _x96_to_decimal(sqrt_price) ** 2
-    pool_price = decimal_price * Decimal(10 ** (token_0_decimal - token_1_decimal))
-    return Decimal(1 / pool_price) if is_token0_base else pool_price
+    sqrt_price_x96 = get_sqrt_ratio_at_tick(tick)
+    atomic_unit_price = _from_x96(sqrt_price_x96) ** 2
+    pool_price = atomic_unit_price * Decimal(10 ** (token_0_decimal - token_1_decimal))
+    return Decimal(1 / pool_price) if is_token0_quote else pool_price
 
 
-def quote_price_to_tick(based_price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token0_base) -> int:
+def base_unit_price_to_tick(price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token0_quote: bool) -> int:
     """
     quote price to tick price
 
-    :param based_price: base price
+    :param price: price in base unit, e.g. 1234.56 eth/usdc
     :param token_0_decimal: token0 decimal
     :param token_1_decimal: token1 decimal
-    :param is_token0_base: base on token
+    :param is_token0_quote: token 0 is quote token
     :return: tick price
     """
-    # quote price->add decimal pool price->sqrt_price ->ticker
-    sqrt_price = quote_price_to_sqrt(based_price, token_0_decimal, token_1_decimal, is_token0_base)
-    tick = sqrt_price_to_tick(sqrt_price)
-    return tick
+
+    # quote price->add decimal pool price->sqrt_price ->tick
+    price = 1 / price if is_token0_quote else price
+    atomic_unit_price = price / Decimal(10 ** (token_0_decimal - token_1_decimal))
+    sqrt_price = Decimal.sqrt(atomic_unit_price)
+    return _sqrt_price_to_tick(sqrt_price)
 
 
-def quote_price_to_sqrt(based_price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token0_base) -> int:
-    """
-    convert quote price to sqrt
-
-    :param based_price: price of base token
-    :param token_0_decimal: token 0 decimal
-    :param token_1_decimal: token 1 decimal
-    :param is_token0_base: if is base token
-    :return: sqrt price
-    """
-    # quote price->add decimal pool price->sqrt_price ->ticker
-
-    price = 1 / based_price if is_token0_base else based_price
-    pool_price = price / Decimal(10 ** (token_0_decimal - token_1_decimal))
-    decimal_price = Decimal.sqrt(pool_price)
-    return decimal_to_x96(decimal_price)
-
-
-def from_wei(token_amt: int, decimal: int) -> Decimal:
+def from_atomic_unit(atomic_unit_amount: int, decimal: int) -> Decimal:
     """
     Convert token amount to wei
 
-    :param token_amt: token amount
+    :param atomic_unit_amount: token amount
     :param decimal: decimal of token
-    :return: token amount in wei
+    :return: token amount in base unit
     """
-    return Decimal(int(token_amt)) / Decimal(10**decimal)
+    return Decimal(int(atomic_unit_amount)) / Decimal(10**decimal)
 
 
 def get_delta_gamma(
@@ -137,7 +153,7 @@ def get_delta_gamma(
     liquidity: int,
     decimal0: int,
     decimal1: int,
-    is_0_base: bool,
+    is_token0_quote: bool,
 ) -> Tuple[Decimal, Decimal]:
     """
     get delta gamma
@@ -148,30 +164,30 @@ def get_delta_gamma(
     :param liquidity: liquidity
     :param decimal0: decimal 0
     :param decimal1: decimal 1
-    :param is_0_base: check if token 0 is base
+    :param is_token0_quote: check if token 0 is quote
     :return: delta and gamma
     """
-    lower_price_sqrtX96 = quote_price_to_sqrt(Decimal(lower_price), decimal0, decimal1, is_0_base)
-    upper_price_sqrtX96 = quote_price_to_sqrt(Decimal(upper_price), decimal0, decimal1, is_0_base)
-    if lower_price_sqrtX96 > upper_price_sqrtX96:
-        (lower_price_sqrtX96, upper_price_sqrtX96) = (
-            upper_price_sqrtX96,
-            lower_price_sqrtX96,
+    lower_price_sqrt_x96 = base_unit_price_to_sqrt_price_x96(Decimal(lower_price), decimal0, decimal1, is_token0_quote)
+    upper_price_sqrt_x96 = base_unit_price_to_sqrt_price_x96(Decimal(upper_price), decimal0, decimal1, is_token0_quote)
+    if lower_price_sqrt_x96 > upper_price_sqrt_x96:
+        (lower_price_sqrt_x96, upper_price_sqrt_x96) = (
+            upper_price_sqrt_x96,
+            lower_price_sqrt_x96,
         )
-    return get_delta_gamma_sqrtX96(
+    return get_delta_gamma_sqrt_x96(
         lower_price,
-        lower_price_sqrtX96,
+        lower_price_sqrt_x96,
         upper_price,
-        upper_price_sqrtX96,
+        upper_price_sqrt_x96,
         price,
         liquidity,
         decimal0,
         decimal1,
-        is_0_base,
+        is_token0_quote,
     )
 
 
-def get_delta_gamma_sqrtX96(
+def get_delta_gamma_sqrt_x96(
     lower_price,
     sqrtA: int,
     upper_price,
@@ -180,7 +196,7 @@ def get_delta_gamma_sqrtX96(
     liquidity: int,
     d0: int,
     d1: int,
-    is_0_base: bool,
+    is_token0_quote: bool,
 ) -> Tuple[Decimal, Decimal]:
     """
     Get delta gamma in sqrtX96 price
@@ -194,7 +210,7 @@ def get_delta_gamma_sqrtX96(
     The following comment indicates how to calculate net value.
 
     * a: amount
-    * p: decimal price in base token
+    * p: decimal price of base token
 
 
     k = 2 ** 96
@@ -202,7 +218,7 @@ def get_delta_gamma_sqrtX96(
     a1= Liquidity / k / 10**d * (SqrtPrice - lower_price_sqrtX96)
 
 
-    if 0 base:
+    if 0 quote:
     SqrtPrice=k / (10 ** (d/2)) / (p**0.5)
     net_value = a1 * p                    price <= lower, a1 is constant
                 a0 + a1 * p               lower < price < upper
@@ -214,7 +230,7 @@ def get_delta_gamma_sqrtX96(
               lower_sqrt / k * price_float * liquidity / 10 ** d1
 
 
-    if 1 base
+    if 1 quote
     SqrtPrice = k * p**0.5 / (10 ** (d/2))
 
     net_value = a0 * p                         price <= lower, a0 is constant
@@ -233,7 +249,7 @@ def get_delta_gamma_sqrtX96(
     """
     k = 2**96
     d = d0 - d1
-    if is_0_base:
+    if is_token0_quote:
         if price <= lower_price:
             delta = liquidity / 2**96 / 10**d1 * (sqrtB - sqrtA)
             gamma = 0

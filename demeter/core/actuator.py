@@ -19,6 +19,7 @@ from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketSt
 from ..strategy import Strategy
 from ..uniswap import UniLpMarket, PositionInfo
 from ..utils import get_formatted_predefined, STYLE, to_decimal
+from ..utils import console_text
 
 
 class Actuator(object):
@@ -52,7 +53,6 @@ class Actuator(object):
         # logging
         logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
         self.logger = logging.getLogger(__name__)
-        self._number_format = ".8g"
         # internal var
         self.__backtest_finished = False
 
@@ -184,7 +184,7 @@ class Actuator(object):
         :return: number format
         :rtype: str
         """
-        return self._number_format
+        return console_text.global_num_format
 
     @number_format.setter
     def number_format(self, value: str):
@@ -195,7 +195,7 @@ class Actuator(object):
         :param value: number format,
         :type value:str
         """
-        self._number_format = value
+        console_text.global_num_format = value
 
     # endregion
 
@@ -463,7 +463,7 @@ class Actuator(object):
         print(get_formatted_predefined("Final account status", STYLE["header1"]))
         print(self.broker.formatted_str())
         print(get_formatted_predefined("Account balance history", STYLE["header1"]))
-        print(self._account_status_df)
+        console_text.print_dataframe_with_precision(self._account_status_df)
         if len(self._enabled_evaluator) > 0:
             print("Evaluating indicator")
             print(self._evaluator)

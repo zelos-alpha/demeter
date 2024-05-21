@@ -82,10 +82,7 @@ class TestSqueethMarket(TestCase):
     ############################################################################################
     def get_broker(self):
         broker = Broker()
-        uni_market = UniLpMarket(
-            osqth_pool,
-            UniV3Pool(weth, oSQTH, 0.3, weth),
-        )
+        uni_market = UniLpMarket(osqth_pool, UniV3Pool(weth, oSQTH, 0.3, weth))
         squeeth_market = SqueethMarket(squeeth_key, uni_market)
         broker.add_market(uni_market)
         broker.add_market(squeeth_market)
@@ -305,14 +302,14 @@ class TestSqueethMarket(TestCase):
         market: SqueethMarket = broker.markets[squeeth_key]
         vault_key, osqth_mint_amount = market.open_deposit_mint_by_collat_rate(2, 2)
         pos_key, base_used, quote_used, liquidity = market.squeeth_uni_pool.add_liquidity_by_tick(
-            TICK - 1000, TICK + 1000, 3, 9999
+            TICK - 1000, TICK + 1000,  9999,3
         )
         quote_used_in_eth = (
             quote_used / SqueethMarket.INDEX_SCALE * market.get_norm_factor() * market.get_twap_price(weth)
         )
         uni_balance: UniLpBalance = market.squeeth_uni_pool.get_market_balance()
         net_value_in_uni = uni_balance.net_value
-        self.assertEqual(net_value_in_uni.quantize(d5), (base_used + quote_used * ETH_OSQTH).quantize(d5))
+        self.assertEqual(net_value_in_uni.quantize(d5), (base_used* ETH_OSQTH + quote_used ).quantize(d5))
 
         market.deposit_uni_position(vault_key, pos_key)
         self.assertEqual(market.squeeth_uni_pool.positions[pos_key].transferred, True)
@@ -323,7 +320,7 @@ class TestSqueethMarket(TestCase):
         self.assertEqual(uni_balance.position_count, 0)
 
         market_balance: SqueethBalance = market.get_market_balance()
-        self.assertEqual(market_balance.osqth_long_amount, OSQTH_ETH * 10 - quote_used + OSQTH_OF_1_ETH)
+        self.assertEqual(market_balance.osqth_long_amount, OSQTH_ETH * 10 - base_used + OSQTH_OF_1_ETH)
         self.assertEqual(market_balance.collateral_amount.quantize(d5), (Decimal(5) + quote_used_in_eth).quantize(d5))
 
         pass

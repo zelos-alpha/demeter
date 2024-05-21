@@ -49,7 +49,7 @@ class OptionStrategyTest(unittest.TestCase):
         market_deribit = DeribitOptionMarket(market_d, DeribitOptionMarket.ETH, data_path="data")
         market_deribit.load_data(date(2024, 2, 15), date(2024, 2, 16))
 
-        pool = UniV3Pool(token0=usdc, token1=eth, fee=0.05, base_token=usdc)
+        pool = UniV3Pool(token0=usdc, token1=eth, fee=0.05, quote_token=usdc)
         market_uni = UniLpMarket(market_u, pool)
         market_uni.data_path = "data"  # set data path
         market_uni.load_data(

@@ -43,7 +43,7 @@ if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)  # declare  token0
     eth = TokenInfo(name="eth", decimal=18)  # declare token1
     pool = UniV3Pool(usdc, eth, 0.05, usdc)  # declare pool
-    market_key = MarketInfo("uni_market")
+    market_key = MarketInfo("lp")
 
     actuator = Actuator()  # declare actuator
     broker = actuator.broker

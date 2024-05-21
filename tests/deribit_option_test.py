@@ -159,7 +159,7 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
         self.assertEqual(balance, Decimal("0.4475"))
         op = market.positions["ETH-22SEP23-1650-C"]
         self.assertEqual(op.amount, Decimal(700))
-        self.assertEqual(op.avg_buy_price, Decimal("0.02906071428571428571428571429"))
+        self.assertEqual(op.avg_buy_price, Decimal("0.029060714285714285714285714285714286"))
         self.assertEqual(op.buy_amount, Decimal(700))
         self.assertEqual(op.expiry_time, datetime(2023, 9, 22, 8))
         self.assertEqual(op.avg_sell_price, Decimal(0))
@@ -178,7 +178,7 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
         balance = broker.get_token_balance(DeribitOptionMarket.ETH)
         self.assertEqual(balance, Decimal("3.276"))
         self.assertEqual(op.amount, Decimal(605))
-        self.assertEqual(op.avg_buy_price, Decimal("0.02899586776859504132231404959"))
+        self.assertEqual(op.avg_buy_price, Decimal("0.028995867768595041322314049586776860"))
         self.assertEqual(op.buy_amount, Decimal(605))
         self.assertEqual(op.expiry_time, datetime(2023, 9, 22, 8))
         self.assertEqual(op.avg_sell_price, Decimal(0))
@@ -345,7 +345,7 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
         self.assertEqual(op.amount, Decimal(10))
         self.assertEqual(op.avg_buy_price, Decimal("0.05"))
         self.assertEqual(op.buy_amount, Decimal(100))
-        self.assertEqual(op.avg_sell_price, Decimal("0.04488888888888888888888888889"))
+        self.assertEqual(op.avg_sell_price, Decimal("0.044888888888888888888888888888888889"))
         self.assertEqual(op.sell_amount, Decimal(90))
         pass
 

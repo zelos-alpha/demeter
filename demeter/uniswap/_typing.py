@@ -8,6 +8,7 @@ import pandas as pd
 from .._typing import TokenInfo, UnitDecimal
 from ..broker import BaseAction, ActionTypeEnum, MarketBalance, MarketStatus
 from ..utils import get_formatted_from_dict
+from ..utils import console_text
 
 
 class PositionInfo(NamedTuple):
@@ -55,26 +56,26 @@ class UniV3Pool(object):
     :type token1: TokenInfo
     :param fee: fee rate of this pool, should be among [0.05, 0.3, 1]
     :type fee: float, 0.05
-    :param base_token: which token will be considered as base token. e.g. to a token pair of USDT/BTC, if you want price unit to be like 10000 usdt/btc, you should set usdt as base token, otherwise if price unit is 0.00001 btc/usdt, you should set btc as base token
-    :type base_token: TokenInfo
+    :param quote_token: which token will be considered as base token. e.g. to a token pair of USDT/BTC, if you want price unit to be like 10000 usdt/btc, you should set usdt as base token, otherwise if price unit is 0.00001 btc/usdt, you should set btc as base token
+    :type quote_token: TokenInfo
     """
 
-    def __init__(self, token0: TokenInfo, token1: TokenInfo, fee: float, base_token: TokenInfo):
+    def __init__(self, token0: TokenInfo, token1: TokenInfo, fee: float, quote_token: TokenInfo):
         fee = Decimal(str(fee))
         self.token0 = token0
         self.token1 = token1
-        self.is_token0_base = base_token == token0
-        self.base_token = base_token
+        self.is_token0_quote = quote_token == token0
+        self.quote_token = quote_token
         self.tickSpacing = int(fee * 200)
         self.fee: Decimal = fee * Decimal(10000)
         self.fee_rate: Decimal = Decimal(fee) / Decimal(100)
 
     def __str__(self):
         return (
-                "PoolBaseInfo(Token0: {},".format(self.token0)
-                + "Token1: {},".format(self.token1)
-                + "fee: {},".format(self.fee_rate * Decimal(100))
-                + "base token: {})".format(self.token0.name if self.is_token0_base else self.token1.name)
+            "PoolBaseInfo(Token0: {},".format(self.token0)
+            + "Token1: {},".format(self.token1)
+            + "fee: {},".format(self.fee_rate * Decimal(100))
+            + "base token: {})".format(self.token0.name if self.is_token0_quote else self.token1.name)
         )
 
     def __repr__(self):
@@ -223,8 +224,8 @@ def position_dict_to_dataframe(positions: Dict[PositionInfo, Position]) -> pd.Da
     for k, v in positions.items():
         pos_dict["lower_tick"].append(k.lower_tick)
         pos_dict["upper_tick"].append(k.upper_tick)
-        pos_dict["pending0"].append(v.pending_amount0)
-        pos_dict["pending1"].append(v.pending_amount1)
+        pos_dict["pending0"].append("{num:{f}}".format(num=v.pending_amount0, f=console_text.global_num_format))
+        pos_dict["pending1"].append("{num:{f}}".format(num=v.pending_amount1, f=console_text.global_num_format))
         pos_dict["liquidity"].append(v.liquidity)
     return pd.DataFrame(pos_dict)
 
@@ -430,6 +431,48 @@ class RemoveLiquidityAction(UniLpBaseAction):
                 "token_got": f"{self.base_amount.to_str()},{self.quote_amount.to_str()}",
                 "removed liquidity": self.removed_liquidity,
                 "remain liquidity": self.remain_liquidity,
+            }
+        )
+
+
+@dataclass
+class SwapAction(BaseAction):
+    """
+    buy token, swap from base token to quote token.
+
+    :param amount: amount to buy(in quote token)
+    :type amount: UnitDecimal
+    :param price: price,
+    :type price: UnitDecimal
+    :param fee: fee paid (in base token)
+    :type fee: UnitDecimal
+    :param base_change: base token amount changed
+    :type base_change: PositionInfo
+    :param quote_change: quote token amount changed
+    :type quote_change: UnitDecimal
+
+    """
+
+    amount: UnitDecimal
+    price: UnitDecimal
+    fee: UnitDecimal
+    to_amount: UnitDecimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.uni_lp_swap
+
+    def get_output_str(self) -> str:
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+        return f"""\033[1;36m{"Swap":<20}\033[0m""" + get_formatted_from_dict(
+            {
+                "price": self.price.to_str(),
+                "fee": self.fee.to_str(),
+                "amount": f"{self.amount.to_str()}->{self.to_amount.to_str()}",
             }
         )
 

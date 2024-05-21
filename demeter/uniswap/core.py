@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from ._typing import UniV3Pool, Position, UniV3PoolStatus, PositionInfo
-from .helper import quote_price_to_tick, from_wei
+from .helper import base_unit_price_to_tick, from_atomic_unit
 from .liquitidy_math import get_amounts, get_liquidity
 
 
@@ -97,18 +97,19 @@ class V3CoreLib(object):
         :param upper_quote_price: upper quote price
         :return: lower_tick, upper_tick
         """
-        lower_tick = quote_price_to_tick(
+        lower_tick = base_unit_price_to_tick(
             lower_quote_price,
             pool.token0.decimal,
             pool.token1.decimal,
-            pool.is_token0_base,
+            pool.is_token0_quote,
         )
-        upper_tick = quote_price_to_tick(
+        upper_tick = base_unit_price_to_tick(
             upper_quote_price,
             pool.token0.decimal,
             pool.token1.decimal,
-            pool.is_token0_base,
+            pool.is_token0_quote,
         )
+        lower_tick, upper_tick = (lower_tick, upper_tick) if not pool.is_token0_quote else (upper_tick,lower_tick)
         return lower_tick, upper_tick
 
     @staticmethod
@@ -127,8 +128,8 @@ class V3CoreLib(object):
         # in most cases, tick will not cross to on_bar one, which means L will not change.
         def calc_amounts():
             share = Decimal(position.liquidity) / Decimal(state.currentLiquidity)
-            position.pending_amount0 += from_wei(state.inAmount0, pool.token0.decimal) * share * pool.fee_rate
-            position.pending_amount1 += from_wei(state.inAmount1, pool.token1.decimal) * share * pool.fee_rate
+            position.pending_amount0 += from_atomic_unit(state.inAmount0, pool.token0.decimal) * share * pool.fee_rate
+            position.pending_amount1 += from_atomic_unit(state.inAmount1, pool.token1.decimal) * share * pool.fee_rate
 
         condition_in_position = pos.upper_tick >= state.closeTick >= pos.lower_tick
         if last_tick:

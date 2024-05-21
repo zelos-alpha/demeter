@@ -35,8 +35,8 @@ class UniLpDataTest(unittest.TestCase):
         self.assertTrue("liqThereshold" in market.risk_parameters.columns)
 
     def test_apy_to_rate(self):
-        self.assertEqual(Decimal("0.055891616586562119114037984"), AaveV3CoreLib.rate_to_apy(Decimal("0.054385544255370350575778874")))
-        self.assertEqual(Decimal("1.718281785360970821236766882"), AaveV3CoreLib.rate_to_apy(Decimal("1")))
+        self.assertEqual(Decimal("0.0558916165865621190990895936500967"), AaveV3CoreLib.rate_to_apy(Decimal("0.054385544255370350575778874")))
+        self.assertEqual(Decimal("1.7182817853609708212635582654585362"), AaveV3CoreLib.rate_to_apy(Decimal("1")))
         self.assertEqual(Decimal("0"), AaveV3CoreLib.rate_to_apy(Decimal("0")))
 
     def test_status_calc_with_moke_data(self):
@@ -79,11 +79,11 @@ class UniLpDataTest(unittest.TestCase):
         stat = market.get_market_balance()
 
         self.assertEqual(market.get_supply(s_weth).value, Decimal("1100"))
-        self.assertEqual(market.get_supply(s_weth).apy, Decimal("0.221402757385561289653912008"))
+        self.assertEqual(market.get_supply(s_weth).apy, Decimal("0.2214027573855612896486160045299073"))
         self.assertEqual(market.get_supply(s_weth).amount, Decimal("1.1"))
 
         self.assertEqual(market.get_supply(s_usdt).value, Decimal("100"))
-        self.assertEqual(market.get_supply(s_usdt).apy, Decimal("0.105170917900423925587564142"))
+        self.assertEqual(market.get_supply(s_usdt).apy, Decimal("0.1051709179004239256025944671567982"))
         self.assertEqual(market.get_supply(s_usdt).amount, Decimal("100"))
 
         self.assertEqual(stat.supplies_value, Decimal("1200"))
@@ -91,7 +91,7 @@ class UniLpDataTest(unittest.TestCase):
         self.assertEqual(stat.collaterals_value, Decimal("1100"))
 
         self.assertEqual(market.get_borrow(b_usdt).value, Decimal("600"))
-        self.assertEqual(market.get_borrow(b_usdt).apy, Decimal("0.105170917900423925587564142"))
+        self.assertEqual(market.get_borrow(b_usdt).apy, Decimal("0.1051709179004239256025944671567982"))
         self.assertEqual(market.get_borrow(b_usdt).amount, Decimal("600"))
 
         self.assertEqual(stat.borrows_value, Decimal("600"))
@@ -512,10 +512,10 @@ class UniLpDataTest(unittest.TestCase):
         self.assertEqual(market.health_factor, Decimal("0.966"))
         market.update()  # trigger again
 
-        self.assertEqual(market.health_factor, Decimal("1.06575"))
+        self.assertEqual(market.health_factor.quantize(Decimal("0.000000001")), Decimal("1.06575"))
         # 920 * (4.2 - 1650/920*1.05)
         # collateral_price * collateral_amount  - half_debt_amount * delt_price * (1 + liq_bones))
-        self.assertEqual(market.supplies[supply_key].value, Decimal("2131.5"))
+        self.assertEqual(market.supplies[supply_key].value.quantize(Decimal("0.000000001")), Decimal("2131.5"))
         self.assertEqual(market.borrows[borrow_key].value, Decimal("1650"))  # 3300 - 3300/2, delt - liquidated
 
         pass

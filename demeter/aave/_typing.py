@@ -8,6 +8,7 @@ import pandas as pd
 
 from .. import TokenInfo, UnitDecimal
 from ..broker import MarketBalance, MarketStatus, BaseAction, ActionTypeEnum
+from ..utils import console_text
 
 T = TypeVar("T")
 K = TypeVar("K")
@@ -155,11 +156,11 @@ def supply_to_dataframe(supplies: Dict[SupplyKey, Supply]) -> pd.DataFrame:
     }
     for k, v in supplies.items():
         pos_dict["token"].append(v.token.name)
-        pos_dict["base_amount"].append(v.base_amount)
-        pos_dict["collateral"].append(v.collateral)
-        pos_dict["amount"].append(v.amount)
-        pos_dict["apy"].append(v.apy)
-        pos_dict["value"].append(v.value)
+        pos_dict["base_amount"].append("{num:{f}}".format(num=v.base_amount, f=console_text.global_num_format))
+        pos_dict["collateral"].append("{num:{f}}".format(num=v.collateral, f=console_text.global_num_format))
+        pos_dict["amount"].append("{num:{f}}".format(num=v.amount, f=console_text.global_num_format))
+        pos_dict["apy"].append("{num:{f}}".format(num=v.apy, f=console_text.global_num_format))
+        pos_dict["value"].append(("{num:{f}}".format(num=v.value, f=console_text.global_num_format)))
     return pd.DataFrame(pos_dict)
 
 
@@ -217,18 +218,18 @@ def borrow_to_dataframe(supplies: Dict[BorrowKey, Borrow]) -> pd.DataFrame:
     pos_dict = {
         "token": [],
         "base_amount": [],
-        "interest_rate_mode": [],
+        "mode": [],
         "amount": [],
         "apy": [],
         "value": [],
     }
     for k, v in supplies.items():
         pos_dict["token"].append(v.token.name)
-        pos_dict["base_amount"].append(v.base_amount)
-        pos_dict["interest_rate_mode"].append(v.interest_rate_mode.name)
-        pos_dict["amount"].append(v.amount)
-        pos_dict["apy"].append(v.apy)
-        pos_dict["value"].append(v.value)
+        pos_dict["base_amount"].append("{num:{f}}".format(num=v.base_amount, f=console_text.global_num_format))
+        pos_dict["mode"].append(v.interest_rate_mode.name)
+        pos_dict["amount"].append("{num:{f}}".format(num=v.amount, f=console_text.global_num_format))
+        pos_dict["apy"].append("{num:{f}}".format(num=v.apy, f=console_text.global_num_format))
+        pos_dict["value"].append("{num:{f}}".format(num=v.value, f=console_text.global_num_format))
     return pd.DataFrame(pos_dict)
 
 

@@ -44,7 +44,7 @@ class TestUniLpMarket(unittest.TestCase):
 
         broker.set_balance(self.eth, 1)
         broker.set_balance(self.usdc, price)
-        market.sqrt_price = demeter.uniswap.helper.tick_to_sqrtPriceX96(tick)
+        market.sqrt_price = demeter.uniswap.helper.tick_to_sqrt_price_x96(tick)
         return broker
 
     def check_type(self, broker):
@@ -70,8 +70,8 @@ class TestUniLpMarket(unittest.TestCase):
         self.assertEqual(1, broker.assets[self.eth].balance)
         self.assertEqual(uni_market.token0, self.usdc)
         self.assertEqual(uni_market.token1, self.eth)
-        self.assertEqual(uni_market.quote_token, self.eth)
-        self.assertEqual(uni_market.base_token, self.usdc)
+        self.assertEqual(uni_market.quote_token, self.usdc)
+        self.assertEqual(uni_market.base_token, self.eth)
         self.check_type(broker)
 
     def test_add_Liquidity(self):
@@ -251,11 +251,11 @@ class TestUniLpMarket(unittest.TestCase):
         print("=========after a bar======================================================================")
         market.update()
         TestUniLpMarket.print_broker(broker)
-        self.assertTrue(
-            Decimal("0.00004950495049504950495049504950") == market.get_position(new_position).pending_amount0
+        self.assertEqual(
+            Decimal("0.000049504950495049504950495049504950495"), market.get_position(new_position).pending_amount0
         )
-        self.assertTrue(
-            Decimal("0.00004950495049504950495049504950") == market.get_position(new_position).pending_amount1
+        self.assertEqual(
+            Decimal("0.000049504950495049504950495049504950495"), market.get_position(new_position).pending_amount1
         )
         fee0 = market.get_position(new_position).pending_amount0
         fee1 = market.get_position(new_position).pending_amount1
@@ -276,14 +276,14 @@ class TestUniLpMarket(unittest.TestCase):
         token0_before = broker.assets[self.usdc].balance
         token1_before = broker.assets[self.eth].balance
         TestUniLpMarket.print_broker(broker)
-        market.buy(0.5)
+        market.buy(Decimal("0.5"))
         print("=========after buy======================================================================")
         TestUniLpMarket.print_broker(broker)
         self.assertEqual(
             broker.assets[self.usdc].balance,
-            token0_before - market.market_status.data.price * Decimal(0.5) * (1 + market.pool_info.fee_rate),
+            token0_before - market.market_status.data.price * Decimal("0.5") * (1 + market.pool_info.fee_rate),
         )
-        self.assertEqual(broker.assets[self.eth].balance, token1_before + Decimal(0.5))
+        self.assertEqual(broker.assets[self.eth].balance.quantize(Decimal(".000001")), token1_before + Decimal("0.5"))
 
     def test_sell(self):
         broker = self.get_broker()
@@ -396,3 +396,26 @@ class TestUniLpMarket(unittest.TestCase):
         self.assertEqual(prices.iloc[100]["USDC"], 1)
         print("test_get_price")
         print(prices)
+
+    def test_even_rebalance_buy(self):
+        broker = self.get_broker()
+        broker.set_balance(self.usdc, 3000)
+        market: UniLpMarket = broker.markets.market1
+        market.even_rebalance()
+        self.assertEqual(
+            broker.get_token_balance(self.usdc).quantize(Decimal("0.001")),
+            (broker.get_token_balance(self.eth) * market.market_status.data.price).quantize(Decimal("0.001")),
+        )
+        pass
+
+    def test_even_rebalance_sell(self):
+        broker = self.get_broker()
+        broker.set_balance(self.eth, 10)
+        market: UniLpMarket = broker.markets.market1
+        market.even_rebalance()
+        self.assertEqual(
+            broker.get_token_balance(self.usdc), broker.get_token_balance(self.eth) * market.market_status.data.price
+        )
+        pass
+
+

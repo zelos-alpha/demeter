@@ -29,26 +29,14 @@ class SimpleShortStrategy(Strategy):
         print(action)
 
 
-class SimpleStrategy(Strategy):
-    def initialize(self):
-        new_trigger = AtTimeTrigger(time=datetime(2024, 2, 15, 12, 0, 0), do=self.buy)
-        self.triggers.append(new_trigger)
-
-    def buy(self, row_data: RowData):
-        market = self.broker.markets.default
-        market.buy("ETH-26APR24-2700-C", 20)
-
-    def notify(self, action):
-        print(action)
-
 
 if __name__ == "__main__":
     actuator = Actuator()
 
     uni_market = UniLpMarket(osqth_pool, UniV3Pool(weth, oSQTH, 0.3, weth), data_path="../../tests/data")
-    uni_market.load_data("ethereum", "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c", date(2023, 8, 14), date(2023, 8, 17))
+    uni_market.load_data("ethereum", "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c", date(2023, 8, 17), date(2023, 8, 17))
     squeeth_market = SqueethMarket(squeeth_key, uni_market, data_path="../../tests/data")
-    squeeth_market.load_data(date(2023, 8, 14), date(2023, 8, 17))
+    squeeth_market.load_data(date(2023, 8, 17), date(2023, 8, 17))
     actuator.broker.add_market(uni_market)
     actuator.broker.add_market(squeeth_market)
     actuator.broker.set_balance(weth, 10)

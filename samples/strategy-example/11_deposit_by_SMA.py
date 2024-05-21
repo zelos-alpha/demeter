@@ -48,7 +48,7 @@ if __name__ == "__main__":
     pool = UniV3Pool(
         usdc, eth, 0.05, usdc
     )  # PoolBaseInfo(Token0: TokenInfo(name='usdc', decimal=6),Token1: TokenInfo(name='eth', decimal=18),fee: 0.0500,base token: usdc)
-    market_key = MarketInfo("uni_market")  # uni_market
+    market_key = MarketInfo("lp")  # uni_market
 
     actuator = (
         Actuator()

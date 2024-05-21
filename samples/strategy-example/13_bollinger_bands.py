@@ -18,7 +18,8 @@ from demeter import (
 from demeter.uniswap import UniV3Pool, UniLpMarket
 
 pd.options.display.max_columns = None
-pd.set_option("display.width", 5000)
+pd.options.display.width = 5000
+
 c = 2
 
 
@@ -40,7 +41,11 @@ class AddByVolatility(Strategy):
 
     def initialize(self):
         self.add_column(market_key, "sma_1_day", simple_moving_average(self.data[market_key].price, timedelta(days=1)))
-        self.add_column(market_key, "volatility", realized_volatility(self.data[market_key].price, timedelta(days=1), timedelta(days=1)))
+        self.add_column(
+            market_key,
+            "volatility",
+            realized_volatility(self.data[market_key].price, timedelta(days=1), timedelta(days=1)),
+        )
         self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=4), trigger_immediately=True, do=self.work))
         self.markets.default.even_rebalance(self.data[market_key].iloc[0]["price"])
 
@@ -60,7 +65,7 @@ if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)  # declare  token0
     eth = TokenInfo(name="eth", decimal=18)  # declare token1
     pool = UniV3Pool(usdc, eth, 0.05, usdc)  # declare pool
-    market_key = MarketInfo("uni_market")
+    market_key = MarketInfo("lp")
 
     actuator = Actuator()  # declare actuator
     broker = actuator.broker
@@ -71,8 +76,10 @@ if __name__ == "__main__":
     broker.set_balance(eth, 0)
 
     actuator.strategy = AddByVolatility()
-
+    actuator.number_format = ".7g"
     market.data_path = "../data"
-    market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 13), date(2023, 8, 17))
+    market.load_data(
+        ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 13), date(2023, 8, 17)
+    )
     actuator.set_price(market.get_price_from_data())
     actuator.run()  # run test

@@ -10,7 +10,7 @@ from scipy.optimize import minimize
 from demeter import ChainType, Strategy, TokenInfo, Actuator, MarketInfo, RowData, AtTimeTrigger, MarketTypeEnum
 from demeter.aave import AaveV3Market
 from demeter.uniswap import UniV3Pool, UniLpMarket, V3CoreLib
-from demeter.uniswap.helper import quote_price_to_sqrt
+from demeter.uniswap.helper import base_unit_price_to_sqrt_price_x96
 
 pd.options.display.max_columns = None
 pd.set_option("display.width", 5000)
@@ -124,8 +124,8 @@ class DeltaHedgingStrategy(Strategy):
     def get_current_net_value(self, price):
         cash = self.get_cash_net_value(price)
         lp_value = 0
-        sqrt_price = quote_price_to_sqrt(
-            price[eth.name], market_uni.pool_info.token0.decimal, market_uni.pool_info.token1.decimal, market_uni.pool_info.is_token0_base
+        sqrt_price = base_unit_price_to_sqrt_price_x96(
+            price[eth.name], market_uni.pool_info.token0.decimal, market_uni.pool_info.token1.decimal, market_uni.pool_info.is_token0_quote
         )
         for pos_key, pos in market_uni.positions.items():
             amount0, amount1 = V3CoreLib.get_token_amounts(market_uni.pool_info, pos_key, sqrt_price, pos.liquidity)
