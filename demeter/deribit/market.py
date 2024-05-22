@@ -21,11 +21,11 @@ from ._typing import (
     DeliverAction,
     DERIBIT_OPTION_FREQ,
 )
-from .helper import round_decimal
+from .helper import round_decimal, position_to_df
 from .. import TokenInfo
 from .._typing import DemeterError
 from ..broker import Market, MarketInfo, write_func, BASE_FREQ
-from ..utils import float_param_formatter
+from ..utils import float_param_formatter, get_formatted_predefined, STYLE, get_formatted_from_dict, console_text
 
 DEFAULT_DATA_PATH = "./data"
 
@@ -210,6 +210,31 @@ class DeribitOptionMarket(Market):
         if amount < self.token_config.min_amount:
             return self.token_config.min_amount
         return round_decimal(amount, self.token_config.min_trade_decimal)
+
+    def formatted_str(self):
+        """
+        Return a brief description of this market in pretty format. Used for print in console.
+        """
+        value = get_formatted_predefined(f"{self.market_info.name}({type(self).__name__})", STYLE["header3"]) + "\n"
+        token_dict = {"token": self.token.name}
+        value += get_formatted_from_dict(token_dict) + "\n"
+        balance: OptionMarketBalance = self.get_market_balance()
+        value += (
+            get_formatted_from_dict(
+                {
+                    "put_count": console_text.format_value(balance.put_count),
+                    "call_count": console_text.format_value(balance.call_count),
+                    "delta": console_text.format_value(balance.delta),
+                    "gamma": console_text.format_value(balance.gamma),
+                }
+            )
+            + "\n"
+        )
+        value += get_formatted_predefined("Positions", STYLE["key"]) + "\n"
+        supply_df = position_to_df(self.positions)
+        value += supply_df.to_string() + "\n" if len(supply_df.index) > 0 else "Empty DataFrame\n"
+
+        return value
 
     @write_func
     @float_param_formatter

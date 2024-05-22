@@ -37,7 +37,7 @@ def vault_to_dataframe(vaults: Dict[VaultKey, Vault]) -> pd.DataFrame:
     }
     for k, v in vaults.items():
         vault_dict["id"].append(v.id)
-        vault_dict["collateral_amount"].append(console_text.format_decimal(v.collateral_amount))
-        vault_dict["osqth_short_amount"].append(console_text.format_decimal(v.osqth_short_amount))
+        vault_dict["collateral_amount"].append(console_text.format_value(v.collateral_amount))
+        vault_dict["osqth_short_amount"].append(console_text.format_value(v.osqth_short_amount))
         vault_dict["uni_nft_id"].append(str(v.uni_nft_id))
     return pd.DataFrame(vault_dict)

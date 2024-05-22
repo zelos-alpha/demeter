@@ -249,14 +249,14 @@ class SqueethMarket(Market):
         value += (
             get_formatted_from_dict(
                 {
-                    "net_value": console_text.format_decimal(balance.net_value),
-                    "collateral_amount": console_text.format_decimal(balance.collateral_amount),
-                    "collateral_value": console_text.format_decimal(balance.collateral_value),
-                    "osqth_long_amount": console_text.format_decimal(balance.osqth_long_amount),
-                    "osqth_short_amount": console_text.format_decimal(balance.osqth_short_amount),
-                    "osqth_short_in_eth": console_text.format_decimal(balance.osqth_short_in_eth),
-                    "osqth_net_amount": console_text.format_decimal(balance.osqth_net_amount),
-                    "collateral_ratio": console_text.format_decimal(balance.collateral_ratio),
+                    "net_value": console_text.format_value(balance.net_value),
+                    "collateral_amount": console_text.format_value(balance.collateral_amount),
+                    "collateral_value": console_text.format_value(balance.collateral_value),
+                    "osqth_long_amount": console_text.format_value(balance.osqth_long_amount),
+                    "osqth_short_amount": console_text.format_value(balance.osqth_short_amount),
+                    "osqth_short_in_eth": console_text.format_value(balance.osqth_short_in_eth),
+                    "osqth_net_amount": console_text.format_value(balance.osqth_net_amount),
+                    "collateral_ratio": console_text.format_value(balance.collateral_ratio),
                 }
             )
             + "\n"

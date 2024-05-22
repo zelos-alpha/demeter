@@ -169,9 +169,11 @@ def print_dataframe_with_precision(df):
         print(df_float)
 
 
-def format_decimal(value: Decimal | UnitDecimal) -> str:
+def format_value(value) -> str:
     if isinstance(value, UnitDecimal):
         return value.to_str()
     elif isinstance(value, (float, Decimal)):
         return "{num:{f}}".format(num=value, f=Formats.global_num_format)
+    elif isinstance(value, Enum):
+        return value.name
     return str(value)

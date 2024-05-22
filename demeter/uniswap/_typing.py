@@ -224,8 +224,8 @@ def position_dict_to_dataframe(positions: Dict[PositionInfo, Position]) -> pd.Da
     for k, v in positions.items():
         pos_dict["lower_tick"].append(k.lower_tick)
         pos_dict["upper_tick"].append(k.upper_tick)
-        pos_dict["pending0"].append(console_text.format_decimal(v.pending_amount0))
-        pos_dict["pending1"].append(console_text.format_decimal(v.pending_amount1))
+        pos_dict["pending0"].append(console_text.format_value(v.pending_amount0))
+        pos_dict["pending1"].append(console_text.format_value(v.pending_amount1))
         pos_dict["liquidity"].append(v.liquidity)
     return pd.DataFrame(pos_dict)
 
