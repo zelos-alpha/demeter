@@ -2,6 +2,11 @@ from decimal import Decimal
 from enum import Enum
 
 
+class Formats:
+    # follow the document here: https://python-reference.readthedocs.io/en/latest/docs/functions/format.html
+    global_num_format: str = ".8g"
+
+
 # constant value for number 1
 DECIMAL_0 = Decimal(0)
 
@@ -33,19 +38,14 @@ class UnitDecimal(Decimal):
     :param number: number to keep
     :type number: Decimal
     :param unit: unit of the number, e.g. eth
-    :type _unit: str
-    :param output_format: output format, follow the document here: https://python-reference.readthedocs.io/en/latest/docs/functions/format.html
-    :type output_format: str
+    :type unit: str
     """
 
     __integral = Decimal(1)
 
-    default_output_format = ".8g"
-
-    def __new__(cls, value, unit: str = "", output_format=None):
+    def __new__(cls, value, unit: str = ""):
         obj = Decimal.__new__(cls, value)
         obj._unit = unit
-        obj.output_format = output_format if output_format is not None else UnitDecimal.default_output_format
         return obj
 
     def to_str(self):
@@ -56,7 +56,7 @@ class UnitDecimal(Decimal):
         :rtype: str
         """
         dec = self.quantize(DECIMAL_1) if (self == self.to_integral() and self < 1e29) else self.normalize()
-        return "{:{}} {}".format(dec, self.output_format, self._unit)
+        return "{:{}} {}".format(dec, Formats.global_num_format, self._unit)
 
     @property
     def unit(self):
@@ -137,6 +137,7 @@ class ChainType(str, Enum):
     """
     Enum for chains
     """
+
     ethereum = "ethereum"
     polygon = "polygon"
     optimism = "optimism"

@@ -23,11 +23,18 @@ from ._typing import (
     ReduceDebtAction,
     LiquidationAction,
 )
-from .helper import calc_twap_price
+from .helper import calc_twap_price, vault_to_dataframe
 from .. import MarketInfo, TokenInfo, DemeterError, MarketStatus, DECIMAL_0, UnitDecimal
 from ..broker import Market
 from ..uniswap import UniLpMarket, PositionInfo
-from ..utils import to_decimal, float_param_formatter
+from ..utils import (
+    to_decimal,
+    float_param_formatter,
+    get_formatted_predefined,
+    STYLE,
+    get_formatted_from_dict,
+    console_text,
+)
 
 
 class SqueethMarket(Market):
@@ -140,11 +147,11 @@ class SqueethMarket(Market):
         short_in_eth = short_amount * self.get_norm_factor() * eth_price / SqueethMarket.INDEX_SCALE
         return SqueethBalance(
             # squeeth token is hold by broker. so net value is only calculated from short position
-            net_value=UnitDecimal(collateral_value - short_value, USDC.name),
-            collateral_amount=UnitDecimal(collateral_eth, WETH.name),
-            osqth_long_amount=UnitDecimal(long_amount, oSQTH.name),
-            osqth_short_amount=UnitDecimal(short_amount, oSQTH.name),
-            osqth_net_amount=UnitDecimal(long_amount - short_amount, oSQTH.name),
+            net_value=collateral_value - short_value,
+            collateral_amount=collateral_eth,
+            osqth_long_amount=long_amount,
+            osqth_short_amount=short_amount,
+            osqth_net_amount=long_amount - short_amount,
             vault_count=len(self.vault),
             delta=Decimal(2) * price[WETH.name],
             gamma=Decimal(2),
@@ -231,6 +238,34 @@ class SqueethMarket(Market):
         price_df = self._data[[WETH.name, oSQTH.name]].copy()
         price_df[oSQTH.name] = price_df[oSQTH.name] * price_df[WETH.name]
         return price_df
+
+    def formatted_str(self):
+        """
+        Return a brief description of this market in pretty format. Used for print in console.
+        """
+        value = get_formatted_predefined(f"{self.market_info.name}({type(self).__name__})", STYLE["header3"]) + "\n"
+        balance: SqueethBalance = self.get_market_balance()
+
+        value += (
+            get_formatted_from_dict(
+                {
+                    "net_value": console_text.format_decimal(balance.net_value),
+                    "collateral_amount": console_text.format_decimal(balance.collateral_amount),
+                    "collateral_value": console_text.format_decimal(balance.collateral_value),
+                    "osqth_long_amount": console_text.format_decimal(balance.osqth_long_amount),
+                    "osqth_short_amount": console_text.format_decimal(balance.osqth_short_amount),
+                    "osqth_short_in_eth": console_text.format_decimal(balance.osqth_short_in_eth),
+                    "osqth_net_amount": console_text.format_decimal(balance.osqth_net_amount),
+                    "collateral_ratio": console_text.format_decimal(balance.collateral_ratio),
+                }
+            )
+            + "\n"
+        )
+        value += get_formatted_predefined("Vaults", STYLE["key"]) + "\n"
+        vault_df = vault_to_dataframe(self.vault)
+        value += vault_df.to_string() + "\n" if len(vault_df.index) > 0 else "Empty DataFrame\n"
+
+        return value
 
     # region short
 

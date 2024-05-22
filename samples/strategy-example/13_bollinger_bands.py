@@ -3,6 +3,7 @@ from datetime import date, timedelta
 
 import pandas as pd
 
+import demeter
 from demeter import (
     TokenInfo,
     Actuator,
@@ -62,6 +63,8 @@ class AddByVolatility(Strategy):
 
 
 if __name__ == "__main__":
+    demeter.Formats.global_num_format = ".4g"  # change out put formats here
+
     usdc = TokenInfo(name="usdc", decimal=6)  # declare  token0
     eth = TokenInfo(name="eth", decimal=18)  # declare token1
     pool = UniV3Pool(usdc, eth, 0.05, usdc)  # declare pool
@@ -76,7 +79,6 @@ if __name__ == "__main__":
     broker.set_balance(eth, 0)
 
     actuator.strategy = AddByVolatility()
-    actuator.number_format = ".7g"
     market.data_path = "../data"
     market.load_data(
         ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 13), date(2023, 8, 17)

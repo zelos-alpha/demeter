@@ -909,8 +909,8 @@ class UniLpMarket(Market):
                 {
                     "token0": self.pool_info.token0.name,
                     "token1": self.pool_info.token1.name,
-                    "fee": self.pool_info.fee_rate * 100,
-                    "is 0 quote": self.pool_info.is_token0_quote,
+                    "fee(%)": self.pool_info.fee_rate * 100,
+                    "quote token": self.quote_token.name,
                 }
             )
             + "\n"

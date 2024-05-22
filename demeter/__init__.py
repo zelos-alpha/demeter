@@ -2,7 +2,16 @@
 A backtest package for uniswap and aave
 """
 
-from ._typing import DemeterError, TokenInfo, UnitDecimal, DECIMAL_0, DECIMAL_1, EvaluatorEnum, ChainType
+from ._typing import (
+    DemeterError,
+    TokenInfo,
+    UnitDecimal,
+    DECIMAL_0,
+    DECIMAL_1,
+    EvaluatorEnum,
+    ChainType,
+    Formats,
+)
 from .broker import (
     Broker,
     MarketStatus,

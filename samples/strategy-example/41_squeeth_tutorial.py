@@ -29,7 +29,6 @@ class SimpleShortStrategy(Strategy):
         print(action)
 
 
-
 if __name__ == "__main__":
     actuator = Actuator()
 

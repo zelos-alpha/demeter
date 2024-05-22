@@ -4,7 +4,7 @@ from typing import Dict
 
 import pandas as pd
 
-global_num_format: str = ".8g"
+from demeter import Formats, UnitDecimal
 
 
 class ForColorEnum(Enum):
@@ -153,7 +153,7 @@ def get_formatted_from_dict(values: Dict[str, str]) -> str:
     str_array = []
     for k, v in values.items():
         if isinstance(v, (float, Decimal)):
-            v_str = "{num:{f}}".format(num=v, f=global_num_format)
+            v_str = "{num:{f}}".format(num=v, f=Formats.global_num_format)
         else:
             v_str = v
         str_array.append(
@@ -163,7 +163,15 @@ def get_formatted_from_dict(values: Dict[str, str]) -> str:
 
 
 def print_dataframe_with_precision(df):
-    format_str = "{:" + global_num_format + "}"
+    format_str = "{:" + Formats.global_num_format + "}"
     df_float = df.apply(pd.to_numeric, downcast="float")
     with pd.option_context("display.float_format", format_str.format):
         print(df_float)
+
+
+def format_decimal(value: Decimal | UnitDecimal) -> str:
+    if isinstance(value, UnitDecimal):
+        return value.to_str()
+    elif isinstance(value, (float, Decimal)):
+        return "{num:{f}}".format(num=value, f=Formats.global_num_format)
+    return str(value)

@@ -156,11 +156,11 @@ def supply_to_dataframe(supplies: Dict[SupplyKey, Supply]) -> pd.DataFrame:
     }
     for k, v in supplies.items():
         pos_dict["token"].append(v.token.name)
-        pos_dict["base_amount"].append("{num:{f}}".format(num=v.base_amount, f=console_text.global_num_format))
-        pos_dict["collateral"].append("{num:{f}}".format(num=v.collateral, f=console_text.global_num_format))
-        pos_dict["amount"].append("{num:{f}}".format(num=v.amount, f=console_text.global_num_format))
-        pos_dict["apy"].append("{num:{f}}".format(num=v.apy, f=console_text.global_num_format))
-        pos_dict["value"].append(("{num:{f}}".format(num=v.value, f=console_text.global_num_format)))
+        pos_dict["base_amount"].append(console_text.format_decimal(v.base_amount))
+        pos_dict["collateral"].append(v.collateral)
+        pos_dict["amount"].append(console_text.format_decimal(v.amount))
+        pos_dict["apy"].append(console_text.format_decimal(v.apy))
+        pos_dict["value"].append((console_text.format_decimal(v.value)))
     return pd.DataFrame(pos_dict)
 
 
@@ -225,11 +225,11 @@ def borrow_to_dataframe(supplies: Dict[BorrowKey, Borrow]) -> pd.DataFrame:
     }
     for k, v in supplies.items():
         pos_dict["token"].append(v.token.name)
-        pos_dict["base_amount"].append("{num:{f}}".format(num=v.base_amount, f=console_text.global_num_format))
+        pos_dict["base_amount"].append(console_text.format_decimal(v.base_amount))
         pos_dict["mode"].append(v.interest_rate_mode.name)
-        pos_dict["amount"].append("{num:{f}}".format(num=v.amount, f=console_text.global_num_format))
-        pos_dict["apy"].append("{num:{f}}".format(num=v.apy, f=console_text.global_num_format))
-        pos_dict["value"].append("{num:{f}}".format(num=v.value, f=console_text.global_num_format))
+        pos_dict["amount"].append(console_text.format_decimal(v.amount))
+        pos_dict["apy"].append(console_text.format_decimal(v.apy))
+        pos_dict["value"].append(console_text.format_decimal(v.value))
     return pd.DataFrame(pos_dict)
 
 

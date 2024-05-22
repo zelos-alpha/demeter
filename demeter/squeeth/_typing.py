@@ -71,17 +71,17 @@ class SqueethBalance(MarketBalance):
 
 
     :param collateral_amount: collateral amount in eth, including eth and uniswap lp
-    :type collateral_amount: UnitDecimal
+    :type collateral_amount: Decimal
     :param collateral_value: collateral value in usd,
-    :type collateral_value: UnitDecimal
+    :type collateral_value: Decimal
     :param osqth_long_amount: osqth amount in broker
-    :type osqth_long_amount: UnitDecimal
+    :type osqth_long_amount: Decimal
     :param osqth_short_amount: osqth debt
-    :type osqth_short_amount: UnitDecimal
+    :type osqth_short_amount: Decimal
     :param osqth_short_in_eth: debt in eth. calculated by index price
-    :type osqth_short_in_eth: UnitDecimal
+    :type osqth_short_in_eth: Decimal
     :param osqth_net_amount: long amount - short amount
-    :type osqth_net_amount: UnitDecimal
+    :type osqth_net_amount: Decimal
     :param collateral_ratio: collateral ratio
     :type collateral_ratio: Decimal
     :param vault_count: vault count
@@ -91,12 +91,12 @@ class SqueethBalance(MarketBalance):
     :param gamma: gamma
     :type gamma: Decimal
     """
-    collateral_amount: UnitDecimal
-    collateral_value: UnitDecimal
-    osqth_long_amount: UnitDecimal
-    osqth_short_amount: UnitDecimal
-    osqth_short_in_eth: UnitDecimal
-    osqth_net_amount: UnitDecimal
+    collateral_amount: Decimal
+    collateral_value: Decimal
+    osqth_long_amount: Decimal
+    osqth_short_amount: Decimal
+    osqth_short_in_eth: Decimal
+    osqth_net_amount: Decimal
     collateral_ratio: Decimal
     vault_count: int
     delta: Decimal

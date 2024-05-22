@@ -176,27 +176,6 @@ class Actuator(object):
         else:
             raise ValueError()
 
-    @property
-    def number_format(self) -> str:
-        """
-        number format for console output, e.g. ".8g", ".5f"
-
-        :return: number format
-        :rtype: str
-        """
-        return console_text.global_num_format
-
-    @number_format.setter
-    def number_format(self, value: str):
-        """
-        | number format for console output, e.g. ".8g", ".5f",
-        | follow the document here: https://python-reference.readthedocs.io/en/latest/docs/functions/format.html
-
-        :param value: number format,
-        :type value:str
-        """
-        console_text.global_num_format = value
-
     # endregion
 
     def get_account_status_dataframe(self) -> pd.DataFrame:

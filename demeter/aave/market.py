@@ -539,7 +539,7 @@ class AaveV3Market(Market):
         token_dict = {"tokens": ",".join([t.name for t in self._tokens])}
         value += get_formatted_from_dict(token_dict) + "\n"
         balance = self.get_market_balance()
-        value += (
+        value += (   # TODO format is wrong here
             get_formatted_from_dict(
                 {
                     "net_value": "{:.2f}".format(balance.net_value),
