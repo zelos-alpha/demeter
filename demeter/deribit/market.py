@@ -295,7 +295,6 @@ class DeribitOptionMarket(Market):
             )
             position.buy_amount += amount
             position.amount += amount
-        # TODO: use UnitDecimal
         self._record_action(
             BuyAction(
                 market=self._market_info,

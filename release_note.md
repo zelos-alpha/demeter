@@ -20,6 +20,7 @@
     * quote_price_to_tick -> base_unit_price_to_tick
     * quote_price_to_sqrt -> base_unit_price_to_sqrt_price_x96
     * from_wei -> from_atomic_unit
+* Add console output for squeeth and deribit market
 
 # Ver 0.5.0
 
