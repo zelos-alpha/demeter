@@ -3,6 +3,7 @@ from decimal import Decimal, getcontext
 from typing import Tuple
 
 from .liquitidy_math import get_sqrt_ratio_at_tick
+from .. import DemeterError
 
 Q96 = Decimal(2**96)
 SQRT_1p0001 = math.sqrt(Decimal(1.0001))
@@ -273,3 +274,41 @@ def get_delta_gamma_sqrt_x96(
             gamma = 0
 
     return delta, gamma
+
+
+def get_swap_value(swap_from_token_val, swap_to_token_val, fee_rate, final_ratio):
+    # if needed value rate is K, calculate how many value to swap, need deduct swap fee
+    # final_ratio = final_from_token_val / final_to_token_value
+
+    # Vfrom + Vto = Vfrom_after  + Vto_after + Vswap * fee_rate
+    # Vfrom - Vswap = Vfrom_after
+    # Vto + Vswap = Vto_after + Vswap * fee_rate
+    # Vfrom_after / Vto_after = final_ratio
+
+    # known value: Vfrom, Vto, fee_rate, final_ratio
+    # unknow value: Vfrom_after, Vto_after
+    # wanted value: Vswap
+    return (swap_from_token_val - swap_to_token_val * final_ratio) / (final_ratio - final_ratio * fee_rate + 1)
+
+
+def get_swap_value_with_part_balance_used(
+    swap_from_token_val, swap_to_token_val, total_val_after, fee_rate, final_ratio
+):
+    # Given current balance of A and B, and suppose you want to invest total_val_after in lp,
+    # Ratio of a and b after swap is known
+    # This function will calculate how much to swap,
+
+
+    # Vfrom + Vto = V
+    # Vswap * fee_rate + Vfrom_after + Vto_after = total_val_after
+    # Vfrom_after / Vto_after = final_ratio
+    # Vto + Vswap * (1 - fee_rate) = Vto_after
+
+    if total_val_after > swap_from_token_val + swap_to_token_val:
+        raise DemeterError("Target value exceed your balance")
+    swap_value = (total_val_after - final_ratio * swap_to_token_val - swap_to_token_val) / (
+        final_ratio - final_ratio * fee_rate + 1
+    )
+    total_val_after_no_fee = total_val_after - swap_value * fee_rate
+    swap_to_token_val_after = total_val_after_no_fee / (final_ratio + 1)
+    return total_val_after_no_fee - swap_to_token_val_after, swap_to_token_val_after, swap_value

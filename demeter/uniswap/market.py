@@ -30,10 +30,11 @@ from .helper import (
     base_unit_price_to_tick,
     base_unit_price_to_sqrt_price_x96,
     tick_to_sqrt_price_x96,
+    get_swap_value_with_part_balance_used,
 )
-from .liquitidy_math import get_sqrt_ratio_at_tick
+from .liquitidy_math import get_sqrt_ratio_at_tick, estimate_ratio
 from .._typing import DemeterError, DECIMAL_0, UnitDecimal
-from ..broker import MarketBalance, Market, MarketInfo, MarketStatus, write_func
+from ..broker import MarketBalance, Market, MarketInfo, write_func
 from ..utils import (
     get_formatted_from_dict,
     get_formatted_predefined,
@@ -764,6 +765,92 @@ class UniLpMarket(Market):
         )
 
         return fee_in_base, base_token_amount, quote_amount_got
+
+    def add_liquidate_by_value(self, lower_tick: int, upper_tick: int, value_to_use: Decimal | None = None):
+        """
+
+        :param lower_tick:
+        :param upper_tick:
+        :param value_to_use: Value you want to add liquidity(in quote token). Actual value used would be less than this value because swap fee might be charged.
+        :return:
+        """
+        price = self._market_status.data.price
+        tick = self._market_status.data.closeTick
+        price0, price1 = self._convert_pair(price, Decimal(1))
+
+        quote_balance = self.broker.get_token_balance(self.quote_token)
+        base_balance_value = self.broker.get_token_balance(self.base_token) * price
+
+        balance = quote_balance + base_balance_value
+
+        if value_to_use is None:
+            value_to_use = balance
+
+        if value_to_use > balance:
+            raise DemeterError("Not enough balance to add liquidity")
+        if lower_tick >= upper_tick:
+            raise DemeterError("Lower tick is larger than upper tick")
+
+        # price is greater than upper price
+        if (self._is_token0_quote and tick > upper_tick) or (not self._is_token0_quote and tick < lower_tick):
+            # all base
+            base_amount = value_to_use / self._market_status.data.price
+            diff = base_amount - self.broker.get_token_balance(self.base_token)
+            fee_in_quote = Decimal(0)
+            if diff > 0:
+                fee_in_quote, to_amount = self.swap(diff * price, self.quote_token, self.base_token)
+            return self.add_liquidity_by_tick(lower_tick, upper_tick, base_amount - fee_in_quote / price, Decimal(0))
+
+        # price is lower than upper price
+        if (self._is_token0_quote and tick < lower_tick) or (not self._is_token0_quote and tick > upper_tick):
+            # all quote
+            diff = value_to_use - self.broker.get_token_balance(self.quote_token)
+            fee_in_base = Decimal(0)
+            if diff > 0:
+                fee_in_base, quote_got = self.swap(diff / price, self.base_token, self.quote_token)
+            return self.add_liquidity_by_tick(lower_tick, upper_tick, Decimal(0), value_to_use - fee_in_base * price)
+
+        # price is in tick range
+
+        ratio = estimate_ratio(tick, lower_tick, upper_tick)
+        ratio_in_amount = ratio * 10 ** (self.pool_info.token1.decimal - self.pool_info.token0.decimal)
+        ratio_in_value = Decimal(ratio_in_amount) / price if self._is_token0_quote else ratio_in_amount
+
+        token1_value = value_to_use / (ratio_in_value + 1)
+        token0_value = value_to_use - token1_value
+        balance0_value = self.broker.get_token_balance(self.token0) * price0
+        balance1_value = self.broker.get_token_balance(self.token1) * price1
+        if token0_value <= balance0_value and token1_value <= balance1_value:
+            # do not need swap
+            base_value, quote_value = self._convert_pair(token0_value, token1_value)
+            return self.add_liquidity_by_tick(lower_tick, upper_tick, base_value/price, quote_value)
+        elif token0_value > balance0_value and token1_value > balance1_value:
+            raise DemeterError("Not enough balance to add liquidity")
+        elif token0_value < balance0_value and token1_value > balance1_value:
+            # need swap from token0 to token1
+            actual_token0_value, actual_token1_value, swap_value = get_swap_value_with_part_balance_used(
+                balance0_value, balance1_value, value_to_use, self.pool_info.fee_rate, ratio_in_value
+            )
+            if self._is_token0_quote:
+                self.swap(swap_value, self.quote_token, self.base_token)
+            else:
+                self.swap(swap_value / price, self.base_token, self.quote_token)
+            base_value, quote_value = self._convert_pair(actual_token0_value, actual_token1_value)
+            return self.add_liquidity_by_tick(lower_tick, upper_tick, base_value, quote_value)
+        elif token0_value > balance0_value and token1_value < balance1_value:
+            # need to swap from token1 to token 0
+            actual_token1_value, actual_token0_value, swap_value = get_swap_value_with_part_balance_used(
+                balance1_value, balance0_value, value_to_use, self.pool_info.fee_rate, 1 / ratio_in_value
+            )
+            if self._is_token0_quote:
+                self.swap(swap_value / price, self.base_token, self.quote_token)
+            else:
+                self.swap(swap_value, self.quote_token, self.base_token)
+            base_value, quote_value = self._convert_pair(actual_token0_value, actual_token1_value)
+            return self.add_liquidity_by_tick(lower_tick, upper_tick, base_value, quote_value)
+        else:
+            raise NotImplementedError()
+        pass
 
     def even_rebalance(self, price: Decimal | None = None):
         """

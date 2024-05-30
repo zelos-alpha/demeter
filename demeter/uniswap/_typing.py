@@ -54,7 +54,7 @@ class UniV3Pool(object):
     :type token0:  TokenInfo
     :param token1: Second token in  pool contract.
     :type token1: TokenInfo
-    :param fee: fee rate of this pool, should be among [0.05, 0.3, 1]
+    :param fee: fee rate of this pool, should be among [0.05%, 0.3%, 1%]
     :type fee: float, 0.05
     :param quote_token: which token will be considered as base token. e.g. to a token pair of USDT/BTC, if you want price unit to be like 10000 usdt/btc, you should set usdt as base token, otherwise if price unit is 0.00001 btc/usdt, you should set btc as base token
     :type quote_token: TokenInfo

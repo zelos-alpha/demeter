@@ -1,3 +1,4 @@
+import math
 from decimal import Decimal
 
 # -*- coding: utf-8 -*-
@@ -209,3 +210,20 @@ def get_sqrt_ratio_at_tick(tick: int) -> int:
     # we round up in the division so getTickAtSqrtRatio of the output price is always consistent
     sqrt_price_x96 = (ratio >> 32) + (0 if ratio % (1 << 32) == 0 else 1)
     return sqrt_price_x96
+
+
+def estimate_ratio(tick, lower_tick, upper_tick):
+    """
+    Emulate amount ratio of token 0,1 before adding to liquidity.
+    :param tick: current tick
+    :param lower_tick: lower tick
+    :param upper_tick: upper tick
+    :return:
+    """
+    T = math.sqrt(1.0001)
+    if not lower_tick < tick < upper_tick:
+        from demeter import DemeterError
+
+        raise DemeterError("tick should in tick range")
+    ratio = (T**upper_tick - T**tick) / (T**tick * T**upper_tick * (T**tick - T**lower_tick))
+    return ratio
