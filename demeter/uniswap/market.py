@@ -766,7 +766,7 @@ class UniLpMarket(Market):
 
         return fee_in_base, base_token_amount, quote_amount_got
 
-    def add_liquidate_by_value(self, lower_tick: int, upper_tick: int, value_to_use: Decimal | None = None):
+    def add_liquidity_by_value(self, lower_tick: int, upper_tick: int, value_to_use: Decimal | None = None):
         """
 
         :param lower_tick:
@@ -814,7 +814,7 @@ class UniLpMarket(Market):
 
         ratio = estimate_ratio(tick, lower_tick, upper_tick)
         ratio_in_amount = ratio * 10 ** (self.pool_info.token1.decimal - self.pool_info.token0.decimal)
-        ratio_in_value = Decimal(ratio_in_amount) / price if self._is_token0_quote else ratio_in_amount
+        ratio_in_value = Decimal(ratio_in_amount) / price if self._is_token0_quote else Decimal(ratio_in_amount) * price
 
         token1_value = value_to_use / (ratio_in_value + 1)
         token0_value = value_to_use - token1_value
@@ -823,7 +823,7 @@ class UniLpMarket(Market):
         if token0_value <= balance0_value and token1_value <= balance1_value:
             # do not need swap
             base_value, quote_value = self._convert_pair(token0_value, token1_value)
-            return self.add_liquidity_by_tick(lower_tick, upper_tick, base_value/price, quote_value)
+            return self.add_liquidity_by_tick(lower_tick, upper_tick, base_value / price, quote_value)
         elif token0_value > balance0_value and token1_value > balance1_value:
             raise DemeterError("Not enough balance to add liquidity")
         elif token0_value < balance0_value and token1_value > balance1_value:

@@ -1,3 +1,10 @@
+# Ver 0.5.2
+
+Add function for uniswap market: add_liquidity_by_value, With function, you can define how much to add liquidity from your balance.
+This function will calculate token amount needed, and do swap to ensure there are enough token. Swap fee is also taken into account.
+If you want to add all your balance into liquidity, this function is very useful to help you maximize your liquidity.  
+
+
 # Ver 0.5.1
 
 * Fix issue: Precision setting not working in console output

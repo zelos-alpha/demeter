@@ -432,7 +432,7 @@ class TestUniLpMarket(unittest.TestCase):
         lower_tick = tick + lower_tick_diff
         upper_tick = tick + upper_tick_diff
 
-        created_position, base_used, quote_used, liquidity = market.add_liquidate_by_value(
+        created_position, base_used, quote_used, liquidity = market.add_liquidity_by_value(
             lower_tick, upper_tick, eth_amount * price
         )
         new_amount0, new_amount1 = broker.get_token_balance(self.pool.token0), broker.get_token_balance(
