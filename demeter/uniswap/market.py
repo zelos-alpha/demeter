@@ -768,6 +768,13 @@ class UniLpMarket(Market):
 
     def add_liquidity_by_value(self, lower_tick: int, upper_tick: int, value_to_use: Decimal | None = None):
         """
+        Add liquidity from balance with value defined, and swap if necessary.
+        e.g. you have 1 eth and 3000 usdc, and eth price is 1000. If you want to invest at 1:1,
+        you have to swap 1000 usdc to eth, so your balance will be 2 eth and 2000 usdc, but swap fee is not counted.
+        this function will calculate the best swap amount(1005.025, if fee is 1%),
+        which will make the balance at: 1.99975 eth and 1994.975 usdc, which is just 1:1, So all balance will be used.
+        This function to free you from complex calculation.
+
 
         :param lower_tick:
         :param upper_tick:
