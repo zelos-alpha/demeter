@@ -969,7 +969,8 @@ class UniLpMarket(Market):
                     "currentLiquidity": to_decimal,
                 },
             )
-            df = pd.concat([df, day_df])
+            if len(day_df.index)>0:
+                df = pd.concat([df, day_df])
             day = day + timedelta(days=1)
         self.logger.info("load file complete, preparing...")
 
