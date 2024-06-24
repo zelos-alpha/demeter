@@ -59,6 +59,22 @@ class UniLpCoreTest(unittest.TestCase):
         self.assertIn(price_df.index[23 * 60], matched_time)
         self.assertNotIn(price_df.index[0], matched_time)
 
+    def test_period_trigger_pending(self):
+        matched_time = []
+        price_df = UniLpCoreTest.__get_price_df()
+        pt = PeriodTrigger(
+            time_delta=timedelta(hours=1),
+            do=lambda row_data: matched_time.append(row_data.timestamp),
+            pending=timedelta(minutes=5),
+        )
+        self.__run(price_df, pt)
+        self.assertEqual(len(matched_time), 23)
+        self.assertIn(price_df.index[1 * 60 + 5], matched_time)
+        self.assertIn(price_df.index[4 * 60 + 5], matched_time)
+        self.assertIn(price_df.index[10 * 60 + 5], matched_time)
+        self.assertIn(price_df.index[23 * 60 + 5], matched_time)
+        self.assertNotIn(price_df.index[0 + 5], matched_time)
+
     def test_period_trigger_immdiately(self):
         matched_time = []
         price_df = UniLpCoreTest.__get_price_df()

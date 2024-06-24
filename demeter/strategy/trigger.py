@@ -170,12 +170,15 @@ class PeriodTrigger(Trigger):
     :type do: Callable[[RowData], Any]
     :param trigger_immediately: whither to trigger action when back test just started
     :type trigger_immediately: bool
+    :param pending: pending time to start the trigger, can be used to trigger at specific time of a day.
+    :type pending: timedelta
     """
 
-    def __init__(self, time_delta: timedelta, do, trigger_immediately=False, **kwargs):
+    def __init__(self, time_delta: timedelta, do, trigger_immediately=False, pending=timedelta(minutes=0), **kwargs):
         self._next_match = None
         self._delta = time_delta
         self._trigger_immediately = trigger_immediately
+        self._pending = pending
         _check_time_delta(time_delta)
         super().__init__(do, **kwargs)
 
@@ -184,7 +187,7 @@ class PeriodTrigger(Trigger):
 
     def when(self, row_data: RowData) -> bool:
         if self._next_match is None:
-            self._next_match = row_data.timestamp + self._delta
+            self._next_match = row_data.timestamp + self._delta + self._pending
             return self._trigger_immediately
 
         if self._next_match == row_data.timestamp:
@@ -206,12 +209,15 @@ class PeriodsTrigger(Trigger):
     :type do: Callable[[RowData], Any]
     :param trigger_immediately: whither to trigger action when back test just started
     :type trigger_immediately: bool
+    :param pending: pending time to start the trigger, can be used to trigger at specific time of a day.
+    :type pending: timedelta
     """
 
-    def __init__(self, time_delta: List[timedelta], do, trigger_immediately=False, **kwargs):
+    def __init__(self, time_delta: List[timedelta], do, trigger_immediately=False, pending=timedelta(minutes=0), **kwargs):
         self._next_matches = [None for _ in time_delta]
         self._deltas = time_delta
         self._trigger_immediately = trigger_immediately
+        self._pending = pending
 
         for td in time_delta:
             _check_time_delta(td)
@@ -222,7 +228,7 @@ class PeriodsTrigger(Trigger):
 
     def when(self, row_data: RowData) -> bool:
         if self._next_matches[0] is None:
-            self._next_matches = [row_data.timestamp + d for d in self._deltas]
+            self._next_matches = [row_data.timestamp + d + self._pending for d in self._deltas]
             return self._trigger_immediately
 
         for i in range(len(self._deltas)):
