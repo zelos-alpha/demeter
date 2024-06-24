@@ -843,7 +843,7 @@ class UniLpMarket(Market):
             else:
                 self.swap(swap_value / price, self.base_token, self.quote_token)
             base_value, quote_value = self._convert_pair(actual_token0_value, actual_token1_value)
-            return self.add_liquidity_by_tick(lower_tick, upper_tick, base_value, quote_value)
+            return self.add_liquidity_by_tick(lower_tick, upper_tick, base_value / price, quote_value)
         elif token0_value > balance0_value and token1_value < balance1_value:
             # need to swap from token1 to token 0
             actual_token1_value, actual_token0_value, swap_value = get_swap_value_with_part_balance_used(
@@ -854,7 +854,7 @@ class UniLpMarket(Market):
             else:
                 self.swap(swap_value, self.quote_token, self.base_token)
             base_value, quote_value = self._convert_pair(actual_token0_value, actual_token1_value)
-            return self.add_liquidity_by_tick(lower_tick, upper_tick, base_value, quote_value)
+            return self.add_liquidity_by_tick(lower_tick, upper_tick, base_value / price, quote_value)
         else:
             raise NotImplementedError()
         pass
@@ -969,7 +969,7 @@ class UniLpMarket(Market):
                     "currentLiquidity": to_decimal,
                 },
             )
-            if len(day_df.index)>0:
+            if len(day_df.index) > 0:
                 df = pd.concat([df, day_df])
             day = day + timedelta(days=1)
         self.logger.info("load file complete, preparing...")
