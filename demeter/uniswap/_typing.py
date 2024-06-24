@@ -347,7 +347,7 @@ class AddLiquidityAction(UniLpBaseAction):
             {
                 "max amount": f"{self.base_amount_max.to_str()},{self.quote_amount_max.to_str()}",
                 "price": f"{self.lower_quote_price.to_str()},{self.upper_quote_price.to_str()}",
-                "get_position": self.position,
+                "get_position": str(self.position),
                 "liquidity": self.liquidity,
                 "balance": f"{self.base_balance_after.to_str()}(-{self.base_amount_actual.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_amount_actual.to_str()})",
             }
@@ -384,7 +384,7 @@ class CollectFeeAction(UniLpBaseAction):
         """
         return f"""\033[1;33m{"Collect fee":<20}\033[0m""" + get_formatted_from_dict(
             {
-                "get_position": self.position,
+                "get_position": str(self.position),
                 "balance": f"{self.base_balance_after.to_str()}(+{self.base_amount.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_amount.to_str()})",
             }
         )
@@ -426,7 +426,7 @@ class RemoveLiquidityAction(UniLpBaseAction):
         """
         return f"""\033[1;32m{"Remove liquidity":<20}\033[0m""" + get_formatted_from_dict(
             {
-                "get_position": self.position,
+                "get_position": str(self.position),
                 "balance": f"{self.base_balance_after.to_str()}(+0), {self.quote_balance_after.to_str()}(+0)",
                 "token_got": f"{self.base_amount.to_str()},{self.quote_amount.to_str()}",
                 "removed liquidity": self.removed_liquidity,

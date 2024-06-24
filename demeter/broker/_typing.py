@@ -209,6 +209,12 @@ class BaseAction(object):
     def set_type(self):
         pass
 
+    def __str__(self):
+        return f"{self.timestamp.strftime('%Y-%m-%d %H:%M:%S')} {self.market.name}\t{self.action_type.name}"
+
+    def __repr__(self):
+        return f"{self.timestamp.strftime('%Y-%m-%d %H:%M:%S')} {self.market.name}\t{self.action_type.name}"
+
 
 @dataclass
 class MarketBalance:
