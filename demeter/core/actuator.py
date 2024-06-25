@@ -55,6 +55,7 @@ class Actuator(object):
         self.logger = logging.getLogger(__name__)
         # internal var
         self.__backtest_finished = False
+        self.print_action = False
 
     def _record_action_list(self, action: BaseAction):
         """
@@ -241,11 +242,9 @@ class Actuator(object):
             return
         # last_time = datetime(1970, 1, 1)
         for action in actions:
-            # if last_time != action.timestamp:
-            #     print(f"\033[7;34m{action.timestamp} \033[0m")
-            #     last_time = action.timestamp
             strategy.notify(action)
-            pass
+            if self.print_action:
+                print(action.get_output_str())
 
     def _check_backtest(self):
         """
