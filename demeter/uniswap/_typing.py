@@ -210,6 +210,8 @@ class Position(object):
     pending_amount0: Decimal
     pending_amount1: Decimal
     liquidity: int
+    lower_price: Decimal
+    upper_price: Decimal
     transferred: bool = False  # this position(nft) has been transferred, so owner is not current user.
 
 

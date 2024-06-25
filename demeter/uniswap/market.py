@@ -382,7 +382,11 @@ class UniLpMarket(Market):
         if position_info in self._positions:
             self._positions[position_info].liquidity += liquidity
         else:
-            self._positions[position_info] = Position(DECIMAL_0, DECIMAL_0, liquidity)
+            lower_price = self.tick_to_price(lower_tick)
+            upper_price = self.tick_to_price(upper_tick)
+            if self.pool_info.is_token0_quote:
+                lower_price, upper_price = upper_price, lower_price
+            self._positions[position_info] = Position(DECIMAL_0, DECIMAL_0, liquidity, lower_price, upper_price)
         self.broker.subtract_from_balance(self.token0, token0_used)
         self.broker.subtract_from_balance(self.token1, token1_used)
         return position_info, token0_used, token1_used, liquidity
