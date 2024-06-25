@@ -1,14 +1,14 @@
+import pandas as pd
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from typing import Dict, NamedTuple, Union
 
-import pandas as pd
-
 from .._typing import TokenInfo, UnitDecimal
 from ..broker import BaseAction, ActionTypeEnum, MarketBalance, MarketStatus
-from ..utils import get_formatted_from_dict
 from ..utils import console_text
+from ..utils import get_formatted_from_dict
+from ..utils.console_text import get_action_str, ForColorEnum
 
 
 class PositionInfo(NamedTuple):
@@ -345,14 +345,16 @@ class AddLiquidityAction(UniLpBaseAction):
         :return: formatted string
         :rtype: str
         """
-        return f"""\033[1;31m{"Add liquidity":<20}\033[0m""" + get_formatted_from_dict(
+        return get_action_str(
+            self,
+            ForColorEnum.red,
             {
                 "max amount": f"{self.base_amount_max.to_str()},{self.quote_amount_max.to_str()}",
                 "price": f"{self.lower_quote_price.to_str()},{self.upper_quote_price.to_str()}",
                 "get_position": str(self.position),
                 "liquidity": self.liquidity,
                 "balance": f"{self.base_balance_after.to_str()}(-{self.base_amount_actual.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_amount_actual.to_str()})",
-            }
+            },
         )
 
 
@@ -384,11 +386,13 @@ class CollectFeeAction(UniLpBaseAction):
         :return: formatted string
         :rtype: str
         """
-        return f"""\033[1;33m{"Collect fee":<20}\033[0m""" + get_formatted_from_dict(
+        get_action_str(
+            self,
+            ForColorEnum.yellow,
             {
                 "get_position": str(self.position),
                 "balance": f"{self.base_balance_after.to_str()}(+{self.base_amount.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_amount.to_str()})",
-            }
+            },
         )
 
 
@@ -426,14 +430,17 @@ class RemoveLiquidityAction(UniLpBaseAction):
         :return: formatted string
         :rtype: str
         """
-        return f"""\033[1;32m{"Remove liquidity":<20}\033[0m""" + get_formatted_from_dict(
+
+        return get_action_str(
+            self,
+            ForColorEnum.green,
             {
                 "get_position": str(self.position),
                 "balance": f"{self.base_balance_after.to_str()}(+0), {self.quote_balance_after.to_str()}(+0)",
                 "token_got": f"{self.base_amount.to_str()},{self.quote_amount.to_str()}",
                 "removed liquidity": self.removed_liquidity,
                 "remain liquidity": self.remain_liquidity,
-            }
+            },
         )
 
 
@@ -470,12 +477,14 @@ class SwapAction(BaseAction):
         :return: formatted string
         :rtype: str
         """
-        return f"""\033[1;36m{"Swap":<20}\033[0m""" + get_formatted_from_dict(
+        return get_action_str(
+            self,
+            ForColorEnum.cyan,
             {
                 "price": self.price.to_str(),
                 "fee": self.fee.to_str(),
                 "amount": f"{self.amount.to_str()}->{self.to_amount.to_str()}",
-            }
+            },
         )
 
 
@@ -513,12 +522,14 @@ class BuyAction(UniLpBaseAction):
         :return: formatted string
         :rtype: str
         """
-        return f"""\033[1;36m{"Buy":<20}\033[0m""" + get_formatted_from_dict(
+        return get_action_str(
+            self,
+            ForColorEnum.cyan,
             {
                 "price": self.price.to_str(),
                 "fee": self.fee.to_str(),
                 "balance": f"{self.base_balance_after.to_str()}(-{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(+{self.quote_change.to_str()})",
-            }
+            },
         )
 
 
@@ -556,10 +567,13 @@ class SellAction(UniLpBaseAction):
         :return: formatted string
         :rtype: str
         """
-        return f"""\033[1;37m{"Sell":<20}\033[0m""" + get_formatted_from_dict(
+
+        return get_action_str(
+            self,
+            ForColorEnum.light_red,
             {
                 "price": self.price.to_str(),
                 "fee": self.fee.to_str(),
                 "balance": f"{self.base_balance_after.to_str()}(+{self.base_change.to_str()}), {self.quote_balance_after.to_str()}(-{self.quote_change.to_str()})",
-            }
+            },
         )

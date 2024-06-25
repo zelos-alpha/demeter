@@ -1,11 +1,10 @@
 import json
+import pandas as pd
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Generic, NamedTuple, List, Dict, TypeVar, Union
-
-import pandas as pd
 
 from .._typing import DemeterError, TokenInfo
 
@@ -169,7 +168,8 @@ class ActionTypeEnum(Enum):
     aave_liquidation = "liquidation"
     option_buy = "option_buy"
     option_sell = "option_sell"
-    option_exercise = "option_exercise"
+    option_deliver = "option_deliver"
+    option_expire = "option_expire"
     squeeth_open_vault = "open_vault"
     squeeth_update_collateral = "update_collateral"
     squeeth_update_short = "update_short"

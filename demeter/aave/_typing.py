@@ -1,14 +1,14 @@
+import pandas as pd
 from _decimal import Decimal
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, NamedTuple, Union
 from typing import TypeVar
 
-import pandas as pd
-
 from .. import TokenInfo, UnitDecimal
 from ..broker import MarketBalance, MarketStatus, BaseAction, ActionTypeEnum
 from ..utils import console_text
+from ..utils.console_text import get_action_str, ForColorEnum
 
 T = TypeVar("T")
 K = TypeVar("K")
@@ -381,6 +381,25 @@ class SupplyAction(BaseAction):
     def set_type(self):
         self.action_type = ActionTypeEnum.aave_supply
 
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.light_green,
+            {
+                "token": self.token,
+                "amount": self.amount.to_str(),
+                "collateral": str(self.collateral),
+                "deposit_after": self.deposit_after.to_str(),
+            },
+        )
+
 
 @dataclass
 class WithdrawAction(BaseAction):
@@ -404,6 +423,24 @@ class WithdrawAction(BaseAction):
 
     def set_type(self):
         self.action_type = ActionTypeEnum.aave_withdraw
+
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.light_red,
+            {
+                "token": self.token,
+                "amount": self.amount.to_str(),
+                "deposit_after": self.deposit_after.to_str(),
+            },
+        )
 
 
 @dataclass
@@ -433,6 +470,25 @@ class BorrowAction(BaseAction):
     def set_type(self):
         self.action_type = ActionTypeEnum.aave_borrow
 
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.green,
+            {
+                "token": self.token,
+                "interest_rate_mode": self.interest_rate_mode.name,
+                "amount": self.amount.to_str(),
+                "debt_after": self.debt_after.to_str(),
+            },
+        )
+
 
 @dataclass
 class RepayAction(BaseAction):
@@ -460,6 +516,25 @@ class RepayAction(BaseAction):
 
     def set_type(self):
         self.action_type = ActionTypeEnum.aave_repay
+
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.red,
+            {
+                "token": self.token,
+                "interest_rate_mode": self.interest_rate_mode.name,
+                "amount": self.amount.to_str(),
+                "debt_after": self.debt_after.to_str(),
+            },
+        )
 
 
 @dataclass
@@ -516,6 +591,30 @@ class LiquidationAction(BaseAction):
 
     def set_type(self):
         self.action_type = ActionTypeEnum.aave_repay
+
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.yellow,
+            {
+                "collateral_token": self.collateral_token,
+                "debt_token": self.debt_token,
+                "delt_to_cover": self.delt_to_cover.to_str(),
+                "collateral_used": self.collateral_used.to_str(),
+                "liquidated": f"variable:{self.variable_delt_liquidated.to_str()} stable:{self.stable_delt_liquidated.to_str()}",
+                "health_factor": f"{self.health_factor_before.to_str()}->{self.health_factor_after.to_str()}",
+                "collateral_after": self.collateral_after.to_str(),
+                "variable_debt_after": self.variable_debt_after.to_str(),
+                "stable_delt_after": self.stable_delt_after.to_str(),
+            },
+        )
 
 
 class DictCache:

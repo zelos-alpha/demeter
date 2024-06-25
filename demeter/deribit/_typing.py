@@ -1,13 +1,13 @@
+import pandas as pd
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import NamedTuple, List, Union, Tuple
 
-import pandas as pd
-
 from demeter import MarketStatus, BaseAction
 from demeter.broker import MarketBalance, ActionTypeEnum
+from demeter.utils.console_text import get_action_str, ForColorEnum
 
 
 class DeribitOptionMarketDescription(NamedTuple):
@@ -273,6 +273,26 @@ class OptionTradeAction(BaseAction):
     fee: Decimal
     orders: List[Order]
 
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.green,
+            {
+                "instrument_name": self.instrument_name,
+                "average_price": str(self.average_price),
+                "amount": str(self.amount),
+                "total_premium": str(self.total_premium),
+                "underlying_price": str(self.underlying_price),
+            },
+        )
+
 
 @dataclass
 class BuyAction(OptionTradeAction):
@@ -330,6 +350,28 @@ class DeliverAction(BaseAction):
     fee: Decimal
     income_amount: Decimal
 
+    def set_type(self):
+        self.action_type = ActionTypeEnum.option_deliver
+
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.green,
+            {
+                "instrument_name": str(self.instrument_name),
+                "deriver_amount": str(self.deriver_amount),
+                "total_premium": str(self.total_premium),
+                "underlying_price": str(self.underlying_price),
+            },
+        )
+
 
 @dataclass
 class ExpiredAction(BaseAction):
@@ -357,6 +399,28 @@ class ExpiredAction(BaseAction):
     total_premium: Decimal
     strike_price: int
     underlying_price: Decimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.option_expire
+
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.green,
+            {
+                "instrument_name": str(self.instrument_name),
+                "underlying_price": str(self.underlying_price),
+                "amount": str(self.amount),
+                "total_premium": str(self.total_premium),
+            },
+        )
 
 
 DERIBIT_OPTION_FREQ = "1h"

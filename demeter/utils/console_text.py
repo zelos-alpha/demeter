@@ -21,7 +21,13 @@ class ForColorEnum(Enum):
     purple = 35
     cyan = 36
     white = 37
-
+    dark_grey = 90
+    light_red = 91
+    light_green = 92
+    light_yellow = 93
+    light_blue = 94
+    pink = 95
+    light_cyan = 96
 
 class BackColorEnum(Enum):
     """
@@ -160,6 +166,12 @@ def get_formatted_from_dict(values: Dict[str, str]) -> str:
             f"{get_formatted_predefined(k, STYLE['key'])}:{get_formatted_predefined(v_str, STYLE['value'])}"
         )
     return "".join(str_array)
+
+
+def get_action_str(action, title_color: ForColorEnum, value_dict: Dict[str,str]) -> str:
+    title = f"""\n\033[1;42m{action.timestamp.strftime("%Y-%m-%d %H:%M:%S")}\033[0m \033[1;95m{action.market.name:<20}\033[0m \033[1;{title_color.value}m{action.action_type.value:<20}\033[0m"""
+    body = get_formatted_from_dict(value_dict)
+    return title + body
 
 
 def print_dataframe_with_precision(df):

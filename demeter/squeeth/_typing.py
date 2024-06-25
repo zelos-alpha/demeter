@@ -5,6 +5,7 @@ from typing import NamedTuple
 from demeter import TokenInfo, ChainType, BaseAction, UnitDecimal
 from demeter.broker import MarketBalance, ActionTypeEnum
 from demeter.uniswap import PositionInfo
+from demeter.utils.console_text import get_action_str, ForColorEnum
 
 oSQTH = TokenInfo("oSQTH", 18)
 WETH = TokenInfo("weth", 18)
@@ -28,6 +29,7 @@ class SqueethChain:
     :type squeeth_uni_pool: str
 
     """
+
     chain: ChainType
     controller: str
     eth_quote_currency_pool: str
@@ -58,6 +60,7 @@ class Vault:
     :param uni_nft_id: uniswap lp position in collateral
     :type uni_nft_id: PositionInfo
     """
+
     id: int
     collateral_amount: Decimal = Decimal(0)
     osqth_short_amount: Decimal = Decimal(0)
@@ -91,6 +94,7 @@ class SqueethBalance(MarketBalance):
     :param gamma: gamma
     :type gamma: Decimal
     """
+
     collateral_amount: Decimal
     collateral_value: Decimal
     osqth_long_amount: Decimal
@@ -126,6 +130,7 @@ class VaultAction(BaseAction):
     :type vault_id: int
 
     """
+
     vault_id: int
 
 
@@ -137,10 +142,28 @@ class AddVaultAction(VaultAction):
     :param vault_count: vault count
     :type vault_count: int
     """
+
     vault_count: int
 
     def set_type(self):
         self.action_type = ActionTypeEnum.squeeth_open_vault
+
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.light_red,
+            {
+                "vault_id": str(self.vault_id),
+                "vault_count": str(self.vault_count),
+            },
+        )
 
 
 @dataclass
@@ -156,12 +179,31 @@ class UpdateCollateralAction(VaultAction):
     :type fee: UnitDecimal
 
     """
+
     collateral_amount: UnitDecimal
     collateral_after: UnitDecimal
     fee: UnitDecimal
 
     def set_type(self):
         self.action_type = ActionTypeEnum.squeeth_update_collateral
+
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.light_red,
+            {
+                "vault_id": str(self.vault_id),
+                "collateral_amount": self.collateral_amount.to_str(),
+                "collateral_after": self.collateral_after.to_str(),
+            },
+        )
 
 
 @dataclass
@@ -182,6 +224,24 @@ class UpdateShortAction(VaultAction):
     def set_type(self):
         self.action_type = ActionTypeEnum.squeeth_update_short
 
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.light_red,
+            {
+                "vault_id": str(self.vault_id),
+                "short_amount": self.short_amount.to_str(),
+                "short_after": self.short_after.to_str(),
+            },
+        )
+
 
 @dataclass
 class DepositLpAction(VaultAction):
@@ -191,10 +251,28 @@ class DepositLpAction(VaultAction):
     :param position: position to deposit
     :type position: PositionInfo
     """
+
     position: PositionInfo
 
     def set_type(self):
         self.action_type = ActionTypeEnum.squeeth_deposit_lp
+
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.light_red,
+            {
+                "vault_id": str(self.vault_id),
+                "position": f"({self.position.lower_tick},{self.position.upper_tick})",
+            },
+        )
 
 
 @dataclass
@@ -205,10 +283,28 @@ class WithdrawLpAction(VaultAction):
     :param position: position to withdraw
     :type position: PositionInfo
     """
+
     position: PositionInfo
 
     def set_type(self):
         self.action_type = ActionTypeEnum.squeeth_withdraw_lp
+
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.light_red,
+            {
+                "vault_id": str(self.vault_id),
+                "position": f"({self.position.lower_tick},{self.position.upper_tick})",
+            },
+        )
 
 
 @dataclass
@@ -233,6 +329,7 @@ class ReduceDebtAction(VaultAction):
     :param collateral_after: collateral amount after
     :type collateral_after: UnitDecimal
     """
+
     position: PositionInfo
     withdrawn_eth_amount: UnitDecimal
     withdrawn_osqth_amount: UnitDecimal
@@ -244,6 +341,30 @@ class ReduceDebtAction(VaultAction):
 
     def set_type(self):
         self.action_type = ActionTypeEnum.squeeth_reduce_debt
+
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.light_red,
+            {
+                "vault_id": str(self.vault_id),
+                "position": f"({self.position.lower_tick},{self.position.upper_tick})",
+                "withdrawn_eth_amount": self.withdrawn_eth_amount.to_str(),
+                "withdrawn_osqth_amount": self.withdrawn_osqth_amount.to_str(),
+                "burn_amount": self.burn_amount.to_str(),
+                "excess": self.excess.to_str(),
+                "bounty": self.bounty.to_str(),
+                "short_amount_after": self.short_amount_after.to_str(),
+                "collateral_after": self.collateral_after.to_str(),
+            },
+        )
 
 
 @dataclass
@@ -260,6 +381,7 @@ class LiquidationAction(VaultAction):
     :param collateral_after: eth collateral after
     :type collateral_after: UnitDecimal
     """
+
     liquidate_amount: UnitDecimal
     short_amount_after: UnitDecimal
     collateral_to_pay: UnitDecimal
@@ -267,3 +389,23 @@ class LiquidationAction(VaultAction):
 
     def set_type(self):
         self.action_type = ActionTypeEnum.squeeth_liquidation
+
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.light_red,
+            {
+                "vault_id": str(self.vault_id),
+                "liquidate_amount": self.liquidate_amount.to_str(),
+                "short_amount_after": self.short_amount_after.to_str(),
+                "collateral_to_pay": self.collateral_to_pay.to_str(),
+                "collateral_after": self.collateral_after.to_str(),
+            },
+        )
