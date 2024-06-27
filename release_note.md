@@ -1,3 +1,14 @@
+# Ver 0.5.3
+
+* add print action switch
+* add get_output_str for action types
+* add pending time to PeriodTrigger, so you can trigger at specific time of a day
+* fix bug: when daily minute file is empty, an error will be thrown
+* Multiple improves in uniswap market.
+  * add price range to position
+  * fix bug: base token amount was actually value in add_liquidity_by_value
+  
+
 # Ver 0.5.2
 
 Add function for uniswap market: add_liquidity_by_value, With function, you can define how much to add liquidity from your balance.
