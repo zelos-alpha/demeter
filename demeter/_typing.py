@@ -133,6 +133,10 @@ class DemeterError(Exception):
         self.message = message
 
 
+class DemeterWarning(RuntimeWarning):
+    def __init__(self, message):
+        self.message = message
+
 class ChainType(str, Enum):
     """
     Enum for chains

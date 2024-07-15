@@ -1,3 +1,9 @@
+# Ver 0.5.4
+
+* [breaking change]Update minimal python version to 3.11
+* Update in uniswap v3 market
+  * [breaking change]Update get_account_status_df function to account_status_df property. account_status_df is available after backtest finished. 
+
 # Ver 0.5.3
 
 * add print action switch

@@ -4,6 +4,7 @@ A backtest package for uniswap and aave
 
 from ._typing import (
     DemeterError,
+    DemeterWarning,
     TokenInfo,
     UnitDecimal,
     DECIMAL_0,

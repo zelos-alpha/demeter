@@ -14,12 +14,17 @@ from tqdm import tqdm  # process bar
 
 from .evaluating_indicator import Evaluator
 from .. import Broker, Asset
-from .._typing import DemeterError, EvaluatorEnum, UnitDecimal
+from .._typing import DemeterError, EvaluatorEnum, UnitDecimal, DemeterWarning
 from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
 from ..strategy import Strategy
 from ..uniswap import UniLpMarket, PositionInfo
 from ..utils import get_formatted_predefined, STYLE, to_decimal
 from ..utils import console_text
+
+
+@dataclass
+class RunningCount:
+    get_account_status_df: int = 0
 
 
 class Actuator(object):
@@ -55,6 +60,7 @@ class Actuator(object):
         self.logger = logging.getLogger(__name__)
         # internal var
         self.__backtest_finished = False
+        self.__runnning_count: RunningCount = RunningCount()
         self.print_action = False
 
     def _record_action_list(self, action: BaseAction):
@@ -177,9 +183,8 @@ class Actuator(object):
         else:
             raise ValueError()
 
-    # endregion
-
-    def get_account_status_dataframe(self) -> pd.DataFrame:
+    @property
+    def account_status_df(self) -> pd.DataFrame:
         """
         | Get account status in dataframe. it contains account balance/position change of every minute.
         | Row(datetimeindex) is per minute.
@@ -188,7 +193,24 @@ class Actuator(object):
         :return: account status
         :rtype: DataFrame
         """
-        return AccountStatus.to_dataframe(self._account_status_list)
+        if not self.__backtest_finished:
+            if self.__runnning_count.get_account_status_df >= 10:
+                raise DemeterWarning(
+                    "Frequent calls to account_status_df will generate multiple DataFrame objects, consuming a lot of time and memory. Consider using account_status instead."
+                )
+            self.__runnning_count.get_account_status_df += 1
+
+            self._account_status_df = AccountStatus.to_dataframe(self._account_status_list)
+        return self._account_status_df
+
+    @account_status_df.setter
+    def account_status_df(self, new_df: pd.DataFrame):
+        if not self.__backtest_finished:
+            raise DemeterError("Back test has not finish yet, can not write account_status_df")
+        else:
+            self._account_status_df = new_df
+
+    # endregion
 
     def set_assets(self, assets: List[Asset]):
         """
@@ -411,7 +433,7 @@ class Actuator(object):
                 row_id += 1
 
         self.logger.info("main loop finished")
-        self._account_status_df: pd.DataFrame = self.get_account_status_dataframe()
+        self._account_status_df: pd.DataFrame = AccountStatus.to_dataframe(self._account_status_list)
 
         if len(self._enabled_evaluator) > 0:
             self.logger.info("Start calculate evaluating indicator...")
@@ -503,7 +525,7 @@ class Actuator(object):
         self._strategy.account_status = self._account_status_list
         self._strategy.actions = self._action_list
         self._strategy.assets = self.broker.assets
-        self._strategy.get_account_status_dataframe = self.get_account_status_dataframe
+        self._strategy.get_account_status_dataframe = self.account_status
         for k, v in self.broker.markets.items():
             setattr(self._strategy, k.name, v)
         for k, v in self.broker.assets.items():

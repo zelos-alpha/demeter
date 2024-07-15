@@ -69,4 +69,4 @@ if __name__ == "__main__":
     actuator.set_price(market.get_price_from_data())  # set price
     actuator.run()  # run test
 
-    plot_position_return_decomposition(actuator.get_account_status_dataframe(), actuator.token_prices[eth.name], market_key)
+    plot_position_return_decomposition(actuator.account_status_df, actuator.token_prices[eth.name], market_key)

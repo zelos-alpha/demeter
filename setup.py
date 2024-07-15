@@ -16,7 +16,7 @@ setup(
     description="better DEFI backtesting tool",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    python_requires=">=3.10",
+    python_requires=">=3.11",
     install_requires=[
         "numpy==1.26.4",
         "pandas==2.2.0",

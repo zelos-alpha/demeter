@@ -172,7 +172,7 @@ if __name__ == "__main__":
     actuator.set_price(market_uni.get_price_from_data())
 
     actuator.run()
-    df = actuator.get_account_status_dataframe()
+    df = actuator.account_status_df
     df["price"] = actuator.token_prices[eth.name]
     df.to_csv(file_name + ".csv")
     with open(file_name + ".pkl", "wb") as outfile1:

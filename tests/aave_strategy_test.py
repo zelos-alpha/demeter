@@ -123,7 +123,7 @@ class TestActuator(unittest.TestCase):
 
         actuator.set_price(pd.read_csv(StringIO(price_csv), index_col=0, parse_dates=True))
         actuator.run()
-        account_status = actuator.get_account_status_dataframe()
+        account_status = actuator.account_status_df
         self.assertEqual(account_status.tail(1).iloc[0].net_value, Decimal("10027"))
         self.assertEqual(account_status.tail(1).iloc[0].aave_borrows_value, Decimal("7063"))
         self.assertEqual(account_status.tail(1).iloc[0].aave_supplies_value, Decimal("10090"))
@@ -140,7 +140,7 @@ class TestActuator(unittest.TestCase):
 
         actuator.set_price(pd.read_csv(StringIO(price_csv), index_col=0, parse_dates=True))
         actuator.run()
-        account_status = actuator.get_account_status_dataframe()
+        account_status = actuator.account_status()
 
         self.assertEqual(account_status.iloc[0].aave_borrows_value, Decimal("7000"))
         self.assertEqual(account_status.iloc[6].aave_borrows_value, Decimal("7042"))
@@ -165,7 +165,7 @@ class TestActuator(unittest.TestCase):
 
         actuator.set_price(pd.read_csv(StringIO(price_csv), index_col=0, parse_dates=True))
         actuator.run()
-        account_status = actuator.get_account_status_dataframe()
+        account_status = actuator.account_status()
 
         self.assertEqual(account_status.iloc[0].aave_borrows_value, Decimal("7920"))
         self.assertEqual(account_status.iloc[6].aave_borrows_value, Decimal("7967.5200"))
