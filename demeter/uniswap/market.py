@@ -780,8 +780,8 @@ class UniLpMarket(Market):
         This function to free you from complex calculation.
 
 
-        :param lower_tick:
-        :param upper_tick:
+        :param lower_tick: lower tick
+        :param upper_tick: upper tick
         :param value_to_use: Value you want to add liquidity(in quote token). Actual value used would be less than this value because swap fee might be charged.
         :return:
         """

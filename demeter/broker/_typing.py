@@ -196,12 +196,15 @@ class BaseAction(object):
     :type action_type: ActionTypeEnum
     :param timestamp: action time
     :type timestamp: datetime
+    :param comment: comment for this action
+    :type comment: str
 
     """
 
     market: MarketInfo
     action_type: ActionTypeEnum = field(default=False, init=False)
     timestamp: datetime = field(default=False, init=False)
+    comment: str = field(default=False, init=False)
 
     def get_output_str(self):
         return str(self)

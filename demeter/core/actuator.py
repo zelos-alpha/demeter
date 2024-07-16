@@ -13,7 +13,7 @@ from pandas import Timestamp
 from tqdm import tqdm  # process bar
 
 from .evaluating_indicator import Evaluator
-from .. import Broker, Asset
+from .. import Broker, Asset, ActionTypeEnum
 from .._typing import DemeterError, EvaluatorEnum, UnitDecimal, DemeterWarning
 from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
 from ..strategy import Strategy
@@ -211,6 +211,16 @@ class Actuator(object):
             self._account_status_df = new_df
 
     # endregion
+    def comment_last_action(self, message: str, action_type: ActionTypeEnum | None = None):
+        if len(self._action_list) < 0:
+            raise DemeterWarning("No action yet")
+        if action_type is None:
+            self._action_list[len(self._action_list) - 1].comment = message
+        else:
+            for action in reversed(self._action_list):
+                if action_type==action.action_type:
+                    action.comment = message
+                    break
 
     def set_assets(self, assets: List[Asset]):
         """
@@ -434,6 +444,9 @@ class Actuator(object):
 
         self.logger.info("main loop finished")
         self._account_status_df: pd.DataFrame = AccountStatus.to_dataframe(self._account_status_list)
+
+        tmp_price_df = self._token_prices.rename(columns=lambda x: x + "_price")
+        self._account_status_df = pd.concat([self._account_status_df, tmp_price_df], axis=1)
 
         if len(self._enabled_evaluator) > 0:
             self.logger.info("Start calculate evaluating indicator...")
