@@ -5,6 +5,7 @@
 * account_status_df has token price now
 * Add comment for last action, you can record parameter or reason for this transaction, call actuator.comment_last_action in strategy
 * [breaking change]Account status df use multiindex column now.
+* [breaking change]Actuator.output() has renamed to "print_result", Output parameter in Actuator.run() has renamed to "print".
 
 # Ver 0.5.3
 

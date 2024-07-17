@@ -38,6 +38,7 @@ class DemoStrategy(Strategy):
     def work(self, row_data: RowData):
         lp_market: UniLpMarket = self.markets[market_key]  # pick our market.
         self.new_position, amount0_used, amount1_used, liquidity = lp_market.add_liquidity(1000, 4000)  # add liquidity
+        self.comment_last_action("Add liquidity because ...") # add comment to last transaction
 
     def remove_liquidity(self, row_data: RowData):
         lp_market: UniLpMarket = self.markets[market_key]

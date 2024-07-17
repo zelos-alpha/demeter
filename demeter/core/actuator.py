@@ -355,7 +355,7 @@ class Actuator(object):
 
         return largest_market.data.index.get_level_values(0).unique()
 
-    def run(self, evaluator: List[EvaluatorEnum] | None = None, output: bool = True):
+    def run(self, evaluator: List[EvaluatorEnum] | None = None, print: bool = True):
         """
         Start back test, the whole process including:
 
@@ -375,8 +375,8 @@ class Actuator(object):
 
         :param evaluator: enable evaluating indicator.
         :type evaluator: List[EvaluatorEnum]
-        :param output: enable output.
-        :type output: bool
+        :param print: If true, print backtest result to console.
+        :type print: bool
         """
         evaluator = evaluator if evaluator is not None else []
         run_begin_time = time.time()  # 1681718968.267463
@@ -458,12 +458,12 @@ class Actuator(object):
             self.logger.info("Evaluating indicator has finished it's job.")
         self._strategy.finalize()
         self.__backtest_finished = True
-        if output:
-            self.output()
+        if print:
+            self.print_result()
 
         self.logger.info(f"Backtesting finished, execute time {time.time() - run_begin_time}s")
 
-    def output(self):
+    def print_result(self):
         """
         Print backtest result to console, and it will print the following content
 
