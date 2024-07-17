@@ -445,7 +445,7 @@ class AccountStatus(AccountStatusCommon):
         return result
 
     @staticmethod
-    def to_dataframe(status_list: []) -> pd.DataFrame:
+    def to_dataframe(status_list: List) -> pd.DataFrame:
         """
         status list convert to dataframe
         :param status_list:

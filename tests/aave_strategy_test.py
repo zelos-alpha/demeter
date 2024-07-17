@@ -124,7 +124,7 @@ class TestActuator(unittest.TestCase):
         actuator.set_price(pd.read_csv(StringIO(price_csv), index_col=0, parse_dates=True))
         actuator.run()
         account_status = actuator.account_status_df
-        self.assertEqual(account_status.tail(1).iloc[0].net_value, Decimal("10027"))
+        self.assertEqual(account_status.tail(1).iloc[0].final_equity, Decimal("10027"))
         self.assertEqual(account_status.tail(1).iloc[0].aave_borrows_value, Decimal("7063"))
         self.assertEqual(account_status.tail(1).iloc[0].aave_supplies_value, Decimal("10090"))
 
@@ -151,7 +151,7 @@ class TestActuator(unittest.TestCase):
         self.assertEqual(account_status.iloc[7].aave_health_factor, Decimal("inf"))
 
         self.assertEqual(account_status.iloc[8].aave_supplies_value, Decimal("0"))
-        self.assertEqual(account_status.iloc[9].net_value, Decimal("15031"))
+        self.assertEqual(account_status.iloc[9].final_equity, Decimal("15031"))
 
     def test_repay_with_collateral(self):
         aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="./aave_risk_parameters/polygon.csv", tokens=[weth])

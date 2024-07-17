@@ -12,10 +12,10 @@ import pandas as pd
 from pandas import Timestamp
 from tqdm import tqdm  # process bar
 
-from .evaluating_indicator import Evaluator
 from .. import Broker, Asset, ActionTypeEnum
-from .._typing import DemeterError, EvaluatorEnum, UnitDecimal, DemeterWarning
+from .._typing import DemeterError, UnitDecimal, DemeterWarning
 from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
+from ..metrics import MetricsCalculator, MetricEnum
 from ..strategy import Strategy
 from ..uniswap import UniLpMarket, PositionInfo
 from ..utils import get_formatted_predefined, STYLE, to_decimal, to_multi_index_df
@@ -53,8 +53,8 @@ class Actuator(object):
         self._token_prices: pd.DataFrame | None = None
         # path of source data, which is saved by downloader
         # evaluating indicator calculator
-        self._evaluator: Evaluator | None = None
-        self._enabled_evaluator: [] = []
+        # self._evaluator: Evaluator | None = None
+        # self._enabled_evaluator: [] = []
         # logging
         logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
         self.logger = logging.getLogger(__name__)
@@ -62,6 +62,7 @@ class Actuator(object):
         self.__backtest_finished = False
         self.__runnning_count: RunningCount = RunningCount()
         self.print_action = False
+        self.init_account_status = None
 
     def _record_action_list(self, action: BaseAction):
         """
@@ -122,7 +123,7 @@ class Actuator(object):
         """
         Reset actuator by re-initiate all the status variables
         """
-        self._evaluator: Evaluator | None = None
+        # self._evaluator: Evaluator | None = None
         self._enabled_evaluator: [] = []
 
         self._action_list = []
@@ -141,16 +142,6 @@ class Actuator(object):
         :rtype: List[BaseAction]
         """
         return self._action_list
-
-    @property
-    def evaluating_indicator(self) -> Dict[EvaluatorEnum, UnitDecimal]:
-        """
-        Get evaluating indicator result
-
-        :return: Result of each evaluating indicator in dict
-        :rtype: Dict[EvaluatorEnum, UnitDecimal]
-        """
-        return self._evaluator.result if self._evaluator is not None else None
 
     @property
     def broker(self) -> Broker:
@@ -355,7 +346,7 @@ class Actuator(object):
 
         return largest_market.data.index.get_level_values(0).unique()
 
-    def run(self, evaluator: List[EvaluatorEnum] | None = None, print: bool = True):
+    def run(self, print: bool = True):
         """
         Start back test, the whole process including:
 
@@ -374,15 +365,13 @@ class Actuator(object):
         * output result if required
 
         :param evaluator: enable evaluating indicator.
-        :type evaluator: List[EvaluatorEnum]
+        :type evaluator: List[MetricEnum]
         :param print: If true, print backtest result to console.
         :type print: bool
         """
-        evaluator = evaluator if evaluator is not None else []
         run_begin_time = time.time()  # 1681718968.267463
         self.reset()
 
-        self._enabled_evaluator = evaluator
         self._check_backtest()
         index_array: pd.DatetimeIndex = (
             self.get_test_range()
@@ -393,7 +382,7 @@ class Actuator(object):
         self.__set_market_timestamp(index_array[0], False)
         self._currents.timestamp = index_array[0].to_pydatetime()
         # keep initial balance for evaluating
-        init_account_status = self._broker.get_account_status(
+        self.init_account_status = self._broker.get_account_status(
             self._token_prices.head(1).iloc[0], index_array[0].to_pydatetime()
         )
         self.init_strategy()
@@ -449,13 +438,6 @@ class Actuator(object):
         to_multi_index_df(tmp_price_df, "price")
         self._account_status_df = pd.concat([self._account_status_df, tmp_price_df], axis=1)
 
-        if len(self._enabled_evaluator) > 0:
-            self.logger.info("Start calculate evaluating indicator...")
-            self._evaluator = Evaluator(
-                init_account_status, self._account_status_df, self._token_prices, self._broker.markets
-            )
-            self._evaluator.run(self._enabled_evaluator)
-            self.logger.info("Evaluating indicator has finished it's job.")
         self._strategy.finalize()
         self.__backtest_finished = True
         if print:
@@ -478,9 +460,9 @@ class Actuator(object):
         print(self.broker.formatted_str())
         print(get_formatted_predefined("Account balance history", STYLE["header1"]))
         console_text.print_dataframe_with_precision(self._account_status_df)
-        if len(self._enabled_evaluator) > 0:
-            print("Evaluating indicator")
-            print(self._evaluator)
+        # if len(self._enabled_evaluator) > 0:
+        #     print("Evaluating indicator")
+        #     print(self._evaluator)
 
     def save_result(self, path: str, account=True, actions=True) -> List[str]:
         """
@@ -521,6 +503,12 @@ class Actuator(object):
 
         self.logger.info(f"files have saved to {','.join(file_list)}")
         return file_list
+
+    def performance_metrics(self, metrics: List[MetricEnum] = None):
+        if not self.__backtest_finished:
+            raise DemeterError("Please run strategy first")
+        metric_calc = MetricsCalculator(self.init_account_status, self.account_status_df)
+        metric_calc.run(metrics)
 
     def init_strategy(self):
         """

@@ -67,28 +67,7 @@ class UnitDecimal(Decimal):
         self._unit = value
 
 
-class EvaluatorEnum(Enum):
-    """
-    Types of Strategy Evaluation
-    """
 
-    all = 0
-    annualized_returns = 1
-    benchmark_returns = 2
-    max_draw_down = 3
-    net_value = 4
-    profit = 5
-    net_value_up_down_rate = 6
-    eth_up_down_rate = 7
-    position_fee_profit = 8
-    position_fee_annualized_returns = 9
-    position_market_time_rate = 10
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return self.name
 
 
 class TokenInfo:

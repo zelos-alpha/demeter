@@ -14,9 +14,9 @@ from demeter import (
     MarketDict,
     AtTimeTrigger,
     AccountStatus,
-    EvaluatorEnum,
     BaseAction,
 )
+from demeter.metrics import MetricEnum
 from demeter.uniswap import UniLpMarket, UniV3Pool
 from demeter.utils import load_account_status
 
@@ -38,7 +38,7 @@ class DemoStrategy(Strategy):
     def work(self, row_data: RowData):
         lp_market: UniLpMarket = self.markets[market_key]  # pick our market.
         self.new_position, amount0_used, amount1_used, liquidity = lp_market.add_liquidity(1000, 4000)  # add liquidity
-        self.comment_last_action("Add liquidity because ...") # add comment to last transaction
+        self.comment_last_action("Add liquidity because ...")  # add comment to last transaction
 
     def remove_liquidity(self, row_data: RowData):
         lp_market: UniLpMarket = self.markets[market_key]
@@ -103,26 +103,16 @@ if __name__ == "__main__":
 
     # if evaluator is set, evaluating indicator will run after backtest.
     # those evaluating indicator will calculate indicator of net value.
-    actuator.run(
-        evaluator=[
-            # EvaluatorEnum.max_draw_down,
-            # EvaluatorEnum.annualized_returns,
-            # EvaluatorEnum.net_value,
-            # EvaluatorEnum.profit,
-            # EvaluatorEnum.net_value_up_down_rate,
-            # EvaluatorEnum.eth_up_down_rate,
-            # EvaluatorEnum.position_fee_profit,
-            # EvaluatorEnum.position_fee_annualized_returns,
-            # EvaluatorEnum.position_market_time_rate,
-        ]
-    )
+    actuator.run()
     # get result
-    evaluating_result: Dict[EvaluatorEnum, Decimal] = actuator.evaluating_indicator
-
-    files = actuator.save_result(
-        path="./result",  # save path
-        account=True,  # save account status list as a csv file
-        actions=True,  # save actions as a json file and a pickle file
+    evaluating_result: Dict[MetricEnum, Decimal] = actuator.performance_metrics(
+        [MetricEnum.return_value, MetricEnum.annualized_return, MetricEnum.benchmark_return]
     )
-    account_df_loaded = load_account_status(files[0])
+
+    # files = actuator.save_result(
+    #     path="./result",  # save path
+    #     account=True,  # save account status list as a csv file
+    #     actions=True,  # save actions as a json file and a pickle file
+    # )
+    # account_df_loaded = load_account_status(files[0]) # load equity list
     pass

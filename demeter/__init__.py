@@ -9,7 +9,6 @@ from ._typing import (
     UnitDecimal,
     DECIMAL_0,
     DECIMAL_1,
-    EvaluatorEnum,
     ChainType,
     Formats,
 )

@@ -3,7 +3,7 @@ from typing import Dict, List
 import pandas as pd
 from typing_extensions import deprecated
 
-from .._typing import UnitDecimal, DemeterError, EvaluatorEnum
+from .._typing import UnitDecimal, DemeterError, MetricEnum
 from ..broker import AccountStatus, AccountStatusCommon
 from ..broker._typing import MarketDict
 from .math_helper import max_draw_down_fast, annualized_returns, get_benchmark_returns
@@ -39,22 +39,22 @@ class Evaluator(object):
         self.time_span_in_day = len(data.index) * (data.index[1] - data.index[0]).seconds / (60 * 60 * 24)
         self._result = None
 
-    def run(self, enables: List[EvaluatorEnum]) -> Dict[EvaluatorEnum, UnitDecimal]:
+    def run(self, enables: List[MetricEnum]) -> Dict[MetricEnum, UnitDecimal]:
         """
         run evaluator
 
         :param enables: which evaluator to enable
-        :type enables: List[EvaluatorEnum]
+        :type enables: List[MetricEnum]
         :return: dict of results, key is evaluator, value is result of evaluator
         :rtype: Dict[EvaluatorEnum, UnitDecimal]
         """
-        if EvaluatorEnum.all in enables:
-            enables = [x for x in EvaluatorEnum]
+        if MetricEnum.all in enables:
+            enables = [x for x in MetricEnum]
             enables = filter(lambda x: x.value > 0, enables)
-        result_dict: Dict[EvaluatorEnum, UnitDecimal] = {}
+        result_dict: Dict[MetricEnum, UnitDecimal] = {}
         for request in enables:
             match request:
-                case EvaluatorEnum.annualized_returns:
+                case MetricEnum.annualized_return:
                     result = UnitDecimal(
                         annualized_returns(
                             self.init_status.net_value,
@@ -63,7 +63,7 @@ class Evaluator(object):
                         ),
                         "",
                     )
-                case EvaluatorEnum.benchmark_returns:
+                case MetricEnum.benchmark_returns:
                     result = UnitDecimal(
                         get_benchmark_returns(
                             self.init_status.net_value,
@@ -73,21 +73,21 @@ class Evaluator(object):
                         ),
                         "",
                     )
-                case EvaluatorEnum.max_draw_down:
+                case MetricEnum.max_drawdown:
                     result = UnitDecimal(max_draw_down_fast(self.data.net_value), "")
-                case EvaluatorEnum.net_value:
+                case MetricEnum.final_equity:
                     result = UnitDecimal(self.end_status.net_value / self.init_status.net_value)
-                case EvaluatorEnum.profit:
+                case MetricEnum.profit:
                     result = UnitDecimal(self.end_status.net_value - self.init_status.net_value)
-                case EvaluatorEnum.net_value_up_down_rate:
+                case MetricEnum.net_value_up_down_rate:
                     result = UnitDecimal(
                         (self.end_status.net_value - self.init_status.net_value) / self.init_status.net_value
                     )
-                case EvaluatorEnum.eth_up_down_rate:
+                case MetricEnum.eth_up_down_rate:
                     result = UnitDecimal(
                         (self.prices.iloc[-1]["ETH"] - self.prices.iloc[0]["ETH"]) / self.prices.iloc[0]["ETH"]
                     )
-                case EvaluatorEnum.position_fee_profit:
+                case MetricEnum.position_fee_profit:
                     fee_value = UnitDecimal(0)
                     for _, market in self.markets.items():
                         fee_df = self.data[
@@ -110,7 +110,7 @@ class Evaluator(object):
                             + latest_fee[f"{market.market_info.name}_quote_uncollected"] * latest_fee["ETH"]
                         )
                     result = UnitDecimal(fee_value)
-                case EvaluatorEnum.position_fee_annualized_returns:
+                case MetricEnum.position_fee_annualized_returns:
                     fee_value = UnitDecimal(0)
                     for _, market in self.markets.items():
                         fee_df = self.data[
@@ -144,7 +144,7 @@ class Evaluator(object):
                         else:
                             fee_value += UnitDecimal(0)
                     result = fee_value
-                case EvaluatorEnum.position_market_time_rate:
+                case MetricEnum.position_market_time_rate:
                     market_time_rate = UnitDecimal(0)
                     for _, market in self.markets.items():
                         fee_df = self.data[
@@ -160,12 +160,12 @@ class Evaluator(object):
         return result_dict
 
     @property
-    def result(self) -> Dict[EvaluatorEnum, UnitDecimal]:
+    def result(self) -> Dict[MetricEnum, UnitDecimal]:
         """
         Return evaluate result after run()
 
         :return: evaluate result
-        :rtype: Dict[EvaluatorEnum, UnitDecimal]
+        :rtype: Dict[MetricEnum, UnitDecimal]
         """
         return self._result
 
