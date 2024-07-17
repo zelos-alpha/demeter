@@ -4,8 +4,21 @@ from typing import List, Dict
 
 import pandas as pd
 
-from demeter import TokenInfo, Actuator, Strategy, RowData, ChainType, MarketInfo, MarketDict, AtTimeTrigger, AccountStatus, EvaluatorEnum, BaseAction
+from demeter import (
+    TokenInfo,
+    Actuator,
+    Strategy,
+    RowData,
+    ChainType,
+    MarketInfo,
+    MarketDict,
+    AtTimeTrigger,
+    AccountStatus,
+    EvaluatorEnum,
+    BaseAction,
+)
 from demeter.uniswap import UniLpMarket, UniV3Pool
+from demeter.utils import load_account_status
 
 pd.options.display.max_columns = None
 pd.set_option("display.width", 5000)
@@ -59,7 +72,7 @@ class DemoStrategy(Strategy):
 
         # if you need a dataframe. you can call get_account_status_dataframe()
         # do not call get_account_status_dataframe in on_bar because it will slow the backtesting.
-        account_status_df: pd.DataFrame = self.get_account_status_dataframe()
+        account_status_df: pd.DataFrame = self.account_status_df
 
         # actions, this record all the actions such as add/remove liquidity, buy, sell,
         # As each action has different parameter, its type is List[BaseAction],
@@ -76,7 +89,9 @@ if __name__ == "__main__":
     market_key = MarketInfo("market1")  # market1
     market = UniLpMarket(market_key, pool)
     market.data_path = "../data"
-    market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 15), date(2023, 8, 17))
+    market.load_data(
+        ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 15), date(2023, 8, 16)
+    )
 
     actuator = Actuator()
     actuator.broker.add_market(market)  # add market
@@ -87,23 +102,26 @@ if __name__ == "__main__":
 
     # if evaluator is set, evaluating indicator will run after backtest.
     # those evaluating indicator will calculate indicator of net value.
-    actuator.run(evaluator=[
-        EvaluatorEnum.max_draw_down,
-        EvaluatorEnum.annualized_returns,
-        EvaluatorEnum.net_value,
-        EvaluatorEnum.profit,
-        EvaluatorEnum.net_value_up_down_rate,
-        EvaluatorEnum.eth_up_down_rate,
-        EvaluatorEnum.position_fee_profit,
-        EvaluatorEnum.position_fee_annualized_returns,
-        EvaluatorEnum.position_market_time_rate,
-    ])
+    actuator.run(
+        evaluator=[
+            # EvaluatorEnum.max_draw_down,
+            # EvaluatorEnum.annualized_returns,
+            # EvaluatorEnum.net_value,
+            # EvaluatorEnum.profit,
+            # EvaluatorEnum.net_value_up_down_rate,
+            # EvaluatorEnum.eth_up_down_rate,
+            # EvaluatorEnum.position_fee_profit,
+            # EvaluatorEnum.position_fee_annualized_returns,
+            # EvaluatorEnum.position_market_time_rate,
+        ]
+    )
     # get result
     evaluating_result: Dict[EvaluatorEnum, Decimal] = actuator.evaluating_indicator
 
-    actuator.save_result(
+    files = actuator.save_result(
         path="./result",  # save path
         account=True,  # save account status list as a csv file
         actions=True,  # save actions as a json file and a pickle file
     )
+    account_df_loaded = load_account_status(files[0])
     pass

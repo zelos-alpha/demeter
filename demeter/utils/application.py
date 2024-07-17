@@ -92,7 +92,18 @@ def require(condition: bool, error_msg: str):
     if not condition:
         raise AssertionError(error_msg)
 
+
 def to_multi_index_df(df: pd.DataFrame, level0: str):
     new_level_0 = [level0] * df.shape[1]  # 使用相同的标签作为示例
-    new_columns = pd.MultiIndex.from_arrays([new_level_0, df.columns])
+    new_columns = pd.MultiIndex.from_arrays([new_level_0, df.columns], names=["l1", "l2"])
     df.columns = new_columns
+
+
+def load_account_status(path) -> pd.DataFrame:
+    df = pd.read_csv(path, index_col=[0], header=[0, 1], parse_dates=[0])
+    rename_dict = {}
+    for column in df.columns:
+        if "Unnamed" in column[1]:
+            rename_dict[column[1]] = ""
+    df = df.rename(columns=rename_dict, level="l2")
+    return df

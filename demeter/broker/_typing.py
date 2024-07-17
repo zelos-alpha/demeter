@@ -456,8 +456,12 @@ class AccountStatus(AccountStatusCommon):
         if len(index) == 0:
             return pd.DataFrame()
 
-        nv_series = pd.Series(index=index, data=[x.net_value for x in status_list], name="net_value")
-        df_array = []
+        nv_df = pd.DataFrame(
+            index=index,
+            data=[x.net_value for x in status_list],
+            columns=pd.MultiIndex.from_tuples([("net_value", "")], names=["l1", "l2"]),
+        )
+        df_array = [nv_df]
 
         account_list = [x.asset_balances.data for x in status_list]
         account_key_mapping = {x: x.name for x in account_list[0].keys()}
@@ -475,7 +479,6 @@ class AccountStatus(AccountStatusCommon):
             df_array.append(market_df)
 
         result_df = pd.concat(df_array, axis=1)
-        result_df.insert(loc=0, value=nv_series, column="net_value")
         return result_df
 
 
