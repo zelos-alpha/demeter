@@ -1,4 +1,5 @@
 import json
+import pandas as pd
 from decimal import Decimal
 from enum import Enum
 from functools import wraps
@@ -90,3 +91,8 @@ def require(condition: bool, error_msg: str):
     """
     if not condition:
         raise AssertionError(error_msg)
+
+def to_multi_index_df(df: pd.DataFrame, level0: str):
+    new_level_0 = [level0] * df.shape[1]  # 使用相同的标签作为示例
+    new_columns = pd.MultiIndex.from_arrays([new_level_0, df.columns])
+    df.columns = new_columns

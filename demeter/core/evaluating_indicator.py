@@ -1,6 +1,7 @@
 from typing import Dict, List
 
 import pandas as pd
+from typing_extensions import deprecated
 
 from .._typing import UnitDecimal, DemeterError, EvaluatorEnum
 from ..broker import AccountStatus, AccountStatusCommon
@@ -8,6 +9,7 @@ from ..broker._typing import MarketDict
 from .math_helper import max_draw_down_fast, annualized_returns, get_benchmark_returns
 
 
+@deprecated("Please use metrics module.")
 class Evaluator(object):
     """
     Calculate evaluator indicator for strategy.

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Callable
 
 import pandas as pd
 
@@ -20,6 +20,8 @@ class Strategy(object):
         self.prices: pd.DataFrame | None = None
         self.triggers: [Trigger] = []
         self.account_status: List[AccountStatus] = []
+        self.account_status_df: pd.DataFrame | None = None
+        self.comment_last_action: Callable = lambda msg: msg
         self.assets: AssetDict[Asset] = AssetDict()
         self.actions: List[BaseAction] = []
 

@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Generic, NamedTuple, List, Dict, TypeVar, Union
 
 from .._typing import DemeterError, TokenInfo
+from ..utils import to_multi_index_df
 
 T = TypeVar("T")
 
@@ -398,6 +399,12 @@ class AssetDict(Generic[T]):
         """
         return len(self.data)
 
+    def __str__(self):
+        return self.data
+
+    def __repr__(self):
+        return self.data
+
 
 @dataclass
 class AccountStatus(AccountStatusCommon):
@@ -445,12 +452,31 @@ class AccountStatus(AccountStatusCommon):
         :return:
         """
         index = [i.timestamp for i in status_list]
-        if len(index) > 0:
-            return pd.DataFrame(
-                columns=status_list[0].get_names(), index=index, data=map(lambda d: d.to_array(), status_list)
-            )
-        else:
+
+        if len(index) == 0:
             return pd.DataFrame()
+
+        nv_series = pd.Series(index=index, data=[x.net_value for x in status_list], name="net_value")
+        df_array = []
+
+        account_list = [x.asset_balances.data for x in status_list]
+        account_key_mapping = {x: x.name for x in account_list[0].keys()}
+        account_df = pd.DataFrame(index=index, data=account_list)
+        account_df.rename(columns=account_key_mapping, inplace=True)
+        to_multi_index_df(account_df, "tokens")
+        df_array.append(account_df)
+
+        markets = status_list[0].market_status.keys()
+
+        for market_key in markets:
+            market_data = [x.market_status[market_key] for x in status_list]
+            market_df = pd.DataFrame(index=index, data=market_data)
+            to_multi_index_df(market_df, market_key.name)
+            df_array.append(market_df)
+
+        result_df = pd.concat(df_array, axis=1)
+        result_df.insert(loc=0, value=nv_series, column="net_value")
+        return result_df
 
 
 class PositionManager:

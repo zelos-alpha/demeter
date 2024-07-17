@@ -1,9 +1,10 @@
-# Ver 0.5.4
+# Ver 0.6.0
 
 * [breaking change]Update minimal python version to 3.11
 * [breaking change]Update get_account_status_df function to account_status_df property. account_status_df is available after backtest finished.
 * account_status_df has token price now
 * Add comment for last action, you can record parameter or reason for this transaction, call actuator.comment_last_action in strategy
+* [breaking change]Account status df use multiindex column now.
 
 # Ver 0.5.3
 
