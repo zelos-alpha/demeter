@@ -95,11 +95,11 @@ def _withdraw_with_high_low(arr: list):
     from : https://blog.csdn.net/Spade_/article/details/112341428
     """
 
-    # 传入一个数组，返回最大回撤和对应的最高点索引、最低点索引
-    _dp = 0  # 使用 _dp 表示 i 点的最大回撤
-    i_high = 0  # 遍历时，0 ~ i - 1 中最高的点的索引，注意是索引
+    # Given an array, return the maximum drawdown and the corresponding indices of the highest and lowest points.
+    _dp = 0  # Let _dp[i] represent the maximum drawdown ending at index i.
+    i_high = 0  # During iteration, the index of the highest point within the range from 0 to i - 1.
 
-    # 全局最大回撤和对应的最高点和最低点的索引，注意是索引
+    # Global maximum drawdown and the corresponding highest and lowest point indices, noting that indices are meant.
     g_withdraw, g_high, g_low = float("-inf"), -1, -1
 
     for i in range(1, len(arr)):

@@ -16,7 +16,7 @@ from demeter import (
     AccountStatus,
     BaseAction,
 )
-from demeter.metrics import MetricEnum
+from demeter.metrics import performance_metrics
 from demeter.uniswap import UniLpMarket, UniV3Pool
 from demeter.utils import load_account_status
 
@@ -105,9 +105,8 @@ if __name__ == "__main__":
     # those evaluating indicator will calculate indicator of net value.
     actuator.run()
     # get result
-    evaluating_result: Dict[MetricEnum, Decimal] = actuator.performance_metrics(
-        [MetricEnum.return_value, MetricEnum.annualized_return, MetricEnum.benchmark_return]
-    )
+    metrics = performance_metrics(actuator.account_status_df["net_value"])
+
 
     # files = actuator.save_result(
     #     path="./result",  # save path

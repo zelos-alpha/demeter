@@ -1,32 +1,32 @@
 import numpy as np
 import pandas as pd
-from decimal import Decimal
-
 from demeter import DemeterError
 
-DECIMAL_1 = Decimal(1)
 
-
-def return_value(init_equity: Decimal, final_equity: Decimal) -> Decimal:
+def return_value(init_equity: float, final_equity: float) -> float:
     return final_equity - init_equity
 
 
-def return_rate(init_equity: Decimal, final_equity: Decimal) -> Decimal:
-    return final_equity / init_equity if init_equity > 0 else np.inf
+def return_rate(init_equity: float, final_equity: float) -> float:
+    return final_equity / init_equity - 1 if init_equity > 0 else np.inf
+
+
+def get_return_multiple(net_value: pd.Series) -> pd.Series:
+    return (net_value / net_value.shift(1)).fillna(1).replace([np.inf, -np.inf], 1)
 
 
 def get_return_rate(net_value: pd.Series) -> pd.Series:
-    return (net_value / net_value.shift(1)).fillna(DECIMAL_1).replace([np.inf, -np.inf], DECIMAL_1)
+    return net_value.pct_change().fillna(0).replace([np.inf, -np.inf], 0)
 
 
 def annualized_return(
-    timespan_in_day: float = None,
-    init_value: Decimal = None,
-    final_value: Decimal = None,
-    return_rate: pd.Series = None,
-    net_value: pd.Series = None,
-    type="single",
-) -> Decimal:
+    timespan_in_day: float,
+    init_value: float = None,
+    final_value: float = None,
+    return_rates: pd.Series = None,
+    net_values: pd.Series = None,
+    type="compound",
+) -> float:
     """
     calculated for a period of a year's data
 
@@ -34,26 +34,31 @@ def annualized_return(
     :param final_value: Net value in the end
     :param timespan_in_day: time span, unit is day
     """
-    if init_value is not None and final_value is not None:
-        if type == "single":
-            return ((final_value - init_value) / init_value) / Decimal(timespan_in_day / 365)
-        elif type == "compound":
-            return (final_value / init_value) ** Decimal(365 / timespan_in_day) - 1
-    else:
-        if return_rate is None:
-            if net_value is not None:
-                return_rate = get_return_rate(net_value)
-            else:
-                raise DemeterError("initial and final value is None, or return rate is None")
-        if type == "single":
-            return (return_rate - 1).sum() / Decimal(timespan_in_day / 365)
-        elif type == "compound":
-            return return_rate.prod() ** Decimal(365 / timespan_in_day) - 1
+    if type == "single":
+        if init_value is not None and final_value is not None:
+            return ((final_value - init_value) / init_value) / (timespan_in_day / 365)
+        elif net_values is not None:
+            return (net_values.iloc[-1] - net_values.iloc[0]) /  net_values.iloc[0] / (timespan_in_day / 365)
+        elif return_rates is not None:
+            raise DemeterError("single interest series should not exist, it should be compound")
+        else:
+            raise DemeterError("Choose one to calculate: initial and final value/return rate/net value")
+    elif type == "compound":
+        if init_value is not None and final_value is not None:
+            return (final_value / init_value) ** (365 / timespan_in_day) - 1
+        elif net_values is not None:
+            return_rates = get_return_multiple(net_values)
+            return return_rates.prod() ** (365 / timespan_in_day) - 1
+        elif return_rates is not None:
+            return (return_rates + 1).prod() ** (365 / timespan_in_day) - 1
+        else:
+            raise DemeterError("Choose one to calculate: initial and final value/return rate/net value")
 
 
-def max_draw_down(value: pd.Series):
+def max_draw_down_benchmark(value: pd.Series):
     """
-    Get max draw down
+    Calculate the maximum drawdown based on its definition.
+    This method is computationally intensive and is used for comparing results with max_draw_down.
 
     :param value: value to calculate
     :type value: pd.Series
@@ -67,7 +72,7 @@ def max_draw_down(value: pd.Series):
     return result
 
 
-def max_draw_down_fast(net_value: pd.Series):
+def max_draw_down(net_value: pd.Series):
     """
     Get max draw down in a fast algorithm.
 
@@ -83,21 +88,53 @@ def _withdraw_with_high_low(arr: list):
     from : https://blog.csdn.net/Spade_/article/details/112341428
     """
 
-    # 传入一个数组，返回最大回撤和对应的最高点索引、最低点索引
-    _dp = 0  # 使用 _dp 表示 i 点的最大回撤
-    i_high = 0  # 遍历时，0 ~ i - 1 中最高的点的索引，注意是索引
+    # Given an array, return the maximum drawdown and the corresponding indices of the highest and lowest points.
+    _dp = 0  # Let _dp[i] represent the maximum drawdown ending at index i.
+    i_high = 0  # During iteration, the index of the highest point within the range from 0 to i - 1.
 
-    # 全局最大回撤和对应的最高点和最低点的索引，注意是索引
-    g_withdraw, g_high, g_low = float("-inf"), -1, -1
+    # Global maximum drawdown and the corresponding highest and lowest point indices, noting that indices are meant.
+    g_withdraw, g_high, g_low = -np.inf, -1, -1
 
     for i in range(1, len(arr)):
-        if arr[i_high] < arr[i - 1]:  # 若 0 ~ i - 1 中最高的点小于当前点
-            i_high = i - 1  # 0 ~ i - 1 中最高的点的索引
-
-        _dp = arr[i_high] - arr[i]  # _dp 表示 i 点的最大回撤
-        if _dp > g_withdraw:  # 找到新的最大回撤，更新三个值
+        # If the highest point within the range from 0 to i - 1 is less than the current point...
+        if arr[i_high] < arr[i - 1]:
+            i_high = i - 1  # ...the index of the highest point within the range from 0 to i - 1
+        _dp = arr[i_high] - arr[i]  # ...then _dp[i] is updated to represent the maximum drawdown ending at index i.
+        if _dp > g_withdraw:  # Find the new maximum drawdown and update the three values:
             g_withdraw = _dp
             g_high = i_high
             g_low = i
 
     return g_withdraw, g_high, g_low
+
+
+def volatility(value: pd.Series, timespan_in_day: float):
+    return value.std() * np.sqrt(365 / timespan_in_day)
+
+
+def sharpe_ratio(interval_in_day: float, values: pd.Series, annualized_risk_free_rate: float):
+    returns = values.pct_change().dropna()
+
+    mean_daily_return = returns.mean()
+    std_daily_return = returns.std()
+
+    mean_yearly_return = mean_daily_return * 365 / interval_in_day
+    std_yearly_return = std_daily_return * np.sqrt(365 / interval_in_day)
+
+    result = (mean_yearly_return - annualized_risk_free_rate) / std_yearly_return
+
+    return result
+
+
+def alpha_beta(net_value: pd.Series, benchmark: pd.Series, timespan: float):
+    portfolio_return = net_value.pct_change().dropna()
+    benchmark_return = benchmark.pct_change().dropna()
+
+    cov_matrix = np.cov(portfolio_return, benchmark_return)
+    beta = cov_matrix[0, 1] / cov_matrix[1, 1]
+
+    mean_portfolio_return = annualized_return(timespan, net_values=net_value)
+    mean_benchmark_return = annualized_return(timespan, net_values=benchmark)
+    alpha = mean_portfolio_return - beta * mean_benchmark_return
+
+    return alpha, beta

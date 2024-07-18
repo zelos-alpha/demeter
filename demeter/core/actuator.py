@@ -15,7 +15,6 @@ from tqdm import tqdm  # process bar
 from .. import Broker, Asset, ActionTypeEnum
 from .._typing import DemeterError, UnitDecimal, DemeterWarning
 from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
-from ..metrics import MetricsCalculator, MetricEnum
 from ..strategy import Strategy
 from ..uniswap import UniLpMarket, PositionInfo
 from ..utils import get_formatted_predefined, STYLE, to_decimal, to_multi_index_df
@@ -503,12 +502,6 @@ class Actuator(object):
 
         self.logger.info(f"files have saved to {','.join(file_list)}")
         return file_list
-
-    def performance_metrics(self, metrics: List[MetricEnum] = None):
-        if not self.__backtest_finished:
-            raise DemeterError("Please run strategy first")
-        metric_calc = MetricsCalculator(self.init_account_status, self.account_status_df)
-        metric_calc.run(metrics)
 
     def init_strategy(self):
         """

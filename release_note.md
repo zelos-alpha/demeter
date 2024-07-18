@@ -9,7 +9,7 @@
 
 # Ver 0.5.3
 
-* add print action switch
+* add "print action" setting in actuator
 * add get_output_str for action types
 * add pending time to PeriodTrigger, so you can trigger at specific time of a day
 * fix bug: when daily minute file is empty, an error will be thrown
