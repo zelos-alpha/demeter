@@ -6,7 +6,8 @@
 * Add comment for last action, you can record parameter or reason for this transaction, call actuator.comment_last_action in strategy
 * [breaking change]Account status df use multiindex column now.
 * [breaking change]Actuator.output() has renamed to "print_result", Output parameter in Actuator.run() has renamed to "print".
-
+* [breaking change]evaluating_indicator has been move to an independent module: metrics, and it's easy to use now. Also, some new performance metrics is added. Including sharp raito, alpha, beta.
+* 
 # Ver 0.5.3
 
 * add "print action" setting in actuator

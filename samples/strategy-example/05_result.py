@@ -104,14 +104,18 @@ if __name__ == "__main__":
     # if evaluator is set, evaluating indicator will run after backtest.
     # those evaluating indicator will calculate indicator of net value.
     actuator.run()
-    # get result
-    metrics = performance_metrics(actuator.account_status_df["net_value"])
+    # get metrics
+    metrics = performance_metrics(
+        actuator.account_status_df["net_value"], benchmark=actuator.account_status_df["price"]["ETH"]
+    )
+    print(metrics)
 
+    files = actuator.save_result(
+        path="./result",  # save path
+        account=True,  # save account status list as a csv file
+        actions=True,  # save actions as a json file and a pickle file
+    )
 
-    # files = actuator.save_result(
-    #     path="./result",  # save path
-    #     account=True,  # save account status list as a csv file
-    #     actions=True,  # save actions as a json file and a pickle file
-    # )
-    # account_df_loaded = load_account_status(files[0]) # load equity list
+    # load equity list
+    account_df_loaded = load_account_status(files[0])
     pass

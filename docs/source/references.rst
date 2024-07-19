@@ -13,6 +13,7 @@ References
    demeter.deribit
    demeter.squeeth
    demeter.indicator
+   demeter.metrics
 
 
 

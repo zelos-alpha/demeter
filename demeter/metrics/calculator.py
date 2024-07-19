@@ -4,53 +4,87 @@ from demeter import DemeterError
 
 
 def return_value(init_equity: float, final_equity: float) -> float:
+    """
+    Get return rate
+
+    :param init_equity: init equity
+    :param final_equity: final equity
+    :return: return value
+    """
     return final_equity - init_equity
 
 
 def return_rate(init_equity: float, final_equity: float) -> float:
+    """
+    rate of return, if init_equity is 0, will return np.inf
+    :param init_equity: init equity
+    :param final_equity: final equity
+    :return: return rate
+    """
     return final_equity / init_equity - 1 if init_equity > 0 else np.inf
 
 
-def get_return_multiple(net_value: pd.Series) -> pd.Series:
+def return_multiple(net_value: pd.Series) -> pd.Series:
+    """
+    get return multiple, value(t) / value(t-1), if there are nan/inf values, it will be set to 1
+
+    :param net_value: list of values
+    :return: return multiple
+    """
     return (net_value / net_value.shift(1)).fillna(1).replace([np.inf, -np.inf], 1)
 
 
-def get_return_rate(net_value: pd.Series) -> pd.Series:
+def return_rate_series(net_value: pd.Series) -> pd.Series:
+    """
+    calculate return rate of a net value series, (value(t) - value(t-1)) / value(t-1),
+    if there are nan/inf values, it will be set to 0.
+
+    :param net_value: list of values
+    :return: return rate list
+    """
     return net_value.pct_change().fillna(0).replace([np.inf, -np.inf], 0)
 
 
 def annualized_return(
-    timespan_in_day: float,
+    duration_in_day: float,
     init_value: float = None,
     final_value: float = None,
     return_rates: pd.Series = None,
     net_values: pd.Series = None,
-    type="compound",
+    interest_type="compound",
 ) -> float:
     """
-    calculated for a period of a year's data
+    Annualizing an asset's return rate. you can choose one way to calculate
+    * initial value and final value
+    * return rate list
+    * net value list
 
-    :param init_value:  Net value in the beginning
-    :param final_value: Net value in the end
-    :param timespan_in_day: time span, unit is day
+    :param duration_in_day: days between initial time and final time
+    :param init_value: initial value
+    :param final_value: final value
+    :param return_rates: a list of return rate
+    :param net_values: a list of net value
+    :param interest_type: interest type, can be "single" or "compound", default is compound
+    :return annualized return value:
     """
-    if type == "single":
+
+    if interest_type == "single":
         if init_value is not None and final_value is not None:
-            return ((final_value - init_value) / init_value) / (timespan_in_day / 365)
+            return ((final_value - init_value) / init_value) / (duration_in_day / 365)
         elif net_values is not None:
-            return (net_values.iloc[-1] - net_values.iloc[0]) /  net_values.iloc[0] / (timespan_in_day / 365)
+            return (net_values.iloc[-1] - net_values.iloc[0]) / net_values.iloc[0] / (duration_in_day / 365)
         elif return_rates is not None:
             raise DemeterError("single interest series should not exist, it should be compound")
         else:
             raise DemeterError("Choose one to calculate: initial and final value/return rate/net value")
-    elif type == "compound":
+    elif interest_type == "compound":
         if init_value is not None and final_value is not None:
-            return (final_value / init_value) ** (365 / timespan_in_day) - 1
+            return (final_value / init_value) ** (365 / duration_in_day) - 1
         elif net_values is not None:
-            return_rates = get_return_multiple(net_values)
-            return return_rates.prod() ** (365 / timespan_in_day) - 1
+            return_rates = return_multiple(net_values)
+            return return_rates.prod() ** (365 / duration_in_day) - 1
         elif return_rates is not None:
-            return (return_rates + 1).prod() ** (365 / timespan_in_day) - 1
+            return (return_rates + 1).prod() ** (365 / duration_in_day) - 1
         else:
             raise DemeterError("Choose one to calculate: initial and final value/return rate/net value")
 
@@ -108,11 +142,26 @@ def _withdraw_with_high_low(arr: list):
     return g_withdraw, g_high, g_low
 
 
-def volatility(value: pd.Series, timespan_in_day: float):
-    return value.std() * np.sqrt(365 / timespan_in_day)
+def volatility(values: pd.Series, duration_in_day: float):
+    """
+    Calculate volatility, The number of trading days is 365 instead of 252.
+    :param values: list of values
+    :param duration_in_day: days between initial time and final time
+    :return: volatility value
+    """
+    return values.std() * np.sqrt(365 / duration_in_day)
 
 
 def sharpe_ratio(interval_in_day: float, values: pd.Series, annualized_risk_free_rate: float):
+    """
+    Calculate sharpe ratio. The number of trading days is 365 instead of 252.
+
+    :param interval_in_day: Daily data interval.
+    :param values: list of values
+    :param annualized_risk_free_rate: annualized risk free rate
+    :return: sharpe ratio
+    """
+
     returns = values.pct_change().dropna()
 
     mean_daily_return = returns.mean()
@@ -126,15 +175,23 @@ def sharpe_ratio(interval_in_day: float, values: pd.Series, annualized_risk_free
     return result
 
 
-def alpha_beta(net_value: pd.Series, benchmark: pd.Series, timespan: float):
-    portfolio_return = net_value.pct_change().dropna()
+def alpha_beta(values: pd.Series, benchmark: pd.Series):
+    """
+    Calculate alpha and beta
+    :param values: list of values
+    :param benchmark: benchmark
+    :return: alpha and beta
+    """
+    portfolio_return = values.pct_change().dropna()
     benchmark_return = benchmark.pct_change().dropna()
 
-    cov_matrix = np.cov(portfolio_return, benchmark_return)
-    beta = cov_matrix[0, 1] / cov_matrix[1, 1]
+    mean_portfolio_return = portfolio_return.mean()
+    mean_benchmark_return = benchmark_return.mean()
 
-    mean_portfolio_return = annualized_return(timespan, net_values=net_value)
-    mean_benchmark_return = annualized_return(timespan, net_values=benchmark)
+    covariance = np.mean((portfolio_return - mean_portfolio_return) * (benchmark_return - mean_benchmark_return))
+    variance = np.mean((benchmark_return - mean_benchmark_return) ** 2)
+
+    beta = covariance / variance
     alpha = mean_portfolio_return - beta * mean_benchmark_return
 
     return alpha, beta
