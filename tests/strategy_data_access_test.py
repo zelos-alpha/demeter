@@ -6,7 +6,7 @@ import pandas as pd
 from demeter import TokenInfo, Actuator, Strategy, MarketInfo, MarketDict, MarketStatus, RowData
 from demeter.uniswap import UniV3Pool, UniLpMarket
 from .common import assert_equal
-from .utils import get_mock_data
+from .utils import get_uni_v3_mock_data
 
 eth = TokenInfo(name="eth", decimal=18)
 usdc = TokenInfo(name="usdc", decimal=6)
@@ -57,6 +57,6 @@ class TestActuator(unittest.TestCase):
         broker.set_balance(eth, 1)
 
         tick = market.price_to_tick(1000)  # 207243
-        market.data = get_mock_data(market, tick, 1000 * 10**usdc.decimal, 1 * 10**eth.decimal, "10000000000000000")
+        market.data = get_uni_v3_mock_data(market, tick, 1000 * 10 ** usdc.decimal, 1 * 10 ** eth.decimal, "10000000000000000")
         market.data["closeTick"] = pd.Series(data=range(5), index=market.data.index)
         actuator.run()

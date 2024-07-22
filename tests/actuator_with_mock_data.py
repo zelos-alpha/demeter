@@ -58,7 +58,7 @@ class TestActuator(unittest.TestCase):
             center_tick + tick_width,
             get_sqrt_ratio_at_tick(center_tick),
         )
-        market.data = utils.get_mock_data(
+        market.data = utils.get_uni_v3_mock_data(
             market,
             center_tick,
             usdc_amount * 10**usdc.decimal,

@@ -48,10 +48,10 @@ class DemoStrategy(Strategy):
         ma = self.data[market_key].sma
 
         # account_status, it's very important as it contains net_value.
-        # it is kept in a list. if you need a dataframe. you can call get_account_status_dataframe()
-        # do not call get_account_status_dataframe in on_bar because it will slow the backtesting.
+        # it is kept in a list. if you need a dataframe. you can call account_status_df
+        # do not call account_status_df in on_bar because it will slow the backtesting.
         account_status: List[AccountStatus] = self.account_status
-        account_status_df: pd.DataFrame = self.get_account_status_dataframe()
+        account_status_df: pd.DataFrame = self.account_status_df
 
 
 if __name__ == "__main__":

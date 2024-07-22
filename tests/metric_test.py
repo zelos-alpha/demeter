@@ -26,21 +26,21 @@ class TestMetric(unittest.TestCase):
         self.final = self.data.iloc[-1]
 
     def test_annual_return(self):
-        a11 = round(annualized_return(self.duration_in_day, self.init, self.final, type="single"), 6)
-        a12 = round(annualized_return(self.duration_in_day, net_values=self.data, type="single"), 6)
+        a11 = round(annualized_return(self.duration_in_day, self.init, self.final), 6)
+        a12 = round(annualized_return(self.duration_in_day, net_values=self.data), 6)
         a21 = round(annualized_return(self.duration_in_day, self.init, self.final), 6)
         a22 = round(annualized_return(self.duration_in_day, net_values=self.data), 6)
         print(a11, a12, a21, a22)
         pass
 
     def test_annual_return_2(self):
-        a11 = round(annualized_return(365 / 2, 1, 1.1, type="single"), 6)
+        a11 = round(annualized_return(365 / 2, 1, 1.1, interest_type="single"), 6)
         a21 = round(annualized_return(365 / 2, 1, 1.1), 6)
         self.assertEqual(a11, 0.2)
         self.assertEqual(a21, 0.21)
         print(a11, a21)
 
-        a12 = round(annualized_return(365, net_values=pd.Series([1, 1.1, 1.2]), type="single"), 6)
+        a12 = round(annualized_return(365, net_values=pd.Series([1, 1.1, 1.2])), 6)
         a22 = round(annualized_return(365, net_values=pd.Series([1, 1.1, 1.21])), 6)
         self.assertEqual(a12, 0.2)
         self.assertEqual(a22, 0.21)

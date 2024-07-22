@@ -12,14 +12,6 @@ demeter.core.actuator module
    :undoc-members:
    :show-inheritance:
 
-demeter.core.evaluating\_indicator module
------------------------------------------
-
-.. automodule:: demeter.core.evaluating_indicator
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 demeter.core.math\_helper module
 --------------------------------
 

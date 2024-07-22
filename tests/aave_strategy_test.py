@@ -6,7 +6,17 @@ from typing import Union
 
 import pandas as pd
 
-from demeter import TokenInfo, Actuator, Strategy, RowData, MarketInfo, MarketDict, MarketTypeEnum, ChainType, AtTimeTrigger
+from demeter import (
+    TokenInfo,
+    Actuator,
+    Strategy,
+    RowData,
+    MarketInfo,
+    MarketDict,
+    MarketTypeEnum,
+    ChainType,
+    AtTimeTrigger,
+)
 from demeter.aave import AaveBalance, InterestRateMode, AaveV3Market, AaveTokenStatus
 
 # To print all the columns of dataframe, we should set up display option.
@@ -112,7 +122,9 @@ class RepayWithCollateralStrategy(Strategy):
 
 class TestActuator(unittest.TestCase):
     def test_basic(self):
-        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="./aave_risk_parameters/polygon.csv", tokens=[weth])
+        aave_market = AaveV3Market(
+            market_info=market_key, risk_parameters_path="./aave_risk_parameters/polygon.csv", tokens=[weth]
+        )
 
         aave_market.set_token_data(weth, pd.read_csv(StringIO(eth_data_csv), index_col=0, parse_dates=True))
 
@@ -124,12 +136,14 @@ class TestActuator(unittest.TestCase):
         actuator.set_price(pd.read_csv(StringIO(price_csv), index_col=0, parse_dates=True))
         actuator.run()
         account_status = actuator.account_status_df
-        self.assertEqual(account_status.tail(1).iloc[0].final_equity, Decimal("10027"))
-        self.assertEqual(account_status.tail(1).iloc[0].aave_borrows_value, Decimal("7063"))
-        self.assertEqual(account_status.tail(1).iloc[0].aave_supplies_value, Decimal("10090"))
+        self.assertEqual(account_status.tail(1).iloc[0]["net_value"][""], Decimal("10027"))
+        self.assertEqual(account_status.tail(1).iloc[0]["aave"]["borrows_value"], Decimal("7063"))
+        self.assertEqual(account_status.tail(1).iloc[0]["aave"]["supplies_value"], Decimal("10090"))
 
     def test_all_operation(self):
-        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="./aave_risk_parameters/polygon.csv", tokens=[weth])
+        aave_market = AaveV3Market(
+            market_info=market_key, risk_parameters_path="./aave_risk_parameters/polygon.csv", tokens=[weth]
+        )
 
         aave_market.set_token_data(weth, pd.read_csv(StringIO(eth_data_csv), index_col=0, parse_dates=True))
 
@@ -140,21 +154,21 @@ class TestActuator(unittest.TestCase):
 
         actuator.set_price(pd.read_csv(StringIO(price_csv), index_col=0, parse_dates=True))
         actuator.run()
-        account_status = actuator.account_status()
+        account_status = actuator.account_status_df
 
-        self.assertEqual(account_status.iloc[0].aave_borrows_value, Decimal("7000"))
-        self.assertEqual(account_status.iloc[6].aave_borrows_value, Decimal("7042"))
-
-        self.assertEqual(account_status.iloc[7].aave_health_factor, Decimal("inf"))
-        self.assertEqual(account_status.iloc[7].aave_supplies_value, Decimal("10070.0000"))
-        self.assertEqual(account_status.iloc[7].aave_borrows_value, Decimal("0"))
-        self.assertEqual(account_status.iloc[7].aave_health_factor, Decimal("inf"))
-
-        self.assertEqual(account_status.iloc[8].aave_supplies_value, Decimal("0"))
-        self.assertEqual(account_status.iloc[9].final_equity, Decimal("15031"))
+        self.assertEqual(account_status.iloc[0]["aave"]["borrows_value"], Decimal("7000"))
+        self.assertEqual(account_status.iloc[6]["aave"]["borrows_value"], Decimal("7042"))
+        self.assertEqual(account_status.iloc[7]["aave"]["health_factor"], Decimal("inf"))
+        self.assertEqual(account_status.iloc[7]["aave"]["supplies_value"], Decimal("10070.0000"))
+        self.assertEqual(account_status.iloc[7]["aave"]["borrows_value"], Decimal("0"))
+        self.assertEqual(account_status.iloc[7]["aave"]["health_factor"], Decimal("inf"))
+        self.assertEqual(account_status.iloc[8]["aave"]["supplies_value"], Decimal("0"))
+        self.assertEqual(account_status.iloc[9]["net_value"][""], Decimal("15031"))
 
     def test_repay_with_collateral(self):
-        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="./aave_risk_parameters/polygon.csv", tokens=[weth])
+        aave_market = AaveV3Market(
+            market_info=market_key, risk_parameters_path="./aave_risk_parameters/polygon.csv", tokens=[weth]
+        )
 
         aave_market.set_token_data(weth, pd.read_csv(StringIO(eth_data_csv), index_col=0, parse_dates=True))
 
@@ -165,16 +179,16 @@ class TestActuator(unittest.TestCase):
 
         actuator.set_price(pd.read_csv(StringIO(price_csv), index_col=0, parse_dates=True))
         actuator.run()
-        account_status = actuator.account_status()
+        account_status = actuator.account_status_df
 
-        self.assertEqual(account_status.iloc[0].aave_borrows_value, Decimal("7920"))
-        self.assertEqual(account_status.iloc[6].aave_borrows_value, Decimal("7967.5200"))
-        self.assertEqual(account_status.iloc[6].aave_supplies_value, Decimal("10060"))
-        self.assertEqual(account_status.iloc[6].WETH, Decimal("7.92"))
+        self.assertEqual(account_status.iloc[0]["aave"]["borrows_value"], Decimal("7920"))
+        self.assertEqual(account_status.iloc[6]["aave"]["borrows_value"], Decimal("7967.5200"))
+        self.assertEqual(account_status.iloc[6]["aave"]["supplies_value"], Decimal("10060"))
+        self.assertEqual(account_status.iloc[6]["tokens"]["WETH"], Decimal("7.92"))
 
-        self.assertEqual(account_status.iloc[7].aave_health_factor, Decimal("inf"))
-        self.assertEqual(account_status.iloc[7].aave_supplies_value, Decimal("2094.5600"))
-        self.assertEqual(account_status.iloc[7].aave_borrows_value, Decimal("0"))
-        self.assertEqual(account_status.iloc[7].WETH, Decimal("7.92"))
+        self.assertEqual(account_status.iloc[7]["aave"]["health_factor"], Decimal("inf"))
+        self.assertEqual(account_status.iloc[7]["aave"]["supplies_value"], Decimal("2094.5600"))
+        self.assertEqual(account_status.iloc[7]["aave"]["borrows_value"], Decimal("0"))
+        self.assertEqual(account_status.iloc[7]["tokens"]["WETH"], Decimal("7.92"))
 
         self.assertEqual(actuator.broker.get_token_balance(weth), Decimal("7.92"))

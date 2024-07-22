@@ -2,7 +2,7 @@ from typing import Dict
 
 from decimal import Decimal
 
-from demeter.metrics._typing import MetricEnum
+from ._typing import MetricEnum
 from .calculator import *
 
 DECIMAL_1 = Decimal(1)

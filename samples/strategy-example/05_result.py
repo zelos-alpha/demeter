@@ -71,8 +71,8 @@ class DemoStrategy(Strategy):
         """
         account_status: List[AccountStatus] = self.account_status
 
-        # if you need a dataframe. you can call get_account_status_dataframe()
-        # do not call get_account_status_dataframe in on_bar because it will slow the backtesting.
+        # if you need a dataframe. you can call account_status_df
+        # do not call account_status_df in on_bar because it will slow the backtesting.
         account_status_df: pd.DataFrame = self.account_status_df
 
         # actions, this record all the actions such as add/remove liquidity, buy, sell,

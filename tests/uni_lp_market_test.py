@@ -460,7 +460,7 @@ class TestUniLpMarket(unittest.TestCase):
         )
         # broker balance eth:1 eth, usdc:1eth
         # will add usdc (value is 1 eth) liquidity, so usdc balance will be 0, eth not change
-        self.assertEqual(new_amount0, Decimal(0), Decimal(1))
+        self.assertEqual(new_amount0, Decimal(0))
 
         self.assertEqual(old_amount1, new_amount1)
 
@@ -472,5 +472,6 @@ class TestUniLpMarket(unittest.TestCase):
         # will add 2 eth, so all eth and usdc will be used.
         # but tick is higher than upper, so this time will add eth. We have to convert usdc to eth first
         # fee will be charged
-        self.assertEqual(old_amount0, new_amount0)
+        self.assertEqual(old_amount1, Decimal(1))
+        self.assertEqual(new_amount0, Decimal(0))
         self.assertEqual(new_amount1, Decimal(0))

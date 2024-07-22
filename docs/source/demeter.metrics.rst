@@ -1,11 +1,11 @@
 demeter.metrics package
-====================
+========================
 
 Submodules
-----------
+-------------
 
 demeter.metrics._typing module
----------------------------
+----------------------------------
 
 .. automodule:: demeter.metrics._typing
    :members:
@@ -13,7 +13,7 @@ demeter.metrics._typing module
    :show-inheritance:
 
 demeter.metrics.core module
-------------------------
+-------------------------------
 
 .. automodule:: demeter.metrics.core
    :members:
@@ -21,7 +21,7 @@ demeter.metrics.core module
    :show-inheritance:
 
 demeter.metrics.calculator module
---------------------------
+-------------------------------------
 
 .. automodule:: demeter.metrics.calculator
    :members:
@@ -30,7 +30,7 @@ demeter.metrics.calculator module
 
 
 Module contents
----------------
+-------------------
 
 .. automodule:: demeter.metrics
    :members:

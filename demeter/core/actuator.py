@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Dict, Union
+from typing import List, Union
 
 import orjson
 import pandas as pd
@@ -82,7 +82,8 @@ class Actuator(object):
         | Get account status list.
         | Account status includes balances, net values and positions.
         | Each element in this list stands for one minute.
-        | It is recommended to use get_account_status_dataframe.
+        | It is good to call it during backtest.
+        | After backtest, it's better to use account_status_df.
         """
         return self._account_status_list
 
@@ -363,8 +364,6 @@ class Actuator(object):
         * run strategy.finalize()
         * output result if required
 
-        :param evaluator: enable evaluating indicator.
-        :type evaluator: List[MetricEnum]
         :param print: If true, print backtest result to console.
         :type print: bool
         """
@@ -433,7 +432,11 @@ class Actuator(object):
         self.logger.info("main loop finished")
         self._account_status_df: pd.DataFrame = AccountStatus.to_dataframe(self._account_status_list)
 
-        tmp_price_df = self._token_prices.copy()
+        tmp_price_df = (
+            self._token_prices.copy()
+            .loc[self._account_status_df.index[0] : self._account_status_df.index[-1]]
+            .reindex(self._account_status_df.index)
+        )
         to_multi_index_df(tmp_price_df, "price")
         self._account_status_df = pd.concat([self._account_status_df, tmp_price_df], axis=1)
 
@@ -459,9 +462,6 @@ class Actuator(object):
         print(self.broker.formatted_str())
         print(get_formatted_predefined("Account balance history", STYLE["header1"]))
         console_text.print_dataframe_with_precision(self._account_status_df)
-        # if len(self._enabled_evaluator) > 0:
-        #     print("Evaluating indicator")
-        #     print(self._evaluator)
 
     def save_result(self, path: str, account=True, actions=True) -> List[str]:
         """

@@ -440,14 +440,15 @@ class TestUniLpMarketToken1Quote(unittest.TestCase):
         token0_before = broker.assets[self.eth].balance
         token1_before = broker.assets[self.usdc].balance
         TestUniLpMarketToken1Quote.print_broker(broker)
-        market.buy(0.5)
+        buy_amount = Decimal("0.5")
+        market.buy(buy_amount)
         print("=========after buy======================================================================")
         TestUniLpMarketToken1Quote.print_broker(broker)
         self.assertEqual(
             broker.assets[self.usdc].balance,
-            token1_before - market.market_status.data.price * Decimal(0.5) * (1 + market.pool_info.fee_rate),
+            token1_before - market.market_status.data.price * buy_amount / (1 - market.pool_info.fee_rate),
         )
-        self.assertEqual(broker.assets[self.eth].balance.quantize(Decimal("0.000001")), token0_before + Decimal(0.5))
+        self.assertEqual(broker.assets[self.eth].balance.quantize(Decimal("0.000001")), token0_before + buy_amount)
 
     def test_sell(self):
         broker = self.get_broker()

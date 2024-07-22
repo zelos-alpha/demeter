@@ -30,8 +30,8 @@ def plot_position_return_decomposition(account_status: pd.DataFrame, price: pd.S
     time_ts = list(account_status.index)
     price_ts = list(price)
 
-    value_in_position = account_status[market.name + "_net_value"]
-    value_in_account = account_status["USDC"] + account_status["ETH"] * price
+    value_in_position = account_status[market.name]["net_value"]
+    value_in_account = account_status["tokens"]["USDC"] + account_status["tokens"]["ETH"] * price
 
     value_ax.plot(time_ts, net_value_ts, 'g-', label="net value")
     value_ax.plot(time_ts, value_in_position, 'r-', label="value in get_position")

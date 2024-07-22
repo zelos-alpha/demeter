@@ -1,6 +1,6 @@
 from ._typing import MetricEnum
 from .core import performance_metrics
-from calculator import (
+from .calculator import (
     return_value,
     return_rate,
     return_multiple,
