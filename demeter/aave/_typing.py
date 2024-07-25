@@ -6,6 +6,7 @@ from typing import Dict, NamedTuple, Union
 from typing import TypeVar
 
 from .. import TokenInfo, UnitDecimal
+from .._typing import MarketDescription
 from ..broker import MarketBalance, MarketStatus, BaseAction, ActionTypeEnum
 from ..utils import console_text
 from ..utils.console_text import get_action_str, ForColorEnum
@@ -663,8 +664,8 @@ class DictCache:
         self._value[k] = v
         self.empty = False
 
-
-class AaveMarketDescription(NamedTuple):
+@dataclass
+class AaveDescription(MarketDescription):
     """
     Designed to generate json description for aave market
 
@@ -678,10 +679,6 @@ class AaveMarketDescription(NamedTuple):
     :type borrows_count: int
     """
 
-    type: str
-    """market type"""
-    name: str
-    """market name"""
     supplies_count: int
     """count of supplies"""
     borrows_count: int

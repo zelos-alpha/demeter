@@ -1,3 +1,9 @@
+import json
+
+from dataclasses import dataclass
+
+from typing import NamedTuple
+
 from decimal import Decimal
 from enum import Enum
 
@@ -67,9 +73,7 @@ class UnitDecimal(Decimal):
         self._unit = value
 
 
-
-
-
+@dataclass
 class TokenInfo:
     """
     Identity for a token, will be used as key for token dict.
@@ -116,6 +120,7 @@ class DemeterWarning(RuntimeWarning):
     def __init__(self, message):
         self.message = message
 
+
 class ChainType(str, Enum):
     """
     Enum for chains
@@ -131,3 +136,11 @@ class ChainType(str, Enum):
     avalanche = "avalanche"
     fantom = "fantom"
     harmony = "harmony"
+
+
+@dataclass
+class MarketDescription:
+    type: str
+    """market type string"""
+    name: str
+    """market name"""

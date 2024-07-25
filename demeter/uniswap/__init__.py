@@ -14,6 +14,7 @@ from ._typing import (
     CollectFeeAction,
     AddLiquidityAction,
     UniswapMarketStatus,
+    UniDescription,
 )
 from .core import V3CoreLib
 from .data import LineTypeEnum, UniLPData

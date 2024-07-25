@@ -1,3 +1,8 @@
+# Ver 0.6.1
+
+[breaking change]output result has updated, .action.json and action.pkl is removed. Instead, backtest description is added.
+It is a pkl file, and contains initial status and markets description and actions, etc.
+
 # Ver 0.6.0
 
 * [breaking change]Update minimal python version to 3.11

@@ -6,7 +6,7 @@ from datetime import date, datetime
 import pandas as pd
 
 import demeter.indicator
-from demeter import TokenInfo, Actuator, Strategy, MarketInfo, RowData, MarketDict, ChainType
+from demeter import TokenInfo, Actuator, Strategy, MarketInfo, RowData, MarketDict, ChainType, BackTestDescription
 from demeter.uniswap import PositionInfo, UniV3Pool, UniLpMarket
 
 pd.options.display.max_columns = None
@@ -69,7 +69,9 @@ class TestActuator(unittest.TestCase):
         actuator.strategy = EmptyStrategy()  # set strategy to actuator
 
         market.data_path = "data"
-        market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 14), date(2023, 8, 14))
+        market.load_data(
+            ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 14), date(2023, 8, 14)
+        )
         # actuator.output()  # print final status
 
         return actuator
@@ -80,7 +82,7 @@ class TestActuator(unittest.TestCase):
         print(actuator)
         self.assertEqual(
             str(actuator),
-            """{"Account status":{"assets":[{"name": "USDC", "value": 1067.0},{"name": "ETH", "value": 1.0}],"markets":[{"type": "UniLpMarket", "name": "market1", "position_count": 0, "total_liquidity": 0}]}, "action_count":0, "timestamp":"2023-08-14 23:59:00", "strategy":"EmptyStrategy", "price_df_rows":1440, "price_assets":["ETH","USDC"] }""",
+            """{"Account status":{"assets":[{"name": "USDC", "value": 1067.0},{"name": "ETH", "value": 1.0}],"markets":[{"type":"UniLpMarket","name":"market1","token0":{"name":"USDC","decimal":6,"address":""},"token1":{"name":"ETH","decimal":18,"address":""},"quote_token":{"name":"USDC","decimal":6,"address":""},"base_token":{"name":"ETH","decimal":18,"address":""},"fee_rate":"0.0005"}]}, "action_count":0, "timestamp":"2023-08-14 23:59:00", "strategy":"EmptyStrategy", "price_df_rows":1440, "price_assets":["ETH","USDC"] }""",
         )
 
     def test_run_buy_on_second(self):
@@ -103,7 +105,9 @@ class TestActuator(unittest.TestCase):
         broker.add_market(market)
 
         market.data_path = "data"
-        market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 13), date(2023, 8, 14))
+        market.load_data(
+            ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 13), date(2023, 8, 14)
+        )
         self.assertEqual(market.data.loc[datetime(2023, 8, 14, 0, 0, 0)]["netAmount0"], 0)
 
     def test_add_liquidity(self):
@@ -120,7 +124,7 @@ class TestActuator(unittest.TestCase):
         actuator = TestActuator.get_actuator_with_uni_market()
         actuator.strategy = AddLiquidity()
         actuator.run()
-        file_list = actuator.save_result("result", account=False)
+        file_list = actuator.save_result("result")
         for f in file_list:
             self.assertTrue(os.path.exists(f))
 
@@ -128,10 +132,10 @@ class TestActuator(unittest.TestCase):
         actuator = TestActuator.get_actuator_with_uni_market()
         actuator.strategy = AddLiquidity()
         actuator.run()
-        files = actuator.save_result("result", account=False)
+        files = actuator.save_result("result")
         file = filter(lambda x: ".pkl" in x, files)
         with open(list(file)[0], "rb") as f:
-            xxx = pickle.load(f)
-            self.assertEqual(actuator._action_list[0].lower_quote_price, xxx[0].lower_quote_price)
-            self.assertEqual(actuator._action_list[0].action_type, xxx[0].action_type)
-            self.assertEqual(actuator._action_list[0].timestamp, xxx[0].timestamp)
+            xxx: BackTestDescription = pickle.load(f)
+            self.assertEqual(actuator._action_list[0].lower_quote_price, xxx.actions[0].lower_quote_price)
+            self.assertEqual(actuator._action_list[0].action_type, xxx.actions[0].action_type)
+            self.assertEqual(actuator._action_list[0].timestamp, xxx.actions[0].timestamp)

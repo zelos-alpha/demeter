@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Dict, NamedTuple, Union
 
-from .._typing import TokenInfo, UnitDecimal
+from .._typing import TokenInfo, UnitDecimal, MarketDescription
 from ..broker import BaseAction, ActionTypeEnum, MarketBalance, MarketStatus
 from ..utils import console_text
 from ..utils import get_formatted_from_dict
@@ -30,20 +30,22 @@ class PositionInfo(NamedTuple):
     def __str__(self):
         return f"""tick:{self.lower_tick},{self.upper_tick}"""
 
-
-class UniDescription(NamedTuple):
+@dataclass
+class UniDescription(MarketDescription):
     """
     A brief description for uniswap market status.
     """
 
-    type: str
-    """market type string"""
-    name: str
-    """market name"""
-    position_count: int
-    """current position count of user"""
-    total_liquidity: int
-    """current total liquidity of user"""
+    token0: TokenInfo
+    """token0"""
+    token1: TokenInfo
+    """token1"""
+    quote_token: TokenInfo
+    """quote token"""
+    base_token: TokenInfo
+    """base token"""
+    fee_rate: Decimal
+    """fee rate"""
 
 
 class UniV3Pool(object):

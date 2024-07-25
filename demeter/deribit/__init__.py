@@ -9,5 +9,6 @@ from ._typing import (
     ExpiredAction,
     DeliverAction,
     DERIBIT_OPTION_FREQ,
+    DeribitOptionDescription,
 )
 from .helper import round_decimal

@@ -3,6 +3,7 @@ import os
 import token
 from _decimal import Decimal
 from datetime import date, timedelta
+from orjson import orjson
 from typing import Dict, List, Set
 
 import pandas as pd
@@ -26,7 +27,7 @@ from ._typing import (
     RepayAction,
     LiquidationAction,
     DictCache,
-    AaveMarketDescription,
+    AaveDescription,
     AaveMarketStatus,
 )
 from .core import AaveV3CoreLib
@@ -95,13 +96,16 @@ class AaveV3Market(Market):
     ]
 
     def __str__(self):
-        return json.dumps(self.description()._asdict())
+        from demeter.utils import orjson_default
 
+        return orjson.dumps(self.description, default=orjson_default).decode()
+
+    @property
     def description(self):
         """
         Get a brief description of this market
         """
-        return AaveMarketDescription(
+        return AaveDescription(
             type(self).__name__, self._market_info.name, len(self._supplies), len(self._borrows)
         )
 

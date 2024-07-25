@@ -1,6 +1,7 @@
 import os
 from datetime import date, timedelta, datetime
 from decimal import Decimal
+from orjson import orjson
 from typing import Tuple, Dict
 
 import numpy as np
@@ -22,6 +23,7 @@ from ._typing import (
     WithdrawLpAction,
     ReduceDebtAction,
     LiquidationAction,
+    SqueethDescription,
 )
 from .helper import calc_twap_price, vault_to_dataframe
 from .. import MarketInfo, TokenInfo, DemeterError, MarketStatus, DECIMAL_0, UnitDecimal
@@ -75,6 +77,18 @@ class SqueethMarket(Market):
     REDUCE_DEBT_BOUNTY = Decimal("0.02")
     LIQUIDATION_BOUNTY = Decimal("0.1")
     INDEX_SCALE = Decimal(1e4)
+
+    def __str__(self):
+        from demeter.utils import orjson_default
+
+        return orjson.dumps(self.description, default=orjson_default).decode()
+
+    @property
+    def description(self):
+        """
+        Get a brief description of this market
+        """
+        return SqueethDescription(type(self).__name__, self._market_info.name)
 
     @property
     def osqth_balance(self) -> Decimal:

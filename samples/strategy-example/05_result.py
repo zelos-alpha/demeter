@@ -110,11 +110,7 @@ if __name__ == "__main__":
     )
     print(metrics)
 
-    files = actuator.save_result(
-        path="./result",  # save path
-        account=True,  # save account status list as a csv file
-        actions=True,  # save actions as a json file and a pickle file
-    )
+    files = actuator.save_result(path="./result")
 
     # load equity list
     account_df_loaded = load_account_status(files[0])

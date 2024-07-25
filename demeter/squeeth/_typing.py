@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import NamedTuple
 
 from demeter import TokenInfo, ChainType, BaseAction, UnitDecimal
+from demeter._typing import MarketDescription
 from demeter.broker import MarketBalance, ActionTypeEnum
 from demeter.uniswap import PositionInfo
 from demeter.utils.console_text import get_action_str, ForColorEnum
@@ -44,6 +45,20 @@ ETH_MAINNET = SqueethChain(
     eth_quote_currency=TokenInfo("USDC", 6),
     squeeth_uni_pool="0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c",
 )
+
+@dataclass
+class SqueethDescription(MarketDescription):
+    """
+    Designed to generate json description for aave market
+
+    :param type: market type
+    :type type: str
+    :param name: market name
+    :type name: str
+
+    """
+
+    pass
 
 
 @dataclass

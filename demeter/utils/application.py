@@ -9,6 +9,12 @@ from typing import Any, Dict
 OUTPUT_WIDTH = 30
 
 
+def orjson_default(obj):
+    if isinstance(obj, Decimal):
+        return str(obj)  # 将 Decimal 对象转换为字符串
+    raise TypeError
+
+
 def to_decimal(value: Any) -> Decimal:
     """
     convert value to decimal

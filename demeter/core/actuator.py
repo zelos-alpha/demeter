@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Union
+from typing import List, Union, NamedTuple
 
 import orjson
 import pandas as pd
@@ -13,7 +13,7 @@ from pandas import Timestamp
 from tqdm import tqdm  # process bar
 
 from .. import Broker, Asset, ActionTypeEnum
-from .._typing import DemeterError, UnitDecimal, DemeterWarning
+from .._typing import DemeterError, UnitDecimal, DemeterWarning, TokenInfo, MarketDescription
 from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
 from ..strategy import Strategy
 from ..uniswap import UniLpMarket, PositionInfo
@@ -24,6 +24,15 @@ from ..utils import console_text
 @dataclass
 class RunningCount:
     get_account_status_df: int = 0
+
+
+class BackTestDescription(NamedTuple):
+    strategy_name: str
+    end_time: datetime
+    init_status: AccountStatus
+    assets: List[TokenInfo]
+    markets: List[MarketDescription]
+    actions: List[BaseAction]
 
 
 class Actuator(object):
@@ -463,7 +472,7 @@ class Actuator(object):
         print(get_formatted_predefined("Account balance history", STYLE["header1"]))
         console_text.print_dataframe_with_precision(self._account_status_df)
 
-    def save_result(self, path: str, account=True, actions=True) -> List[str]:
+    def save_result(self, path: str) -> List[str]:
         """
         Save backtesting result
 
@@ -482,23 +491,26 @@ class Actuator(object):
         if not os.path.exists(path):
             os.mkdir(path)
         file_list = []
-        if account:
-            file_name = os.path.join(path, file_name_head + ".account.csv")
-            self._account_status_df.to_csv(file_name)
-            file_list.append(file_name)
-        if actions:
-            # save pkl file to load again
-            pkl_name = os.path.join(path, file_name_head + ".action.pkl")
-            with open(pkl_name, "wb") as outfile1:
-                pickle.dump(self._action_list, outfile1)
-            # save json to read
-            actions_json_str = orjson.dumps(self._action_list, option=orjson.OPT_INDENT_2, default=_json_default)
-            json_name = os.path.join(path, file_name_head + ".action.json")
-            with open(json_name, "wb") as outfile:
-                outfile.write(actions_json_str)
 
-            file_list.append(json_name)
-            file_list.append(pkl_name)
+        # save account file
+        file_name = os.path.join(path, file_name_head + ".account.csv")
+        self._account_status_df.to_csv(file_name)
+        file_list.append(file_name)
+
+        # save backtest file
+        backtest_result = BackTestDescription(
+            strategy_name=type(self._strategy).__name__,
+            end_time=datetime.now(),
+            init_status=self.init_account_status.asset_balances,
+            assets=list(self.broker.assets.keys()),
+            markets=[m.description for m in self.broker.markets.values()],
+            actions=self._action_list,
+        )
+        pkl_name = os.path.join(path, file_name_head + ".pkl")
+        with open(pkl_name, "wb") as outfile1:
+            pickle.dump(backtest_result, outfile1)
+
+        file_list.append(pkl_name)
 
         self.logger.info(f"files have saved to {','.join(file_list)}")
         return file_list

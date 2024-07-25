@@ -6,11 +6,12 @@ from enum import Enum
 from typing import NamedTuple, List, Union, Tuple
 
 from demeter import MarketStatus, BaseAction
+from demeter._typing import MarketDescription
 from demeter.broker import MarketBalance, ActionTypeEnum
 from demeter.utils.console_text import get_action_str, ForColorEnum
 
-
-class DeribitOptionMarketDescription(NamedTuple):
+@dataclass
+class DeribitOptionDescription(MarketDescription):
     """
     Designed to generate json description for aave market
 
@@ -23,10 +24,6 @@ class DeribitOptionMarketDescription(NamedTuple):
 
     """
 
-    type: str
-    """market type"""
-    name: str
-    """market name"""
     position_count: int
     """count of position"""
 

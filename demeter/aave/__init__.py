@@ -5,7 +5,6 @@ but flash debt is not supported.
 Liquidate is not supported too, but your debt will be liquidated if health factor is too low.
 """
 
-
 from ._typing import (
     AaveTokenStatus,
     SupplyInfo,
@@ -23,6 +22,7 @@ from ._typing import (
     WithdrawAction,
     SupplyAction,
     AaveMarketStatus,
+    AaveDescription,
 )
 from .core import AaveV3CoreLib
 from .market import AaveV3Market

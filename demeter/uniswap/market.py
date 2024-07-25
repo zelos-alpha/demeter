@@ -1,12 +1,12 @@
+import dataclasses
 import json
+import numpy as np
 import os
+import pandas as pd
 from datetime import date, timedelta, datetime, time
 from decimal import Decimal
 from typing import Dict, Tuple
-
-import numpy as np
-import pandas as pd
-
+import orjson
 from ._typing import (
     UniV3Pool,
     TokenInfo,
@@ -80,15 +80,22 @@ class UniLpMarket(Market):
     # region properties
 
     def __str__(self):
-        return json.dumps(self.description._asdict())
+        from demeter.utils import orjson_default
+
+        return orjson.dumps(self.description, default=orjson_default).decode()
 
     @property
     def description(self) -> UniDescription:
         return UniDescription(
-            type(self).__name__,
-            self._market_info.name,
-            len(self._positions),
-            sum([p.liquidity for p in self._positions.values()]),
+            type=type(self).__name__,
+            name=self._market_info.name,
+            token0=self.pool_info.token0,
+            token1=self.pool_info.token1,
+            quote_token=self.pool_info.quote_token,
+            base_token=(
+                self.pool_info.token0 if self.pool_info.quote_token == self.pool_info.token1 else self.pool_info.token1
+            ),
+            fee_rate=self.pool_info.fee_rate,
         )
 
     @property

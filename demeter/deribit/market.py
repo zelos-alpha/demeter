@@ -2,12 +2,13 @@ import json
 import os
 from _decimal import Decimal
 from datetime import date, timedelta
+from orjson import orjson
 from typing import List, Dict, Tuple
 
 import pandas as pd
 
 from ._typing import (
-    DeribitOptionMarketDescription,
+    DeribitOptionDescription,
     DeribitTokenConfig,
     DeribitMarketStatus,
     OptionMarketBalance,
@@ -84,13 +85,15 @@ class DeribitOptionMarket(Market):
     }
 
     def __str__(self):
-        return json.dumps(self.description()._asdict())
+        from demeter.utils import orjson_default
+
+        return orjson.dumps(self.description, default=orjson_default).decode()
 
     def description(self):
         """
         Get a brief description of this market
         """
-        return DeribitOptionMarketDescription(type(self).__name__, self._market_info.name, len(self.positions))
+        return DeribitOptionDescription(type(self).__name__, self._market_info.name, len(self.positions))
 
     def load_data(self, start_date: date, end_date: date):
         """
