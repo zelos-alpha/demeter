@@ -472,22 +472,20 @@ class Actuator(object):
         print(get_formatted_predefined("Account balance history", STYLE["header1"]))
         console_text.print_dataframe_with_precision(self._account_status_df)
 
-    def save_result(self, path: str) -> List[str]:
+    def save_result(self, path: str, file_name: str = None) -> List[str]:
         """
         Save backtesting result
 
         :param path: path to save
         :type path: str
-        :param account: Save account status or not, If true, it will save a csv with all balance changes.
-        :type account: bool
-        :param actions: Save actions or not. If true, it will save all actions in json(friendly to human) and pkl(can be loaded by python)
-        :type actions: bool
+        :param file_name: file name, default is timestamp
+        :type file_name: str
         :return: A list of saved file path
         :rtype: List[str]
         """
         if not self.__backtest_finished:
             raise DemeterError("Please run strategy first")
-        file_name_head = "backtest-" + datetime.now().strftime("%Y%m%d-%H%M%S")
+        file_name_head = file_name if file_name is not None else "backtest-" + datetime.now().strftime("%Y%m%d-%H%M%S")
         if not os.path.exists(path):
             os.mkdir(path)
         file_list = []
