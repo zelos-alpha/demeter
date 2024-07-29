@@ -11,6 +11,7 @@ from ._typing import (
     DECIMAL_1,
     ChainType,
     Formats,
+    STABLE_COINS,
 )
 from .broker import (
     Broker,

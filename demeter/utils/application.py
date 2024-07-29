@@ -11,7 +11,7 @@ OUTPUT_WIDTH = 30
 
 def orjson_default(obj):
     if isinstance(obj, Decimal):
-        return str(obj)  # 将 Decimal 对象转换为字符串
+        return str(obj)
     raise TypeError
 
 
@@ -100,7 +100,7 @@ def require(condition: bool, error_msg: str):
 
 
 def to_multi_index_df(df: pd.DataFrame, level0: str):
-    new_level_0 = [level0] * df.shape[1]  # 使用相同的标签作为示例
+    new_level_0 = [level0] * df.shape[1]
     new_columns = pd.MultiIndex.from_arrays([new_level_0, df.columns], names=["l1", "l2"])
     df.columns = new_columns
 

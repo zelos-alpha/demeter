@@ -144,3 +144,28 @@ class MarketDescription:
     """market type string"""
     name: str
     """market name"""
+
+
+USD = TokenInfo("USD", 0)
+
+STABLE_COINS = [
+    "USDT",
+    "USDC",
+    "DAI",
+    "FDUSD",
+    "PYUSD",
+    "TUSD",
+    "EDLC",
+    "USDE",
+    "FRAX",
+    "USDB",
+    "USDY",
+    "USDJ",
+    "CRVUSD",
+    "EURS",
+    "USDP",
+    "GUSD",
+    "USDX",
+    "LUSD",
+    "GHO",
+]

@@ -1,24 +1,22 @@
 import logging
 import os
+import pandas as pd
 import pickle
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Union, NamedTuple
-
-import orjson
-import pandas as pd
 from pandas import Timestamp
 from tqdm import tqdm  # process bar
+from typing import List, Union, NamedTuple
 
 from .. import Broker, Asset, ActionTypeEnum
 from .._typing import DemeterError, UnitDecimal, DemeterWarning, TokenInfo, MarketDescription
 from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
 from ..strategy import Strategy
 from ..uniswap import UniLpMarket, PositionInfo
-from ..utils import get_formatted_predefined, STYLE, to_decimal, to_multi_index_df
 from ..utils import console_text
+from ..utils import get_formatted_predefined, STYLE, to_decimal, to_multi_index_df
 
 
 @dataclass
@@ -59,10 +57,6 @@ class Actuator(object):
         # strategy
         self._strategy: Strategy = Strategy()
         self._token_prices: pd.DataFrame | None = None
-        # path of source data, which is saved by downloader
-        # evaluating indicator calculator
-        # self._evaluator: Evaluator | None = None
-        # self._enabled_evaluator: [] = []
         # logging
         logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
         self.logger = logging.getLogger(__name__)
@@ -132,8 +126,6 @@ class Actuator(object):
         """
         Reset actuator by re-initiate all the status variables
         """
-        # self._evaluator: Evaluator | None = None
-        self._enabled_evaluator: [] = []
 
         self._action_list = []
         self._currents = Currents()
@@ -141,6 +133,8 @@ class Actuator(object):
         self.__backtest_finished = False
 
         self._account_status_df: pd.DataFrame | None = None
+
+        self.broker.set_quote_token()
 
     @property
     def actions(self) -> List[BaseAction]:
@@ -293,7 +287,8 @@ class Actuator(object):
                     self.set_price(market.get_price_from_data())
             if self._token_prices is None:
                 raise DemeterError("token prices is not set")
-        # for token in self._broker.assets.keys():  # dict_keys([TokenInfo(name='usdc', decimal=6), TokenInfo(name='eth', decimal=18)])
+
+        # for token in self._broker.assets.keys():
         #     if token.name not in self._token_prices:
         #         raise DemeterError(f"Price of {token.name} has not set yet")
 
@@ -301,27 +296,17 @@ class Actuator(object):
         for market in self._broker.markets.values():
             data_length.append(len(market.data.index))
             market.check_market()  # check each market, including assets
+
         # ensure data length same
         # if List.count(data_length, data_length[0]) != len(data_length):
         #     raise DemeterError("data length among markets are not same")
+
         default_market_data = self._broker.markets.default.data
         if (
             self._token_prices.head(1).index[0] > default_market_data.head(1).index.get_level_values(0).unique()[0]
             or self._token_prices.tail(1).index[0] < default_market_data.tail(1).index.get_level_values(0).unique()[0]
         ):
             raise DemeterError("Time range of price doesn't cover market data")
-
-        # ensure data interval same
-        # length = data_length[0]
-        # data_interval = []
-        # if length > 1:
-        #     for market in self._broker.markets.values():
-        #         data_interval.append(market.data.index[1] - market.data.index[0])
-        #     if List.count(data_interval, data_interval[0]) != len(data_interval):
-        #         raise DemeterError("data interval among markets are not same")
-        #     price_interval = self._token_prices.index[1] - self._token_prices.index[0]
-        #     if price_interval != data_interval[0]:
-        #         raise DemeterError("price list interval and data interval are not same")
 
     def __get_row_data(self, timestamp, row_id, current_price) -> RowData:
         row_data = RowData(timestamp.to_pydatetime(), row_id, current_price)

@@ -4,9 +4,9 @@ from typing import Dict, Callable
 
 import pandas as pd
 
-from ._typing import Asset, TokenInfo, AccountStatus, MarketDict, AssetDict, BaseAction
+from ._typing import Asset, TokenInfo, AccountStatus, MarketDict, AssetDict, BaseAction, MarketTypeEnum
 from .market import Market
-from .._typing import DemeterError, UnitDecimal
+from .._typing import DemeterError, UnitDecimal, STABLE_COINS, USD
 from ..utils import get_formatted_from_dict, get_formatted_predefined, STYLE, float_param_formatter
 
 
@@ -30,6 +30,7 @@ class Broker:
         self._assets: AssetDict[Asset] = AssetDict()
         self._markets: MarketDict[Market] = MarketDict()
         self._record_action_callback: Callable[[BaseAction], None] = record_action_callback
+        self.quote_token = None
 
     # region properties
 
@@ -210,3 +211,32 @@ class Broker:
         for market in self._markets.values():
             str_to_print += market.formatted_str() + "\n"
         return str_to_print
+
+    def set_quote_token(self, token: TokenInfo = None):
+        market_types = set([x.market_info.type for x in self.markets.values()])
+        has_usd_market = {MarketTypeEnum.aave_v3, MarketTypeEnum.deribit_option, MarketTypeEnum.squeeth}.intersection(
+            market_types
+        )
+
+        if token is not None:
+            self.quote_token = token
+            if has_usd_market:
+                raise DemeterError("aave/deribit option/squeeth market must quote by stable coin or None")
+            return
+        # decide quote token
+        if has_usd_market:
+            self.quote_token = USD
+            return
+        uni_lp_market = [x for x in self.markets.values() if x.market_info.type == MarketTypeEnum.uniswap_v3]
+        stable_coin = None
+        for uni_market in uni_lp_market:
+            if uni_market.base_token.name in STABLE_COINS:
+                stable_coin = uni_market.base_token
+                break
+            if uni_market.quote_token.name in STABLE_COINS:
+                stable_coin = uni_market.quote_token
+                break
+        if stable_coin is not None:
+            self.quote_token = stable_coin
+        else:
+            raise DemeterError("Can not decide quote token in backtest, please set one with broker.set_quote_token()")
