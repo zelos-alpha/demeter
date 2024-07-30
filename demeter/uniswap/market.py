@@ -1,5 +1,3 @@
-import dataclasses
-import json
 import numpy as np
 import os
 import pandas as pd
@@ -31,6 +29,7 @@ from .helper import (
     base_unit_price_to_sqrt_price_x96,
     tick_to_sqrt_price_x96,
     get_swap_value_with_part_balance_used,
+    MIN_ERROR,
 )
 from .liquitidy_math import get_sqrt_ratio_at_tick, estimate_ratio
 from .._typing import DemeterError, DECIMAL_0, UnitDecimal
@@ -184,12 +183,12 @@ class UniLpMarket(Market):
         market_status.data.currentLiquidity = market_status.data.currentLiquidity + total_virtual_liq
         self._market_status = market_status
 
-    def get_price_from_data(self) -> pd.DataFrame:
+    def get_price_from_data(self) -> Tuple[pd.DataFrame, TokenInfo]:
         """
         Extract token pair price from pool data.
 
-        :return: a dataframe includes quote token price, and base token price will be set to 1
-        :rtype: DataFrame
+        :return: a dataframe includes quote token price, and quote token price will be set to 1
+        :rtype: Tuple[pd.DataFrame, TokenInfo]
 
         """
         if self.data is None:
@@ -197,7 +196,7 @@ class UniLpMarket(Market):
         price_series: pd.Series = self.data.price
         df = pd.DataFrame(index=price_series.index, data={self.base_token.name: price_series})
         df[self.quote_token.name] = 1
-        return df
+        return df, self.quote_token
 
     def _convert_pair(self, any0, any1):
         """
@@ -262,24 +261,16 @@ class UniLpMarket(Market):
         amount0, amount1 = V3CoreLib.get_token_amounts(self._pool, position_info, sqrt_price, position.liquidity)
         return amount0, amount1
 
-    def get_market_balance(self, external_prices: pd.Series | Dict[str, Decimal] = None) -> MarketBalance:
+    def get_market_balance(self) -> MarketBalance:
         """
         get current status, including positions, balances
 
-        :param external_prices: current price, used for calculate get_position value and net value, if set to None, will use token pair price of this pool
-        :type external_prices: pd.Series | Dict[str, Decimal]
-
         :return: MarketBalance
         """
-        pool_price = self._market_status.data.price
-        if external_prices is None:
-            if self._price_status is None:
-                external_prices = {self.quote_token.name: Decimal(1), self.base_token.name: pool_price}
-            else:
-                external_prices = self._price_status
+        pool_price = {self.quote_token.name: Decimal(1), self.base_token.name: self._market_status.data.price}
 
         sqrt_price = base_unit_price_to_sqrt_price_x96(
-            pool_price,
+            self._market_status.data.price,
             self._pool.token0.decimal,
             self._pool.token1.decimal,
             self._is_token0_quote,
@@ -299,10 +290,10 @@ class UniLpMarket(Market):
             deposit_amount1 += amount1
 
         base_deposit_amount, quote_deposit_amount = self._convert_pair(deposit_amount0, deposit_amount1)
-        # net value here is calculated by external price, If you want a net value with usd base,
-        net_value = (base_fee_sum + base_deposit_amount) * external_prices[self.base_token.name] + (
+
+        net_value = (base_fee_sum + base_deposit_amount) * pool_price[self.base_token.name] + (
             quote_fee_sum + quote_deposit_amount
-        ) * external_prices[self.quote_token.name]
+        ) * pool_price[self.quote_token.name]
 
         val = UniLpBalance(
             net_value=net_value,
@@ -815,7 +806,7 @@ class UniLpMarket(Market):
             base_amount = value_to_use / self._market_status.data.price
             diff = base_amount - self.broker.get_token_balance(self.base_token)
             fee_in_quote = Decimal(0)
-            if diff > 0:
+            if diff > MIN_ERROR:
                 fee_in_quote, to_amount = self.swap(diff * price, self.quote_token, self.base_token)
             return self.add_liquidity_by_tick(lower_tick, upper_tick, base_amount - fee_in_quote / price, Decimal(0))
 

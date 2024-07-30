@@ -1,12 +1,11 @@
+import pandas as pd
 from datetime import datetime
 from decimal import Decimal
 from typing import Dict, Callable
 
-import pandas as pd
-
 from ._typing import Asset, TokenInfo, AccountStatus, MarketDict, AssetDict, BaseAction, MarketTypeEnum
 from .market import Market
-from .._typing import DemeterError, UnitDecimal, STABLE_COINS, USD
+from .._typing import DemeterError, UnitDecimal, USD
 from ..utils import get_formatted_from_dict, get_formatted_predefined, STYLE, float_param_formatter
 
 
@@ -184,13 +183,20 @@ class Broker:
 
         """
         account_status = AccountStatus(timestamp=timestamp)
+        market_sum = Decimal(0)
         for k, v in self.markets.items():
-            account_status.market_status[k] = v.get_market_balance(prices)
+            ms = v.get_market_balance()
+            account_status.market_status[k] = ms
+            if v.quote_token == self.quote_token:
+                market_sum += ms.net_value
+            else:
+                market_sum += ms.net_value * prices[v.quote_token.name]
         account_status.market_status.set_default_key(self.markets.get_default_key())
+
         for k, v in self.assets.items():
             account_status.asset_balances[k] = v.balance
         asset_sum = sum([v * prices[k.name] for k, v in account_status.asset_balances.items()])
-        market_sum = sum([v.net_value for v in account_status.market_status.values()])
+
         account_status.net_value = asset_sum + market_sum
         return account_status
 
@@ -212,31 +218,30 @@ class Broker:
             str_to_print += market.formatted_str() + "\n"
         return str_to_print
 
-    def set_quote_token(self, token: TokenInfo = None):
+    def _check_quote_token(self):
+        if self.quote_token is None:
+            raise DemeterError("Quote token of broker not set")
+
         market_types = set([x.market_info.type for x in self.markets.values()])
         has_usd_market = {MarketTypeEnum.aave_v3, MarketTypeEnum.deribit_option, MarketTypeEnum.squeeth}.intersection(
             market_types
         )
 
-        if token is not None:
-            self.quote_token = token
-            if has_usd_market:
-                raise DemeterError("aave/deribit option/squeeth market must quote by stable coin or None")
-            return
-        # decide quote token
         if has_usd_market:
-            self.quote_token = USD
-            return
-        uni_lp_market = [x for x in self.markets.values() if x.market_info.type == MarketTypeEnum.uniswap_v3]
-        stable_coin = None
-        for uni_market in uni_lp_market:
-            if uni_market.base_token.name in STABLE_COINS:
-                stable_coin = uni_market.base_token
-                break
-            if uni_market.quote_token.name in STABLE_COINS:
-                stable_coin = uni_market.quote_token
-                break
-        if stable_coin is not None:
-            self.quote_token = stable_coin
-        else:
-            raise DemeterError("Can not decide quote token in backtest, please set one with broker.set_quote_token()")
+            if self.quote_token != USD:
+                raise DemeterError("aave/deribit option/squeeth market must quote by stable coin or None")
+
+    def check_backtest(self):
+        """
+        check backtest result, including index of data, prices
+        """
+        # ensure a market exist
+        if len(self.markets) < 1:
+            raise DemeterError("No market assigned")
+
+        data_length = []  # [1440]
+        for market in self.markets.values():
+            data_length.append(len(market.data.index))
+            market.check_market()  # check each market, including assets
+
+        self._check_quote_token()

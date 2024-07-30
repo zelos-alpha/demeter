@@ -137,7 +137,7 @@ class SqueethMarket(Market):
         r_squeeth = self.vault[vault_key].osqth_short_amount * nf / SqueethMarket.INDEX_SCALE
         return collateral_in_eth / debt_amount_in_index, collateral_in_eth / (r_squeeth * Decimal("1.5"))
 
-    def get_market_balance(self, price=None) -> SqueethBalance:
+    def get_market_balance(self) -> SqueethBalance:
         """
         Get current status, including positions, balances
 
@@ -146,9 +146,8 @@ class SqueethMarket(Market):
         :return: MarketBalance
         :rtype: SqueethBalance
         """
-        if price is None:
-            current_data = self._market_status.data
-            price = {oSQTH.name: current_data[oSQTH.name] * current_data[WETH.name], WETH.name: current_data[WETH.name]}
+        current_data = self._market_status.data
+        price = {oSQTH.name: current_data[oSQTH.name] * current_data[WETH.name], WETH.name: current_data[WETH.name]}
 
         long_amount = self.osqth_balance
         short_amount = Decimal(sum([x.osqth_short_amount for x in self.vault.values()]))

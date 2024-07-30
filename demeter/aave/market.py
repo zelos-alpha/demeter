@@ -492,12 +492,10 @@ class AaveV3Market(Market):
         for t in token_info:
             self._tokens.add(t)
 
-    def get_market_balance(self, price=None) -> AaveBalance:
+    def get_market_balance(self) -> AaveBalance:
         """
         Get position and their values invested in aave market. Note: price will be read from self.market_status.price
 
-        :param price: useless, price will read from market status, it is kept because it's inherited form parent market
-        :type price: None
         :return: values of positions in aave
         :rtype: AaveBalance
         """

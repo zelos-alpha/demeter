@@ -8,7 +8,7 @@ from .. import DemeterError
 Q96 = Decimal(2**96)
 SQRT_1p0001 = math.sqrt(Decimal(1.0001))
 getcontext().prec = 35  # default is 28, 33 is good enough for 3000
-
+MIN_ERROR = Decimal("1e-31")
 
 def _from_x96(number: int) -> Decimal:
     """

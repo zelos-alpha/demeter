@@ -76,6 +76,7 @@ if __name__ == "__main__":
     # Usually, you will have to find the price list from outer source.
     # Luckily, uniswap pool data contains price information. So UniLpMarket provides a function to retrieve price list.
     actuator.set_price(market.get_price_from_data())
+    # print transaction during backtesting
+    actuator.print_action=True
     # run test, If you use default parameter, final fund status will be printed in console.
-
     actuator.run()

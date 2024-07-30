@@ -3,6 +3,8 @@
 * [breaking change]output result has updated, .action.json and action.pkl is removed. Instead, backtest description is
   added. It is a pkl file, and contains initial status and markets description and actions, etc.
 * Add a new parameter "file_name" to actuator.save_result, so you can specific file name of backtest result
+* broker and markets have quote token now, quote token can be different among markets.
+* external_price parameter in UniLpMarket.get_market_balance has removed, because net value returned by unilpmarket should be quoted by quote token of this pool
 
 # Ver 0.6.0
 

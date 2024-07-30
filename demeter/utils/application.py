@@ -6,6 +6,9 @@ from functools import wraps
 from types import SimpleNamespace
 from typing import Any, Dict
 
+from demeter import TokenInfo, STABLE_COINS
+from demeter._typing import USD
+
 OUTPUT_WIDTH = 30
 
 
@@ -113,3 +116,15 @@ def load_account_status(path) -> pd.DataFrame:
             rename_dict[column[1]] = ""
     df = df.rename(columns=rename_dict, level="l2")
     return df
+
+
+def is_stable_coin(*token: TokenInfo):
+    """
+    check token list has stable token
+    :param token:
+    :return: the first stable token, or none
+    """
+    for t in token:
+        if t == USD or t.name in STABLE_COINS:
+            return t
+    return None

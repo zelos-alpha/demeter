@@ -6,7 +6,7 @@ from typing import Dict, Callable
 import pandas as pd
 
 from ._typing import BaseAction, MarketBalance, MarketStatus, MarketInfo, RowData
-from .._typing import DECIMAL_0, DemeterError
+from .._typing import DECIMAL_0, DemeterError, TokenInfo, USD
 
 DEFAULT_DATA_PATH = "./data"
 
@@ -61,6 +61,7 @@ class Market:
         # if market interval is minutely, is_open will always true,
         # or it will be false until timestamp is on it's interval
         self.is_open: bool = True
+        self.quote_token: TokenInfo = USD
 
     def __str__(self):
         return f"{self._market_info.name}:{type(self).__name__}"
@@ -142,12 +143,10 @@ class Market:
         self.is_open = True if self._data is None or data.timestamp in self._data.index else False
         self.has_update = False
 
-    def get_market_balance(self, prices: pd.Series | Dict[str, Decimal]) -> MarketBalance:
+    def get_market_balance(self) -> MarketBalance:
         """
         Get market asset balance, such as current positions, net values
 
-        :param prices: current price of each token
-        :type prices: pd.Series | Dict[str, Decimal]
         :return: Balance in this market includes net value, position value
         :rtype: MarketBalance
         """

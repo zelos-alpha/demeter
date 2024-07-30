@@ -8,13 +8,13 @@ from datetime import datetime
 from decimal import Decimal
 from pandas import Timestamp
 from tqdm import tqdm  # process bar
-from typing import List, Union, NamedTuple
+from typing import List, Union, NamedTuple, Tuple
 
 from .. import Broker, Asset, ActionTypeEnum
-from .._typing import DemeterError, UnitDecimal, DemeterWarning, TokenInfo, MarketDescription
+from .._typing import DemeterError, UnitDecimal, DemeterWarning, TokenInfo, MarketDescription, USD
 from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
 from ..strategy import Strategy
-from ..uniswap import UniLpMarket, PositionInfo
+from ..uniswap import PositionInfo
 from ..utils import console_text
 from ..utils import get_formatted_predefined, STYLE, to_decimal, to_multi_index_df
 
@@ -27,6 +27,7 @@ class RunningCount:
 class BackTestDescription(NamedTuple):
     strategy_name: str
     end_time: datetime
+    quote_token: TokenInfo
     init_status: AccountStatus
     assets: List[TokenInfo]
     markets: List[MarketDescription]
@@ -103,6 +104,8 @@ class Actuator(object):
         |2023-08-13 00:01:00| 1848.12 | 1     |
         +-------------------+---------+-------+
 
+        they should be quoted by quote_token in backtest.
+
         :return: data from with prices of all token
         :rtype: DataFrame
         """
@@ -133,8 +136,6 @@ class Actuator(object):
         self.__backtest_finished = False
 
         self._account_status_df: pd.DataFrame | None = None
-
-        self.broker.set_quote_token()
 
     @property
     def actions(self) -> List[BaseAction]:
@@ -226,7 +227,9 @@ class Actuator(object):
         for asset in assets:
             self._broker.set_balance(asset.token_info, asset.balance)
 
-    def set_price(self, prices: Union[pd.DataFrame, pd.Series]):
+    def set_price(
+        self, prices: Union[pd.DataFrame, pd.Series, Tuple[pd.DataFrame, TokenInfo]], quote_token: TokenInfo = None
+    ):
         """
         | Set price to actuator. param price can be dataframe(price of several tokens) or series(price of one token).
         | It's index time range should be larger than or equal to data.
@@ -241,19 +244,32 @@ class Actuator(object):
         +-------------------+---------+-------+
 
         :param prices: dataframe or series contains prices
-        :type prices: Union[pd.DataFrame, pd.Series]
+        :type prices: Union[pd.DataFrame, pd.Series, Tuple[pd.DataFrame, TokenInfo]]
+        :param quote_token: quote token of price
+        :type quote_token: TokenInfo
         """
-        prices = prices.map(lambda y: to_decimal(y))
         if isinstance(prices, pd.DataFrame):
-            if self._token_prices is None:
-                self._token_prices = prices
-            else:
-                self._token_prices = pd.concat([self._token_prices, prices])
+            quote_token = quote_token if quote_token is not None else USD
+        elif isinstance(prices, Tuple):  # Got from uniswap market
+            quote_token = prices[1]
+            prices = prices[0]
         else:
-            if self._token_prices is None:
-                self._token_prices = pd.DataFrame(data=prices, index=prices.index)
-            else:
-                self._token_prices[prices.name] = prices
+            quote_token = quote_token if quote_token is not None else USD
+            prices = pd.DataFrame(data=prices, index=prices.index)
+
+        prices = prices.map(lambda y: to_decimal(y))
+        if self._token_prices is None:
+            self._token_prices = prices
+        else:
+            self._token_prices = pd.concat([self._token_prices, prices])
+
+        if self.broker.quote_token is None:
+            self.broker.quote_token = quote_token
+        elif self.broker.quote_token != quote_token:
+            raise DemeterError(
+                f"Quote token is different from previous setting, new value is {quote_token}, "
+                f"old is {self.broker.quote_token}"
+            )
 
     def notify(self, strategy: Strategy, actions: List[BaseAction]):
         """
@@ -273,40 +289,30 @@ class Actuator(object):
                 print(action.get_output_str())
 
     def _check_backtest(self):
-        """
-        check backtest result, including index of data, prices
-        """
-        # ensure a market exist
-        if len(self._broker.markets) < 1:
-            raise DemeterError("No market assigned")
+        self.broker.check_backtest()
+
         # ensure all token has price list.
         if self._token_prices is None:
             # if price is not set and market is uni_lp_market, get price from market automatically
             for market in self.broker.markets.values():
-                if isinstance(market, UniLpMarket):
+                if hasattr(market, "get_price_from_data"):
                     self.set_price(market.get_price_from_data())
             if self._token_prices is None:
                 raise DemeterError("token prices is not set")
 
-        # for token in self._broker.assets.keys():
-        #     if token.name not in self._token_prices:
-        #         raise DemeterError(f"Price of {token.name} has not set yet")
-
-        data_length = []  # [1440]
-        for market in self._broker.markets.values():
-            data_length.append(len(market.data.index))
-            market.check_market()  # check each market, including assets
-
-        # ensure data length same
-        # if List.count(data_length, data_length[0]) != len(data_length):
-        #     raise DemeterError("data length among markets are not same")
-
-        default_market_data = self._broker.markets.default.data
+        default_market_data = self.broker.markets.default.data
         if (
-            self._token_prices.head(1).index[0] > default_market_data.head(1).index.get_level_values(0).unique()[0]
-            or self._token_prices.tail(1).index[0] < default_market_data.tail(1).index.get_level_values(0).unique()[0]
+            self._token_prices.index[0] > default_market_data.index[0]
+            or self._token_prices.index[-1] < default_market_data.index[-1]
         ):
             raise DemeterError("Time range of price doesn't cover market data")
+
+        # check match quote token is in price
+        for market in self.broker.markets.values():
+            if market.quote_token.name not in self._token_prices.columns:
+                raise DemeterError(
+                    f"Price dataframe doesn't have {market.quote_token}, it's the quote token of {market}"
+                )
 
     def __get_row_data(self, timestamp, row_id, current_price) -> RowData:
         row_data = RowData(timestamp.to_pydatetime(), row_id, current_price)
@@ -368,6 +374,7 @@ class Actuator(object):
         index_array: pd.DatetimeIndex = (
             self.get_test_range()
         )  # list(self._broker.markets.values())[0].data.index.get_level_values(0).unique()
+        self.logger.info(f"Qute token is {self.broker.quote_token}")
         self.logger.info("init strategy...")
 
         # set initial status for strategy, so user can run some calculation in initial function.
@@ -454,6 +461,7 @@ class Actuator(object):
         self.logger.info(f"Print actuator summary")
         print(get_formatted_predefined("Final account status", STYLE["header1"]))
         print(self.broker.formatted_str())
+        print(get_formatted_predefined(f"Quote by: {self.broker.quote_token}", STYLE["key"]))
         print(get_formatted_predefined("Account balance history", STYLE["header1"]))
         console_text.print_dataframe_with_precision(self._account_status_df)
 
@@ -484,6 +492,7 @@ class Actuator(object):
         backtest_result = BackTestDescription(
             strategy_name=type(self._strategy).__name__,
             end_time=datetime.now(),
+            quote_token=self.broker.quote_token,
             init_status=self.init_account_status.asset_balances,
             assets=list(self.broker.assets.keys()),
             markets=[m.description for m in self.broker.markets.values()],

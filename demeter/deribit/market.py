@@ -474,12 +474,10 @@ class DeribitOptionMarket(Market):
         """
         return self._market_status.timestamp == self._market_status.timestamp.floor(DERIBIT_OPTION_FREQ)
 
-    def get_market_balance(self, prices: pd.Series | Dict[str, Decimal] = None) -> OptionMarketBalance:
+    def get_market_balance(self) -> OptionMarketBalance:
         """
         Get market asset balance, such as current positions, net values
 
-        :param prices: current price of each token
-        :type prices: pd.Series | Dict[str, Decimal]
         :return: Balance in this market includes net value, position value
         :rtype: MarketBalance
         """
