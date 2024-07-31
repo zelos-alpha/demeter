@@ -55,8 +55,10 @@ class TestActuator(unittest.TestCase):
         broker.add_market(market)
         broker.set_balance(usdc, 1000)
         broker.set_balance(eth, 1)
-
+        broker.quote_token = usdc
         tick = market.price_to_tick(1000)  # 207243
-        market.data = get_uni_v3_mock_data(market, tick, 1000 * 10 ** usdc.decimal, 1 * 10 ** eth.decimal, "10000000000000000")
+        market.data = get_uni_v3_mock_data(
+            market, tick, 1000 * 10**usdc.decimal, 1 * 10**eth.decimal, "10000000000000000"
+        )
         market.data["closeTick"] = pd.Series(data=range(5), index=market.data.index)
         actuator.run()

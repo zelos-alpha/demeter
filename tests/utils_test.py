@@ -31,69 +31,69 @@ class UtilsTest(unittest.TestCase):
         self.assertEqual(str(t), "USDT")
 
     def test_console_text(self):
-        print(get_formatted("正常显示"))
+        print(get_formatted("Normal"))
         print("")
-        print("测试显示模式")
+        print("test mode")
         print(
-            get_formatted("高亮", mode=ModeEnum.bold),
+            get_formatted("bold", mode=ModeEnum.bold),
         )
         print(
-            get_formatted("下划线", mode=ModeEnum.underline),
+            get_formatted("underline", mode=ModeEnum.underline),
         )
         print(
-            get_formatted("闪烁", mode=ModeEnum.blink),
+            get_formatted("blink", mode=ModeEnum.blink),
         )
         print(
-            get_formatted("反白", mode=ModeEnum.invert),
+            get_formatted("invert", mode=ModeEnum.invert),
         )
-        print(get_formatted("不可见", mode=ModeEnum.hide))
+        print(get_formatted("hide", mode=ModeEnum.hide))
         print("")
-        print("测试前景色")
+        print("test forecolor")
         print(
-            get_formatted("黑色", fore=ForColorEnum.black),
+            get_formatted("black", fore=ForColorEnum.black),
         )
         print(
-            get_formatted("红色", fore=ForColorEnum.red),
+            get_formatted("red", fore=ForColorEnum.red),
         )
         print(
-            get_formatted("绿色", fore=ForColorEnum.green),
+            get_formatted("green", fore=ForColorEnum.green),
         )
         print(
-            get_formatted("黄色", fore=ForColorEnum.yellow),
+            get_formatted("yellow", fore=ForColorEnum.yellow),
         )
         print(
-            get_formatted("蓝色", fore=ForColorEnum.blue),
+            get_formatted("blue", fore=ForColorEnum.blue),
         )
         print(
-            get_formatted("紫红色", fore=ForColorEnum.purple),
+            get_formatted("purple", fore=ForColorEnum.purple),
         )
         print(
-            get_formatted("青蓝色", fore=ForColorEnum.cyan),
+            get_formatted("white", fore=ForColorEnum.white),
         )
-        print(get_formatted("白色", fore=ForColorEnum.white))
+        print(get_formatted("white", fore=ForColorEnum.white))
         print("")
-        print("测试背景色")
+        print("Test background")
         print(
-            get_formatted("黑色", back=BackColorEnum.black),
+            get_formatted("black", back=BackColorEnum.black),
         )
         print(
-            get_formatted("红色", back=BackColorEnum.red),
+            get_formatted("red", back=BackColorEnum.red),
         )
         print(
-            get_formatted("绿色", back=BackColorEnum.green),
+            get_formatted("green", back=BackColorEnum.green),
         )
         print(
-            get_formatted("黄色", back=BackColorEnum.yellow),
+            get_formatted("yellow", back=BackColorEnum.yellow),
         )
         print(
-            get_formatted("蓝色", back=BackColorEnum.blue),
+            get_formatted("blue", back=BackColorEnum.blue),
         )
         print(
-            get_formatted("紫红色", back=BackColorEnum.purple),
+            get_formatted("purple", back=BackColorEnum.purple),
         )
         print(
-            get_formatted("青蓝色", back=BackColorEnum.cyan),
+            get_formatted("cyan", back=BackColorEnum.cyan),
         )
-        print(get_formatted("白色", back=BackColorEnum.white))
+        print(get_formatted("white", back=BackColorEnum.white))
         print("")
-        print(get_formatted("综合", ModeEnum.invert, ForColorEnum.red))
+        print(get_formatted("Compound", ModeEnum.invert, ForColorEnum.red))

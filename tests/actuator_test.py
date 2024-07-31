@@ -1,5 +1,6 @@
 import os
 import pickle
+import json
 import unittest
 from datetime import date, datetime
 
@@ -65,7 +66,7 @@ class TestActuator(unittest.TestCase):
         broker.add_market(market)
         broker.set_balance(usdc, 1067)
         broker.set_balance(eth, 1)
-
+        broker.quote_token = usdc
         actuator.strategy = EmptyStrategy()  # set strategy to actuator
 
         market.data_path = "data"
@@ -80,10 +81,28 @@ class TestActuator(unittest.TestCase):
         actuator = TestActuator.get_actuator_with_uni_market()
         actuator.run()  # Observe the format and content of the output log
         print(actuator)
-        self.assertEqual(
-            str(actuator),
-            """{"Account status":{"assets":[{"name": "USDC", "value": 1067.0},{"name": "ETH", "value": 1.0}],"markets":[{"type":"UniLpMarket","name":"market1","token0":{"name":"USDC","decimal":6,"address":""},"token1":{"name":"ETH","decimal":18,"address":""},"quote_token":{"name":"USDC","decimal":6,"address":""},"base_token":{"name":"ETH","decimal":18,"address":""},"fee_rate":"0.0005"}]}, "action_count":0, "timestamp":"2023-08-14 23:59:00", "strategy":"EmptyStrategy", "price_df_rows":1440, "price_assets":["ETH","USDC"] }""",
-        )
+        b = {
+            "Account status": {
+                "assets": [{"name": "USDC", "value": 1067.0}, {"name": "ETH", "value": 1.0}],
+                "markets": [
+                    {
+                        "type": "UniLpMarket",
+                        "name": "market1",
+                        "token0": {"name": "USDC", "decimal": 6, "address": ""},
+                        "token1": {"name": "ETH", "decimal": 18, "address": ""},
+                        "quote_token": {"name": "USDC", "decimal": 6, "address": ""},
+                        "base_token": {"name": "ETH", "decimal": 18, "address": ""},
+                        "fee_rate": "0.0005",
+                    }
+                ],
+            },
+            "action_count": 0,
+            "timestamp": "2023-08-14 23:59:00",
+            "strategy": "EmptyStrategy",
+            "price_df_rows": 1440,
+            "price_assets": ["ETH", "USDC", "USD"],
+        }
+        self.assertEqual(json.loads(str(actuator)), b)
 
     def test_run_buy_on_second(self):
         actuator = TestActuator.get_actuator_with_uni_market()
