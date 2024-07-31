@@ -258,6 +258,7 @@ class Actuator(object):
             prices = pd.DataFrame(data=prices, index=prices.index)
 
         prices = prices.map(lambda y: to_decimal(y))
+        prices[USD.name] = 1
         if self._token_prices is None:
             self._token_prices = prices
         else:
@@ -302,8 +303,8 @@ class Actuator(object):
 
         default_market_data = self.broker.markets.default.data
         if (
-            self._token_prices.index[0] > default_market_data.index[0]
-            or self._token_prices.index[-1] < default_market_data.index[-1]
+            self._token_prices.index[0] > default_market_data.head(1).index.get_level_values(0).unique()[0]
+            or self._token_prices.index[-1] < default_market_data.tail(1).index.get_level_values(0).unique()[0]
         ):
             raise DemeterError("Time range of price doesn't cover market data")
 
@@ -311,7 +312,7 @@ class Actuator(object):
         for market in self.broker.markets.values():
             if market.quote_token.name not in self._token_prices.columns:
                 raise DemeterError(
-                    f"Price dataframe doesn't have {market.quote_token}, it's the quote token of {market}"
+                    f"Price dataframe doesn't have {market.quote_token}, it's the quote token of {market.market_info.name}"
                 )
 
     def __get_row_data(self, timestamp, row_id, current_price) -> RowData:
@@ -434,7 +435,7 @@ class Actuator(object):
         self._account_status_df: pd.DataFrame = AccountStatus.to_dataframe(self._account_status_list)
 
         tmp_price_df = (
-            self._token_prices.copy()
+            self._token_prices.drop(columns=[USD.name])
             .loc[self._account_status_df.index[0] : self._account_status_df.index[-1]]
             .reindex(self._account_status_df.index)
         )

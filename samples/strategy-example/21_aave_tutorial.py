@@ -53,5 +53,6 @@ if __name__ == "__main__":
     actuator.strategy = MyFirstAaveStrategy()
 
     price_df = pd.read_csv("../data/price_weth_usdc_0813_0817.csv", index_col=0, parse_dates=True)
+    # if price is not quoted by usd, please specify a quote token.
     actuator.set_price(price_df)
     actuator.run()

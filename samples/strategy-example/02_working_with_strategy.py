@@ -115,4 +115,7 @@ if __name__ == "__main__":
     actuator.strategy = DemoStrategy()  # set strategy
     actuator.set_price(market.get_price_from_data())  # set actuator price
 
+    # print transactions during backtesting
+    actuator.print_action=True
+
     actuator.run()  # run actuator

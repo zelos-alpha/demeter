@@ -130,7 +130,7 @@ class DeltaHedgingStrategy(Strategy):
         for pos_key, pos in market_uni.positions.items():
             amount0, amount1 = V3CoreLib.get_token_amounts(market_uni.pool_info, pos_key, sqrt_price, pos.liquidity)
             lp_value += amount0 * price[usdc.name] + amount1 * price[eth.name]
-        aave_status = market_aave.get_market_balance(price)
+        aave_status = market_aave.get_market_balance()
 
         return cash + aave_status.net_value + lp_value
 

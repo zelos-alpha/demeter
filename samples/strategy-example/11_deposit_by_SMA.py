@@ -67,6 +67,7 @@ if __name__ == "__main__":
     market.data_path = "../data"  # set data_path
     market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 13), date(2023, 8, 17))
     actuator.set_price(market.get_price_from_data())  # set price
+
     actuator.run()  # run test
 
     plot_position_return_decomposition(actuator.account_status_df, actuator.token_prices[eth.name], market_key)

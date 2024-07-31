@@ -1,8 +1,6 @@
-from _decimal import Decimal
-from datetime import date, datetime
-from typing import List, Dict
-
 import pandas as pd
+from datetime import date, datetime
+from typing import List
 
 from demeter import (
     TokenInfo,
@@ -11,7 +9,6 @@ from demeter import (
     RowData,
     ChainType,
     MarketInfo,
-    MarketDict,
     AtTimeTrigger,
     AccountStatus,
     BaseAction,
@@ -101,9 +98,8 @@ if __name__ == "__main__":
     actuator.strategy = DemoStrategy()  # add strategy
     actuator.set_price(market.get_price_from_data())  # set price
 
-    # if evaluator is set, evaluating indicator will run after backtest.
-    # those evaluating indicator will calculate indicator of net value.
     actuator.run()
+
     # get metrics
     metrics = performance_metrics(
         actuator.account_status_df["net_value"], benchmark=actuator.account_status_df["price"]["ETH"]

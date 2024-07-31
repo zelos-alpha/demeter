@@ -223,13 +223,14 @@ class Broker:
             raise DemeterError("Quote token of broker not set")
 
         market_types = set([x.market_info.type for x in self.markets.values()])
-        has_usd_market = {MarketTypeEnum.aave_v3, MarketTypeEnum.deribit_option, MarketTypeEnum.squeeth}.intersection(
-            market_types
-        )
+        has_usd_market = {
+            MarketTypeEnum.deribit_option,
+            MarketTypeEnum.squeeth,
+        }.intersection(market_types)
 
         if has_usd_market:
             if self.quote_token != USD:
-                raise DemeterError("aave/deribit option/squeeth market must quote by stable coin or None")
+                raise DemeterError("deribit option/squeeth market must quote by stable coin or None")
 
     def check_backtest(self):
         """

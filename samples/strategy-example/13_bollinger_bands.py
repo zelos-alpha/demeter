@@ -1,7 +1,6 @@
 import math
-from datetime import date, timedelta
-
 import pandas as pd
+from datetime import date, timedelta
 
 import demeter
 from demeter import (
@@ -13,7 +12,6 @@ from demeter import (
     realized_volatility,
     simple_moving_average,
     MarketInfo,
-    MarketDict,
     RowData,
 )
 from demeter.uniswap import UniV3Pool, UniLpMarket
