@@ -356,7 +356,7 @@ class AaveV3Market(Market):
     ):
         """
         Set up pool status of this moment, such as liquidity index, supply/borrow rate, and price
-
+bug test case
         :param data: market status
         :type data: AaveMarketStatus
         :param price: current price of tokens involved

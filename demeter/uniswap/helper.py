@@ -10,6 +10,7 @@ SQRT_1p0001 = math.sqrt(Decimal(1.0001))
 getcontext().prec = 35  # default is 28, 33 is good enough for 3000
 MIN_ERROR = Decimal("1e-31")
 
+
 def _from_x96(number: int) -> Decimal:
     """
     decimal divide 2 ** 96
@@ -298,7 +299,6 @@ def get_swap_value_with_part_balance_used(
     # Ratio of a and b after swap is known
     # This function will calculate how much to swap,
 
-
     # Vfrom + Vto = V
     # Vswap * fee_rate + Vfrom_after + Vto_after = total_val_after
     # Vfrom_after / Vto_after = final_ratio
@@ -312,3 +312,20 @@ def get_swap_value_with_part_balance_used(
     total_val_after_no_fee = total_val_after - swap_value * fee_rate
     swap_to_token_val_after = total_val_after_no_fee / (final_ratio + 1)
     return total_val_after_no_fee - swap_to_token_val_after, swap_to_token_val_after, swap_value
+
+
+def nearest_usable_tick(tick: int, tick_spacing: int):
+    """
+    Returns the closest tick that is nearest a given tick and usable for the given tick spacing
+    copied from: https://github.com/Uniswap/v3-sdk/blob/main/src/utils/nearestUsableTick.ts
+    :param tick: the target tick
+    :param tick_spacing: the spacing of the pool
+    :return:
+    """
+    rounded = round(tick / tick_spacing) * tick_spacing
+    if rounded < -887272:
+        return rounded + tick_spacing
+    elif rounded > 887272:
+        return rounded - tick_spacing
+    else:
+        return rounded

@@ -30,6 +30,7 @@ from .helper import (
     tick_to_sqrt_price_x96,
     get_swap_value_with_part_balance_used,
     MIN_ERROR,
+    nearest_usable_tick,
 )
 from .liquitidy_math import get_sqrt_ratio_at_tick, estimate_ratio
 from .._typing import DemeterError, DECIMAL_0, UnitDecimal
@@ -40,6 +41,7 @@ from ..utils import (
     STYLE,
     float_param_formatter,
     to_decimal,
+    require,
 )
 
 
@@ -343,11 +345,14 @@ class UniLpMarket(Market):
         :return: tick
         :rtype: int
         """
-        return base_unit_price_to_tick(
-            price,
-            self._pool.token0.decimal,
-            self._pool.token1.decimal,
-            self._is_token0_quote,
+        return nearest_usable_tick(
+            base_unit_price_to_tick(
+                price,
+                self._pool.token0.decimal,
+                self._pool.token1.decimal,
+                self._is_token0_quote,
+            ),
+            self.pool_info.tick_spacing,
         )
 
     @write_func
@@ -361,6 +366,10 @@ class UniLpMarket(Market):
     ):
         lower_tick = int(lower_tick)
         upper_tick = int(upper_tick)
+        require(
+            lower_tick % self.pool_info.tick_spacing == 0 and upper_tick % self.pool_info.tick_spacing == 0,
+            "tick should match tick space",
+        )
         sqrt_price_x96 = int(sqrt_price_x96)
 
         if sqrt_price_x96 == -1:
@@ -475,6 +484,8 @@ class UniLpMarket(Market):
 
         token0_amt, token1_amt = self._convert_pair(base_max_amount, quote_max_amount)
         lower_tick, upper_tick = V3CoreLib.quote_price_pair_to_tick(self._pool, lower_quote_price, upper_quote_price)
+        lower_tick = nearest_usable_tick(lower_tick, self.pool_info.tick_spacing)
+        upper_tick = nearest_usable_tick(upper_tick, self.pool_info.tick_spacing)
         # lower_tick, upper_tick = self._convert_pair(upper_tick, lower_tick)
         (
             created_position,

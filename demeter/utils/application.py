@@ -128,3 +128,4 @@ def is_stable_coin(*token: TokenInfo):
         if t == USD or t.name in STABLE_COINS:
             return t
     return None
+

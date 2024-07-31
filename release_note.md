@@ -5,6 +5,7 @@
 * Add a new parameter "file_name" to actuator.save_result, so you can specific file name of backtest result
 * broker and markets have quote token now, quote token can be different among markets. It can be set in actuator.set_price()
 * external_price parameter in UniLpMarket.get_market_balance has removed, because net value returned by unilpmarket should be quoted by quote token of this pool
+* [breaking change]When adding liquidity, tick should be trim according to tick spacing. Call nearest_usable_tick to get an available tick 
 
 # Ver 0.6.0
 
