@@ -20,7 +20,7 @@ class TestUniLpMarketToken1Quote(unittest.TestCase):
         broker = Broker()
         market = UniLpMarket(test_market, self.pool)
         broker.add_market(market)
-        tick = -206604
+        tick = -206600
         price = market.tick_to_price(tick)
         market.set_market_status(
             MarketStatus(
@@ -69,7 +69,7 @@ class TestUniLpMarketToken1Quote(unittest.TestCase):
         TestUniLpMarketToken1Quote.print_broker(broker)
         self.assertEqual(0, broker.assets[self.eth].balance.quantize(Decimal(".0000001")))
         self.assertEqual(0, broker.assets[self.usdc].balance.quantize(Decimal(".00001")))
-        self.assertEqual(6546548417233952, liquidity)
+        self.assertEqual(6547857793831120, liquidity)
 
     def test_remove_position(self):
         broker = self.get_broker()

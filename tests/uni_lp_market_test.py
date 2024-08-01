@@ -84,9 +84,9 @@ class TestUniLpMarket(unittest.TestCase):
             broker.assets[self.usdc].balance,
             broker.assets[self.eth].balance,
         )
-        self.assertEqual(new_position.lower_tick, 199526)
-        self.assertEqual(new_position.upper_tick, 200496)
-        self.assertEqual(liquidity, 1854454578816266)
+        self.assertEqual(new_position.lower_tick, 199530)
+        self.assertEqual(new_position.upper_tick, 200500)
+        self.assertEqual(liquidity, 1839802140646141)
         TestUniLpMarket.print_broker(broker)
 
     def test_add_Liquidity_default_param(self):

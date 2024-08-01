@@ -17,7 +17,7 @@ eth = TokenInfo(name="eth", decimal=18)
 usdc = TokenInfo(name="usdc", decimal=6)
 pool = UniV3Pool(eth, usdc, 0.05, usdc)
 
-tick = -207243
+tick = -207240
 price = None
 
 
@@ -102,7 +102,7 @@ class TestAddLiqByValueToken1IsQuote(unittest.TestCase):
         # fee will be charged
         self.assertEqual(new_amount0, Decimal(0))
         self.assertEqual(new_amount1, Decimal(0))
-        self.assertEqual(quote_used.quantize(d2), Decimal("1999.5"))
+        self.assertEqual(quote_used.quantize(d2), Decimal("2000.1"))
         self.assertEqual(base_used, Decimal(0))
         # fee
         self.assertEqual(
@@ -136,7 +136,7 @@ class TestAddLiqByValueToken1IsQuote(unittest.TestCase):
 
     def test_in_range_token0_token1_enough_1_3(self):
         broker, market, old_amount0, old_amount1, base_used, quote_used, new_amount0, new_amount1 = (
-            self.add_liq_by_value(-29990, 5993, Decimal(1))  # will use usdc:eth=3:1
+            self.add_liq_by_value(-28330, 5820, Decimal(1))  # will use usdc:eth=3:1
         )
         self.assertEqual(new_amount0.quantize(d4), (Decimal(0.75)).quantize(d4))
         self.assertEqual(new_amount1.quantize(d2), (Decimal(0.25) * price).quantize(d2))
@@ -153,7 +153,7 @@ class TestAddLiqByValueToken1IsQuote(unittest.TestCase):
         # will use usdc:eth=3:1
         # so transfer some eth to usdc, and eth will be left
         broker, market, old_amount0, old_amount1, base_used, quote_used, new_amount0, new_amount1 = (
-            self.add_liq_by_value(-29990, 5993, Decimal(1.6))  # will use usdc:eth=3:1
+            self.add_liq_by_value(-28330, 5820, Decimal(1.6))  # will use usdc:eth=3:1
         )
         self.assertEqual(new_amount0.quantize(d4), Decimal(0.4).quantize(d4))
         self.assertEqual(new_amount1.quantize(d4), Decimal(0).quantize(d4))
@@ -168,7 +168,7 @@ class TestAddLiqByValueToken1IsQuote(unittest.TestCase):
         # so transfer some 0.5 eth to usdc
         # fee is (0.5 * fee_rate) eth
         broker, market, old_amount0, old_amount1, base_used, quote_used, new_amount0, new_amount1 = (
-            self.add_liq_by_value(-29990, 5993, Decimal(2))
+            self.add_liq_by_value(-28330, 5820, Decimal(2))
         )
         self.assertEqual(new_amount0, Decimal(0))
         self.assertEqual(new_amount1, Decimal(0))
@@ -182,7 +182,7 @@ class TestAddLiqByValueToken1IsQuote(unittest.TestCase):
         # so transfer some 0.5 usdc to eth
         # fee is (0.5 * fee_rate) eth
         broker, market, old_amount0, old_amount1, base_used, quote_used, new_amount0, new_amount1 = (
-            self.add_liq_by_value(-5993,29990 , Decimal(2))
+            self.add_liq_by_value(-5820,28330 , Decimal(2))
         )
         self.assertEqual(new_amount0, Decimal(0))
         self.assertEqual(new_amount1, Decimal(0))
