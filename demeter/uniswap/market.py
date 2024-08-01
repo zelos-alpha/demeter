@@ -519,6 +519,7 @@ class UniLpMarket(Market):
         quote_max_amount: Decimal | float = None,
         sqrt_price_x96: int = -1,
         tick: int = -1,
+        trim_tick: bool = True,
     ) -> (PositionInfo, Decimal, Decimal, int):
         """
 
@@ -536,9 +537,15 @@ class UniLpMarket(Market):
         :type tick: int
         :param sqrt_price_x96: precise price.  if set to none, it will be calculated from current price. this param will override tick
         :type sqrt_price_x96: int
+        :param trim_tick: trim tick according to tick spacing, default is True
+        :type trim_tick: bool
         :return: added get_position, base token used, quote token used
         :rtype: (PositionInfo, Decimal, Decimal)
         """
+        if trim_tick:
+            lower_tick = nearest_usable_tick(lower_tick, self.pool_info.tick_spacing)
+            upper_tick = nearest_usable_tick(upper_tick, self.pool_info.tick_spacing)
+
         if lower_tick > upper_tick:
             lower_tick, upper_tick = upper_tick, lower_tick
 
@@ -779,7 +786,9 @@ class UniLpMarket(Market):
 
         return fee_in_base, base_token_amount, quote_amount_got
 
-    def add_liquidity_by_value(self, lower_tick: int, upper_tick: int, value_to_use: Decimal | None = None):
+    def add_liquidity_by_value(
+        self, lower_tick: int, upper_tick: int, value_to_use: Decimal | None = None, trim_tick: bool = True
+    ):
         """
         Add liquidity from balance with value defined, and swap if necessary.
         e.g. you have 1 eth and 3000 usdc, and eth price is 1000. If you want to invest at 1:1,
@@ -790,10 +799,17 @@ class UniLpMarket(Market):
 
 
         :param lower_tick: lower tick
+        :type lower_tick: int
         :param upper_tick: upper tick
+        :type upper_tick: int
+        :param trim_tick: trim tick according to tick spacing, default is True
+        :type trim_tick: bool
         :param value_to_use: Value you want to add liquidity(in quote token). Actual value used would be less than this value because swap fee might be charged.
         :return:
         """
+        if trim_tick:
+            lower_tick = nearest_usable_tick(lower_tick, self.pool_info.tick_spacing)
+            upper_tick = nearest_usable_tick(upper_tick, self.pool_info.tick_spacing)
         price = self._market_status.data.price
         tick = self._market_status.data.closeTick
         price0, price1 = self._convert_pair(price, Decimal(1))

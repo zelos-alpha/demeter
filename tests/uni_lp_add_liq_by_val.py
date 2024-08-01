@@ -1,12 +1,9 @@
+import pandas as pd
 import unittest
-from datetime import date
 from decimal import Decimal
 
-import pandas as pd
-
-import demeter
-from demeter import TokenInfo, Broker, MarketInfo, ChainType, MarketStatus
-from demeter.uniswap import UniLpMarket, UniV3Pool, UniV3PoolStatus, UniswapMarketStatus
+from demeter import TokenInfo, Broker, MarketInfo
+from demeter.uniswap import UniLpMarket, UniV3Pool, UniswapMarketStatus, nearest_usable_tick
 
 test_market = MarketInfo("market1")
 
@@ -17,7 +14,7 @@ eth = TokenInfo(name="eth", decimal=18)
 usdc = TokenInfo(name="usdc", decimal=6)
 pool = UniV3Pool(usdc, eth, 0.05, usdc)
 
-tick = 207243
+tick = 207240
 price = None
 
 
@@ -31,7 +28,7 @@ class TestAddLiqByValue(unittest.TestCase):
         market = UniLpMarket(test_market, pool)
         broker.add_market(market)
         global price
-        price = market.tick_to_price(tick)  # 1000.002
+        price = market.tick_to_price(tick)  # 1000.302
         market.set_market_status(
             UniswapMarketStatus(
                 timestamp=None,
@@ -116,7 +113,7 @@ class TestAddLiqByValue(unittest.TestCase):
 
     def test_in_range_token0_token1_enough_1_1(self):
         broker, market, old_amount0, old_amount1, base_used, quote_used, new_amount0, new_amount1 = (
-            self.add_liq_by_value(-10000, 10000, Decimal(1))  # will use usdc:eth=1:1
+            self.add_liq_by_value(-5000, 5000, Decimal(1))  # will use usdc:eth=1:1
         )
         self.assertEqual(new_amount0.quantize(d4), (Decimal("0.5") * price).quantize(d4))
         self.assertEqual(new_amount1.quantize(d4), Decimal("0.5"))
@@ -125,7 +122,7 @@ class TestAddLiqByValue(unittest.TestCase):
 
     def test_in_range_token0_token1_enough_1_3(self):
         broker, market, old_amount0, old_amount1, base_used, quote_used, new_amount0, new_amount1 = (
-            self.add_liq_by_value(-29990, 5993, Decimal(1))  # will use usdc:eth=1:3
+            self.add_liq_by_value(-28330, 5820, Decimal(1))  # will use usdc:eth=1:3
         )
         self.assertEqual(new_amount0.quantize(d2), (Decimal(0.75) * price).quantize(d2))
         self.assertEqual(new_amount1.quantize(d4), Decimal(0.25).quantize(d4))
@@ -134,7 +131,7 @@ class TestAddLiqByValue(unittest.TestCase):
 
     def test_in_range_token0_token1_not_enough_1_3(self):
         broker, market, old_amount0, old_amount1, base_used, quote_used, new_amount0, new_amount1 = (
-            self.add_liq_by_value(-29990, 5993, Decimal(1.6))  # will use usdc:eth=1:3
+            self.add_liq_by_value(-28330, 5820, Decimal(1.6))  # will use usdc:eth=1:3
         )
         self.assertEqual(new_amount0.quantize(d4), (Decimal(0.4) * price).quantize(d4))
         self.assertEqual(new_amount1.quantize(d4), Decimal(0).quantize(d4))
@@ -148,7 +145,7 @@ class TestAddLiqByValue(unittest.TestCase):
 
     def test_in_range_token0_token1_use_all_1_3(self):
         broker, market, old_amount0, old_amount1, base_used, quote_used, new_amount0, new_amount1 = (
-            self.add_liq_by_value(-29990, 5993, Decimal(2))  # will use usdc:eth=1:3
+            self.add_liq_by_value(-28330, 5820, Decimal(2))  # will use usdc:eth=1:3
         )
         self.assertEqual(new_amount0, Decimal(0))
         self.assertEqual(new_amount1, Decimal(0))
@@ -159,11 +156,11 @@ class TestAddLiqByValue(unittest.TestCase):
 
     def test_in_range_token0_token1_use_all_3_1(self):
         broker, market, old_amount0, old_amount1, base_used, quote_used, new_amount0, new_amount1 = (
-            self.add_liq_by_value(-5993, 29990, Decimal(2))  # will use usdc:eth=3:1
+            self.add_liq_by_value(-5820, 28330, Decimal(2))  # will use usdc:eth=3:1
         )
         self.assertEqual(new_amount0, Decimal(0))
         self.assertEqual(new_amount1, Decimal(0))
-        self.assertEqual((base_used / quote_used * price).quantize(d4), Decimal(1/3).quantize(d4))
+        self.assertEqual((base_used / quote_used * price).quantize(d4), Decimal(1 / 3).quantize(d4))
         self.assertEqual(  # check fee
             (Decimal(2) * price - base_used * price - quote_used).quantize(d4), (price / 2 * pool.fee_rate).quantize(d4)
         )

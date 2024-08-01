@@ -1,8 +1,8 @@
 import math
 from decimal import Decimal, getcontext
-from typing import Tuple
+from typing import Tuple, NamedTuple
 
-from .liquitidy_math import get_sqrt_ratio_at_tick
+from .liquitidy_math import get_sqrt_ratio_at_tick, get_liquidity, get_amounts
 from .. import DemeterError
 
 Q96 = Decimal(2**96)
@@ -329,3 +329,75 @@ def nearest_usable_tick(tick: int, tick_spacing: int):
         return rounded - tick_spacing
     else:
         return rounded
+
+
+class TickResult(NamedTuple):
+    final_price: Decimal
+    rate: Decimal
+    center_tick: int
+    upper: int
+    lower: int
+    upper_delta: int
+    lower_delta: int
+
+
+def find_tick_range_at_rate(
+    price: Decimal,
+    rate: Decimal,
+    tick_spacing: int,
+    decimal0: int,
+    decimal1: int,
+    is_0_quote: bool,
+    error=Decimal("0.00001"),
+):
+    """
+    Find iteratively, for a specific price, what tick range can make the quantities of two tokens exactly equal to a specific ratio.
+    :param price: center price, it will be trimed according to tick space
+    :param rate: the rate you want. amount1/amount0
+    :param tick_spacing: tick spacing of the pool
+    :param decimal0: decimal 0
+    :param decimal1: decimal 1
+    :param is_0_quote: token 0 is the quote token
+    :param error: error of rate
+    :return: An object contains new price, actual rate, and tick range, if can not find a proper tick range, return none, you can make error larger
+    """
+    center_tick = base_unit_price_to_tick(price, decimal0, decimal1, is_0_quote)
+    center_tick = nearest_usable_tick(center_tick, tick_spacing)
+    idx = tick_spacing
+
+    sqrt_price = tick_to_sqrt_price_x96(center_tick)
+    price = sqrt_price_x96_to_base_unit_price(sqrt_price, decimal0, decimal1, is_0_quote)
+    if is_0_quote:
+        token0_amount, token1_amount = price, Decimal(1)
+    else:
+        token1_amount, token0_amount = price, Decimal(1)
+
+    rate = rate.quantize(error)
+
+    while center_tick + idx <= 887272:
+        print("trying", center_tick + idx)
+        upper = center_tick + idx
+        lower_idx = idx
+        val1, val0 = 0, 1
+        while val1 / val0 <= rate:
+            lower_idx += tick_spacing
+            lower = center_tick - lower_idx
+            liq = get_liquidity(sqrt_price, lower, upper, token0_amount, token1_amount, decimal0, decimal1)
+            amount0, amount1 = get_amounts(sqrt_price, lower, upper, liq, decimal0, decimal1)
+            if is_0_quote:
+                val0, val1 = amount0, amount1 * price
+            else:
+                val0, val1 = amount0 * price, amount1
+
+            if (val1 / val0).quantize(error) == rate:
+                return TickResult(
+                    final_price=tick_to_base_unit_price(center_tick, decimal0, decimal1, is_0_quote),
+                    rate=val1 / val0,
+                    center_tick=center_tick,
+                    upper=upper,
+                    lower=lower,
+                    upper_delta=upper - center_tick,
+                    lower_delta=lower - center_tick,
+                )
+        idx += tick_spacing
+    return None
