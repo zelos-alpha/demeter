@@ -149,7 +149,7 @@ def volatility(returns: pd.Series, duration_in_day: float):
     :param duration_in_day: days between initial time and final time
     :return: volatility value
     """
-    return returns.std() * np.sqrt(365 * 1440 / duration_in_day)
+    return returns.std() * np.sqrt(365 * 1440)
 
 
 def sharpe_ratio(interval_in_day: float, values: pd.Series, annualized_risk_free_rate: float):
