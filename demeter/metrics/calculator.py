@@ -142,14 +142,14 @@ def _withdraw_with_high_low(arr: list):
     return g_withdraw, g_high, g_low
 
 
-def volatility(values: pd.Series, duration_in_day: float):
+def volatility(returns: pd.Series, duration_in_day: float):
     """
     Calculate volatility, The number of trading days is 365 instead of 252.
-    :param values: list of values
+    :param returns: list of values
     :param duration_in_day: days between initial time and final time
     :return: volatility value
     """
-    return values.std() * np.sqrt(365 / duration_in_day)
+    return returns.std() * np.sqrt(365 * 1440 / duration_in_day)
 
 
 def sharpe_ratio(interval_in_day: float, values: pd.Series, annualized_risk_free_rate: float):

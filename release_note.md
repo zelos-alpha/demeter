@@ -1,3 +1,7 @@
+# Ver 0.6.2
+
+* Fix error in volatility calculation
+
 # Ver 0.6.1
 
 * [breaking change]output result has updated, .action.json and action.pkl is removed. Instead, backtest description is

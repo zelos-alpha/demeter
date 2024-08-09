@@ -34,13 +34,15 @@ def performance_metrics(
         alpha, beta = alpha_beta(values, benchmark)
     else:
         alpha, beta = np.nan, np.nan
+
+    returns = values.pct_change().dropna()
     metric_map = {
         MetricEnum.return_value: return_value(init, final),
         MetricEnum.return_rate: return_rate(init, final),
         MetricEnum.annualized_return: annualized_return(duration_in_day, init, final),
         MetricEnum.max_draw_down: max_draw_down(values),
         MetricEnum.sharpe_ratio: sharpe_ratio(interval_in_day, values, annualized_risk_free_rate),
-        MetricEnum.volatility: volatility(values, duration_in_day),
+        MetricEnum.volatility: volatility(returns, duration_in_day),
         MetricEnum.alpha: alpha,
         MetricEnum.beta: beta,
     }
