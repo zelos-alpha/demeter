@@ -42,7 +42,7 @@ def performance_metrics(
         MetricEnum.annualized_return: annualized_return(duration_in_day, init, final),
         MetricEnum.max_draw_down: max_draw_down(values),
         MetricEnum.sharpe_ratio: sharpe_ratio(interval_in_day, values, annualized_risk_free_rate),
-        MetricEnum.volatility: volatility(returns, duration_in_day),
+        MetricEnum.volatility: volatility(returns),
         MetricEnum.alpha: alpha,
         MetricEnum.beta: beta,
     }

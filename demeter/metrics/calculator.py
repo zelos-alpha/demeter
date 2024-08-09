@@ -142,11 +142,10 @@ def _withdraw_with_high_low(arr: list):
     return g_withdraw, g_high, g_low
 
 
-def volatility(returns: pd.Series, duration_in_day: float):
+def volatility(returns: pd.Series):
     """
     Calculate volatility, The number of trading days is 365 instead of 252.
     :param returns: list of values
-    :param duration_in_day: days between initial time and final time
     :return: volatility value
     """
     return returns.std() * np.sqrt(365 * 1440)
