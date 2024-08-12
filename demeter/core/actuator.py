@@ -26,12 +26,14 @@ class RunningCount:
 
 class BackTestDescription(NamedTuple):
     strategy_name: str
-    end_time: datetime
     quote_token: TokenInfo
     init_status: AccountStatus
     assets: List[TokenInfo]
     markets: List[MarketDescription]
     actions: List[BaseAction]
+    backtest_start: datetime
+    backtest_end: datetime
+    backtest_duration: float
 
 
 class Actuator(object):
@@ -62,6 +64,8 @@ class Actuator(object):
         logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
         self.logger = logging.getLogger(__name__)
         # internal var
+        self.__start_time = None
+        self.__backtest_duration = None
         self.__backtest_finished = False
         self.__runnning_count: RunningCount = RunningCount()
         self.print_action = False
@@ -368,7 +372,7 @@ class Actuator(object):
         :param print: If true, print backtest result to console.
         :type print: bool
         """
-        run_begin_time = time.time()  # 1681718968.267463
+        self.__start_time = time.time()  # 1681718968.267463
         self.reset()
 
         self._check_backtest()
@@ -447,7 +451,8 @@ class Actuator(object):
         if print:
             self.print_result()
 
-        self.logger.info(f"Backtesting finished, execute time {time.time() - run_begin_time}s")
+        self.__backtest_duration = time.time() - self.__start_time
+        self.logger.info(f"Backtesting finished, execute time {time.time() - self.__start_time}s")
 
     def print_result(self):
         """
@@ -492,12 +497,14 @@ class Actuator(object):
         # save backtest file
         backtest_result = BackTestDescription(
             strategy_name=type(self._strategy).__name__,
-            end_time=datetime.now(),
             quote_token=self.broker.quote_token,
             init_status=self.init_account_status.asset_balances,
             assets=list(self.broker.assets.keys()),
             markets=[m.description for m in self.broker.markets.values()],
             actions=self._action_list,
+            backtest_start=datetime.fromtimestamp(self.__start_time),
+            backtest_duration=self.__backtest_duration,
+            backtest_end=datetime.now(),
         )
         pkl_name = os.path.join(path, file_name_head + ".pkl")
         with open(pkl_name, "wb") as outfile1:
@@ -534,7 +541,10 @@ class Actuator(object):
         self._strategy.initialize()
 
     def __str__(self):
-        return '{{"Account status":{}, "action_count":{}, "timestamp":"{}", "strategy":"{}", "price_df_rows":{}, "price_assets":{} }}'.format(
+        return (
+            '{{"Account status":{}, "action_count":{}, "timestamp":"{}", "strategy":"{}", '
+            '"price_df_rows":{}, "price_assets":{} }}'
+        ).format(
             str(self.broker),
             len(self._action_list),
             self._currents.timestamp,

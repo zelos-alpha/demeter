@@ -1,6 +1,7 @@
 # Ver 0.6.2
 
 * Fix error in volatility calculation
+* Update backtesting description, add backtest time
 
 # Ver 0.6.1
 
