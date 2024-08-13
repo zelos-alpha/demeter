@@ -203,9 +203,9 @@ class BaseAction(object):
     """
 
     market: MarketInfo
-    action_type: ActionTypeEnum = field(default=False, init=False)
-    timestamp: datetime = field(default=False, init=False)
-    comment: str = field(default=False, init=False)
+    action_type: ActionTypeEnum = field(default=None, init=False)
+    timestamp: datetime = field(default=None, init=False)
+    comment: str = field(default="", init=False)
 
     def get_output_str(self):
         return str(self)

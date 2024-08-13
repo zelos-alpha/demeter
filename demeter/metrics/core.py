@@ -31,9 +31,13 @@ def performance_metrics(
 
     if benchmark is not None:
         benchmark = benchmark.apply(lambda x: float(x))
-        alpha, beta = alpha_beta(values, benchmark)
+        alpha, beta = alpha_beta(values, benchmark, duration_in_day)
+        benchmark_init = benchmark.iloc[0]
+        benchmark_final = benchmark.iloc[-1]
+        benchmark_return = return_rate(benchmark_init, benchmark_final)
+        benchmark_apr = annualized_return(duration_in_day, benchmark_init, benchmark_final)
     else:
-        alpha, beta = np.nan, np.nan
+        alpha, beta, benchmark_return, benchmark_apr = np.nan, np.nan, np.nan, np.nan
 
     returns = values.pct_change().dropna()
     metric_map = {
@@ -41,9 +45,11 @@ def performance_metrics(
         MetricEnum.return_rate: return_rate(init, final),
         MetricEnum.annualized_return: annualized_return(duration_in_day, init, final),
         MetricEnum.max_draw_down: max_draw_down(values),
-        MetricEnum.sharpe_ratio: sharpe_ratio(interval_in_day, values, annualized_risk_free_rate),
-        MetricEnum.volatility: volatility(returns),
+        MetricEnum.sharpe_ratio: sharpe_ratio(interval_in_day, duration_in_day, values, annualized_risk_free_rate),
+        MetricEnum.volatility: volatility(returns, interval_in_day),
         MetricEnum.alpha: alpha,
         MetricEnum.beta: beta,
+        MetricEnum.benchmark_rate: benchmark_return,
+        MetricEnum.annualized_benchmark_rate: benchmark_apr,
     }
     return {k: Decimal(v) for k, v in metric_map.items()}

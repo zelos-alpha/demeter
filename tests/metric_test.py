@@ -79,9 +79,9 @@ class TestMetric(unittest.TestCase):
     def test_sharp_ratio(self):
         daily_returns = pd.Series([1.0, 1.01, 0.96, 1.00, 1.02, 1.01])
         risk_free_rate = 0.05
-        val = sharpe_ratio(1, daily_returns, risk_free_rate)
+        val = sharpe_ratio(1, self.duration_in_day, daily_returns, risk_free_rate)
         print("sharpe ratio", val)
-        self.assertEqual(1.2939758627678957, val)
+        self.assertEqual(0.6789644166270484, val)
 
     def test_alpha_beta(self):
-        alpha_beta(self.data, self.benchmark)
+        print(alpha_beta(self.data, self.benchmark, self.duration_in_day))

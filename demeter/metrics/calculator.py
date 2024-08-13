@@ -142,55 +142,55 @@ def _withdraw_with_high_low(arr: list):
     return g_withdraw, g_high, g_low
 
 
-def volatility(returns: pd.Series):
+def volatility(returns: pd.Series, interval_in_day):
     """
     Calculate volatility, The number of trading days is 365 instead of 252.
+    :param interval_in_day: Daily data interval.
     :param returns: list of values
     :return: volatility value
     """
-    return returns.std() * np.sqrt(365 * 1440)
+    return returns.std() * np.sqrt(365 / interval_in_day)
 
 
-def sharpe_ratio(interval_in_day: float, values: pd.Series, annualized_risk_free_rate: float):
+def sharpe_ratio(interval_in_day: float, duration_in_day: int, values: pd.Series, annualized_risk_free_rate: float):
     """
     Calculate sharpe ratio. The number of trading days is 365 instead of 252.
 
     :param interval_in_day: Daily data interval.
+    :param duration_in_day: days between initial time and final time
     :param values: list of values
     :param annualized_risk_free_rate: annualized risk free rate
     :return: sharpe ratio
     """
 
-    returns = values.pct_change().dropna()
+    returns = (values / values.shift(1)).dropna()
 
-    mean_daily_return = returns.mean()
-    std_daily_return = returns.std()
-
-    mean_yearly_return = mean_daily_return * 365 / interval_in_day
-    std_yearly_return = std_daily_return * np.sqrt(365 / interval_in_day)
+    mean_yearly_return = annualized_return(duration_in_day, return_rates=returns - 1)
+    std_yearly_return = volatility(returns, interval_in_day)
 
     result = (mean_yearly_return - annualized_risk_free_rate) / std_yearly_return
 
     return result
 
 
-def alpha_beta(values: pd.Series, benchmark: pd.Series):
+def alpha_beta(values: pd.Series, benchmark: pd.Series, duration_in_day: int):
     """
     Calculate alpha and beta
     :param values: list of values
     :param benchmark: benchmark
+    :param duration_in_day: days between initial time and final time
+
     :return: alpha and beta
     """
-    portfolio_return = values.pct_change().dropna()
-    benchmark_return = benchmark.pct_change().dropna()
+    portfolio_returns = (values / values.shift(1)).dropna()
+    benchmark_returns = (benchmark / benchmark.shift(1)).dropna()
 
-    mean_portfolio_return = portfolio_return.mean()
-    mean_benchmark_return = benchmark_return.mean()
+    cov = np.cov(portfolio_returns, benchmark_returns)
+    beta = cov[0, 1] / cov[1, 1]
 
-    covariance = np.mean((portfolio_return - mean_portfolio_return) * (benchmark_return - mean_benchmark_return))
-    variance = np.mean((benchmark_return - mean_benchmark_return) ** 2)
+    portfolio_apy = annualized_return(duration_in_day, return_rates=portfolio_returns - 1)
+    benchmark_apy = annualized_return(duration_in_day, return_rates=benchmark_returns - 1)
 
-    beta = covariance / variance
-    alpha = mean_portfolio_return - beta * mean_benchmark_return
+    alpha = portfolio_apy - beta * benchmark_apy
 
     return alpha, beta
