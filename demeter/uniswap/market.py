@@ -539,8 +539,8 @@ class UniLpMarket(Market):
         :type sqrt_price_x96: int
         :param trim_tick: trim tick according to tick spacing, default is True
         :type trim_tick: bool
-        :return: added get_position, base token used, quote token used
-        :rtype: (PositionInfo, Decimal, Decimal)
+        :return: added get_position, base token used, quote token used, liquidity
+        :rtype: (PositionInfo, Decimal, Decimal, int)
         """
         if trim_tick:
             lower_tick = nearest_usable_tick(lower_tick, self.pool_info.tick_spacing)
@@ -788,7 +788,7 @@ class UniLpMarket(Market):
 
     def add_liquidity_by_value(
         self, lower_tick: int, upper_tick: int, value_to_use: Decimal | None = None, trim_tick: bool = True
-    ):
+    )->(PositionInfo, Decimal, Decimal, int):
         """
         Add liquidity from balance with value defined, and swap if necessary.
         e.g. you have 1 eth and 3000 usdc, and eth price is 1000. If you want to invest at 1:1,
@@ -805,7 +805,8 @@ class UniLpMarket(Market):
         :param trim_tick: trim tick according to tick spacing, default is True
         :type trim_tick: bool
         :param value_to_use: Value you want to add liquidity(in quote token). Actual value used would be less than this value because swap fee might be charged.
-        :return:
+        :return: added get_position, base token used, quote token used, liquidity
+        :rtype: (PositionInfo, Decimal, Decimal, int)
         """
         if trim_tick:
             lower_tick = nearest_usable_tick(lower_tick, self.pool_info.tick_spacing)

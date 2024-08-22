@@ -1,11 +1,11 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 import pandas as pd
 
-from demeter import Strategy, AtTimeTrigger, MarketInfo, Actuator, RowData
+from demeter import Strategy, AtTimeTrigger, MarketInfo, Actuator, RowData, MarketTypeEnum
 from demeter.deribit import DeribitOptionMarket
 
-market_key = MarketInfo("option_test")
+market_key = MarketInfo("option_test", MarketTypeEnum.deribit_option)
 
 pd.options.display.max_columns = None
 pd.set_option("display.width", 5000)
