@@ -1,3 +1,7 @@
+# Ver 0.6.3
+
+* Out of date triggers will be removed. so it's free to add triggers during backtesting
+
 # Ver 0.6.2
 
 * Fix error in volatility calculation

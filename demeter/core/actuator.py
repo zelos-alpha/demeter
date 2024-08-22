@@ -406,7 +406,10 @@ class Actuator(object):
                     for trigger in self._strategy.triggers:
                         if trigger.when(row_data):
                             trigger.do(row_data)
-
+                # remove outdate triggers
+                self._strategy.triggers = [
+                    x for x in self._strategy.triggers if not x.is_out_date(self._currents.timestamp)
+                ]
                 for market in self.broker.markets.values():
                     if market.is_open and market.open is not None:
                         market.open(row_data)

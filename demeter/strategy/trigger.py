@@ -58,6 +58,9 @@ class Trigger:
         """
         return self._do(row_data, **self.kwargs)
 
+    def is_out_date(self, t) -> bool:
+        return False
+
 
 class AtTimeTrigger(Trigger):
     """
@@ -77,6 +80,9 @@ class AtTimeTrigger(Trigger):
 
     def when(self, row_data: RowData) -> bool:
         return row_data.timestamp == self._time
+
+    def is_out_date(self, t) -> bool:
+        return t >= self._time
 
 
 class AtTimesTrigger(Trigger):
@@ -98,6 +104,9 @@ class AtTimesTrigger(Trigger):
 
     def when(self, row_data: RowData) -> bool:
         return self._time in row_data.timestamp
+
+    def is_out_date(self, t) -> bool:
+        return t >= max(self._time)
 
 
 @dataclass
@@ -129,6 +138,9 @@ class TimeRangeTrigger(Trigger):
     def when(self, row_data: RowData) -> bool:
         return self._time_range.start <= row_data.timestamp < self._time_range.end
 
+    def is_out_date(self, t) -> bool:
+        return t >= self._time_range.end
+
 
 class TimeRangesTrigger(Trigger):
     """
@@ -151,6 +163,9 @@ class TimeRangesTrigger(Trigger):
             if r.start <= row_data.timestamp < r.end:
                 return True
         return False
+
+    def is_out_date(self, t) -> bool:
+        return t >= max([x.end for x in self._time_range])
 
 
 def _check_time_delta(delta: timedelta):
@@ -213,7 +228,9 @@ class PeriodsTrigger(Trigger):
     :type pending: timedelta
     """
 
-    def __init__(self, time_delta: List[timedelta], do, trigger_immediately=False, pending=timedelta(minutes=0), **kwargs):
+    def __init__(
+        self, time_delta: List[timedelta], do, trigger_immediately=False, pending=timedelta(minutes=0), **kwargs
+    ):
         self._next_matches = [None for _ in time_delta]
         self._deltas = time_delta
         self._trigger_immediately = trigger_immediately
