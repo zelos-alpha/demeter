@@ -389,7 +389,7 @@ class DeribitOptionMarket(Market):
         )
         return bid_list
 
-    def _deduct_order_amount(self, amount, orders, price_in_token):
+    def _deduct_order_amount(self, amount, orders, price_in_token) -> List[Order]:
         """
         subtract amount from asks/bids. e.g. if bid1 is run out, will deduct bid2. etc.
         """
