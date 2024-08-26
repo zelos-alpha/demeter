@@ -1,6 +1,7 @@
 # Ver 0.6.3
 
 * Out of date triggers will be removed. so it's free to add triggers during backtesting
+* Add logs in backtest result, if you call self.log in strategy, you can leave a log in backtest result file. 
 
 # Ver 0.6.2
 

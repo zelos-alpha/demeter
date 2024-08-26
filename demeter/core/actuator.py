@@ -11,7 +11,7 @@ from tqdm import tqdm  # process bar
 from typing import List, Union, NamedTuple, Tuple
 
 from .. import Broker, Asset, ActionTypeEnum
-from .._typing import DemeterError, UnitDecimal, DemeterWarning, TokenInfo, MarketDescription, USD
+from .._typing import DemeterError, UnitDecimal, DemeterWarning, TokenInfo, MarketDescription, USD, DemeterLog
 from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
 from ..strategy import Strategy
 from ..uniswap import PositionInfo
@@ -34,6 +34,7 @@ class BackTestDescription(NamedTuple):
     backtest_start: datetime
     backtest_end: datetime
     backtest_duration: float
+    logs: List[DemeterLog] = []
 
 
 class Actuator(object):
@@ -50,6 +51,7 @@ class Actuator(object):
         """
         # all the actions during the test(buy/sell/add liquidity)
         self._action_list: List[BaseAction] = []
+        self._logs: List[DemeterLog] = []
         self._currents = Currents()
         # broker status in every bar, use array for performance
         self._account_status_list: List[AccountStatus] = []
@@ -82,6 +84,7 @@ class Actuator(object):
         action.set_type()
         self._action_list.append(action)
         self._currents.actions.append(action)
+        self._log(action.timestamp, f"{action.market}: {action.action_type.name}, {action.comment}")
 
     # region property
     @property
@@ -319,6 +322,9 @@ class Actuator(object):
                     f"Price dataframe doesn't have {market.quote_token}, it's the quote token of {market.market_info.name}"
                 )
 
+    def _log(self, timestamp: datetime, message: str, level: int = logging.INFO):
+        self._logs.append(DemeterLog(timestamp, message, level))
+
     def __get_row_data(self, timestamp, row_id, current_price) -> RowData:
         row_data = RowData(timestamp.to_pydatetime(), row_id, current_price)
         for market_info, market in self.broker.markets.items():
@@ -508,6 +514,7 @@ class Actuator(object):
             backtest_start=datetime.fromtimestamp(self.__start_time),
             backtest_duration=self.__backtest_duration,
             backtest_end=datetime.now(),
+            logs=self._logs,
         )
         pkl_name = os.path.join(path, file_name_head + ".pkl")
         with open(pkl_name, "wb") as outfile1:
@@ -537,6 +544,7 @@ class Actuator(object):
         self._strategy.assets = self.broker.assets
         self._strategy.account_status_df = self.account_status_df
         self._strategy.comment_last_action = self.comment_last_action
+        self._strategy.log = self._log
         for k, v in self.broker.markets.items():
             setattr(self._strategy, k.name, v)
         for k, v in self.broker.assets.items():
