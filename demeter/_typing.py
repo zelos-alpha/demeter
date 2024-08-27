@@ -1,3 +1,7 @@
+import logging
+
+from datetime import datetime
+
 import json
 
 from dataclasses import dataclass
@@ -144,6 +148,12 @@ class MarketDescription:
     """market type string"""
     name: str
     """market name"""
+
+@dataclass
+class DemeterLog:
+    time: datetime
+    message: str
+    level: int = logging.INFO
 
 
 USD = TokenInfo("USD", 0)

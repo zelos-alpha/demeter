@@ -24,6 +24,7 @@ class Strategy(object):
         self.comment_last_action: Callable = lambda msg: msg
         self.assets: AssetDict[Asset] = AssetDict()
         self.actions: List[BaseAction] = []
+        self.log: Callable = lambda t, msg, info: msg
 
     def initialize(self):
         """
