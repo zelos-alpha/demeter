@@ -2,6 +2,7 @@
 
 * Out of date triggers will be removed. so it's free to add triggers during backtesting
 * Add logs in backtest result, if you call self.log in strategy, you can leave a log in backtest result file. 
+* Add fee in return of buy and sell function in deribit market. So return has changed from ```List[Order]``` to ```Tuple[List[Order],Decimal]```  
 
 # Ver 0.6.2
 
