@@ -5,7 +5,7 @@ from typing import Dict, Callable
 
 from ._typing import Asset, TokenInfo, AccountStatus, MarketDict, AssetDict, BaseAction, MarketTypeEnum
 from .market import Market
-from .._typing import DemeterError, UnitDecimal, USD
+from .._typing import DemeterError, UnitDecimal, STABLE_COINS
 from ..utils import get_formatted_from_dict, get_formatted_predefined, STYLE, float_param_formatter
 
 
@@ -229,7 +229,7 @@ class Broker:
         }.intersection(market_types)
 
         if has_usd_market:
-            if self.quote_token != USD:
+            if self.quote_token.name not in STABLE_COINS:
                 raise DemeterError("deribit option/squeeth market must quote by stable coin or None")
 
     def check_backtest(self):
