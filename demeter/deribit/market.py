@@ -101,7 +101,7 @@ class DeribitOptionMarket(Market):
         Get a brief description of this market
         """
         return DeribitOptionDescription(
-            type(self).__name__, self._market_info.name, len(self.positions)
+            type(self).__name__, self._market_info.name, self.token.name, len(self.positions)
         )
 
     def load_data(self, start_date: date, end_date: date):
@@ -210,9 +210,7 @@ class DeribitOptionMarket(Market):
             raise DemeterError("data is empty")
         price = []
         for hour, hour_df in self._data.groupby(level=0):
-            price.append(
-                {"time": hour, self.token.name: hour_df.iloc[0]["underlying_price"]}
-            )
+            price.append({"time": hour, self.token.name: hour_df.iloc[0]["underlying_price"]})
         price_df = pd.DataFrame(price)
         price_df.set_index(["time"], inplace=True)
         # expend to the end of the day
@@ -235,12 +233,7 @@ class DeribitOptionMarket(Market):
         """
         Return a brief description of this market in pretty format. Used for print in console.
         """
-        value = (
-            get_formatted_predefined(
-                f"{self.market_info.name}({type(self).__name__})", STYLE["header3"]
-            )
-            + "\n"
-        )
+        value = get_formatted_predefined(f"{self.market_info.name}({type(self).__name__})", STYLE["header3"]) + "\n"
         token_dict = {"token": self.token.name}
         value += get_formatted_from_dict(token_dict) + "\n"
         balance: OptionMarketBalance = self.get_market_balance()
@@ -257,11 +250,7 @@ class DeribitOptionMarket(Market):
         )
         value += get_formatted_predefined("Positions", STYLE["key"]) + "\n"
         supply_df = position_to_df(self.positions)
-        value += (
-            supply_df.to_string() + "\n"
-            if len(supply_df.index) > 0
-            else "Empty DataFrame\n"
-        )
+        value += supply_df.to_string() + "\n" if len(supply_df.index) > 0 else "Empty DataFrame\n"
 
         return value
 
@@ -299,9 +288,7 @@ class DeribitOptionMarket(Market):
         # deduct bids amount
         ask_list = self._deduct_order_amount(amount, asks, price_in_token)
 
-        total_premium = Decimal(
-            sum([Decimal(t.amount) * Decimal(t.price) for t in ask_list])
-        )
+        total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in ask_list]))
         fee_amount = self.get_trade_fee(amount, total_premium)
         self.broker.subtract_from_balance(self.token, total_premium + fee_amount)
 
@@ -348,11 +335,7 @@ class DeribitOptionMarket(Market):
     @staticmethod
     def _find_available_orders(price, order_list) -> List:
         error = Decimal("0.001")
-        return list(
-            filter(
-                lambda x: (1 - error) * price < x[0] < (1 + error) * price, order_list
-            )
-        )
+        return list(filter(lambda x: (1 - error) * price < x[0] < (1 + error) * price, order_list))
 
     @write_func
     @float_param_formatter
@@ -387,13 +370,9 @@ class DeribitOptionMarket(Market):
 
         # write positions back
         if self.data is not None:
-            self.data.loc[(self._market_status.timestamp, instrument_name), "bids"] = (
-                bids
-            )
+            self.data.loc[(self._market_status.timestamp, instrument_name), "bids"] = bids
 
-        total_premium = Decimal(
-            sum([Decimal(t.amount) * Decimal(t.price) for t in bid_list])
-        )
+        total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in bid_list]))
         fee = self.get_trade_fee(amount, total_premium)
         self.broker.add_to_balance(self.token, total_premium - fee)
 
@@ -484,9 +463,7 @@ class DeribitOptionMarket(Market):
 
         if price_in_token is not None:
             # to prevent error in decimal
-            available_orders = DeribitOptionMarket._find_available_orders(
-                price_in_token, available_orders
-            )
+            available_orders = DeribitOptionMarket._find_available_orders(price_in_token, available_orders)
 
             if len(available_orders) < 1:
                 raise DemeterError(
@@ -516,9 +493,7 @@ class DeribitOptionMarket(Market):
         but uniswap data is minutely. so at the rest 59 minutes, deribit option market is readonly.
         which means, you can read status, but you can not buy or sell options.
         """
-        return self._market_status.timestamp == self._market_status.timestamp.floor(
-            DERIBIT_OPTION_FREQ
-        )
+        return self._market_status.timestamp == self._market_status.timestamp.floor(DERIBIT_OPTION_FREQ)
 
     def get_market_balance(self) -> OptionMarketBalance:
         """
@@ -528,38 +503,22 @@ class DeribitOptionMarket(Market):
         :rtype: MarketBalance
         """
         if self._is_open():
-            put_count = len(
-                list(
-                    filter(lambda x: x.type == OptionKind.put, self.positions.values())
-                )
-            )
-            call_count = len(
-                list(
-                    filter(lambda x: x.type == OptionKind.call, self.positions.values())
-                )
-            )
+            put_count = len(list(filter(lambda x: x.type == OptionKind.put, self.positions.values())))
+            call_count = len(list(filter(lambda x: x.type == OptionKind.call, self.positions.values())))
 
             total_premium = Decimal(0)
             delta = gamma = Decimal(0)
             for position in self.positions.values():
                 instr_status = self.market_status.data.loc[position.instrument_name]
-                instrument_premium = position.amount * round_decimal(
-                    instr_status.mark_price, self.decimal
-                )
+                instrument_premium = position.amount * round_decimal(instr_status.mark_price, self.decimal)
                 total_premium += instrument_premium
-                delta += instrument_premium * round_decimal(
-                    instr_status.delta, self.decimal
-                )
-                gamma += instrument_premium * round_decimal(
-                    instr_status.gamma, self.decimal
-                )
+                delta += instrument_premium * round_decimal(instr_status.delta, self.decimal)
+                gamma += instrument_premium * round_decimal(instr_status.gamma, self.decimal)
 
             delta = Decimal(0) if total_premium == Decimal(0) else delta / total_premium
             gamma = Decimal(0) if total_premium == Decimal(0) else gamma / total_premium
 
-            self._balance_cache = OptionMarketBalance(
-                total_premium, put_count, call_count, delta, gamma
-            )
+            self._balance_cache = OptionMarketBalance(total_premium, put_count, call_count, delta, gamma)
         return self._balance_cache
 
     # region exercise
@@ -574,43 +533,24 @@ class DeribitOptionMarket(Market):
             if self._market_status.timestamp >= position.expiry_time:
                 # should
                 if position.instrument_name not in self._market_status.data.index:
-                    raise DemeterError(
-                        f"{position.instrument_name} is not in current orderbook"
-                    )
-                instrument: InstrumentStatus = self.market_status.data.loc[
-                    position.instrument_name
-                ]
+                    raise DemeterError(f"{position.instrument_name} is not in current orderbook")
+                instrument: InstrumentStatus = self.market_status.data.loc[position.instrument_name]
                 deliver_amount = deliver_fee = None
-                if (
-                    position.type == OptionKind.put
-                    and position.strike_price > instrument.underlying_price
-                ):
-                    deliver_amount, deliver_fee = self._deliver_option(
-                        position, instrument, False
-                    )
-                elif (
-                    position.type == OptionKind.call
-                    and position.strike_price < instrument.underlying_price
-                ):
-                    deliver_amount, deliver_fee = self._deliver_option(
-                        position, instrument, True
-                    )
+                if position.type == OptionKind.put and position.strike_price > instrument.underlying_price:
+                    deliver_amount, deliver_fee = self._deliver_option(position, instrument, False)
+                elif position.type == OptionKind.call and position.strike_price < instrument.underlying_price:
+                    deliver_amount, deliver_fee = self._deliver_option(position, instrument, True)
                 if deliver_amount is not None:
                     self._record_action(
                         DeliverAction(
                             market=self._market_info,
                             instrument_name=pos_key,
                             type=position.type,
-                            mark_price=round_decimal(
-                                instrument.mark_price, self.decimal
-                            ),
+                            mark_price=round_decimal(instrument.mark_price, self.decimal),
                             amount=position.amount,
-                            total_premium=position.amount
-                            * round_decimal(instrument.mark_price, self.decimal),
+                            total_premium=position.amount * round_decimal(instrument.mark_price, self.decimal),
                             strike_price=position.strike_price,
-                            underlying_price=round_decimal(
-                                instrument.underlying_price, self.decimal
-                            ),
+                            underlying_price=round_decimal(instrument.underlying_price, self.decimal),
                             deriver_amount=deliver_amount,
                             fee=deliver_fee,
                             income_amount=deliver_amount - deliver_fee,
@@ -621,9 +561,7 @@ class DeribitOptionMarket(Market):
         for pos_key in key_to_remove:
             position = self.positions[pos_key]
             if pos_key in self.market_status.data.index:
-                instrument: InstrumentStatus = self.market_status.data.loc[
-                    position.instrument_name
-                ]
+                instrument: InstrumentStatus = self.market_status.data.loc[position.instrument_name]
             else:
                 instrument = InstrumentStatus(mark_price=0, underlying_price=0)
             self._record_action(
@@ -633,12 +571,9 @@ class DeribitOptionMarket(Market):
                     type=position.type,
                     mark_price=round_decimal(instrument.mark_price, self.decimal),
                     amount=position.amount,
-                    total_premium=position.amount
-                    * round_decimal(instrument.mark_price, self.decimal),
+                    total_premium=position.amount * round_decimal(instrument.mark_price, self.decimal),
                     strike_price=position.strike_price,
-                    underlying_price=round_decimal(
-                        instrument.underlying_price, self.decimal
-                    ),
+                    underlying_price=round_decimal(instrument.underlying_price, self.decimal),
                 )
             )
             del self.positions[pos_key]

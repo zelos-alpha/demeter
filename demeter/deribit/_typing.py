@@ -10,6 +10,7 @@ from demeter._typing import MarketDescription
 from demeter.broker import MarketBalance, ActionTypeEnum
 from demeter.utils.console_text import get_action_str, ForColorEnum
 
+
 @dataclass
 class DeribitOptionDescription(MarketDescription):
     """
@@ -24,6 +25,7 @@ class DeribitOptionDescription(MarketDescription):
 
     """
 
+    token: str
     position_count: int
     """count of position"""
 
