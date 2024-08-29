@@ -1,7 +1,7 @@
 import json
 import os
 from _decimal import Decimal
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from orjson import orjson
 from typing import List, Dict, Tuple
 
@@ -95,6 +95,7 @@ class DeribitOptionMarket(Market):
 
         return orjson.dumps(self.description, default=orjson_default).decode()
 
+    @property
     def description(self):
         """
         Get a brief description of this market
