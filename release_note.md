@@ -1,3 +1,7 @@
+# Ver 0.6.4
+
+* deribit market accept missing data now
+
 # Ver 0.6.3
 
 * Out of date triggers will be removed. so it's free to add triggers during backtesting

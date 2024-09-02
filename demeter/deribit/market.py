@@ -163,7 +163,13 @@ class DeribitOptionMarket(Market):
         """
         super().set_market_status(data, price)
         if data.data is None:
-            data.data = self._data.loc[data.timestamp.floor(DERIBIT_OPTION_FREQ)]
+            tmr_idx = data.timestamp.floor(DERIBIT_OPTION_FREQ)
+            if tmr_idx in self._data.index:
+                data.data = self._data.loc[tmr_idx]
+            else:
+                data.data = pd.DataFrame(columns=self._data.columns)
+                if self._is_open():
+                    print(f"Deribit data in {data.timestamp} doesn't exist")
         self._market_status = data
 
     # region for option market only
@@ -509,6 +515,9 @@ class DeribitOptionMarket(Market):
             total_premium = Decimal(0)
             delta = gamma = Decimal(0)
             for position in self.positions.values():
+                # data may missing due to unstable collect server
+                if position.instrument_name not in self.market_status.data.index:
+                    continue
                 instr_status = self.market_status.data.loc[position.instrument_name]
                 instrument_premium = position.amount * round_decimal(instr_status.mark_price, self.decimal)
                 total_premium += instrument_premium
