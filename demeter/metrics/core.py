@@ -41,6 +41,9 @@ def performance_metrics(
 
     returns = values.pct_change().dropna()
     metric_map = {
+        MetricEnum.start_period: values.index[0],
+        MetricEnum.end_period: values.index[-1],
+        MetricEnum.duration: (values.index[-1] - values.index[0]) + interval,
         MetricEnum.return_value: return_value(init, final),
         MetricEnum.return_rate: return_rate(init, final),
         MetricEnum.annualized_return: annualized_return(duration_in_day, init, final),
@@ -52,4 +55,4 @@ def performance_metrics(
         MetricEnum.benchmark_rate: benchmark_return,
         MetricEnum.annualized_benchmark_rate: benchmark_apr,
     }
-    return {k: Decimal(v) for k, v in metric_map.items()}
+    return {k: v for k, v in metric_map.items()}
