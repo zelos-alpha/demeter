@@ -1,14 +1,15 @@
 import logging
 import os
-import pandas as pd
 import pickle
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from pandas import Timestamp, PeriodIndex
+from typing import List, Union, Tuple
+
+import pandas as pd
+from pandas import Timestamp
 from tqdm import tqdm  # process bar
-from typing import List, Union, NamedTuple, Tuple
 
 from .. import Broker, Asset, ActionTypeEnum
 from .._typing import (
@@ -19,7 +20,6 @@ from .._typing import (
     MarketDescription,
     USD,
     DemeterLog,
-    TimeUnitEnum,
 )
 from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
 from ..strategy import Strategy
@@ -35,7 +35,8 @@ class RunningCount:
     get_account_status_df: int = 0
 
 
-class BackTestDescription(NamedTuple):
+@dataclass
+class BackTestDescription:
     strategy_name: str
     quote_token: TokenInfo
     init_status: AccountStatus
@@ -45,7 +46,7 @@ class BackTestDescription(NamedTuple):
     backtest_start: datetime
     backtest_end: datetime
     backtest_duration: float
-    logs: List[DemeterLog] = []
+    logs: List[DemeterLog] = field(default_factory=list)
 
 
 class Actuator(object):
@@ -508,7 +509,7 @@ class Actuator(object):
         print(get_formatted_predefined("Account balance history", STYLE["header1"]))
         console_text.print_dataframe_with_precision(self._account_status_df)
 
-    def save_result(self, path: str, file_name: str = None) -> List[str]:
+    def save_result(self, path: str, file_name: str = None, **custom_attr) -> List[str]:
         """
         Save backtesting result
 
@@ -544,6 +545,8 @@ class Actuator(object):
             backtest_end=datetime.now(),
             logs=self._logs,
         )
+        for k, v in custom_attr.items():
+            setattr(backtest_result, k, v)
         pkl_name = os.path.join(path, file_name_head + ".pkl")
         with open(pkl_name, "wb") as outfile1:
             pickle.dump(backtest_result, outfile1)

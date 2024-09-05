@@ -106,7 +106,10 @@ if __name__ == "__main__":
     )
     print(metrics)
 
-    files = actuator.save_result(path="./result")
+    # save backtest result(include backtest information(.pkl) and account status(.csv) to this folder)
+    # default file name has timestamp. If you want a custom file name, you can set file_name
+    # if you want to add some custom parameter to pkl file, you can use dict, such as custom_param in this example.
+    files = actuator.save_result(path="./result", file_name="custom-file-name", custom_param="custom_value")
 
     # load equity list
     account_df_loaded = load_account_status(files[0])
