@@ -1,11 +1,12 @@
 import json
+import logging
 import os
 from _decimal import Decimal
-from datetime import date, timedelta, datetime
-from orjson import orjson
+from datetime import date, timedelta
 from typing import List, Dict, Tuple
 
 import pandas as pd
+from orjson import orjson
 
 from ._typing import (
     DeribitOptionDescription,
@@ -126,7 +127,9 @@ class DeribitOptionMarket(Market):
                 f"Deribit-option-book-{self.token.name}-{day.strftime('%Y%m%d')}.csv",
             )
             if not os.path.exists(path):
-                raise IOError(f"resource file {path} not found")
+                logging.warning(f"resource file {path} not found")
+                day += timedelta(days=1)
+                continue
 
             day_df = pd.read_csv(
                 path,
