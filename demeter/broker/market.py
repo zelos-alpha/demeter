@@ -158,4 +158,10 @@ class Market:
         """
         return ""
 
+    def _resample(self, freq: str):
+        """
+        Resample data in this market
+        """
+        pass
+
     # endregion

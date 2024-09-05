@@ -35,6 +35,7 @@ from ..utils import (
 )
 
 DEFAULT_DATA_PATH = "./data"
+BASIC_INTERVAL = pd.Timedelta("1h")
 
 
 def order_converter(array_str) -> List:
@@ -614,3 +615,10 @@ class DeribitOptionMarket(Market):
     # endregion
 
     # endregion
+
+    def _resample(self, freq: str):
+        interval_delta = pd.Timedelta(freq)
+        if interval_delta <= BASIC_INTERVAL:
+            return
+        else:
+            self._data = self._data.resample(freq).first()

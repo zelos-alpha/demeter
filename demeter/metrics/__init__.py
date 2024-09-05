@@ -1,5 +1,5 @@
 from ._typing import MetricEnum
-from .core import performance_metrics
+from .core import performance_metrics, round_results
 from .calculator import (
     return_value,
     return_rate,

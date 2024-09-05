@@ -856,3 +856,6 @@ class SqueethMarket(Market):
         """
         # Maybe I should calculate this myself, as transactions are too few in a day
         return self._market_status.data["norm_factor"]
+
+    def _resample(self, freq: str):
+        self._data = self.data.resample(freq).first()

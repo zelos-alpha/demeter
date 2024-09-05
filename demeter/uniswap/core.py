@@ -109,11 +109,11 @@ class V3CoreLib(object):
             pool.token1.decimal,
             pool.is_token0_quote,
         )
-        lower_tick, upper_tick = (lower_tick, upper_tick) if not pool.is_token0_quote else (upper_tick,lower_tick)
+        lower_tick, upper_tick = (lower_tick, upper_tick) if not pool.is_token0_quote else (upper_tick, lower_tick)
         return lower_tick, upper_tick
 
     @staticmethod
-    def update_fee(last_tick:int,pool: UniV3Pool, pos: PositionInfo, position: Position, state: UniV3PoolStatus):
+    def update_fee(last_tick: int, pool: UniV3Pool, pos: PositionInfo, position: Position, state: UniV3PoolStatus):
         """
         update fee
 
@@ -134,10 +134,10 @@ class V3CoreLib(object):
         condition_in_position = pos.upper_tick >= state.closeTick >= pos.lower_tick
         if last_tick:
             condition_over_position = (last_tick > pos.upper_tick and state.closeTick < pos.lower_tick) or (
-                    state.closeTick > pos.upper_tick and last_tick < pos.lower_tick
+                state.closeTick > pos.upper_tick and last_tick < pos.lower_tick
             )
             condition_in_to_out_position = pos.upper_tick >= last_tick >= pos.lower_tick and (
-                    state.closeTick > pos.upper_tick or state.closeTick < pos.lower_tick
+                state.closeTick > pos.upper_tick or state.closeTick < pos.lower_tick
             )
         else:
             condition_in_to_out_position = condition_over_position = False

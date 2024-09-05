@@ -6,17 +6,28 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from pandas import Timestamp
+from pandas import Timestamp, PeriodIndex
 from tqdm import tqdm  # process bar
 from typing import List, Union, NamedTuple, Tuple
 
 from .. import Broker, Asset, ActionTypeEnum
-from .._typing import DemeterError, UnitDecimal, DemeterWarning, TokenInfo, MarketDescription, USD, DemeterLog
+from .._typing import (
+    DemeterError,
+    UnitDecimal,
+    DemeterWarning,
+    TokenInfo,
+    MarketDescription,
+    USD,
+    DemeterLog,
+    TimeUnitEnum,
+)
 from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
 from ..strategy import Strategy
 from ..uniswap import PositionInfo
 from ..utils import console_text
 from ..utils import get_formatted_predefined, STYLE, to_decimal, to_multi_index_df
+
+BASIC_INTERVAL = pd.Timedelta("1min")
 
 
 @dataclass
@@ -72,6 +83,8 @@ class Actuator(object):
         self.__runnning_count: RunningCount = RunningCount()
         self.print_action = False
         self.init_account_status = None
+        # set backtest with other freq to make it faster, freq should be larger than 1 minute
+        self.interval: str = "1min"
 
     def _record_action_list(self, action: BaseAction):
         """
@@ -297,6 +310,12 @@ class Actuator(object):
                 print(action.get_output_str())
 
     def _check_backtest(self):
+        if not self.interval[0].isdigit():
+            self.interval = "1" + self.interval
+        interval_delta = pd.Timedelta(self.interval)
+        if interval_delta < BASIC_INTERVAL:
+            raise DemeterError("interval should be larger than 1 minute")
+
         self.broker.check_backtest()
 
         # ensure all token has price list.
@@ -357,7 +376,12 @@ class Actuator(object):
 
         return largest_market.data.index.get_level_values(0).unique()
 
-    def run(self, print: bool = True):
+    def switch_interval(self, index_array: pd.DatetimeIndex) -> pd.DatetimeIndex:
+        for mk, market in self.broker.markets.items():
+            market._resample(self.interval)
+        return pd.Series(0, index=index_array).resample(self.interval).first().index
+
+    def run(self, print_result: bool = True):
         """
         Start back test, the whole process including:
 
@@ -375,8 +399,8 @@ class Actuator(object):
         * run strategy.finalize()
         * output result if required
 
-        :param print: If true, print backtest result to console.
-        :type print: bool
+        :param print_result: If true, print backtest result to console.
+        :type print_result: bool
         """
         self.__start_time = time.time()  # 1681718968.267463
         self.reset()
@@ -385,6 +409,8 @@ class Actuator(object):
         index_array: pd.DatetimeIndex = (
             self.get_test_range()
         )  # list(self._broker.markets.values())[0].data.index.get_level_values(0).unique()
+        if self.interval != "1min":
+            index_array = self.switch_interval(index_array)
         self.logger.info(f"Qute token is {self.broker.quote_token}")
         self.logger.info("init strategy...")
 
@@ -423,7 +449,8 @@ class Actuator(object):
                 self._strategy.on_bar(row_data)
 
                 # important, take uniswap market for example,
-                # if liquidity has changed in the head of this minute, this will add the new liquidity to total_liquidity in current minute.
+                # if liquidity has changed in the head of this minute,
+                # this will add the new liquidity to total_liquidity in current minute.
                 self.__set_market_timestamp(timestamp_index, True)
 
                 # update broker status, e.g. re-calculate fee
@@ -457,7 +484,7 @@ class Actuator(object):
 
         self._strategy.finalize()
         self.__backtest_finished = True
-        if print:
+        if print_result:
             self.print_result()
 
         self.__backtest_duration = time.time() - self.__start_time

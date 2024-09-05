@@ -355,12 +355,12 @@ class AaveV3Market(Market):
         price: pd.Series,
     ):
         """
-        Set up pool status of this moment, such as liquidity index, supply/borrow rate, and price
-bug test case
-        :param data: market status
-        :type data: AaveMarketStatus
-        :param price: current price of tokens involved
-        :type price: Series
+                Set up pool status of this moment, such as liquidity index, supply/borrow rate, and price
+        bug test case
+                :param data: market status
+                :type data: AaveMarketStatus
+                :param price: current price of tokens involved
+                :type price: Series
         """
         super().set_market_status(data, price)
         if data.data is None:
@@ -1164,3 +1164,6 @@ bug test case
                 ),
             )
         )
+
+    def _resample(self, freq: str):
+        self._data = self.data.resample(freq).first()

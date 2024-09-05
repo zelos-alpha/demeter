@@ -22,7 +22,7 @@ from ._typing import (
     SwapAction,
 )
 from .core import V3CoreLib
-from .data import fillna
+from .data import fillna, resample
 from .helper import (
     tick_to_base_unit_price,
     base_unit_price_to_tick,
@@ -788,7 +788,7 @@ class UniLpMarket(Market):
 
     def add_liquidity_by_value(
         self, lower_tick: int, upper_tick: int, value_to_use: Decimal | None = None, trim_tick: bool = True
-    )->(PositionInfo, Decimal, Decimal, int):
+    ) -> (PositionInfo, Decimal, Decimal, int):
         """
         Add liquidity from balance with value defined, and swap if necessary.
         e.g. you have 1 eth and 3000 usdc, and eth price is 1000. If you want to invest at 1:1,
@@ -1047,3 +1047,6 @@ class UniLpMarket(Market):
         else:
             value += "Empty DataFrame\n"
         return value
+
+    def _resample(self, freq: str):
+        self._data = resample(self.data, freq)
