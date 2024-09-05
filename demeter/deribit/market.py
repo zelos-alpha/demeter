@@ -621,4 +621,4 @@ class DeribitOptionMarket(Market):
         if interval_delta <= BASIC_INTERVAL:
             return
         else:
-            self._data = self._data.resample(freq).first()
+            self._data = self._data.groupby(level=1).resample(freq, level=0).first().swaplevel(1, 0)

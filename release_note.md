@@ -1,6 +1,9 @@
 # Ver 0.6.4
 
-* deribit market accept missing data now
+* Deribit market accept missing data now
+* metrics add backtest period.
+* metrics add a helper function(round_results) because not all metric is decimal
+* Add interval for actuator, so you can backtest with other freq.
 
 # Ver 0.6.3
 

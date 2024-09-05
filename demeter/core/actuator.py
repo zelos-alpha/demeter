@@ -410,6 +410,7 @@ class Actuator(object):
             self.get_test_range()
         )  # list(self._broker.markets.values())[0].data.index.get_level_values(0).unique()
         if self.interval != "1min":
+            self.logger.info(f"Interval is {self.interval}, resampling data...")
             index_array = self.switch_interval(index_array)
         self.logger.info(f"Qute token is {self.broker.quote_token}")
         self.logger.info("init strategy...")
