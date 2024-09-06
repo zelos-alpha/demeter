@@ -4,6 +4,7 @@ import os
 from _decimal import Decimal
 from datetime import date, timedelta
 from typing import List, Dict, Tuple
+from tqdm import tqdm  # process bar
 
 import pandas as pd
 from orjson import orjson
@@ -120,26 +121,28 @@ class DeribitOptionMarket(Market):
         self.logger.info(f"start load files from {start_date} to {end_date}...")
         day = start_date
         df = pd.DataFrame()
+        with tqdm(total=(end_date - start_date).days + 1, ncols=150) as pbar:
+            while day <= end_date:
+                path = os.path.join(
+                    self.data_path,
+                    f"Deribit-option-book-{self.token.name}-{day.strftime('%Y%m%d')}.csv",
+                )
+                if not os.path.exists(path):
+                    logging.warning(f"resource file {path} not found")
+                    day += timedelta(days=1)
+                    pbar.update()
+                    continue
 
-        while day <= end_date:
-            path = os.path.join(
-                self.data_path,
-                f"Deribit-option-book-{self.token.name}-{day.strftime('%Y%m%d')}.csv",
-            )
-            if not os.path.exists(path):
-                logging.warning(f"resource file {path} not found")
+                day_df = pd.read_csv(
+                    path,
+                    parse_dates=["time", "expiry_time"],
+                    index_col=["time", "instrument_name"],
+                    converters={"asks": order_converter, "bids": order_converter},
+                )
+                day_df.drop(columns=["actual_time", "min_price", "max_price"], inplace=True)
+                df = pd.concat([df, day_df])
                 day += timedelta(days=1)
-                continue
-
-            day_df = pd.read_csv(
-                path,
-                parse_dates=["time", "expiry_time"],
-                index_col=["time", "instrument_name"],
-                converters={"asks": order_converter, "bids": order_converter},
-            )
-            day_df.drop(columns=["actual_time", "min_price", "max_price"], inplace=True)
-            df = pd.concat([df, day_df])
-            day += timedelta(days=1)
+                pbar.update()
 
         self._data = df
         self.logger.info("data has been prepared")
@@ -173,7 +176,7 @@ class DeribitOptionMarket(Market):
             else:
                 data.data = pd.DataFrame(columns=self._data.columns)
                 if self._is_open():
-                    print(f"Deribit data in {data.timestamp} doesn't exist")
+                    logging.warning(f"Deribit data in {data.timestamp} doesn't exist")
         self._market_status = data
 
     # region for option market only
@@ -544,10 +547,13 @@ class DeribitOptionMarket(Market):
         key_to_remove = []
         for pos_key, position in self.positions.items():
             if self._market_status.timestamp >= position.expiry_time:
-                # should
-                if position.instrument_name not in self._market_status.data.index:
-                    raise DemeterError(f"{position.instrument_name} is not in current orderbook")
-                instrument: InstrumentStatus = self.market_status.data.loc[position.instrument_name]
+                # should not happen
+                if position.instrument_name in self._market_status.data.index:
+                    instrument: InstrumentStatus = self.market_status.data.loc[position.instrument_name]
+                else:
+                    logging.warning(f"{position.instrument_name} is not in current orderbook")
+                    instrument = InstrumentStatus(mark_price=0, underlying_price=self._price_status[self.token.name])
+
                 deliver_amount = deliver_fee = None
                 if position.type == OptionKind.put and position.strike_price > instrument.underlying_price:
                     deliver_amount, deliver_fee = self._deliver_option(position, instrument, False)
@@ -576,7 +582,7 @@ class DeribitOptionMarket(Market):
             if pos_key in self.market_status.data.index:
                 instrument: InstrumentStatus = self.market_status.data.loc[position.instrument_name]
             else:
-                instrument = InstrumentStatus(mark_price=0, underlying_price=0)
+                instrument = InstrumentStatus(mark_price=0, underlying_price=self._price_status[self.token.name])
             self._record_action(
                 ExpiredAction(
                     market=self._market_info,

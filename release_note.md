@@ -4,6 +4,7 @@
 * metrics add backtest period.
 * metrics add a helper function(round_results) because not all metric is decimal
 * Add interval for actuator, so you can backtest with other freq.
+* Deribit market can load files with a process bar.
 
 # Ver 0.6.3
 
