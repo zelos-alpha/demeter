@@ -107,6 +107,13 @@ class DeribitOptionMarket(Market):
             type(self).__name__, self._market_info.name, self.token.name, len(self.positions)
         )
 
+    def load_pkl_data(self, path):
+        if not os.path.exists(path):
+            raise DemeterError(f"{path} doesn't exist")
+        self.logger.info(f"start load files in {path}")
+        self._data = pd.read_pickle(path)
+        self.logger.info("data has been prepared")
+
     def load_data(self, start_date: date, end_date: date):
         """
         Load data from folder set in data_path. Those data file should be downloaded by demeter, and meet name rule.

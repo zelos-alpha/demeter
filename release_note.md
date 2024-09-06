@@ -5,6 +5,7 @@
 * metrics add a helper function(round_results) because not all metric is decimal
 * Add interval for actuator, so you can backtest with other freq.
 * Deribit market can load files with a process bar.
+* Deribit market allow load a single pkl data instead every csv data, because load csv data will cost a long time, 
 
 # Ver 0.6.3
 
