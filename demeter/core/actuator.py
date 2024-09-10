@@ -509,7 +509,7 @@ class Actuator(object):
         print(get_formatted_predefined("Account balance history", STYLE["header1"]))
         console_text.print_dataframe_with_precision(self._account_status_df)
 
-    def save_result(self, path: str, file_name: str = None, **custom_attr) -> List[str]:
+    def save_result(self, path: str, file_name: str = None, decimals: int | None = None, **custom_attr) -> List[str]:
         """
         Save backtesting result
 
@@ -517,6 +517,8 @@ class Actuator(object):
         :type path: str
         :param file_name: file name, default is timestamp
         :type file_name: str
+        :param decimals: decimals in csv
+        :type decimals: int
         :return: A list of saved file path
         :rtype: List[str]
         """
@@ -529,7 +531,10 @@ class Actuator(object):
 
         # save account file
         file_name = os.path.join(path, file_name_head + ".account.csv")
-        self._account_status_df.to_csv(file_name)
+        df_2_save = self._account_status_df
+        if decimals is not None:
+            df_2_save = df_2_save.map(lambda x: round(x, decimals))
+        df_2_save.to_csv(file_name)
         file_list.append(file_name)
 
         # save backtest file
