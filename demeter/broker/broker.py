@@ -224,13 +224,12 @@ class Broker:
 
         market_types = set([x.market_info.type for x in self.markets.values()])
         has_usd_market = {
-            MarketTypeEnum.deribit_option,
             MarketTypeEnum.squeeth,
         }.intersection(market_types)
 
         if has_usd_market:
             if self.quote_token.name not in STABLE_COINS:
-                raise DemeterError("deribit option/squeeth market must quote by stable coin or None")
+                raise DemeterError("squeeth market must quote by stable coin or None")
 
     def check_backtest(self):
         """

@@ -115,7 +115,7 @@ class TokenInfo:
         return self.name.__hash__()
 
 
-class DemeterError(Exception):
+class DemeterError(RuntimeError):
     def __init__(self, message):
         self.message = message
 

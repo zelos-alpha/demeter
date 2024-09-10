@@ -4,7 +4,6 @@ import os
 from _decimal import Decimal
 from datetime import date, timedelta
 from typing import List, Dict, Tuple
-from tqdm import tqdm  # process bar
 
 import pandas as pd
 from orjson import orjson
@@ -23,6 +22,7 @@ from ._typing import (
     ExpiredAction,
     DeliverAction,
     DERIBIT_OPTION_FREQ,
+    InsufficientBalanceError,
 )
 from .helper import round_decimal, position_to_df
 from .. import TokenInfo
@@ -74,6 +74,9 @@ class DeribitOptionMarket(Market):
         self.positions: Dict[str, OptionPosition] = {}
         self.decimal = self.token_config.min_fee_decimal
         self._balance_cache = None
+        # In reality, Deribit is an independent account, and you need to deposit funds into Deribit in order to trade.
+        self.balance = Decimal(0)
+        self.quote_token = token
 
     MAX_FEE_RATE = Decimal("0.125")
     ETH = TokenInfo("eth", 18)
@@ -128,6 +131,8 @@ class DeribitOptionMarket(Market):
         self.logger.info(f"start load files from {start_date} to {end_date}...")
         day = start_date
         df = pd.DataFrame()
+        from tqdm import tqdm
+
         with tqdm(total=(end_date - start_date).days + 1, ncols=150) as pbar:
             while day <= end_date:
                 path = os.path.join(
@@ -141,7 +146,7 @@ class DeribitOptionMarket(Market):
                     continue
 
                 day_df = pd.read_csv(
-                    path,
+                    str(path),
                     parse_dates=["time", "expiry_time"],
                     index_col=["time", "instrument_name"],
                     converters={"asks": order_converter, "bids": order_converter},
@@ -153,6 +158,45 @@ class DeribitOptionMarket(Market):
 
         self._data = df
         self.logger.info("data has been prepared")
+
+    @float_param_formatter
+    def deposit(self, amount: Decimal | float) -> Decimal:
+        """
+        Add token amount to wallet of deribit, token is quote token in this market.
+        :param amount: balance, e.g. 1.2345
+        :type amount: Decimal | float
+        :return: new balance
+        :rtype: Decimal
+        """
+        self.broker.subtract_from_balance(self.token, amount)
+        self._add_to_balance(amount)
+
+    def _add_to_balance(self, amount: Decimal | float) -> Decimal:
+        self.balance += amount
+        return self.balance
+
+    @float_param_formatter
+    def withdraw(self, amount: Decimal | float) -> Decimal:
+        """
+        | Sub token amount to wallet of deribit, token is quote token in this market.
+
+        :param amount: Decimal or float type
+        :type amount:  Decimal | float
+        :return: new balance
+        :rtype: Decimal
+        """
+        new_balance = self._subtract_from_balance(amount)
+        # Actually, withdraw fee should be charged, but the amount is depended on network condition
+        # https://www.deribit.com/kb/fees
+        self.broker.add_to_balance(amount)
+        return new_balance
+
+    def _subtract_from_balance(self, amount: Decimal | float) -> Decimal:
+        left_over = self.balance - amount
+        if left_over < Decimal(0):
+            raise InsufficientBalanceError(f"Not enough balance, balance is {self.balance}, amount to sub is {amount}")
+        self.balance = left_over
+        return left_over
 
     def check_market(self):
         """
@@ -260,8 +304,8 @@ class DeribitOptionMarket(Market):
         value += (
             get_formatted_from_dict(
                 {
-                    "put_count": console_text.format_value(balance.put_count),
-                    "call_count": console_text.format_value(balance.call_count),
+                    "puts": console_text.format_value(balance.puts),
+                    "calls": console_text.format_value(balance.calls),
                     "delta": console_text.format_value(balance.delta),
                     "gamma": console_text.format_value(balance.gamma),
                 }
@@ -310,7 +354,7 @@ class DeribitOptionMarket(Market):
 
         total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in ask_list]))
         fee_amount = self.get_trade_fee(amount, total_premium)
-        self.broker.subtract_from_balance(self.token, total_premium + fee_amount)
+        self._subtract_from_balance(total_premium + fee_amount)
 
         # add position
         average_price = Order.get_average_price(ask_list)
@@ -394,7 +438,7 @@ class DeribitOptionMarket(Market):
 
         total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in bid_list]))
         fee = self.get_trade_fee(amount, total_premium)
-        self.broker.add_to_balance(self.token, total_premium - fee)
+        self._add_to_balance(total_premium - fee)
 
         # subtract position
         average_price = Order.get_average_price(bid_list)
@@ -523,8 +567,8 @@ class DeribitOptionMarket(Market):
         :rtype: MarketBalance
         """
         if self._is_open():
-            put_count = len(list(filter(lambda x: x.type == OptionKind.put, self.positions.values())))
-            call_count = len(list(filter(lambda x: x.type == OptionKind.call, self.positions.values())))
+            puts = list(filter(lambda x: x[-1] == "P", self.positions.keys()))
+            calls = list(filter(lambda x: x[-1] == "C", self.positions.keys()))
 
             total_premium = Decimal(0)
             delta = gamma = Decimal(0)
@@ -540,8 +584,8 @@ class DeribitOptionMarket(Market):
 
             delta = Decimal(0) if total_premium == Decimal(0) else delta / total_premium
             gamma = Decimal(0) if total_premium == Decimal(0) else gamma / total_premium
-
-            self._balance_cache = OptionMarketBalance(total_premium, put_count, call_count, delta, gamma)
+            equity = self.balance + total_premium
+            self._balance_cache = OptionMarketBalance(equity, self.balance, total_premium, puts, calls, delta, gamma)
         return self._balance_cache
 
     # region exercise
@@ -625,7 +669,7 @@ class DeribitOptionMarket(Market):
         )
         if balance_to_add <= fee:
             return None, None
-        self.broker.add_to_balance(self.token, balance_to_add - fee)
+        self._add_to_balance(balance_to_add - fee)
         return balance_to_add, fee
 
     # endregion

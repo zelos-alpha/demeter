@@ -30,6 +30,8 @@ if __name__ == "__main__":
     actuator = Actuator()
     actuator.broker.add_market(market)
     actuator.broker.set_balance(DeribitOptionMarket.ETH, 10)
+    market.deposit(10)
     actuator.strategy = SimpleStrategy()
     actuator.set_price(market.get_price_from_data())
     actuator.run()
+    actuator.save_result(path="./result", file_name="deribit", decimals=5)

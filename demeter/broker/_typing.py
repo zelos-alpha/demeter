@@ -344,7 +344,6 @@ class MarketDict(Generic[T]):
         return str(self.data)
 
 
-
 class AssetDict(Generic[T]):
     def __init__(self):
         """

@@ -6,7 +6,7 @@ from enum import Enum
 from typing import NamedTuple, List, Union, Tuple
 
 from demeter import MarketStatus, BaseAction
-from demeter._typing import MarketDescription
+from demeter._typing import MarketDescription, DemeterError
 from demeter.broker import MarketBalance, ActionTypeEnum
 from demeter.utils.console_text import get_action_str, ForColorEnum
 
@@ -198,18 +198,20 @@ class OptionMarketBalance(MarketBalance):
     """
     Balance of an option market
 
-    :param put_count: count of put option position
-    :type put_count: int
-    :param call_count: count of call option position
-    :type call_count: int
+    :param puts: List of put option position
+    :type puts: List[str]
+    :param calls: List of call option position
+    :type calls: List[str]
     :param delta: delta of current exposure
     :type delta: Decimal
     :param gamma: gamma of current exposure
     :type gamma: Decimal
     """
 
-    put_count: int
-    call_count: int
+    balance: Decimal
+    premium: Decimal
+    puts: List[str]
+    calls: List[str]
     delta: Decimal
     gamma: Decimal
 
@@ -420,6 +422,11 @@ class ExpiredAction(BaseAction):
                 "total_premium": str(self.total_premium),
             },
         )
+
+
+class InsufficientBalanceError(DemeterError):
+    def __init__(self, message):
+        self.message = message
 
 
 DERIBIT_OPTION_FREQ = "1h"

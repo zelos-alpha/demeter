@@ -59,7 +59,7 @@ class Market:
         self.has_update = False
         self.open: Callable[[RowData], None] = None
         # if market interval is minutely, is_open will always true,
-        # or it will be false until timestamp is on it's interval
+        # or it will be false until timestamp is on its interval
         self.is_open: bool = True
         self.quote_token: TokenInfo = USD
 

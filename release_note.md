@@ -6,12 +6,14 @@
 * Add interval for actuator, so you can backtest with other freq.
 * Deribit market can load files with a process bar.
 * Deribit market allow load a single pkl data instead every csv data, because load csv data will cost a long time, 
+* When save result, you can specify decimals in csv file.
+* [Breaking change]Balance in Deribit market has updated, now instrument name and equity is included 
 
 # Ver 0.6.3
 
 * Out of date triggers will be removed. so it's free to add triggers during backtesting
 * Add logs in backtest result, if you call self.log in strategy, you can leave a log in backtest result file. 
-* Add fee in return of buy and sell function in deribit market. So return has changed from ```List[Order]``` to ```Tuple[List[Order],Decimal]```  
+* [Breaking change]Add fee in return of buy and sell function in deribit market. So return has changed from ```List[Order]``` to ```Tuple[List[Order],Decimal]```  
 
 # Ver 0.6.2
 

@@ -55,6 +55,7 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
         )
 
         broker.set_balance(DeribitOptionMarket.ETH, 1)
+        market.deposit(1)
         return broker
 
     def test_load_data(self):
@@ -120,8 +121,8 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
         broker = self.get_broker()
         market: DeribitOptionMarket = broker.markets.default
         orders = market.buy("ETH-22SEP23-1600-C", Decimal("2"), Decimal("0.05"))
-        self.assertEqual(len(orders), 1)
-        balance = broker.get_token_balance(DeribitOptionMarket.ETH)
+        self.assertEqual(len(orders[0]), 1)
+        balance = market.balance
         self.assertEqual(balance, Decimal("0.899400"))
         op = market.positions["ETH-22SEP23-1600-C"]
         self.assertEqual(op.amount, Decimal(2))
@@ -136,8 +137,8 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
         broker = self.get_broker()
         market: DeribitOptionMarket = broker.markets.default
         orders = market.buy("ETH-22SEP23-1600-C", Decimal("2"))
-        self.assertEqual(len(orders), 1)
-        balance = broker.get_token_balance(DeribitOptionMarket.ETH)
+        self.assertEqual(len(orders[0]), 1)
+        balance = market.balance
         self.assertEqual(balance, Decimal("0.899400"))
         op = market.positions["ETH-22SEP23-1600-C"]
         self.assertEqual(op.amount, Decimal(2))
@@ -152,11 +153,11 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
         broker = self.get_broker()
         broker.add_to_balance(DeribitOptionMarket.ETH, 20)
         market: DeribitOptionMarket = broker.markets.default
+        market.deposit(20)
         orders = market.buy("ETH-22SEP23-1650-C", Decimal("700"))
         # [[0.0285, 5], [0.029, 605], [0.0295, 197], [0.03, 40], [0.0305, 18]]
-        self.assertEqual(len(orders), 3)
-        balance = broker.get_token_balance(DeribitOptionMarket.ETH)
-        self.assertEqual(balance, Decimal("0.4475"))
+        self.assertEqual(len(orders[0]), 3)
+        self.assertEqual(market.balance, Decimal("0.4475"))
         op = market.positions["ETH-22SEP23-1650-C"]
         self.assertEqual(op.amount, Decimal(700))
         self.assertEqual(op.avg_buy_price, Decimal("0.029060714285714285714285714285714286"))
@@ -170,13 +171,13 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
         broker = self.get_broker()
         broker.add_to_balance(DeribitOptionMarket.ETH, 20)
         market: DeribitOptionMarket = broker.markets.default
+        market.deposit(20)
         orders1 = market.buy("ETH-22SEP23-1650-C", Decimal("5"))
         orders2 = market.buy("ETH-22SEP23-1650-C", Decimal("600"))
         # [[0.0285, 5], [0.029, 605], [0.0295, 197], [0.03, 40], [0.0305, 18]]
         op = market.positions["ETH-22SEP23-1650-C"]
 
-        balance = broker.get_token_balance(DeribitOptionMarket.ETH)
-        self.assertEqual(balance, Decimal("3.276"))
+        self.assertEqual(market.balance, Decimal("3.276"))
         self.assertEqual(op.amount, Decimal(605))
         self.assertEqual(op.avg_buy_price, Decimal("0.028995867768595041322314049586776860"))
         self.assertEqual(op.buy_amount, Decimal(605))
@@ -229,10 +230,9 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
             avg_sell_price=Decimal(0),
             sell_amount=Decimal(0),
         )
-        orders = market.sell(instrument_name, Decimal("2"), Decimal("0.045"))
+        orders, fee = market.sell(instrument_name, Decimal("2"), Decimal("0.045"))
         self.assertEqual(len(orders), 1)
-        balance = broker.get_token_balance(DeribitOptionMarket.ETH)
-        self.assertEqual(balance, Decimal("1.089400"))
+        self.assertEqual(market.balance, Decimal("1.089400"))
         op = market.positions[instrument_name]
         self.assertEqual(op.amount, Decimal(1))
         self.assertEqual(op.avg_buy_price, Decimal("0.05"))
@@ -256,9 +256,8 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
             avg_sell_price=Decimal(0),
             sell_amount=Decimal(0),
         )
-        orders = market.sell(instrument_name, Decimal("2"), Decimal("0.045"))
+        orders, fee = market.sell(instrument_name, Decimal("2"), Decimal("0.045"))
         self.assertEqual(len(orders), 1)
-        balance = broker.get_token_balance(DeribitOptionMarket.ETH)
         self.assertNotIn(instrument_name, market.positions)
 
     def test_sell_without_price(self):
@@ -276,11 +275,11 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
             avg_sell_price=Decimal(0),
             sell_amount=Decimal(0),
         )
-        orders = market.sell(instrument_name, Decimal(2))
+        orders, fee = market.sell(instrument_name, Decimal(2))
 
         self.assertEqual(len(orders), 1)
         self.assertEqual(orders[0][0], Decimal("0.045"))
-        balance = broker.get_token_balance(DeribitOptionMarket.ETH)
+        balance = market.balance
         self.assertEqual(balance, Decimal("1.089400"))
         self.assertNotIn(instrument_name, market.positions)
         pass
@@ -300,13 +299,13 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
             avg_sell_price=Decimal(0),
             sell_amount=Decimal(0),
         )
-        orders = market.sell(instrument_name, Decimal(80))
+        orders, fee = market.sell(instrument_name, Decimal(80))
         # [[0.045, 70], [0.0445, 75]]
 
         self.assertEqual(len(orders), 2)
         self.assertEqual(orders[0][0], Decimal("0.045"))
         self.assertEqual(orders[1][0], Decimal("0.0445"))
-        balance = broker.get_token_balance(DeribitOptionMarket.ETH)
+        balance = market.balance
         self.assertEqual(balance, Decimal("4.571000"))
         op = market.positions[instrument_name]
         self.assertEqual(op.amount, Decimal(20))
@@ -331,15 +330,15 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
             avg_sell_price=Decimal(0),
             sell_amount=Decimal(0),
         )
-        orders1 = market.sell(instrument_name, Decimal(80))
-        orders2 = market.sell(instrument_name, Decimal(10))
+        orders1, fee1 = market.sell(instrument_name, Decimal(80))
+        orders2, fee2 = market.sell(instrument_name, Decimal(10))
         # [[0.045, 70], [0.0445, 75]]
 
         self.assertEqual(len(orders1), 2)
         self.assertEqual(len(orders2), 1)
         self.assertEqual(orders1[1][0], Decimal("0.0445"))
         self.assertEqual(orders2[0][0], Decimal("0.0445"))
-        balance = broker.get_token_balance(DeribitOptionMarket.ETH)
+        balance = market.balance
         self.assertEqual(balance, Decimal("5.013000"))
         op = market.positions[instrument_name]
         self.assertEqual(op.amount, Decimal(10))
@@ -365,8 +364,8 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
             sell_amount=Decimal(0),
         )
         balance: OptionMarketBalance = market.get_market_balance()
-        self.assertEqual(balance.net_value, Decimal("4.79"))
-        self.assertEqual(balance.call_count, 1)
+        self.assertEqual(balance.premium, Decimal("4.79"))
+        self.assertEqual(balance.calls, [instrument_name])
         pass
 
     def test_balance_2_position(self):
@@ -395,8 +394,8 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
             sell_amount=Decimal(0),
         )
         balance: OptionMarketBalance = market.get_market_balance()
-        self.assertEqual(balance.net_value, Decimal("7.66"))
-        self.assertEqual(balance.call_count, 2)
+        self.assertEqual(balance.premium, Decimal("7.66"))
+        self.assertEqual(balance.calls, ["ETH-22SEP23-1600-C", "ETH-22SEP23-1650-C"])
         pass
 
     def test_exercise(self):
@@ -415,10 +414,10 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
             avg_sell_price=Decimal(0),
             sell_amount=Decimal(0),
         )
-        self.assertEqual(broker.get_token_balance(market.token), Decimal(1))
+        self.assertEqual(market.balance, Decimal(1))
         market.update()
         self.assertEqual(len(market.positions), 0)
-        self.assertEqual(broker.get_token_balance(market.token), Decimal("4.129182"))
+        self.assertEqual(market.balance, Decimal("4.129182"))
         pass
 
     def test_no_exercise(self):
@@ -437,8 +436,8 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
             avg_sell_price=Decimal(0),
             sell_amount=Decimal(0),
         )
-        self.assertEqual(broker.get_token_balance(market.token), Decimal(1))
+        self.assertEqual(market.balance, Decimal(1))
         market.update()
         self.assertEqual(len(market.positions), 0)
-        self.assertEqual(broker.get_token_balance(market.token), Decimal(1))
+        self.assertEqual(market.balance, Decimal(1))
         pass

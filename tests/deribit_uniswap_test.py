@@ -64,6 +64,7 @@ class OptionStrategyTest(unittest.TestCase):
 
         actuator.broker.set_balance(eth, 10)
         actuator.broker.set_balance(usdc, 20000)
+        market_deribit.deposit(3)
         actuator.set_price(market_uni.get_price_from_data())
         return actuator
 

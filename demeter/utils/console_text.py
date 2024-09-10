@@ -29,6 +29,7 @@ class ForColorEnum(Enum):
     pink = 95
     light_cyan = 96
 
+
 class BackColorEnum(Enum):
     """
     background color in console
@@ -168,7 +169,7 @@ def get_formatted_from_dict(values: Dict[str, str]) -> str:
     return "".join(str_array)
 
 
-def get_action_str(action, title_color: ForColorEnum, value_dict: Dict[str,str]) -> str:
+def get_action_str(action, title_color: ForColorEnum, value_dict: Dict[str, str]) -> str:
     title = f"""\n\033[1;42m{action.timestamp.strftime("%Y-%m-%d %H:%M:%S")}\033[0m \033[1;95m{action.market.name:<20}\033[0m \033[1;{title_color.value}m{action.action_type.value:<20}\033[0m"""
     body = get_formatted_from_dict(value_dict)
     return title + body
@@ -176,7 +177,7 @@ def get_action_str(action, title_color: ForColorEnum, value_dict: Dict[str,str])
 
 def print_dataframe_with_precision(df):
     format_str = "{:" + Formats.global_num_format + "}"
-    df_float = df.apply(pd.to_numeric, downcast="float")
+    df_float = df.apply(lambda x: pd.to_numeric(x, downcast="float") if pd.api.types.is_numeric_dtype(type(x)) else x)
     with pd.option_context("display.float_format", format_str.format):
         print(df_float)
 

@@ -10,5 +10,6 @@ from ._typing import (
     DeliverAction,
     DERIBIT_OPTION_FREQ,
     DeribitOptionDescription,
+    InsufficientBalanceError,
 )
 from .helper import round_decimal
