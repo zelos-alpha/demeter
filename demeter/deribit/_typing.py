@@ -26,7 +26,7 @@ class DeribitOptionDescription(MarketDescription):
     """
 
     token: str
-    position_count: int
+    positions: List[str]
     """count of position"""
 
 
@@ -210,8 +210,6 @@ class OptionMarketBalance(MarketBalance):
 
     balance: Decimal
     premium: Decimal
-    puts: List[str]
-    calls: List[str]
     delta: Decimal
     gamma: Decimal
 

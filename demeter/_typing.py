@@ -159,6 +159,7 @@ class DemeterLog:
 USD = TokenInfo("USD", 0)
 
 STABLE_COINS = [
+    "USD",
     "USDT",
     "USDC",
     "DAI",
@@ -178,4 +179,5 @@ STABLE_COINS = [
     "USDX",
     "LUSD",
     "GHO",
+
 ]

@@ -531,9 +531,11 @@ class Actuator(object):
 
         # save account file
         file_name = os.path.join(path, file_name_head + ".account.csv")
-        df_2_save = self._account_status_df
+        df_2_save: pd.DataFrame = self._account_status_df
         if decimals is not None:
-            df_2_save = df_2_save.map(lambda x: round(x, decimals) if pd.api.types.is_numeric_dtype(type(x)) else x)
+            df_2_save = df_2_save.astype(float).round(decimals)
+
+            # df_2_save = df_2_save.map(lambda x: round(x, decimals) if pd.api.types.is_numeric_dtype(type(x)) else x)
         df_2_save.to_csv(file_name)
         file_list.append(file_name)
 

@@ -366,7 +366,6 @@ class AaveV3Market(Market):
         if data.data is None:
             data.data = self.data.loc[data.timestamp]
         self._market_status = data
-        self.quote_token = super().quote_token
         self._borrows_amount_cache.reset()
         self._supplies_amount_cache.reset()
         self._collaterals_amount_cache.reset()

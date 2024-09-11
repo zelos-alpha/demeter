@@ -177,9 +177,9 @@ def get_action_str(action, title_color: ForColorEnum, value_dict: Dict[str, str]
 
 def print_dataframe_with_precision(df):
     format_str = "{:" + Formats.global_num_format + "}"
-    df_float = df.apply(lambda x: pd.to_numeric(x, downcast="float") if pd.api.types.is_numeric_dtype(type(x)) else x)
+    # df_float = df.apply(lambda x: pd.to_numeric(x, downcast="float") if pd.api.types.is_numeric_dtype(type(x)) else x)
     with pd.option_context("display.float_format", format_str.format):
-        print(df_float)
+        print(df.astype(float))
 
 
 def format_value(value) -> str:

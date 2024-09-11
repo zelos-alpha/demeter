@@ -7,7 +7,8 @@
 * Deribit market can load files with a process bar.
 * Deribit market allow load a single pkl data instead every csv data, because load csv data will cost a long time, 
 * When save result, you can specify decimals in csv file.
-* [Breaking change]Balance in Deribit market has updated, now instrument name and equity is included 
+* [Breaking change]Balance in Deribit market has updated, now equity is included, count of puts and calls are removed.
+* [Breaking change]Deribit market has its own account, if you want to trade in deribit, you have to deposit token to deribit market first.
 
 # Ver 0.6.3
 

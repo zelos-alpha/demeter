@@ -107,7 +107,7 @@ class DeribitOptionMarket(Market):
         Get a brief description of this market
         """
         return DeribitOptionDescription(
-            type(self).__name__, self._market_info.name, self.token.name, len(self.positions)
+            type(self).__name__, self._market_info.name, self.token.name, list(self.positions.keys())
         )
 
     def load_pkl_data(self, path):
@@ -304,8 +304,6 @@ class DeribitOptionMarket(Market):
         value += (
             get_formatted_from_dict(
                 {
-                    "puts": console_text.format_value(balance.puts),
-                    "calls": console_text.format_value(balance.calls),
                     "delta": console_text.format_value(balance.delta),
                     "gamma": console_text.format_value(balance.gamma),
                 }
@@ -567,9 +565,6 @@ class DeribitOptionMarket(Market):
         :rtype: MarketBalance
         """
         if self._is_open():
-            puts = list(filter(lambda x: x[-1] == "P", self.positions.keys()))
-            calls = list(filter(lambda x: x[-1] == "C", self.positions.keys()))
-
             total_premium = Decimal(0)
             delta = gamma = Decimal(0)
             for position in self.positions.values():
@@ -585,7 +580,7 @@ class DeribitOptionMarket(Market):
             delta = Decimal(0) if total_premium == Decimal(0) else delta / total_premium
             gamma = Decimal(0) if total_premium == Decimal(0) else gamma / total_premium
             equity = self.balance + total_premium
-            self._balance_cache = OptionMarketBalance(equity, self.balance, total_premium, puts, calls, delta, gamma)
+            self._balance_cache = OptionMarketBalance(equity, self.balance, total_premium, delta, gamma)
         return self._balance_cache
 
     # region exercise

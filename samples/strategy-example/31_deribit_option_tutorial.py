@@ -34,4 +34,4 @@ if __name__ == "__main__":
     actuator.strategy = SimpleStrategy()
     actuator.set_price(market.get_price_from_data())
     actuator.run()
-    actuator.save_result(path="./result", file_name="deribit", decimals=5)
+    actuator.save_result(path="./result", file_name="deribit", decimals=3)
