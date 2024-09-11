@@ -355,13 +355,14 @@ class AaveV3Market(Market):
         price: pd.Series,
     ):
         """
-                Set up pool status of this moment, such as liquidity index, supply/borrow rate, and price
-        bug test case
-                :param data: market status
-                :type data: AaveMarketStatus
-                :param price: current price of tokens involved
-                :type price: Series
+        Set up pool status of this moment, such as liquidity index, supply/borrow rate, and price
+
+        :param data: market status
+        :type data: AaveMarketStatus
+        :param price: current price of tokens involved
+        :type price: Series
         """
+        # TODO : debug test case
         super().set_market_status(data, price)
         if data.data is None:
             data.data = self.data.loc[data.timestamp]

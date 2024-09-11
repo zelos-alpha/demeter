@@ -17,6 +17,7 @@ def return_value(init_equity: float, final_equity: float) -> float:
 def return_rate(init_equity: float, final_equity: float) -> float:
     """
     rate of return, if init_equity is 0, will return np.inf
+
     :param init_equity: init equity
     :param final_equity: final equity
     :return: return rate
@@ -54,10 +55,10 @@ def annualized_return(
     interest_type="compound",
 ) -> float:
     """
-    Annualizing an asset's return rate. you can choose one way to calculate
-    * initial value and final value
-    * return rate list
-    * net value list
+    | Annualizing an asset's return rate. you can choose one way to calculate
+    | * initial value and final value
+    | * return rate list
+    | * net value list
 
     :param duration_in_day: days between initial time and final time
     :param init_value: initial value
@@ -65,7 +66,7 @@ def annualized_return(
     :param return_rates: a list of return rate
     :param net_values: a list of net value
     :param interest_type: interest type, can be "single" or "compound", default is compound
-    :return annualized return value:
+    :return: annualized return value:
     """
 
     if interest_type == "single":
@@ -145,6 +146,7 @@ def _withdraw_with_high_low(arr: list):
 def volatility(returns: pd.Series, interval_in_day):
     """
     Calculate volatility, The number of trading days is 365 instead of 252.
+
     :param interval_in_day: Daily data interval.
     :param returns: list of values
     :return: volatility value
@@ -176,6 +178,7 @@ def sharpe_ratio(interval_in_day: float, duration_in_day: int, values: pd.Series
 def alpha_beta(values: pd.Series, benchmark: pd.Series, duration_in_day: int):
     """
     Calculate alpha and beta
+
     :param values: list of values
     :param benchmark: benchmark
     :param duration_in_day: days between initial time and final time
