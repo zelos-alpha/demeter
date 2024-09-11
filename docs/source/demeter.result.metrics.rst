@@ -1,29 +1,29 @@
-demeter.metrics package
+demeter.result.metrics package
 ========================
 
 Submodules
 -------------
 
-demeter.metrics._typing module
+demeter.result.metrics._typing module
 ----------------------------------
 
-.. automodule:: demeter.metrics._typing
+.. automodule:: demeter.result.metrics._typing
    :members:
    :undoc-members:
    :show-inheritance:
 
-demeter.metrics.core module
+demeter.result.metrics.core module
 -------------------------------
 
-.. automodule:: demeter.metrics.core
+.. automodule:: demeter.result.metrics.core
    :members:
    :undoc-members:
    :show-inheritance:
 
-demeter.metrics.calculator module
+demeter.result.metrics.calculator module
 -------------------------------------
 
-.. automodule:: demeter.metrics.calculator
+.. automodule:: demeter.result.metrics.calculator
    :members:
    :undoc-members:
    :show-inheritance:
@@ -32,7 +32,9 @@ demeter.metrics.calculator module
 Module contents
 -------------------
 
-.. automodule:: demeter.metrics
+.. automodule:: demeter.result.metrics
    :members:
    :undoc-members:
    :show-inheritance:
+
+

@@ -13,7 +13,8 @@ References
    demeter.deribit
    demeter.squeeth
    demeter.indicator
-   demeter.metrics
+   demeter.result
+   demeter.result.metrics
 
 
 
