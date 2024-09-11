@@ -316,6 +316,24 @@ class DeribitOptionMarket(Market):
 
         return value
 
+    @float_param_formatter
+    def estimate_cost(
+        self,
+        instrument_name: str,
+        amount: float | Decimal,
+        type: str = "buy",  # buy or sell
+        price_in_token: float | Decimal | None = None,
+    ):
+        amount = self.__get_trade_amount(amount)
+        row = self.data.loc[(self._market_status.timestamp, instrument_name)]
+        order_list = row.asks if type == "buy" else row.bids
+        order_list = list(order_list)
+        used_order = self._deduct_order_amount(amount, order_list, price_in_token)
+
+        total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in used_order]))
+        fee_amount = self.get_trade_fee(amount, total_premium)
+        return total_premium + fee_amount
+
     @write_func
     @float_param_formatter
     def buy(
@@ -431,8 +449,8 @@ class DeribitOptionMarket(Market):
         bid_list = self._deduct_order_amount(amount, bids, price_in_token)
 
         # write positions back
-        if self.data is not None:
-            self.data.loc[(self._market_status.timestamp, instrument_name), "bids"] = bids
+        # if self.data is not None:
+        #     self.data.loc[(self._market_status.timestamp, instrument_name), "bids"] = bids
 
         total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in bid_list]))
         fee = self.get_trade_fee(amount, total_premium)
