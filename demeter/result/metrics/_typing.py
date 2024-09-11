@@ -21,3 +21,4 @@ class MetricEnum(Enum):
 
     def __repr__(self):
         return self.value
+

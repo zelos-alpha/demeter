@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 import time
 from demeter import AccountStatus
-from demeter.metrics.calculator import return_rate_series, annualized_return, max_draw_down, sharpe_ratio, alpha_beta
+from demeter.result.metrics.calculator import return_rate_series, annualized_return, max_draw_down, sharpe_ratio, alpha_beta
 
 
 class TestMetric(unittest.TestCase):

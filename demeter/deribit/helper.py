@@ -1,4 +1,5 @@
 import decimal
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
@@ -55,3 +56,12 @@ def position_to_df(positions) -> pd.DataFrame:
         pos_dict["sell_amount"].append(console_text.format_value(v.sell_amount))
 
     return pd.DataFrame(pos_dict)
+
+
+def decode_instrument(instrument_name):
+    split = instrument_name.split("-")
+    type_ = "PUT" if split[3] == "P" else "CALL"
+    k = int(split[2])
+    exec_time = datetime.strptime(split[1] + " 08:00:00", "%d%b%y %H:%M:%S")
+    token = split[0]
+    return token, exec_time, k, type_

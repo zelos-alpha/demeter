@@ -12,4 +12,4 @@ from ._typing import (
     DeribitOptionDescription,
     InsufficientBalanceError,
 )
-from .helper import round_decimal
+from .helper import round_decimal, decode_instrument

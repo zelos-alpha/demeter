@@ -13,7 +13,7 @@ from demeter import (
     AccountStatus,
     BaseAction,
 )
-from demeter.metrics import performance_metrics
+from demeter.result import performance_metrics
 from demeter.uniswap import UniLpMarket, UniV3Pool
 from demeter.utils import load_account_status
 

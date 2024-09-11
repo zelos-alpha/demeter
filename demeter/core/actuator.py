@@ -35,20 +35,6 @@ class RunningCount:
     get_account_status_df: int = 0
 
 
-@dataclass
-class BackTestDescription:
-    strategy_name: str
-    quote_token: TokenInfo
-    init_status: AccountStatus
-    assets: List[TokenInfo]
-    markets: List[MarketDescription]
-    actions: List[BaseAction]
-    backtest_start: datetime
-    backtest_end: datetime
-    backtest_duration: float
-    logs: List[DemeterLog] = field(default_factory=list)
-
-
 class Actuator(object):
     """
     Core component of a back test. Manage the resources in a test, including broker/strategy/data/indicator,
@@ -212,7 +198,8 @@ class Actuator(object):
         if not self.__backtest_finished:
             if self.__runnning_count.get_account_status_df >= 10:
                 raise DemeterWarning(
-                    "Frequent calls to account_status_df will generate multiple DataFrame objects, consuming a lot of time and memory. Consider using account_status instead."
+                    "Frequent calls to account_status_df will generate multiple DataFrame objects, "
+                    "consuming a lot of time and memory. Consider using account_status instead."
                 )
             self.__runnning_count.get_account_status_df += 1
 
