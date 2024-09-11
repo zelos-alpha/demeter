@@ -43,6 +43,14 @@ def __new_lp_position(
 
 
 def get_positions(action_list: List[BaseAction], markets: List[MarketDescription]) -> Dict[MarketInfo, List]:
+    """
+    | Extract positions from actions list.
+    | If a position has position change(e.g. add or remove part of liquidity), it will be considered as a new position.
+
+    :param action_list: backtest_result.actions.
+    :param markets: backtest_result.markets.
+    :return: a dict, key is each market, value is positions in this market.
+    """
     market_pos: Dict[MarketInfo, List[Position]] = {}
     market_active_pos: Dict[MarketInfo, Dict[any, Position]] = {}
     markets = {x.name: x for x in markets}

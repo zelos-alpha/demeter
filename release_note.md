@@ -1,4 +1,4 @@
-# Ver 0.6.4
+# Ver 0.7.0
 
 * Deribit market:
     * Deribit market accept missing data now
