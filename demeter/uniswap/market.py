@@ -32,7 +32,7 @@ from .helper import (
     MIN_ERROR,
     nearest_usable_tick,
 )
-from .liquitidy_math import get_sqrt_ratio_at_tick, estimate_ratio
+from .liquitidy_math import get_sqrt_ratio_at_tick, estimate_ratio, get_liquidity
 from .._typing import DemeterError, DECIMAL_0, UnitDecimal
 from ..broker import MarketBalance, Market, MarketInfo, write_func
 from ..utils import (
@@ -335,6 +335,59 @@ class UniLpMarket(Market):
             self._is_token0_quote,
         )
 
+    def estimate_liquidity(self, value: Decimal, position: PositionInfo) -> Tuple[int, Decimal, Decimal]:
+        """
+        In the current market situation, to obtain value (e.g. 500 usd) from this tick range, how many liquidity units need to be removed?
+
+        :param value: value to get (e.g. 500 usd)
+        :param position: LP position
+        :return: Liquidity and how much token amount you can get if remove liquidity.
+        """
+        sqrt_price_x96 = base_unit_price_to_sqrt_price_x96(
+            self.market_status.data.price,
+            self.pool_info.token0.decimal,
+            self.pool_info.token1.decimal,
+            self.pool_info.is_token0_quote,
+        )
+        token0_amount, token1_amount = self.estimate_amount(value, position.lower_tick, position.upper_tick)
+        liq = get_liquidity(
+            sqrt_price_x96,
+            position.lower_tick,
+            position.upper_tick,
+            token0_amount,
+            token1_amount,
+            self.pool_info.token0.decimal,
+            self.pool_info.token1.decimal,
+        )
+
+        return liq, token0_amount, token1_amount
+
+    def estimate_amount(self, value: Decimal, lower_tick: int, upper_tick: int) -> Tuple[Decimal, Decimal]:
+        """
+        Emulate amount of token 0,1 with given tick range
+
+        :param value: value to get (e.g. 500 usd)
+        :param lower_tick: lower tick
+        :param upper_tick: upper tick
+        :return:
+        """
+        current_price = self.market_status.data.price
+        current_tick = base_unit_price_to_tick(
+            current_price, self.pool_info.token0.decimal, self.pool_info.token1.decimal, self.pool_info.is_token0_quote
+        )
+        ratio_in_amount = estimate_ratio(current_tick, lower_tick, upper_tick)
+        ratio_in_amount = Decimal(
+            ratio_in_amount * 10 ** (self.pool_info.token1.decimal - self.pool_info.token0.decimal)
+        )
+        ratio_in_value = (
+            ratio_in_amount / current_price if self.pool_info.is_token0_quote else ratio_in_amount * current_price
+        )
+        token1_value = value / (ratio_in_value + 1)
+        token0_value = value - token1_value
+        token0_amount = token0_value if self.pool_info.is_token0_quote else token0_value / current_price
+        token1_amount = token1_value if not self.pool_info.is_token0_quote else token1_value / current_price
+        return token0_amount, token1_amount
+
     @float_param_formatter
     def price_to_tick(self, price: Decimal | float) -> int:
         """
@@ -401,7 +454,14 @@ class UniLpMarket(Market):
     @write_func
     def __remove_liquidity(self, position: PositionInfo, liquidity: int = None, sqrt_price_x96: int = -1):
         sqrt_price_x96 = (
-            int(sqrt_price_x96) if sqrt_price_x96 != -1 else get_sqrt_ratio_at_tick(self.market_status.data.closeTick)
+            int(sqrt_price_x96)
+            if sqrt_price_x96 != -1
+            else base_unit_price_to_sqrt_price_x96(
+                self.market_status.data.price,
+                self.pool_info.token0.decimal,
+                self.pool_info.token1.decimal,
+                self.pool_info.is_token0_quote,
+            )
         )
         delta_liquidity = (
             liquidity

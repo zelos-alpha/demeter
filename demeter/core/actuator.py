@@ -12,6 +12,7 @@ from pandas import Timestamp
 from tqdm import tqdm  # process bar
 
 from .. import Broker, Asset, ActionTypeEnum
+from ..result import BackTestDescription
 from .._typing import (
     DemeterError,
     UnitDecimal,

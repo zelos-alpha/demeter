@@ -215,6 +215,8 @@ def get_sqrt_ratio_at_tick(tick: int) -> int:
 def estimate_ratio(tick, lower_tick, upper_tick):
     """
     Emulate amount ratio of token 0,1 before adding to liquidity.
+    The ratio should multiple 10 ** (decimal1-decimal0)
+
     :param tick: current tick
     :param lower_tick: lower tick
     :param upper_tick: upper tick
@@ -227,3 +229,5 @@ def estimate_ratio(tick, lower_tick, upper_tick):
         raise DemeterError("tick should in tick range")
     ratio = (T**upper_tick - T**tick) / (T**tick * T**upper_tick * (T**tick - T**lower_tick))
     return ratio
+
+

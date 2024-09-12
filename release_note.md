@@ -1,3 +1,9 @@
+# Ver 0.7.1
+
+* add estimate_cost for deribit market, so you can estimate how much to deposit to deribit before trade.
+* Add estimate_amount and estimate_liquidity for uniswap market
+* fix bugs
+
 # Ver 0.7.0
 
 * Deribit market:

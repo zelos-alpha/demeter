@@ -4,6 +4,7 @@ import os
 from _decimal import Decimal
 from datetime import date, timedelta
 from typing import List, Dict, Tuple
+import copy
 
 import pandas as pd
 from orjson import orjson
@@ -327,7 +328,7 @@ class DeribitOptionMarket(Market):
         amount = self.__get_trade_amount(amount)
         row = self.data.loc[(self._market_status.timestamp, instrument_name)]
         order_list = row.asks if type == "buy" else row.bids
-        order_list = list(order_list)
+        order_list = copy.deepcopy(order_list)
         used_order = self._deduct_order_amount(amount, order_list, price_in_token)
 
         total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in used_order]))
@@ -507,7 +508,7 @@ class DeribitOptionMarket(Market):
                     continue
                 should_deduct = min(Decimal(str(order[1])), amount_to_deduct)
                 amount_to_deduct -= should_deduct
-                order[1] -= should_deduct
+                order[1] -= float(should_deduct)
                 order_list.append(Order(Decimal(str(order[0])), should_deduct))
                 if order[1] > 0 or amount_to_deduct == Decimal(0):
                     break
@@ -555,7 +556,8 @@ class DeribitOptionMarket(Market):
             available_amount = sum([Decimal(x[1]) for x in available_orders])
         if amount > available_amount:
             raise DemeterError(
-                f"insufficient order to buy, required amount is {amount}, available amount is {available_amount}"
+                f"insufficient order to buy {instrument_name}, required amount is {amount}, "
+                f"available amount is {available_amount}"
             )
 
         return amount, instrument, price_in_token
