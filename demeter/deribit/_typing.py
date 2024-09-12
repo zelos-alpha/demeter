@@ -314,6 +314,58 @@ class SellAction(OptionTradeAction):
 
 
 @dataclass
+class DepositAction(BaseAction):
+    token: str
+    amount: Decimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.deribit_deposit
+
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.green,
+            {
+                "token": self.token,
+                "amount": str(self.amount),
+            },
+        )
+
+
+@dataclass
+class WithdrawAction(BaseAction):
+    token: str
+    amount: Decimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.deribit_withdraw
+
+    def get_output_str(self):
+        """
+        get colored and formatted string to output in console
+
+        :return: formatted string
+        :rtype: str
+        """
+
+        return get_action_str(
+            self,
+            ForColorEnum.green,
+            {
+                "token": self.token,
+                "amount": str(self.amount),
+            },
+        )
+
+
+@dataclass
 class DeliverAction(BaseAction):
     """
     :param instrument_name: instrument name

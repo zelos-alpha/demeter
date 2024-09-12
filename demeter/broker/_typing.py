@@ -171,6 +171,8 @@ class ActionTypeEnum(Enum):
     option_sell = "option_sell"
     option_deliver = "option_deliver"
     option_expire = "option_expire"
+    deribit_deposit = "deposit"
+    deribit_withdraw = "withdraw"
     squeeth_open_vault = "open_vault"
     squeeth_update_collateral = "update_collateral"
     squeeth_update_short = "update_short"

@@ -24,6 +24,8 @@ from ._typing import (
     DeliverAction,
     DERIBIT_OPTION_FREQ,
     InsufficientBalanceError,
+    DepositAction,
+    WithdrawAction,
 )
 from .helper import round_decimal, position_to_df
 from .. import TokenInfo
@@ -171,6 +173,13 @@ class DeribitOptionMarket(Market):
         """
         self.broker.subtract_from_balance(self.token, amount)
         self._add_to_balance(amount)
+        self._record_action(
+            DepositAction(
+                market=self._market_info,
+                token=self.token.name,
+                amount=amount,
+            )
+        )
 
     def _add_to_balance(self, amount: Decimal | float) -> Decimal:
         self.balance += amount
@@ -190,6 +199,13 @@ class DeribitOptionMarket(Market):
         # Actually, withdraw fee should be charged, but the amount is depended on network condition
         # https://www.deribit.com/kb/fees
         self.broker.add_to_balance(amount)
+        self._record_action(
+            WithdrawAction(
+                market=self._market_info,
+                token=self.token.name,
+                amount=amount,
+            )
+        )
         return new_balance
 
     def _subtract_from_balance(self, amount: Decimal | float) -> Decimal:
