@@ -82,6 +82,8 @@ def get_positions(action_list: List[BaseAction], markets: List[MarketDescription
                         action, markets[action.market.name], old_price_range
                     )
         elif action.market.type == MarketTypeEnum.deribit_option:
+            if not hasattr(action,"instrument_name"):
+                continue
             action_key = action.instrument_name
             if action.action_type == ActionTypeEnum.option_buy:
                 if action_key in market_active_pos[action.market]:
