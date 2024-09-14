@@ -198,7 +198,7 @@ class DeribitOptionMarket(Market):
         new_balance = self._subtract_from_balance(amount)
         # Actually, withdraw fee should be charged, but the amount is depended on network condition
         # https://www.deribit.com/kb/fees
-        self.broker.add_to_balance(amount)
+        self.broker.add_to_balance(self.token, amount)
         self._record_action(
             WithdrawAction(
                 market=self._market_info,
