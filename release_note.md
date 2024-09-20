@@ -1,6 +1,9 @@
 # Ver 0.7.2 
 
 * Add comment to action.get_output_str()
+* When exception was raised in backtesting, demeter will save actions and account status
+* Deribit market add max_mark_price_multiple, to prevent buying options too expensive to mark price
+
 
 # Ver 0.7.1
 
