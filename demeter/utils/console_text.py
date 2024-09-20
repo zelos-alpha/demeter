@@ -172,6 +172,8 @@ def get_formatted_from_dict(values: Dict[str, str]) -> str:
 def get_action_str(action, title_color: ForColorEnum, value_dict: Dict[str, str]) -> str:
     title = f"""\n\033[1;42m{action.timestamp.strftime("%Y-%m-%d %H:%M:%S")}\033[0m \033[1;95m{action.market.name:<20}\033[0m \033[1;{title_color.value}m{action.action_type.value:<20}\033[0m"""
     body = get_formatted_from_dict(value_dict)
+    if action.comment is not None:
+        body += "\t\033[4;35m" + action.comment + "\033[0m"
     return title + body
 
 

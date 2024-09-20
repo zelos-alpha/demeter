@@ -388,7 +388,7 @@ class CollectFeeAction(UniLpBaseAction):
         :return: formatted string
         :rtype: str
         """
-        get_action_str(
+        return get_action_str(
             self,
             ForColorEnum.yellow,
             {

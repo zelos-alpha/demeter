@@ -1,3 +1,7 @@
+# Ver 0.7.2 
+
+* Add comment to action.get_output_str()
+
 # Ver 0.7.1
 
 * add estimate_cost for deribit market, so you can estimate how much to deposit to deribit before trade.
