@@ -359,6 +359,7 @@ class DeribitOptionMarket(Market):
         amount: float | Decimal,
         price_in_token: float | Decimal | None = None,
         price_in_usd: float | Decimal | None = None,
+        max_mark_price_multiple: float | Decimal | None = None,
     ) -> Tuple[List[Order], Decimal]:
         """
         Buy option.
@@ -373,15 +374,22 @@ class DeribitOptionMarket(Market):
         :type price_in_token: float | Decimal | None = None,
         :param price_in_usd: price, based in usd,
         :type price_in_usd: float | Decimal | None = None,
+        :param max_mark_price_multiple: times to mark_price, if order price is greater than mark_price * max_allowed, will not buy at this price
+
 
         """
         amount, instrument, price_in_token = self._check_transaction(
-            instrument_name, amount, price_in_token, price_in_usd, True
+            instrument_name, amount, price_in_token, price_in_usd, True, max_mark_price_multiple
         )
 
         # this actually pass reference of the array, so asks array will be updated in _deduct_order_amount.
         # so when orders are deducted, asks order number will be changed.
-        asks = instrument.asks
+        if max_mark_price_multiple is not None:
+            asks = list(
+                filter(lambda x: x[0] < max_mark_price_multiple * Decimal(instrument.mark_price), instrument.asks)
+            )
+        else:
+            asks = instrument.asks
         # deduct bids amount
         ask_list = self._deduct_order_amount(amount, asks, price_in_token)
 
@@ -442,6 +450,7 @@ class DeribitOptionMarket(Market):
         amount: float | Decimal,
         price_in_token: float | Decimal | None = None,
         price_in_usd: float | Decimal | None = None,
+        max_mark_price_multiple: float | Decimal | None = None,
     ) -> Tuple[List[Order], Decimal]:
         """
         Sell option.
@@ -456,13 +465,21 @@ class DeribitOptionMarket(Market):
         :type price_in_token: float | Decimal | None = None,
         :param price_in_usd: price, based in usd,
         :type price_in_usd: float | Decimal | None = None,
+        :param max_mark_price_multiple: times to mark_price, if order price is greater than mark_price * max_allowed, will not buy at this price
+
         """
         amount, instrument, price_in_token = self._check_transaction(
-            instrument_name, amount, price_in_token, price_in_usd, False
+            instrument_name, amount, price_in_token, price_in_usd, False, max_mark_price_multiple
         )
 
         # deduct  amount
-        bids = instrument.bids
+        if max_mark_price_multiple is not None:
+            bids = list(
+                filter(lambda x: x[0] > max_mark_price_multiple / Decimal(instrument.mark_price), instrument.bids)
+            )
+        else:
+            bids = instrument.bids
+
         bid_list = self._deduct_order_amount(amount, bids, price_in_token)
 
         # write positions back
@@ -531,7 +548,7 @@ class DeribitOptionMarket(Market):
         return order_list
 
     def _check_transaction(
-        self, instrument_name, amount, price_in_token, price_in_usd, is_buy
+        self, instrument_name, amount, price_in_token, price_in_usd, is_buy, max_mark_price_multiple=None
     ) -> Tuple[Decimal, InstrumentStatus, Decimal]:
         """
         | Check transaction,
@@ -539,6 +556,8 @@ class DeribitOptionMarket(Market):
         | - ensure instrument is open
         | - ensure there are enough amount
         | - ensure price is in asks/bids
+
+        :param max_mark_price_multiple: times to mark_price, if order price is greater than mark_price * max_allowed, will not buy beyond price
         """
         if instrument_name not in self._market_status.data.index:
             raise DemeterError(f"{instrument_name} is not in current orderbook")
@@ -554,9 +573,17 @@ class DeribitOptionMarket(Market):
             price_in_token = price_in_usd / instrument.underlying_price
 
         if is_buy:
-            available_orders = instrument.asks
+            if max_mark_price_multiple is not None:
+                max_price = max_mark_price_multiple * Decimal(instrument.mark_price)
+                available_orders = list(filter(lambda x: x[0] < max_price, instrument.asks))
+            else:
+                available_orders = instrument.asks
         else:
-            available_orders = instrument.bids
+            if max_mark_price_multiple is not None:
+                min_price = max_mark_price_multiple / Decimal(instrument.mark_price)
+                available_orders = list(filter(lambda x: x[0] > min_price, instrument.bids))
+            else:
+                available_orders = instrument.bids
 
         if price_in_token is not None:
             # to prevent error in decimal

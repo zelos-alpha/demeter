@@ -12,17 +12,16 @@ from pandas import Timestamp
 from tqdm import tqdm  # process bar
 
 from .. import Broker, Asset, ActionTypeEnum
-from ..result import BackTestDescription
 from .._typing import (
     DemeterError,
     UnitDecimal,
     DemeterWarning,
     TokenInfo,
-    MarketDescription,
     USD,
     DemeterLog,
 )
 from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
+from ..result import BackTestDescription
 from ..strategy import Strategy
 from ..uniswap import PositionInfo
 from ..utils import console_text
@@ -416,52 +415,68 @@ class Actuator(object):
         data_length = len(index_array)
         self.logger.info("start main loop...")
         with tqdm(total=data_length, ncols=150) as pbar:
-            for timestamp_index in index_array:
-                current_price = self._token_prices.loc[timestamp_index]
-                # prepare data of a row
+            try:
+                for timestamp_index in index_array:
+                    current_price = self._token_prices.loc[timestamp_index]
+                    # prepare data of a row
 
-                self.__set_market_timestamp(timestamp_index, False)
-                # execute strategy, and some calculate
-                self._currents.timestamp = timestamp_index.to_pydatetime()
-                row_data = self.__get_row_data(timestamp_index, row_id, current_price)
-                if self._strategy.triggers:
-                    for trigger in self._strategy.triggers:
-                        if trigger.when(row_data):
-                            trigger.do(row_data)
-                # remove outdate triggers
-                self._strategy.triggers = [
-                    x for x in self._strategy.triggers if not x.is_out_date(self._currents.timestamp)
-                ]
-                for market in self.broker.markets.values():
-                    if market.is_open and market.open is not None:
-                        market.open(row_data)
+                    self.__set_market_timestamp(timestamp_index, False)
+                    # execute strategy, and some calculate
+                    self._currents.timestamp = timestamp_index.to_pydatetime()
+                    row_data = self.__get_row_data(timestamp_index, row_id, current_price)
+                    if self._strategy.triggers:
+                        for trigger in self._strategy.triggers:
+                            if trigger.when(row_data):
+                                trigger.do(row_data)
+                    # remove outdate triggers
+                    self._strategy.triggers = [
+                        x for x in self._strategy.triggers if not x.is_out_date(self._currents.timestamp)
+                    ]
+                    for market in self.broker.markets.values():
+                        if market.is_open and market.open is not None:
+                            market.open(row_data)
 
-                self._strategy.on_bar(row_data)
+                    self._strategy.on_bar(row_data)
 
-                # important, take uniswap market for example,
-                # if liquidity has changed in the head of this minute,
-                # this will add the new liquidity to total_liquidity in current minute.
-                self.__set_market_timestamp(timestamp_index, True)
+                    # important, take uniswap market for example,
+                    # if liquidity has changed in the head of this minute,
+                    # this will add the new liquidity to total_liquidity in current minute.
+                    self.__set_market_timestamp(timestamp_index, True)
 
-                # update broker status, e.g. re-calculate fee
-                # and read the latest status from broker
-                for market in self._broker.markets.values():
-                    market.update()
+                    # update broker status, e.g. re-calculate fee
+                    # and read the latest status from broker
+                    for market in self._broker.markets.values():
+                        market.update()
 
-                row_data = self.__get_row_data(timestamp_index, row_id, current_price)
-                self._strategy.after_bar(row_data)
+                    row_data = self.__get_row_data(timestamp_index, row_id, current_price)
+                    self._strategy.after_bar(row_data)
 
-                self._account_status_list.append(
-                    self._broker.get_account_status(current_price, timestamp_index.to_pydatetime())
-                )
-                # notify actions in current loop
-                self.notify(self.strategy, self._currents.actions)
-                self._currents.actions = []
-                # move forward for process bar and index
-                pbar.update()
-                row_id += 1
+                    self._account_status_list.append(
+                        self._broker.get_account_status(current_price, timestamp_index.to_pydatetime())
+                    )
+                    # notify actions in current loop
+                    self.notify(self.strategy, self._currents.actions)
+                    self._currents.actions = []
+                    # move forward for process bar and index
+                    pbar.update()
+                    row_id += 1
+            except RuntimeError as e:
+                print(f"timestamp on error: " + str(row_data.timestamp))
+                self._generate_account_status_df()
+                self.save_result("./", "backtest-with-error")
+                raise e
 
         self.logger.info("main loop finished")
+        self._strategy.finalize()
+        self._generate_account_status_df()
+        self.__backtest_finished = True
+        if print_result:
+            self.print_result()
+
+        self.__backtest_duration = time.time() - self.__start_time
+        self.logger.info(f"Backtesting finished, execute time {time.time() - self.__start_time}s")
+
+    def _generate_account_status_df(self):
         self._account_status_df: pd.DataFrame = AccountStatus.to_dataframe(self._account_status_list)
 
         tmp_price_df = (
@@ -471,14 +486,6 @@ class Actuator(object):
         )
         to_multi_index_df(tmp_price_df, "price")
         self._account_status_df = pd.concat([self._account_status_df, tmp_price_df], axis=1)
-
-        self._strategy.finalize()
-        self.__backtest_finished = True
-        if print_result:
-            self.print_result()
-
-        self.__backtest_duration = time.time() - self.__start_time
-        self.logger.info(f"Backtesting finished, execute time {time.time() - self.__start_time}s")
 
     def print_result(self):
         """
@@ -510,8 +517,8 @@ class Actuator(object):
         :return: A list of saved file path
         :rtype: List[str]
         """
-        if not self.__backtest_finished:
-            raise DemeterError("Please run strategy first")
+        # if not self.__backtest_finished:
+        #     raise DemeterError("Please run strategy first")
         file_name_head = file_name if file_name is not None else "backtest-" + datetime.now().strftime("%Y%m%d-%H%M%S")
         if not os.path.exists(path):
             os.mkdir(path)
