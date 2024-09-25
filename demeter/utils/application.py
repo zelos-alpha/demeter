@@ -114,7 +114,7 @@ def load_account_status(path) -> pd.DataFrame:
     for column in df.columns:
         if "Unnamed" in column[1]:
             rename_dict[column[1]] = ""
-    df = df.rename(columns=rename_dict, level="l2")
+    df = df.rename(columns=rename_dict, level=1)
     return df
 
 

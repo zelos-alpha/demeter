@@ -212,6 +212,7 @@ class Actuator(object):
             raise DemeterError("Back test has not finish yet, can not write account_status_df")
         else:
             self._account_status_df = new_df
+            self._strategy.account_status_df = new_df
 
     # endregion
     def comment_last_action(self, message: str, action_type: ActionTypeEnum | None = None):
@@ -467,9 +468,10 @@ class Actuator(object):
                 raise e
 
         self.logger.info("main loop finished")
-        self._strategy.finalize()
-        self._generate_account_status_df()
         self.__backtest_finished = True
+        # generate dataframe first so finalize can use it
+        self._generate_account_status_df()
+        self._strategy.finalize()
         if print_result:
             self.print_result()
 
@@ -485,7 +487,8 @@ class Actuator(object):
             .reindex(self._account_status_df.index)
         )
         to_multi_index_df(tmp_price_df, "price")
-        self._account_status_df = pd.concat([self._account_status_df, tmp_price_df], axis=1)
+        # don't set _account_status_df because we have to set strategy.account_status_df too
+        self.account_status_df = pd.concat([self._account_status_df, tmp_price_df], axis=1)
 
     def print_result(self):
         """

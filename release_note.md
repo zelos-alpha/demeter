@@ -3,7 +3,8 @@
 * Add comment to action.get_output_str()
 * When exception was raised in backtesting, demeter will save actions and account status
 * Deribit market add max_mark_price_multiple, to prevent buying options too expensive to mark price
-
+* Update strategy.finalize(), so you can operate account_status_df in strategy.finalize().
+* Fix issues that strategy.account_status_df is empty
 
 # Ver 0.7.1
 

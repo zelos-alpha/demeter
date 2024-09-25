@@ -26,11 +26,18 @@ class DemoStrategy(Strategy):
     this demo shows how to access markets and assets
     """
 
+    def __init__(self):
+        super().__init__()
+        self.some_record = []
+
     def initialize(self):
         new_trigger = AtTimeTrigger(time=datetime(2023, 8, 15, 12, 0, 0), do=self.work)
         self.triggers.append(new_trigger)
         remove_trigger = AtTimeTrigger(time=datetime(2023, 8, 16, 12, 0, 0), do=self.remove_liquidity)
         self.triggers.append(remove_trigger)
+
+    def on_bar(self, row_data: RowData):
+        self.some_record.append({"custom1": row_data.market_status[market_key]["open"]})
 
     def work(self, row_data: RowData):
         lp_market: UniLpMarket = self.markets[market_key]  # pick our market.
@@ -76,6 +83,13 @@ class DemoStrategy(Strategy):
         # As each action has different parameter, its type is List[BaseAction],
         # and it can't be converted into a dataframe.
         actions: List[BaseAction] = self.actions
+
+        # Add custom column to account status dataframe.
+        custom_df = pd.DataFrame(index=self.account_status_df.index, data=self.some_record)
+        multi_index = pd.MultiIndex.from_tuples([("custom", "custom1")])
+        custom_df.columns = multi_index
+        actuator.account_status_df = pd.concat([actuator.account_status_df, custom_df], axis=1)
+
         pass
 
 
