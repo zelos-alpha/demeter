@@ -3,7 +3,7 @@ from decimal import Decimal
 import pandas as pd
 import demeter
 from demeter import TokenInfo, Broker, MarketInfo, MarketStatus
-from demeter.uniswap import UniLpMarket, UniV3Pool, UniV3PoolStatus, helper
+from demeter.uniswap import UniLpMarket, UniV3Pool, UniV3PoolStatus, helper, PositionInfo
 
 test_market = MarketInfo("market1")
 
@@ -465,3 +465,11 @@ class TestUniLpMarketToken1Quote(unittest.TestCase):
             token1_before + market.market_status.data.price * Decimal(1) * (1 - market.pool_info.fee_rate),
         )
         self.assertEqual(broker.assets[market.token0].balance, token0_before - Decimal(1))
+
+    def test_estimate_liquidity(self):
+        broker = self.get_broker()
+        market: UniLpMarket = broker.markets[test_market]
+
+        print(market.estimate_liquidity(Decimal(1), PositionInfo(-206800, -206400)))
+        print(market.estimate_liquidity(Decimal(1), PositionInfo(-207001, -206601)))
+        print(market.estimate_liquidity(Decimal(1), PositionInfo(-206599, -206199)))

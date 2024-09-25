@@ -487,8 +487,8 @@ class Actuator(object):
             .reindex(self._account_status_df.index)
         )
         to_multi_index_df(tmp_price_df, "price")
-        # don't set _account_status_df because we have to set strategy.account_status_df too
-        self.account_status_df = pd.concat([self._account_status_df, tmp_price_df], axis=1)
+        self._account_status_df = pd.concat([self._account_status_df, tmp_price_df], axis=1)
+        self._strategy.account_status_df = self._account_status_df
 
     def print_result(self):
         """

@@ -31,8 +31,15 @@ from .helper import (
     get_swap_value_with_part_balance_used,
     MIN_ERROR,
     nearest_usable_tick,
+    sqrt_price_x96_to_tick,
 )
-from .liquitidy_math import get_sqrt_ratio_at_tick, estimate_ratio, get_liquidity
+from .liquitidy_math import (
+    get_sqrt_ratio_at_tick,
+    estimate_ratio,
+    get_liquidity,
+    get_liquidity_for_amount0,
+    get_liquidity_for_amount1,
+)
 from .._typing import DemeterError, DECIMAL_0, UnitDecimal
 from ..broker import MarketBalance, Market, MarketInfo, write_func
 from ..utils import (
@@ -349,16 +356,32 @@ class UniLpMarket(Market):
             self.pool_info.token1.decimal,
             self.pool_info.is_token0_quote,
         )
-        token0_amount, token1_amount = self.estimate_amount(value, position.lower_tick, position.upper_tick)
-        liq = get_liquidity(
-            sqrt_price_x96,
-            position.lower_tick,
-            position.upper_tick,
-            token0_amount,
-            token1_amount,
-            self.pool_info.token0.decimal,
-            self.pool_info.token1.decimal,
-        )
+        current_tick = sqrt_price_x96_to_tick(sqrt_price_x96)
+
+        lower_sqrt = get_sqrt_ratio_at_tick(position.lower_tick)
+        upper_sqrt = get_sqrt_ratio_at_tick(position.upper_tick)
+        if current_tick <= position.lower_tick:
+            quote_amount = DECIMAL_0
+            base_amount = value / Decimal(self.market_status.data.price)
+            liq = int(get_liquidity_for_amount0(lower_sqrt, upper_sqrt, base_amount * 10**self.base_token.decimal))
+            token0_amount, token1_amount = self._convert_pair(base_amount, quote_amount)
+
+        elif current_tick >= position.upper_tick:
+            quote_amount = value
+            base_amount = DECIMAL_0
+            liq = int(get_liquidity_for_amount1(lower_sqrt, upper_sqrt, quote_amount * 10**self.quote_token.decimal))
+            token0_amount, token1_amount = self._convert_pair(base_amount, quote_amount)
+        else:
+            token0_amount, token1_amount = self.estimate_amount(value, position.lower_tick, position.upper_tick)
+            liq = get_liquidity(
+                sqrt_price_x96,
+                position.lower_tick,
+                position.upper_tick,
+                token0_amount,
+                token1_amount,
+                self.pool_info.token0.decimal,
+                self.pool_info.token1.decimal,
+            )
 
         return liq, token0_amount, token1_amount
 
