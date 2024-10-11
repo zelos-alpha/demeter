@@ -135,9 +135,9 @@ class TestActuator(unittest.TestCase):
         actuator.run()
         market: UniLpMarket = actuator.broker.markets.default
         self.assertEqual(len(market.positions), 1)
-        position = PositionInfo(200311, 207243)
+        position = PositionInfo(200310, 207240)
         self.assertTrue(position in market.positions)
-        self.assertTrue(market.positions[position].liquidity, 94726878007599)
+        self.assertEqual(market.positions[position].liquidity, 94766786700734)
 
     def test_save_result(self):
         actuator = TestActuator.get_actuator_with_uni_market()

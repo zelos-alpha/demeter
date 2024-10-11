@@ -1,3 +1,7 @@
+# Ver 0.7.3
+
+* update dependency according to issue [here](https://github.com/zelos-alpha/demeter/issues/16)
+
 # Ver 0.7.2 
 
 * Add comment to action.get_output_str()

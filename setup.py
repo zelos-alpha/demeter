@@ -7,7 +7,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="zelos-demeter",
-    version="0.7.2",
+    version="0.7.3",
     packages=find_packages(exclude=["tests", "tests.*", "samples", "samples.*"]),
     url="https://zelos-demeter.readthedocs.io",
     license="MIT",
@@ -18,14 +18,14 @@ setup(
     long_description_content_type="text/markdown",
     python_requires=">=3.11",
     install_requires=[
-        "numpy==1.26.4",
-        "pandas==2.2.0",
-        "python-dateutil==2.9.0.post0",
-        "pytz==2024.1",
-        "six==1.16.0",
-        "db-dtypes==1.2.0",
-        "tqdm==4.66.2",
-        "orjson==3.9.15",
+        "numpy>=1.26.4",
+        "pandas>=2.2.0",
+        "python-dateutil>=2.9.0.post0",
+        "pytz>=2024.1",
+        "six>=1.16.0",
+        "db-dtypes>=1.2.0",
+        "tqdm>=4.66.2",
+        "orjson>=3.9.15",
     ],
 )
 

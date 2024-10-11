@@ -335,20 +335,21 @@ class TestUniLpMarket(unittest.TestCase):
         market = UniLpMarket(test_market, pool0p3)
         broker.add_market(market)
 
+        pool_price = Decimal("0.050044230389791882928569710489837667")
         broker.set_balance(self.btc, 1)
-        broker.set_balance(self.eth, 20)
-        pool_price = Decimal("0.05")
-        extern_price = pd.Series({"BTC": Decimal(66000), "ETH": Decimal(3300)}) # broker price, quote by usd
+        broker.set_balance(self.eth, 1 / pool_price)
+        btc_price_to_u = 3300 / pool_price
+        extern_price = pd.Series({"BTC": btc_price_to_u, "ETH": Decimal(3300)})  # broker price, quote by usd
         tick = market.price_to_tick(pool_price)
-        pos = market.add_liquidity_by_tick(market.price_to_tick(0.04), market.price_to_tick(0.0625), tick=tick)
+        pos = market.add_liquidity_by_tick(tick - 1980, tick + 1980, tick=tick)
         market.set_market_status(
             UniswapMarketStatus(timestamp=None, data=UniV3PoolStatus(price=pool_price, currentLiquidity=0)), None
         )
         status = broker.get_account_status(extern_price)
         print(pos)
         print(status)
-        self.assertEqual(round(status.market_status.default.net_value, 2), Decimal(2)) # market net value, quote by btc
-        self.assertEqual(Decimal(66000 * 2), round(status.net_value, 2))  # total net value, quote by usd
+        self.assertEqual(round(status.market_status.default.net_value, 6), Decimal(2))  # market net value, quote by btc
+        self.assertEqual(round(Decimal(btc_price_to_u * 2),6), round(status.net_value, 6))  # total net value, quote by usd
 
     def test_net_value2(self):
         """
