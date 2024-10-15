@@ -125,21 +125,21 @@ class DemeterWarning(RuntimeWarning):
         self.message = message
 
 
-class ChainType(str, Enum):
+class ChainType(int, Enum):
     """
     Enum for chains
     """
 
-    ethereum = "ethereum"
-    polygon = "polygon"
-    optimism = "optimism"
-    arbitrum = "arbitrum"
-    celo = "celo"
-    bsc = "bsc"
-    base = "base"
-    avalanche = "avalanche"
-    fantom = "fantom"
-    harmony = "harmony"
+    ethereum = 1
+    polygon = 137
+    optimism = 69
+    arbitrum = 42161
+    celo = 42220
+    bsc = 56
+    base = 8453
+    avalanche = 43114
+    fantom = 250
+    harmony = 1666600000
 
 
 @dataclass

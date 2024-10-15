@@ -1,3 +1,8 @@
+# Ver 0.7.4
+
+* [Breaking change]Value of ChainType enum has changed to chain id. 
+* Add base_token to UniV3Pool class
+
 # Ver 0.7.3
 
 * update dependency according to issue [here](https://github.com/zelos-alpha/demeter/issues/16)

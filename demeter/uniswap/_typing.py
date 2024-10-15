@@ -68,6 +68,7 @@ class UniV3Pool(object):
         self.token1 = token1
         self.is_token0_quote = quote_token == token0
         self.quote_token = quote_token
+        self.base_token = token1 if self.is_token0_quote else token0
         self.tick_spacing = int(fee * 200)
         self.fee: Decimal = fee * Decimal(10000)
         self.fee_rate: Decimal = Decimal(fee) / Decimal(100)
