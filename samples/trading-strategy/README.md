@@ -5,7 +5,7 @@ and solutions.
 Their goal is to offer a flexible and powerful trading platform that enables traders and developers to create and
 execute their own trading strategies.
 
-Currently, Zelos Alpha is woring with Trading Strategy,
+Currently, Zelos Alpha is working with Trading Strategy,
 enabling Demeter to utilize Trading Strategy's data sources and download Uniswap's backtesting data.
 
 Trading Strategy's data sources are not only free, but also offer rapid download speeds and extremely comprehensive
