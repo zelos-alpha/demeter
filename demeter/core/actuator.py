@@ -401,7 +401,7 @@ class Actuator(object):
         if self.interval != "1min":
             self.logger.info(f"Interval is {self.interval}, resampling data...")
             index_array = self.switch_interval(index_array)
-        self.logger.info(f"Qute token is {self.broker.quote_token}")
+        self.logger.info(f"Quote token is {self.broker.quote_token}")
         self.logger.info("init strategy...")
 
         # set initial status for strategy, so user can run some calculation in initial function.
