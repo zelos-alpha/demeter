@@ -1,6 +1,4 @@
-import json
 import os
-import token
 from _decimal import Decimal
 from datetime import date, timedelta
 from orjson import orjson
@@ -66,7 +64,7 @@ class AaveV3Market(Market):
         data_path: str = DEFAULT_DATA_PATH,
     ):
         super().__init__(market_info=market_info, data_path=data_path, data=data)
-        tokens = tokens if token is not None else []  # just to set an initial value
+        tokens = tokens if tokens is not None else []  # just to set an initial value
         self._supplies: Dict[SupplyKey, SupplyInfo] = {}
         self._borrows: Dict[BorrowKey, BorrowInfo] = {}
 
