@@ -610,7 +610,7 @@ class LiquidationAction(BaseAction):
                 "delt_to_cover": self.delt_to_cover.to_str(),
                 "collateral_used": self.collateral_used.to_str(),
                 "liquidated": f"variable:{self.variable_delt_liquidated.to_str()} stable:{self.stable_delt_liquidated.to_str()}",
-                "health_factor": f"{self.health_factor_before.to_str()}->{self.health_factor_after.to_str()}",
+                "health_factor": f"{self.health_factor_before}->{self.health_factor_after}",
                 "collateral_after": self.collateral_after.to_str(),
                 "variable_debt_after": self.variable_debt_after.to_str(),
                 "stable_delt_after": self.stable_delt_after.to_str(),
