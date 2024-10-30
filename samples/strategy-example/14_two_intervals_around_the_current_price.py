@@ -34,10 +34,12 @@ class TwoIntervalsAroundtheCurrentPrice(Strategy):
             lp_market.remove_all_liquidity()
             lp_market.even_rebalance(row_data.prices[eth.name])
 
+        current_price = row_data.prices[eth.name]
+        lp_market.add_liquidity(current_price - self.a, current_price + self.a)
         if self.broker.assets[market.base_token].balance > 0:
-            lp_market.add_liquidity(row_data.prices[eth.name] - self.b, row_data.prices[eth.name])
+            lp_market.add_liquidity(current_price - self.b, current_price)
         else:
-            lp_market.add_liquidity(row_data.prices[eth.name], row_data.prices[eth.name] + row_data.prices[eth.name] + self.b)
+            lp_market.add_liquidity(current_price, current_price + self.b)
 
 
 if __name__ == "__main__":
@@ -57,7 +59,9 @@ if __name__ == "__main__":
     actuator.strategy = TwoIntervalsAroundtheCurrentPrice(400, 200)
 
     market.data_path = "../data"
-    market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 13), date(2023, 8, 17))
+    market.load_data(
+        ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 13), date(2023, 8, 17)
+    )
     actuator.set_price(market.get_price_from_data())
     actuator.run()  # run test
     plot_position_return_decomposition(actuator.account_status_df, actuator.token_prices[eth.name], market_key)
