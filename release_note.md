@@ -1,3 +1,7 @@
+# Ver 0.7.6
+
+* For uniswap v3, when price is in and out of price range in this minute, fee will be calculated more accurately  
+
 # Ver 0.7.5 
 
 * Fix bugs in aave

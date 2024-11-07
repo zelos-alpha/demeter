@@ -1,9 +1,10 @@
 import math
 import unittest
+from bdb import effective
 from decimal import Decimal
 
 from demeter import TokenInfo
-from demeter.uniswap import V3CoreLib, UniV3Pool
+from demeter.uniswap import V3CoreLib, UniV3Pool, UniV3PoolStatus, PositionInfo, Position
 from demeter.uniswap.helper import (
     tick_to_sqrt_price_x96,
     get_swap_value,
@@ -234,3 +235,42 @@ class UniLpCoreTest(unittest.TestCase):
             math.isclose(actual_from + actual_to + m * fee_rate, to_invest_f + to_invest_t, abs_tol=0.000001)
         )
         self.assertGreaterEqual(from_val + to_val, actual_from + actual_to + m * fee_rate)
+
+    def test_fee(self):
+        token0 = TokenInfo("eth", 0)
+        token1 = TokenInfo("usd", 0)
+        pool = UniV3Pool(token0, token1, 1, token1)
+        state = UniV3PoolStatus(currentLiquidity=10000, inAmount0=10000, inAmount1=10000, price=Decimal(1))
+        pos: PositionInfo = PositionInfo(5, 10)
+        # =======In range==============
+        position: Position = Position(Decimal(0), Decimal(0), 500, None, None)
+        last_tick = 6
+        state.closeTick = 7
+        V3CoreLib.update_fee(last_tick, pool, pos, position, state)
+        self.assertEqual(position.pending_amount0, Decimal("5"))
+        # =======out range=============
+        position: Position = Position(Decimal(0), Decimal(0), 500, None, None)
+        last_tick = 12
+        state.closeTick = 14
+        V3CoreLib.update_fee(last_tick, pool, pos, position, state)
+        self.assertEqual(position.pending_amount0, Decimal("0"))
+        # =======out then in, share should be 1=============
+        position: Position = Position(Decimal(0), Decimal(0), 500, None, None)
+        last_tick = 1
+        state.closeTick = 6
+        V3CoreLib.update_fee(last_tick, pool, pos, position, state)
+        self.assertEqual(position.pending_amount0, Decimal(1))
+
+        # =======in then out, share should be 2=============
+        position: Position = Position(Decimal(0), Decimal(0), 500, None, None)
+        last_tick = 8
+        state.closeTick = 13
+        V3CoreLib.update_fee(last_tick, pool, pos, position, state)
+        self.assertEqual(position.pending_amount0, Decimal(2))
+
+        # =======from upper out to lower out=============
+        position: Position = Position(Decimal(0), Decimal(0), 500, None, None)
+        last_tick = 3
+        state.closeTick = 13
+        V3CoreLib.update_fee(last_tick, pool, pos, position, state)
+        self.assertEqual(position.pending_amount0, Decimal("2.5"))

@@ -5,6 +5,7 @@ import numpy as np
 from ._typing import UniV3Pool, Position, UniV3PoolStatus, PositionInfo
 from .helper import base_unit_price_to_tick, from_atomic_unit
 from .liquitidy_math import get_amounts, get_liquidity
+from .. import DECIMAL_1
 
 
 class V3CoreLib(object):
@@ -127,8 +128,7 @@ class V3CoreLib(object):
         :return: None
         """
 
-        def calc_amounts(weight):
-            weight = Decimal(weight)
+        def calc_amounts(weight: Decimal):
             share = Decimal(position.liquidity) / Decimal(state.currentLiquidity)
             position.pending_amount0 += (
                 weight * from_atomic_unit(state.inAmount0, pool.token0.decimal) * share * pool.fee_rate
@@ -148,12 +148,12 @@ class V3CoreLib(object):
         now_in_range = in_range(state.closeTick)
         last_in_range = in_range(last_tick)
 
-        if now_in_range == last_in_range: # all in range, or below lower or above upper
-            if now_in_range == 0: # all in range
-                calc_amounts(1)
+        if now_in_range == last_in_range:  # all in range, or below lower or above upper
+            if now_in_range == 0:  # all in range
+                calc_amounts(DECIMAL_1)
             else:
                 return
-        else: # price cross range, even from above upper to below lower
+        else:  # price cross range, even from above upper to below lower
             # calculate percentage of in range
             # use in_range / price_moved
             range_list = [pos.lower_tick, pos.upper_tick, last_tick, state.closeTick]
@@ -162,10 +162,10 @@ class V3CoreLib(object):
                 return
             price_delta = np.abs(last_tick - state.closeTick)
             in_range_delta = range_list[2] - range_list[1]
-            weight = in_range_delta / price_delta
-            if weight > 1: # alert for error
+            weight_decimal = Decimal(in_range_delta) / Decimal(price_delta)
+            if weight_decimal > 1:  # alert for error
                 raise RuntimeError("weight must <=1")
-            calc_amounts(in_range_delta / price_delta)
+            calc_amounts(weight_decimal)
 
     @staticmethod
     def update_fee_old(last_tick: int, pool: UniV3Pool, pos: PositionInfo, position: Position, state: UniV3PoolStatus):
