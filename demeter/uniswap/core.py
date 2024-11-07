@@ -1,7 +1,5 @@
 from decimal import Decimal
 
-import numpy as np
-
 from ._typing import UniV3Pool, Position, UniV3PoolStatus, PositionInfo
 from .helper import base_unit_price_to_tick, from_atomic_unit
 from .liquitidy_math import get_amounts, get_liquidity
@@ -160,7 +158,7 @@ class V3CoreLib(object):
             range_list.sort()
             if range_list[2] == range_list[1]:
                 return
-            price_delta = np.abs(last_tick - state.closeTick)
+            price_delta = abs(last_tick - state.closeTick)
             in_range_delta = range_list[2] - range_list[1]
             weight_decimal = Decimal(in_range_delta) / Decimal(price_delta)
             if weight_decimal > 1:  # alert for error
