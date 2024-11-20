@@ -37,6 +37,7 @@ class MarketTypeEnum(Enum):
     aave_v3 = 2
     deribit_option = 3
     squeeth = 4
+    gmx = 5
 
 
 class MarketInfo(NamedTuple):
@@ -180,6 +181,8 @@ class ActionTypeEnum(Enum):
     squeeth_withdraw_lp = "withdraw_uni_lp"
     squeeth_reduce_debt = "reduce_debt"
     squeeth_liquidation = "liquidation"
+    gmx_buy_glp = "buy_glp"
+    gmx_sell_glp = "sell_glp"
 
     def __str__(self):
         return self.name
