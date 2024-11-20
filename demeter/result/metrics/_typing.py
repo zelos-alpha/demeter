@@ -4,6 +4,8 @@ from enum import Enum
 class MetricEnum(Enum):
     start_period = "Start period"
     end_period = "End period"
+    start_val = "Start Value"
+    end_val = "End Value"
     duration = "Duration"
     return_value = "Return"
     return_rate = "Rate of Return"

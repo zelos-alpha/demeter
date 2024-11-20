@@ -450,6 +450,7 @@ class AaveV3Market(Market):
             amount=supply_info.base_amount * self._market_status.data[key.token.name].liquidity_index,
             apy=AaveV3CoreLib.rate_to_apy(self._market_status.data[key.token.name].liquidity_rate),
             value=self.supplies_value[key],
+            begin_supply_index=supply_info.begin_supply_index,
         )
         return supply_value
 
@@ -474,6 +475,7 @@ class AaveV3Market(Market):
                 else self.market_status.data[borrow_key.token.name].stable_borrow_rate
             ),
             value=self.borrows_value[borrow_key],
+            begin_borrow_index=borrow_info.begin_borrow_index,
         )
 
     def add_token(self, token_info: TokenInfo | List[TokenInfo]):
@@ -606,7 +608,9 @@ class AaveV3Market(Market):
 
         key = SupplyKey(token_info)
         if key not in self._supplies:
-            self._supplies[key] = SupplyInfo(base_amount=Decimal(0), collateral=collateral)
+            self._supplies[key] = SupplyInfo(
+                base_amount=Decimal(0), collateral=collateral, begin_supply_index=token_status.liquidity_index
+            )
         else:
             require(self._supplies[key].collateral == collateral, "Collateral different from existing supply")
         self._supplies[key].base_amount += pool_amount
@@ -822,7 +826,7 @@ class AaveV3Market(Market):
         base_amount = AaveV3CoreLib.get_base_amount(amount, token_status.variable_borrow_index)
 
         if key not in self._borrows:
-            self._borrows[key] = BorrowInfo(DECIMAL_0)
+            self._borrows[key] = BorrowInfo(DECIMAL_0, token_status.variable_borrow_index)
         self._borrows[key].base_amount += base_amount
 
         self.broker.add_to_balance(token_info, amount)
@@ -936,8 +940,8 @@ class AaveV3Market(Market):
         payback_base_amount = AaveV3CoreLib.get_base_amount(payback_amount, token_status.variable_borrow_index)
 
         require(payback_base_amount > 0, "invalid amount")
-        require(self._borrows[key].base_amount> 0, "no debt of selected type")
-        require(round(self._borrows[key].base_amount-payback_base_amount, 18) >= 0, "amount exceed debt")
+        require(self._borrows[key].base_amount > 0, "no debt of selected type")
+        require(round(self._borrows[key].base_amount - payback_base_amount, 18) >= 0, "amount exceed debt")
         if repay_with_collateral:
             payback_amount_in_collateral = self._get_swap_amount(borrow_token, repay_collateral_token, payback_amount)
             self.__sub_supply_amount(SupplyKey(repay_collateral_token), payback_amount_in_collateral)

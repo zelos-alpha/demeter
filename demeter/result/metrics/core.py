@@ -44,6 +44,8 @@ def performance_metrics(
     metric_map = {
         MetricEnum.start_period: values.index[0],
         MetricEnum.end_period: values.index[-1],
+        MetricEnum.start_val: init,
+        MetricEnum.end_val: final,
         MetricEnum.duration: (values.index[-1] - values.index[0]) + interval,
         MetricEnum.return_value: return_value(init, final),
         MetricEnum.return_rate: return_rate(init, final),
