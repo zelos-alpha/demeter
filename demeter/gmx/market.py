@@ -19,12 +19,10 @@ class GmxMarket(Market):
     def __init__(self,
                  market_info: MarketInfo,
                  data: pd.DataFrame = None,
-                 data_path: str = "./data",
-                 tokens_per_interval: int = 3325187132851509):
+                 data_path: str = "./data"):
         super().__init__(market_info=market_info, data=data, data_path=data_path)
         self.glp_amount = Decimal("0.00")  # glp liquidity
         self.reward = Decimal("0.00")  # pending fee
-        self.tokens_per_interval = tokens_per_interval  # read from event
 
     def __str__(self):
         from demeter.utils import orjson_default
@@ -40,7 +38,7 @@ class GmxMarket(Market):
         self._update_fee()
 
     def _update_fee(self):
-        block_reward = self.tokens_per_interval * 60
+        block_reward = Decimal(self.market_status.data.interval) * 60
         supply = Decimal(self.market_status.data.glp)
         reward = block_reward * self.glp_amount / supply
         self.reward += reward
@@ -110,7 +108,7 @@ class GmxMarket(Market):
         usdg_amount = token_amount * price
         fee_basic_point = self.get_buy_usdg_fee_point(token, usdg_amount)
         amount_after_fee = self._collect_swap_fee(token, token_amount, fee_basic_point)
-        mint_amount = amount_after_fee * price
+        mint_amount = Decimal(amount_after_fee) * price
         return mint_amount
 
     def sell_usdg(self, token: TokenInfo, usdg_amount: Decimal | float):
