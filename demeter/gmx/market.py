@@ -57,10 +57,12 @@ class GmxMarket(Market):
 
     def sell_glp(self,
                  token: TokenInfo,
-                 glp_amount: Decimal | float):
+                 glp_amount: Decimal | float = 0):
         """
         sell glp to get token
         """
+        if not glp_amount:
+            glp_amount = self.glp_amount
         token_amount = self._remove_liquidity(token, glp_amount)
         self.glp_amount -= glp_amount
         self.broker.add_to_balance(token, token_amount)
@@ -73,7 +75,7 @@ class GmxMarket(Market):
         aum = Decimal(self.market_status.data.aum)
         aum_in_usdg = aum * Decimal(10 ** -12)
         usdg_amount = self.buy_usdg(token, amount)  # token amount convert to usdg amount
-        mint_amount = Decimal(usdg_amount) * glp_supply / aum_in_usdg
+        mint_amount = Decimal(usdg_amount) * glp_supply / aum_in_usdg  # 21907220720283934220233823 real 5%的浮动。
         self._record_action(
             BuyGlpAction(
                 market=self.market_info,
