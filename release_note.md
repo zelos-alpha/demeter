@@ -1,3 +1,9 @@
+# Ver 0.7.7
+
+Uniswap V3
+* Add get position status, this will help to calculate amounts and values of a liqudity position
+* [Breaking change] Update delta gamma calucation, add get_greeks in helper.
+
 # Ver 0.7.6
 
 * For uniswap v3, when price is in and out of price range in this minute, fee will be calculated more accurately  

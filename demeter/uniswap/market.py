@@ -5,6 +5,7 @@ from datetime import date, timedelta, datetime, time
 from decimal import Decimal
 from typing import Dict, Tuple
 import orjson
+
 from ._typing import (
     UniV3Pool,
     TokenInfo,
@@ -20,6 +21,7 @@ from ._typing import (
     UniDescription,
     UniswapMarketStatus,
     SwapAction,
+    PositionStatus,
 )
 from .core import V3CoreLib
 from .data import fillna, resample
@@ -27,6 +29,7 @@ from .helper import (
     tick_to_base_unit_price,
     base_unit_price_to_tick,
     base_unit_price_to_sqrt_price_x96,
+    sqrt_price_x96_to_base_unit_price,
     tick_to_sqrt_price_x96,
     get_swap_value_with_part_balance_used,
     MIN_ERROR,
@@ -256,6 +259,35 @@ class UniLpMarket(Market):
         for position_info, position in self._positions.items():
             V3CoreLib.update_fee(self.last_tick, self.pool_info, position_info, position, self.market_status.data)
 
+    def _get_value(self, amount0, amount1, pool_price):
+        base, quote = self._convert_pair(amount0, amount1)
+        return base * pool_price + quote
+
+    def get_position_status(self, pos_key: PositionInfo) -> PositionStatus:
+        require(pos_key in self.positions, "Position not exist")
+
+        pool_price = self._market_status.data.price
+        liq_amount0, liq_amount1 = self.get_position_amount(pos_key)
+        amount0 = liq_amount0 + self.positions[pos_key].pending_amount0
+        amount1 = liq_amount1 + self.positions[pos_key].pending_amount1
+        return PositionStatus(
+            liquidity=self.positions[pos_key].liquidity,
+            liquidity_amount0=liq_amount0,
+            liquidity_amount1=liq_amount1,
+            liquidity_value=self._get_value(liq_amount0, liq_amount1, pool_price),
+            pending_amount0=self.positions[pos_key].pending_amount0,
+            pending_amount1=self.positions[pos_key].pending_amount1,
+            pending_value=self._get_value(
+                self.positions[pos_key].pending_amount0, self.positions[pos_key].pending_amount1, pool_price
+            ),
+            amount0=amount0,
+            amount1=amount1,
+            value=self._get_value(amount0, amount1, pool_price),
+            H=self.positions[pos_key].upper_price / self.positions[pos_key].init_price,
+            L=self.positions[pos_key].lower_price / self.positions[pos_key].init_price,
+            P=pool_price / self.positions[pos_key].init_price,
+        )
+
     def get_position_amount(self, position_info: PositionInfo) -> Tuple[Decimal, Decimal]:
         if position_info not in self.positions:
             return DECIMAL_0, DECIMAL_0
@@ -467,9 +499,17 @@ class UniLpMarket(Market):
         else:
             lower_price = self.tick_to_price(lower_tick)
             upper_price = self.tick_to_price(upper_tick)
+            init_price = sqrt_price_x96_to_base_unit_price(
+                sqrt_price_x96,
+                self.pool_info.token0.decimal,
+                self.pool_info.token1.decimal,
+                self.pool_info.is_token0_quote,
+            )
             if self.pool_info.is_token0_quote:
                 lower_price, upper_price = upper_price, lower_price
-            self._positions[position_info] = Position(DECIMAL_0, DECIMAL_0, liquidity, lower_price, upper_price)
+            self._positions[position_info] = Position(
+                DECIMAL_0, DECIMAL_0, liquidity, lower_price, upper_price, init_price
+            )
         self.broker.subtract_from_balance(self.token0, token0_used)
         self.broker.subtract_from_balance(self.token1, token1_used)
         return position_info, token0_used, token1_used, liquidity

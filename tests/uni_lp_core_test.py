@@ -243,33 +243,33 @@ class UniLpCoreTest(unittest.TestCase):
         state = UniV3PoolStatus(currentLiquidity=10000, inAmount0=10000, inAmount1=10000, price=Decimal(1))
         pos: PositionInfo = PositionInfo(5, 10)
         # =======In range==============
-        position: Position = Position(Decimal(0), Decimal(0), 500, None, None)
+        position: Position = Position(Decimal(0), Decimal(0), 500, None, None, None)
         last_tick = 6
         state.closeTick = 7
         V3CoreLib.update_fee(last_tick, pool, pos, position, state)
         self.assertEqual(position.pending_amount0, Decimal("5"))
         # =======out range=============
-        position: Position = Position(Decimal(0), Decimal(0), 500, None, None)
+        position: Position = Position(Decimal(0), Decimal(0), 500, None, None, None)
         last_tick = 12
         state.closeTick = 14
         V3CoreLib.update_fee(last_tick, pool, pos, position, state)
         self.assertEqual(position.pending_amount0, Decimal("0"))
         # =======out then in, share should be 1=============
-        position: Position = Position(Decimal(0), Decimal(0), 500, None, None)
+        position: Position = Position(Decimal(0), Decimal(0), 500, None, None, None)
         last_tick = 1
         state.closeTick = 6
         V3CoreLib.update_fee(last_tick, pool, pos, position, state)
         self.assertEqual(position.pending_amount0, Decimal(1))
 
         # =======in then out, share should be 2=============
-        position: Position = Position(Decimal(0), Decimal(0), 500, None, None)
+        position: Position = Position(Decimal(0), Decimal(0), 500, None, None, None)
         last_tick = 8
         state.closeTick = 13
         V3CoreLib.update_fee(last_tick, pool, pos, position, state)
         self.assertEqual(position.pending_amount0, Decimal(2))
 
         # =======from upper out to lower out=============
-        position: Position = Position(Decimal(0), Decimal(0), 500, None, None)
+        position: Position = Position(Decimal(0), Decimal(0), 500, None, None, None)
         last_tick = 3
         state.closeTick = 13
         V3CoreLib.update_fee(last_tick, pool, pos, position, state)

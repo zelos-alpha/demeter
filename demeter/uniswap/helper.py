@@ -148,133 +148,27 @@ def from_atomic_unit(atomic_unit_amount: int, decimal: int) -> Decimal:
     return Decimal(int(atomic_unit_amount)) / Decimal(10**decimal)
 
 
-def get_delta_gamma(
-    lower_price: float,
-    upper_price: float,
-    price: float,
-    liquidity: int,
-    decimal0: int,
-    decimal1: int,
-    is_token0_quote: bool,
-) -> Tuple[Decimal, Decimal]:
-    """
-    get delta gamma
-
-    :param lower_price: lower price
-    :param upper_price: upper price
-    :param price: price
-    :param liquidity: liquidity
-    :param decimal0: decimal 0
-    :param decimal1: decimal 1
-    :param is_token0_quote: check if token 0 is quote
-    :return: delta and gamma
-    """
-    lower_price_sqrt_x96 = base_unit_price_to_sqrt_price_x96(Decimal(lower_price), decimal0, decimal1, is_token0_quote)
-    upper_price_sqrt_x96 = base_unit_price_to_sqrt_price_x96(Decimal(upper_price), decimal0, decimal1, is_token0_quote)
-    if lower_price_sqrt_x96 > upper_price_sqrt_x96:
-        (lower_price_sqrt_x96, upper_price_sqrt_x96) = (
-            upper_price_sqrt_x96,
-            lower_price_sqrt_x96,
-        )
-    return get_delta_gamma_sqrt_x96(
-        lower_price,
-        lower_price_sqrt_x96,
-        upper_price,
-        upper_price_sqrt_x96,
-        price,
-        liquidity,
-        decimal0,
-        decimal1,
-        is_token0_quote,
-    )
+class Greeks(NamedTuple):
+    delta: Decimal
+    gamma: Decimal
 
 
-def get_delta_gamma_sqrt_x96(
-    lower_price,
-    sqrtA: int,
-    upper_price,
-    sqrtB: int,
-    price,
-    liquidity: int,
-    d0: int,
-    d1: int,
-    is_token0_quote: bool,
-) -> Tuple[Decimal, Decimal]:
-    """
-    Get delta gamma in sqrtX96 price
+def get_greeks(P: Decimal, L: Decimal, H: Decimal) -> Greeks:
+    # get greeks for 1 u
 
-    """
-    """
-    Delta is calculated by integrating net worth, and gamma is calculated by integrating delta,
-    Therefore, the most important thing is to find the calculation formula of the net value (with tick range, price, and liquidity as parameters),
-    and then derive the formula after integration
+    if P >= H:
+        return Greeks(Decimal(0), Decimal(0))
 
-    The following comment indicates how to calculate net value.
+    liq = 1 / (2 - L.sqrt() - 1 / H.sqrt())
 
-    * a: amount
-    * p: decimal price of base token
+    if P < L:
+        delta = liq * (1 / L.sqrt() - 1 / H.sqrt())
+        return Greeks(delta, Decimal(0))
 
+    delta = liq * (1 / P.sqrt() - 1 / H.sqrt())
+    gamma = Decimal("-0.5") * liq * (P ** Decimal("-1.5"))
 
-    k = 2 ** 96
-    a0 = k * (10**(-d)) * Liquidity * (1/SqrtPrice - 1/upper_price_sqrtX96)
-    a1= Liquidity / k / 10**d * (SqrtPrice - lower_price_sqrtX96)
-
-
-    if 0 quote:
-    SqrtPrice=k / (10 ** (d/2)) / (p**0.5)
-    net_value = a1 * p                    price <= lower, a1 is constant
-                a0 + a1 * p               lower < price < upper
-                a0                        price >= upper, a0 is constant
-
-    a0 + a1 * p = liquidity * 10 ** (0.5 * d) / 10 ** d0 * price_float ** 0.5 - \
-              k / upper_sqrt * liquidity / 10 ** d0 + \
-              liquidity*  price_float ** 0.5 / 10 ** d1 / 10 ** (0.5 * d) - \
-              lower_sqrt / k * price_float * liquidity / 10 ** d1
-
-
-    if 1 quote
-    SqrtPrice = k * p**0.5 / (10 ** (d/2))
-
-    net_value = a0 * p                         price <= lower, a0 is constant
-                a0 * p + a1                    lower < price < upper
-                a1                             price >= upper, a1 is constant
-
-    a0 * p + a1 = liquidity * price_float ** 0.5 * 10 ** (0.5 * d) / 10 ** d0 - \
-                  k / upper_sqrt * liquidity * price_float / 10 ** d0 + \
-                  liquidity * price_float ** 0.5 / 10 ** d1 / 10 ** (0.5 * d) - \
-                  lower_sqrt / k * liquidity / 10 ** d1
-
-
-
-    a0 + p * a1 =  Liquidity / 10**(d/2) / p**(1/2) + Liquidity * p**(1.5) / 10 ** (1.5*d) -
-                   Liquidity * lower_price_sqrtX96 * p / 2**96 / 10**d
-    """
-    k = 2**96
-    d = d0 - d1
-    if is_token0_quote:
-        if price <= lower_price:
-            delta = liquidity / 2**96 / 10**d1 * (sqrtB - sqrtA)
-            gamma = 0
-        elif lower_price < price < upper_price:
-            m = 10 ** (0.5 * d)
-            delta = liquidity * (0.5 * m / price**0.5 / 10**d0 + 0.5 / 10**d1 / m / price**0.5 - sqrtA / k / 10**d1)
-            gamma = -0.25 * liquidity / price**1.5 * (m / 10**d0 + 1 / 10**d1 / m)
-        else:
-            delta = 0
-            gamma = 0
-    else:
-        if price <= lower_price:
-            delta = liquidity / 10**d0 * (k / sqrtA - k / sqrtB)
-            gamma = 0
-        elif lower_price < price < upper_price:
-            m = 10 ** (0.5 * d)
-            delta = liquidity * (0.5 * m / price**0.5 / 10**d0 + 0.5 / 10**d1 / m / price**0.5 - k / sqrtB / 10**d0)
-            gamma = -0.25 * liquidity / price**1.5 * (m / 10**d0 + 1 / m / 10**d1)
-        else:
-            delta = 0
-            gamma = 0
-
-    return delta, gamma
+    return Greeks(delta, gamma)
 
 
 def get_swap_value(swap_from_token_val, swap_to_token_val, fee_rate, final_ratio):
