@@ -1180,4 +1180,4 @@ class AaveV3Market(Market):
         )
 
     def _resample(self, freq: str):
-        self._data = self.data.resample(freq).first()
+        self._data = self.data.resample(freq).last()

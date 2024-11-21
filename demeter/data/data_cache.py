@@ -4,7 +4,7 @@ from typing import NamedTuple
 
 import pandas as pd
 import pickle
-from attr import dataclass
+from dataclasses import dataclass
 
 CACHE_PATH = os.path.join(os.path.expanduser("~"), ".demeter")
 CACHE_CONFIG_PATH = os.path.join(CACHE_PATH, "config.pkl")
