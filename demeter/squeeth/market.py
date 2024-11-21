@@ -26,8 +26,9 @@ from ._typing import (
     SqueethDescription,
 )
 from .helper import calc_twap_price, vault_to_dataframe
-from .. import MarketInfo, TokenInfo, DemeterError, MarketStatus, DECIMAL_0, UnitDecimal
+from .. import MarketInfo, TokenInfo, DemeterError, MarketStatus, DECIMAL_0, UnitDecimal, MarketTypeEnum
 from ..broker import Market
+from ..data import CacheManager
 from ..uniswap import UniLpMarket, PositionInfo
 from ..utils import (
     to_decimal,
@@ -199,6 +200,11 @@ class SqueethMarket(Market):
         :param end_date: end test date
         :type end_date: date
         """
+        cache_key = CacheManager.get_cache_key(self.market_info.type.name, start_date, end_date)
+        cache_df = CacheManager.load(cache_key)
+        if cache_df is not None:
+            self.data = cache_df
+            return
         self.logger.info(f"start load files from {start_date} to {end_date}...")
         df = pd.DataFrame()
         day = start_date
@@ -225,6 +231,7 @@ class SqueethMarket(Market):
                 f"start date {start_date} does not have available data, Consider start from previous day"
             )
         self.data = df
+        CacheManager.save(cache_key, df)
         self.logger.info("data has been prepared")
 
     def set_market_status(self, market_status: MarketStatus, price: pd.Series | None):

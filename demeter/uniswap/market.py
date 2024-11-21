@@ -43,8 +43,10 @@ from .liquitidy_math import (
     get_liquidity_for_amount0,
     get_liquidity_for_amount1,
 )
+from .. import MarketTypeEnum
 from .._typing import DemeterError, DECIMAL_0, UnitDecimal
 from ..broker import MarketBalance, Market, MarketInfo, write_func
+from ..data import CacheManager
 from ..utils import (
     get_formatted_from_dict,
     get_formatted_predefined,
@@ -1090,6 +1092,12 @@ class UniLpMarket(Market):
         :param end_date: end test date
         :type end_date: date
         """
+        cache_key = CacheManager.get_cache_key(self.market_info.type.name, start_date, end_date, chain, contract_addr)
+        cache_df = CacheManager.load(cache_key)
+        if cache_df is not None:
+            self.data = cache_df
+            return
+
         self.logger.info(f"start load files from {start_date} to {end_date}...")
         df = pd.DataFrame()
         day = start_date
@@ -1145,6 +1153,7 @@ class UniLpMarket(Market):
 
         self.add_statistic_column(df)
         self.data = df
+        CacheManager.save(cache_key, df)
         self.logger.info("data has been prepared")
 
     def formatted_str(self) -> str:

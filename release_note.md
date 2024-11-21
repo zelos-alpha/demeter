@@ -1,10 +1,10 @@
 # Ver 0.7.7
 
-
 * Uniswap V3:Add get position status, this will help to calculate amounts and values of a liqudity position
 * [Breaking change] Uniswap V3: Update delta gamma calucation, add get_greeks in helper.
 * Add start liquidity index for aave position
 * Add net value for metrics
+* Add cache to backtest data
 
 # Ver 0.7.6
 

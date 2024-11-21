@@ -31,6 +31,7 @@ from .helper import round_decimal, position_to_df
 from .. import TokenInfo
 from .._typing import DemeterError
 from ..broker import Market, MarketInfo, write_func, BASE_FREQ
+from ..data import CacheManager
 from ..utils import (
     float_param_formatter,
     get_formatted_predefined,
@@ -131,6 +132,13 @@ class DeribitOptionMarket(Market):
         :param end_date: end day, the end day will be included
         :type end_date: date
         """
+
+        cache_key = CacheManager.get_cache_key(self.market_info.type.name, start_date, end_date)
+        cache_df = CacheManager.load(cache_key)
+        if cache_df is not None:
+            self.data = cache_df
+            return
+
         self.logger.info(f"start load files from {start_date} to {end_date}...")
         day = start_date
         df = pd.DataFrame()
@@ -160,6 +168,7 @@ class DeribitOptionMarket(Market):
                 pbar.update()
 
         self._data = df
+        CacheManager.save(cache_key, df)
         self.logger.info("data has been prepared")
 
     @float_param_formatter

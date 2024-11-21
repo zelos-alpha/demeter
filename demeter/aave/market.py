@@ -29,9 +29,10 @@ from ._typing import (
     AaveMarketStatus,
 )
 from .core import AaveV3CoreLib
-from .. import DemeterError, TokenInfo
+from .. import DemeterError, TokenInfo, MarketTypeEnum
 from .._typing import DECIMAL_0, UnitDecimal, ChainType
 from ..broker import Market, MarketInfo, write_func
+from ..data import CacheManager
 from ..utils import get_formatted_predefined, STYLE, get_formatted_from_dict, console_text
 from ..utils.application import require, float_param_formatter, to_decimal
 
@@ -195,6 +196,15 @@ class AaveV3Market(Market):
         """
         self.logger.info(f"start load files from {start_date} to {end_date}...")
         for token_info in token_info_list:
+
+            cache_key = CacheManager.get_cache_key(
+                self.market_info.type.name, start_date, end_date, chain.name, token_info.name
+            )
+            cache_df = CacheManager.load(cache_key)
+            if cache_df is not None:
+                self.set_token_data(token_info, cache_df)
+                continue
+
             day = start_date
             df = pd.DataFrame()
             if token_info.address == "":
@@ -218,6 +228,8 @@ class AaveV3Market(Market):
 
                 df = pd.concat([df, day_df])
                 day += timedelta(days=1)
+
+            CacheManager.save(cache_key, df)
             self.set_token_data(token_info, df)
         self.logger.info("data has been prepared")
 
