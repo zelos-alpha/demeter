@@ -108,13 +108,18 @@ def to_multi_index_df(df: pd.DataFrame, level0: str):
     df.columns = new_columns
 
 
-def load_account_status(path) -> pd.DataFrame:
-    df = pd.read_csv(path, index_col=[0], header=[0, 1], parse_dates=[0])
-    rename_dict = {}
-    for column in df.columns:
-        if "Unnamed" in column[1]:
-            rename_dict[column[1]] = ""
-    df = df.rename(columns=rename_dict, level=1)
+def load_account_status(path:str) -> pd.DataFrame:
+    if path.endswith(".csv"):
+        df = pd.read_csv(path, index_col=[0], header=[0, 1], parse_dates=[0])
+        rename_dict = {}
+        for column in df.columns:
+            if "Unnamed" in column[1]:
+                rename_dict[column[1]] = ""
+        df = df.rename(columns=rename_dict, level=1)
+    elif path.endswith(".feather"):
+        df = pd.read_feather(path)
+    else:
+        raise RuntimeError("Unknown format, account status support csv and feather only")
     return df
 
 
