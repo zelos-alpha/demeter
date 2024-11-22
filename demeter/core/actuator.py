@@ -524,7 +524,7 @@ class Actuator(object):
         :type file_name: str
         :param decimals: decimals in csv
         :type decimals: int
-        :param file_format: format of account status, csv | feather
+        :param file_format: format of account status, csv | pickle
         :return: A list of saved file path
         :rtype: List[str]
         """
@@ -538,10 +538,10 @@ class Actuator(object):
         # save account file
         if file_format == "csv":
             account_file_path = os.path.join(path, file_name_head + ".account.csv")
-        elif file_format == "feather":
-            account_file_path = os.path.join(path, file_name_head + ".account.feather")
+        elif file_format == "pickle":
+            account_file_path = os.path.join(path, file_name_head + ".account.pkl")
         else:
-            raise RuntimeError("File format should be csv or feather")
+            raise RuntimeError("File format should be csv or pickle")
 
         df_2_save: pd.DataFrame = self._account_status_df
         if decimals is not None:
@@ -550,8 +550,8 @@ class Actuator(object):
             # df_2_save = df_2_save.map(lambda x: round(x, decimals) if pd.api.types.is_numeric_dtype(type(x)) else x)
         if file_format == "csv":
             df_2_save.to_csv(account_file_path)
-        elif file_format == "feather":
-            df_2_save.to_feather(account_file_path)
+        elif file_format == "pickle":
+            df_2_save.to_pickle(account_file_path, compression="gzip")
         file_list.append(account_file_path)
 
         # save backtest file

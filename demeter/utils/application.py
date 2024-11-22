@@ -108,7 +108,7 @@ def to_multi_index_df(df: pd.DataFrame, level0: str):
     df.columns = new_columns
 
 
-def load_account_status(path:str) -> pd.DataFrame:
+def load_account_status(path: str) -> pd.DataFrame:
     if path.endswith(".csv"):
         df = pd.read_csv(path, index_col=[0], header=[0, 1], parse_dates=[0])
         rename_dict = {}
@@ -116,10 +116,10 @@ def load_account_status(path:str) -> pd.DataFrame:
             if "Unnamed" in column[1]:
                 rename_dict[column[1]] = ""
         df = df.rename(columns=rename_dict, level=1)
-    elif path.endswith(".feather"):
-        df = pd.read_feather(path)
+    elif path.endswith(".pkl"):
+        df = pd.read_pickle(path, compression="gzip")
     else:
-        raise RuntimeError("Unknown format, account status support csv and feather only")
+        raise RuntimeError("Unknown format, account status support csv and pickle only")
     return df
 
 
@@ -133,4 +133,3 @@ def is_stable_coin(*token: TokenInfo):
         if t == USD or t.name in STABLE_COINS:
             return t
     return None
-
