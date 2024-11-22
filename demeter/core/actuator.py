@@ -512,7 +512,7 @@ class Actuator(object):
         path: str,
         file_name: str = None,
         decimals: int | None = None,
-        format: str = "csv",
+        file_format: str = "csv",
         **custom_attr,
     ) -> List[str]:
         """
@@ -524,7 +524,7 @@ class Actuator(object):
         :type file_name: str
         :param decimals: decimals in csv
         :type decimals: int
-        :param format: format of account status, csv | feather
+        :param file_format: format of account status, csv | feather
         :return: A list of saved file path
         :rtype: List[str]
         """
@@ -536,9 +536,9 @@ class Actuator(object):
         file_list = []
 
         # save account file
-        if format == "csv":
+        if file_format == "csv":
             account_file_path = os.path.join(path, file_name_head + ".account.csv")
-        elif format == "feather":
+        elif file_format == "feather":
             account_file_path = os.path.join(path, file_name_head + ".account.feather")
         else:
             raise RuntimeError("File format should be csv or feather")
@@ -548,9 +548,9 @@ class Actuator(object):
             df_2_save = df_2_save.astype(float).round(decimals)
 
             # df_2_save = df_2_save.map(lambda x: round(x, decimals) if pd.api.types.is_numeric_dtype(type(x)) else x)
-        if format == "csv":
+        if file_format == "csv":
             df_2_save.to_csv(account_file_path)
-        elif format == "feather":
+        elif file_format == "feather":
             df_2_save.to_feather(account_file_path)
         file_list.append(account_file_path)
 
