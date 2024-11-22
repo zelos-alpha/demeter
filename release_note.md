@@ -5,6 +5,7 @@
 * Add start liquidity index for aave position
 * Add net value for metrics
 * Add cache to backtest data
+* You can set account status file format in actuator.save_result() 
 
 # Ver 0.7.6
 
