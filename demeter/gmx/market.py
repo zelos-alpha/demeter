@@ -1,7 +1,7 @@
 import os.path
 from demeter import RowData, MarketStatus
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 from typing import List, Set, Dict, Tuple, Union
 import pandas as pd
 from orjson import orjson
@@ -19,10 +19,30 @@ class GmxMarket(Market):
     def __init__(self,
                  market_info: MarketInfo,
                  data: pd.DataFrame = None,
-                 data_path: str = "./data"):
+                 data_path: str = "./data",
+                 tokens: List[TokenInfo] = None,):
         super().__init__(market_info=market_info, data=data, data_path=data_path)
+        tokens = tokens if tokens is not None else []
         self.glp_amount = Decimal("0.00")  # glp liquidity
+        self.glp_decimal = 18
+        self.PRICE_PRECISION = 10 ** 30
         self.reward = Decimal("0.00")  # pending fee
+        self.mint_burn_fee_basis_points = 25
+        self.tax_basis_points = 60
+        self._tokens: Set[TokenInfo] = set()
+        self.add_token(tokens)
+
+    def add_token(self, token_info: TokenInfo | List[TokenInfo]):
+        """
+        Add one or an array of token to aave back test.
+
+        :param token_info: tokens to add
+        :type token_info: TokenInfo | List[TokenInfo]
+        """
+        if not isinstance(token_info, list):
+            token_info = [token_info]
+        for t in token_info:
+            self._tokens.add(t)
 
     def __str__(self):
         from demeter.utils import orjson_default
@@ -73,9 +93,11 @@ class GmxMarket(Market):
                        amount: Decimal | float):
         glp_supply = Decimal(self.market_status.data.glp)
         aum = Decimal(self.market_status.data.aum)
-        aum_in_usdg = aum * Decimal(10 ** -12)
+        aum_in_usdg = aum / Decimal(10 ** 12)
+        aum_in_usdg = aum_in_usdg.quantize(Decimal('0'), rounding=ROUND_DOWN)
         usdg_amount = self.buy_usdg(token, amount)  # token amount convert to usdg amount
-        mint_amount = Decimal(usdg_amount) * glp_supply / aum_in_usdg  # 21907220720283934220233823 real 5%的浮动。
+        mint_amount = usdg_amount * glp_supply / aum_in_usdg
+        mint_amount = mint_amount.quantize(Decimal('0'), rounding=ROUND_DOWN)
         self._record_action(
             BuyGlpAction(
                 market=self.market_info,
@@ -84,16 +106,18 @@ class GmxMarket(Market):
                 mint_amount=mint_amount,
             )
         )
-        return mint_amount
+        return mint_amount / 10 ** self.glp_decimal
 
     def _remove_liquidity(self,
                           token: TokenInfo,
                           glp_amount: Decimal | float):
         glp_supply = Decimal(self.market_status.data.glp)
         aum = Decimal(self.market_status.data.aum)
-        aum_in_usdg = aum * Decimal(10 ** -12)
-        usdg_amount = glp_amount / glp_supply * aum_in_usdg
-        token_out = self.sell_usdg(token, usdg_amount)
+        aum_in_usdg = aum / Decimal(10 ** 12)
+        aum_in_usdg = aum_in_usdg.quantize(Decimal('0'), rounding=ROUND_DOWN)
+        usdg_amount = glp_amount * 10 ** self.glp_decimal / glp_supply * aum_in_usdg
+        usdg_amount = usdg_amount.quantize(Decimal('0'), rounding=ROUND_DOWN)
+        token_out = self.sell_usdg(token, usdg_amount) / 10 ** token.decimal
         self._record_action(
             SellGlpAction(
                 market=self.market_info,
@@ -107,10 +131,12 @@ class GmxMarket(Market):
     def buy_usdg(self, token: TokenInfo, token_amount: Decimal | float):
         # function buyUSDG
         price = self.market_status.data[f"{token.name.lower()}_price"]
-        usdg_amount = token_amount * price
+        usdg_amount = token_amount * 10 ** token.decimal * price / 10 ** 30
+        usdg_amount = usdg_amount.quantize(Decimal('0'), rounding=ROUND_DOWN)
         fee_basic_point = self.get_buy_usdg_fee_point(token, usdg_amount)
         amount_after_fee = self._collect_swap_fee(token, token_amount, fee_basic_point)
-        mint_amount = Decimal(amount_after_fee) * price
+        mint_amount = Decimal(amount_after_fee) * 10 ** token.decimal * price / 10 ** 30
+        mint_amount = mint_amount.quantize(Decimal('0'), rounding=ROUND_DOWN)
         return mint_amount
 
     def sell_usdg(self, token: TokenInfo, usdg_amount: Decimal | float):
@@ -120,7 +146,7 @@ class GmxMarket(Market):
         return amount_after_fee
 
     def get_redemption_amount(self, token: TokenInfo, usdg_amount: Decimal | float):
-        price = self.market_status.data[f"{token.name.lower()}_price"]
+        price = Decimal(self.market_status.data[f"{token.name.lower()}_price"]) / self.PRICE_PRECISION
         redemption_amount = usdg_amount / Decimal(price)
         return redemption_amount
 
@@ -128,16 +154,43 @@ class GmxMarket(Market):
                                token: TokenInfo,
                                usdg_amount: Decimal | float):
         # not consider
-        return self.get_fee_basis_points()
+        return self.get_fee_basis_points(token, usdg_amount, True)
 
     def get_sell_usdg_fee_point(self,
                                 token: TokenInfo,
                                 usdg_amount: Decimal | float):
         # not consider
-        return self.get_fee_basis_points()
+        return self.get_fee_basis_points(token, usdg_amount, False)
 
-    def get_fee_basis_points(self):
-        return 0
+    def get_fee_basis_points(self,
+                             token: TokenInfo,
+                             usdg_amount: Decimal | float,
+                             increase: bool):
+        initial_amount = Decimal(self.market_status.data[f"{token.name.lower()}_usdg"])
+        next_amount = initial_amount + usdg_amount
+        if not increase:
+            next_amount = 0 if usdg_amount > initial_amount else initial_amount - usdg_amount
+        target_amount = self.get_target_amount(token)
+        if target_amount == 0:
+            return self.mint_burn_fee_basis_points
+        initial_diff = initial_amount - target_amount if initial_amount > target_amount else target_amount - initial_amount
+        next_diff = next_amount - target_amount if next_amount > target_amount else target_amount - next_amount
+        if next_diff < initial_diff:
+            rebate_bps = self.tax_basis_points * initial_diff / target_amount
+            return 0 if rebate_bps > self.mint_burn_fee_basis_points else self.mint_burn_fee_basis_points - rebate_bps
+        average_diff = (initial_diff + next_diff) / 2
+        if average_diff > target_amount:
+            average_diff = target_amount
+        tax_bps = self.tax_basis_points * average_diff / target_amount
+        return self.mint_burn_fee_basis_points + int(tax_bps)
+
+    def get_target_amount(self, token: TokenInfo):
+        total_token_weights = 0
+        for _token in self._tokens:
+            total_token_weights += self.market_status.data[f"{_token.name.lower()}_weight"]
+        supply = Decimal(self.market_status.data['usdg'])
+        weight = self.market_status.data[f"{token.name.lower()}_weight"]
+        return weight * supply / total_token_weights
 
     def _collect_swap_fee(self,
                           token: TokenInfo,
@@ -177,12 +230,14 @@ class GmxMarket(Market):
             raise DemeterError("data has not set")
         # keep weth/wavax
         df_price = self.data[['weth_price', 'wavax_price']]
+        df_price['weth_price'] = df_price['weth_price'].apply(lambda r: r / self.PRICE_PRECISION)
+        df_price['wavax_price'] = df_price['wavax_price'].apply(lambda r: r / self.PRICE_PRECISION)
         df_price.rename(columns={'weth_price': 'WETH', 'wavax_price': 'WAVAX'}, inplace=True)
         return df_price
 
     def get_market_balance(self) -> GmxBalance:
         # market 有glp + weth/avax fee  change by chain config
-        net_value = self.glp_amount * Decimal(self.market_status.data.glp_price) + self.reward * Decimal(self.market_status.data['wavax_price'])
+        net_value = self.glp_amount * Decimal(self.market_status.data.glp_price) + self.reward * Decimal(self.market_status.data['wavax_price']) / self.PRICE_PRECISION
         val = GmxBalance(
             net_value=net_value,
             reward=self.reward,
