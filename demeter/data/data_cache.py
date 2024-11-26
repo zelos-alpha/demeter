@@ -64,7 +64,7 @@ class CacheManager:
         if key in config:
             return
 
-        file_name = f"{key.market}_{key.chain}_{key.start}_{key.end}_{key.address}.pkl"
+        file_name = f"{key.market}_{key.chain}_{key.start}_{key.end}_{key.address}.feather"
         config[key] = CacheItem(create_time=datetime.now(), last_visit=datetime.now(), file_name=file_name)
         df.to_feather(os.path.join(CACHE_PATH, file_name), compression="lz4")
 
