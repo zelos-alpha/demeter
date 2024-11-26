@@ -1,3 +1,6 @@
+# Ver 0.8.0
+* add GMX Market
+
 # Ver 0.7.7
 
 * Uniswap V3:Add get position status, this will help to calculate amounts and values of a liqudity position
