@@ -12,6 +12,7 @@ References
    demeter.aave
    demeter.deribit
    demeter.squeeth
+   demeter.gmx
    demeter.indicator
    demeter.result
    demeter.result.metrics

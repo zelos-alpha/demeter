@@ -21,6 +21,7 @@ Features
 - **Aave market:** Aave is a popular liquidity protocol which allow user to deposit and borrow assets. Through supply asset to aave, user can earn interest, and borrowing allow user to earn extra profit or to hedging price changes. Demeter support supply/repay/borrow/repay/liquidation transactions on aave.
 - **Deribit option market:** A market to trade option or hedge greeks.
 - **Squeeth market:** Allow user to trade delta and gamma with ethereum price^2
+- **GMX market:** Allow user to trade buy GLP and get profit from staked GLP.
 - **Accuracy:** In the design of demeter, accuracy is an important consideration. In order to provide higher accuracy, the core calculations of uniswap and aave do not follow theoretical formulas, but draw on the code of the contract. This allows demeter to have higher calculations accuracy.
 - **Rich output:** In order to allow users to evaluate strategies intuitively, demeter provides a wealth of output, including asset changes in accounts and position adjustment records. With the indicator calculation module, users can choose the best investment strategy.
 - **Indicators:** Besides the simulation of defi market, demeter also provides various indicators. Those indicators will help user to decide how and when to make transactions, and evaluate their strategies.
@@ -47,6 +48,7 @@ links
 * Antalpha labs: https://labs.antalpha.com/
 * Uniswap: https://uniswap.org
 * aave: https://aave.com
+* gmx: https://gmx.io
 
 
 .. toctree::
@@ -61,6 +63,7 @@ links
    market_aave
    market_deribit_option
    market_squeeth
+   market_gmx
    references
 
 
