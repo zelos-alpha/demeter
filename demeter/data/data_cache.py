@@ -83,8 +83,11 @@ class CacheManager:
         path = os.path.join(CACHE_PATH, config[key].file_name)
         if not os.path.exists(path):
             del config[key]
+            with open(CACHE_CONFIG_PATH, "wb") as f:
+                pickle.dump(config, f)
+            return None
         else:
             config[key].last_visit = datetime.now()
-        with open(CACHE_CONFIG_PATH, "wb") as f:
-            pickle.dump(config, f)
-        return pd.read_feather(path)
+            with open(CACHE_CONFIG_PATH, "wb") as f:
+                pickle.dump(config, f)
+            return pd.read_feather(path)

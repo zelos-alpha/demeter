@@ -1,3 +1,9 @@
+# Ver 0.8.2
+
+* change order when saving backtest result
+* data and price has updated. The value in the beginning of the minute will follow the value in the last minute(In old version it will be decided by the first transaction in this minute.)
+* fix issues in data cache(when feather file is lost, a error will be raised) 
+
 # Ver 0.8.0
 * add GMX Market
 

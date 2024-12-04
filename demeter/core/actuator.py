@@ -368,6 +368,7 @@ class Actuator(object):
     def switch_interval(self, index_array: pd.DatetimeIndex) -> pd.DatetimeIndex:
         for mk, market in self.broker.markets.items():
             market._resample(self.interval)
+        self._token_prices = self.token_prices.resample(self.interval).first()
         return pd.Series(0, index=index_array).resample(self.interval).first().index
 
     def run(self, print_result: bool = True):
@@ -535,25 +536,6 @@ class Actuator(object):
             os.mkdir(path)
         file_list = []
 
-        # save account file
-        if file_format == "csv":
-            account_file_path = os.path.join(path, file_name_head + ".account.csv")
-        elif file_format == "pickle":
-            account_file_path = os.path.join(path, file_name_head + ".account.pkl")
-        else:
-            raise RuntimeError("File format should be csv or pickle")
-
-        df_2_save: pd.DataFrame = self._account_status_df
-        if decimals is not None:
-            df_2_save = df_2_save.astype(float).round(decimals)
-
-            # df_2_save = df_2_save.map(lambda x: round(x, decimals) if pd.api.types.is_numeric_dtype(type(x)) else x)
-        if file_format == "csv":
-            df_2_save.to_csv(account_file_path)
-        elif file_format == "pickle":
-            df_2_save.to_pickle(account_file_path, compression="gzip")
-        file_list.append(account_file_path)
-
         # save backtest file
         backtest_result = BackTestDescription(
             strategy_name=type(self._strategy).__name__,
@@ -574,6 +556,25 @@ class Actuator(object):
             pickle.dump(backtest_result, outfile1)
 
         file_list.append(pkl_name)
+
+        # save account file
+        if file_format == "csv":
+            account_file_path = os.path.join(path, file_name_head + ".account.csv")
+        elif file_format == "pickle":
+            account_file_path = os.path.join(path, file_name_head + ".account.pkl")
+        else:
+            raise RuntimeError("File format should be csv or pickle")
+
+        df_2_save: pd.DataFrame = self._account_status_df
+        if decimals is not None:
+            df_2_save = df_2_save.astype(float).round(decimals)
+
+            # df_2_save = df_2_save.map(lambda x: round(x, decimals) if pd.api.types.is_numeric_dtype(type(x)) else x)
+        if file_format == "csv":
+            df_2_save.to_csv(account_file_path)
+        elif file_format == "pickle":
+            df_2_save.to_pickle(account_file_path, compression="gzip")
+        file_list.append(account_file_path)
 
         self.logger.info(f"files have saved to {','.join(file_list)}")
         return file_list

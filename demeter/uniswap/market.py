@@ -484,7 +484,12 @@ class UniLpMarket(Market):
 
         if sqrt_price_x96 == -1:
             # self.current_tick must be initialed
-            sqrt_price_x96 = get_sqrt_ratio_at_tick(self.market_status.data.closeTick)
+            sqrt_price_x96 = base_unit_price_to_sqrt_price_x96(
+                self.market_status.data.price,
+                self._pool.token0.decimal,
+                self._pool.token1.decimal,
+                self._is_token0_quote,
+            )
         if lower_tick > upper_tick:
             raise DemeterError("lower tick should be less than upper tick")
 
@@ -1064,13 +1069,16 @@ class UniLpMarket(Market):
 
         """
         # add statistic column
-        df["open"] = df["openTick"].map(lambda x: self.tick_to_price(x))
-        df["price"] = df["closeTick"].map(lambda x: self.tick_to_price(x))
-        high_name, low_name = (
-            ("lowestTick", "highestTick") if self.pool_info.is_token0_quote else ("highestTick", "lowestTick")
-        )
-        df["low"] = df[high_name].map(lambda x: self.tick_to_price(x))
-        df["high"] = df[low_name].map(lambda x: self.tick_to_price(x))
+        # df["open"] = df["openTick"].map(lambda x: self.tick_to_price(x))
+        df["close"] = df["closeTick"].map(lambda x: self.tick_to_price(x))
+        # price in the beginning of this minute is decided by last tx in the previous minute
+        df["price"] = df["close"].shift(1)
+        df.loc[df.index[0], "price"] = self.tick_to_price(df["openTick"].iloc[0])  # fill the first one
+        # low_name, high_name = (
+        #     ("lowestTick", "highestTick") if self.pool_info.is_token0_quote else ("highestTick", "lowestTick")
+        # )
+        # df["low"] = df[high_name].map(lambda x: self.tick_to_price(x))
+        # df["high"] = df[low_name].map(lambda x: self.tick_to_price(x))
         df["volume0"] = df["inAmount0"].map(lambda x: Decimal(x) / 10**self.pool_info.token0.decimal)
         df["volume1"] = df["inAmount1"].map(lambda x: Decimal(x) / 10**self.pool_info.token1.decimal)
 
@@ -1181,4 +1189,4 @@ class UniLpMarket(Market):
         return value
 
     def _resample(self, freq: str):
-        self._data = resample(self.data, freq)
+        self._data = resample(self._data, freq)

@@ -82,7 +82,10 @@ LINE_RULES = {
     LineTypeEnum.highestTick.name: Rule("max", "ffill", None),
     LineTypeEnum.inAmount0.name: Rule("sum", None, 0),
     LineTypeEnum.inAmount1.name: Rule("sum", None, 0),
-    LineTypeEnum.currentLiquidity.name: Rule("first", "ffill", None),
+    LineTypeEnum.currentLiquidity.name: Rule("last", "ffill", None),
+    "volume0": Rule("sum", None, 0),
+    "volume1": Rule("sum", None, 0),
+    "price": Rule("first", "ffill", None),
 }
 
 
