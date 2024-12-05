@@ -194,7 +194,7 @@ class AaveV3Market(Market):
         :param end_date: end day, the end day will be included
         :type end_date: date
         """
-        self.logger.info(f"start load files from {start_date} to {end_date}...")
+        self.logger.info(f"{self.market_info.name} start load files from {start_date} to {end_date}...")
         for token_info in token_info_list:
 
             cache_key = CacheManager.get_cache_key(

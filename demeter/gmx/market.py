@@ -201,7 +201,7 @@ class GmxMarket(Market):
         return after_fee_amount
 
     def load_data(self, chain: ChainType, start_date: date, end_date: date) -> None:
-        self.logger.info('start load files from {start_date} to {end_date}...')
+        self.logger.info(f'{self.market_info.name} start load files from {start_date} to {end_date}...')
         assert start_date <= end_date, f'start date {start_date} should earlier than end date {end_date}'
         df = pd.DataFrame()
         day = start_date

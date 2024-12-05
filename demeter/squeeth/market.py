@@ -205,7 +205,7 @@ class SqueethMarket(Market):
         if cache_df is not None:
             self.data = cache_df
             return
-        self.logger.info(f"start load files from {start_date} to {end_date}...")
+        self.logger.info(f"{self.market_info.name} start load files from {start_date} to {end_date}...")
         df = pd.DataFrame()
         day = start_date
         if start_date > end_date:

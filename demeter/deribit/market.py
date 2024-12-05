@@ -139,7 +139,7 @@ class DeribitOptionMarket(Market):
             self.data = cache_df
             return
 
-        self.logger.info(f"start load files from {start_date} to {end_date}...")
+        self.logger.info(f"{self.market_info.name} start load files from {start_date} to {end_date}...")
         day = start_date
         df = pd.DataFrame()
         from tqdm import tqdm
