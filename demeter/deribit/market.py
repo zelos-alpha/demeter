@@ -133,7 +133,9 @@ class DeribitOptionMarket(Market):
         :type end_date: date
         """
 
-        cache_key = CacheManager.get_cache_key(self.market_info.type.name, start_date, end_date)
+        cache_key = CacheManager.get_cache_key(
+            self.market_info.type.name, start_date, end_date, address=self.token.name
+        )
         cache_df = CacheManager.load(cache_key)
         if cache_df is not None:
             self.data = cache_df
