@@ -164,6 +164,7 @@ class DeribitOptionMarket(Market):
                     index_col=["time", "instrument_name"],
                     converters={"asks": order_converter, "bids": order_converter},
                 )
+                day_df["t"] = pd.to_timedelta(day_df["t"])
                 day_df.drop(columns=["actual_time", "min_price", "max_price"], inplace=True)
                 df = pd.concat([df, day_df])
                 day += timedelta(days=1)
