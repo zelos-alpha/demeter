@@ -332,18 +332,19 @@ class UniLpMarket(Market):
             deposit_amount0 += amount0
             deposit_amount1 += amount1
 
-        base_deposit_amount, quote_deposit_amount = self._convert_pair(deposit_amount0, deposit_amount1)
-
-        net_value = (base_fee_sum + base_deposit_amount) * pool_price[self.base_token.name] + (
-            quote_fee_sum + quote_deposit_amount
-        ) * pool_price[self.quote_token.name]
+        liq_of_base, liq_of_quote = self._convert_pair(deposit_amount0, deposit_amount1)
+        base_price = pool_price[self.base_token.name]
+        quote_price = pool_price[self.quote_token.name]
+        liquidity_value = liq_of_base * base_price + liq_of_quote * quote_price
+        fee_value = base_fee_sum * base_price + quote_fee_sum * quote_price
 
         val = UniLpBalance(
-            net_value=net_value,
+            net_value=fee_value + liquidity_value,
+            liquidity_value=UnitDecimal(liquidity_value, self.quote_token.name),
             base_uncollected=UnitDecimal(base_fee_sum, self.base_token.name),
             quote_uncollected=UnitDecimal(quote_fee_sum, self.quote_token.name),
-            base_in_position=UnitDecimal(base_deposit_amount, self.base_token.name),
-            quote_in_position=UnitDecimal(quote_deposit_amount, self.quote_token.name),
+            base_in_position=UnitDecimal(liq_of_base, self.base_token.name),
+            quote_in_position=UnitDecimal(liq_of_quote, self.quote_token.name),
             position_count=len(list(filter(lambda p: not p.transferred, self._positions.values()))),
         )
         return val

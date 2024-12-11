@@ -53,10 +53,10 @@ class PositionStatus(NamedTuple):
     liquidity: int
     liquidity_amount0: Decimal
     liquidity_amount1: Decimal
-    liquidity_value :Decimal
+    liquidity_value: Decimal
     pending_amount0: Decimal
     pending_amount1: Decimal
-    pending_value:Decimal
+    pending_value: Decimal
     amount0: Decimal
     amount1: Decimal
     value: Decimal
@@ -120,6 +120,8 @@ class UniLpBalance(MarketBalance):
 
     """
 
+    liquidity_value: UnitDecimal
+    """net value without fee"""
     base_uncollected: UnitDecimal
     """base token uncollect fee in all the positions."""
     quote_uncollected: UnitDecimal
