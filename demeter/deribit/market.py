@@ -189,6 +189,7 @@ class DeribitOptionMarket(Market):
                 amount=amount,
             )
         )
+        return self.balance
 
     def _add_to_balance(self, amount: Decimal | float) -> Decimal:
         self.balance += amount
