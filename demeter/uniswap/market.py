@@ -943,7 +943,7 @@ class UniLpMarket(Market):
             lower_tick = nearest_usable_tick(lower_tick, self.pool_info.tick_spacing)
             upper_tick = nearest_usable_tick(upper_tick, self.pool_info.tick_spacing)
         price = self._market_status.data.price
-        tick = self._market_status.data.closeTick
+        tick = self.price_to_tick(price)
         price0, price1 = self._convert_pair(price, Decimal(1))
 
         quote_balance = self.broker.get_token_balance(self.quote_token)
