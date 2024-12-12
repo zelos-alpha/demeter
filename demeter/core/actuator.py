@@ -533,7 +533,7 @@ class Actuator(object):
         #     raise DemeterError("Please run strategy first")
         file_name_head = file_name if file_name is not None else "backtest-" + datetime.now().strftime("%Y%m%d-%H%M%S")
         if not os.path.exists(path):
-            os.mkdir(path)
+            os.makedirs(path)
         file_list = []
 
         # save backtest file
