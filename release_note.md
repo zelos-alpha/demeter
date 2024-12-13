@@ -4,6 +4,11 @@
 * data and price has updated. The value in the beginning of the minute will follow the value in the last minute(In old version it will be decided by the first transaction in this minute.)
 * fix issues in data cache(when feather file is lost, a error will be raised) 
 * show market name when loading data
+* add lp net value for uniswap market balance
+* deribit: convert type of t when loading csv
+* fix other bugs
+
+
 
 # Ver 0.8.0
 * add GMX Market
