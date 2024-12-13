@@ -23,7 +23,7 @@ pd.set_option("display.width", 5000)
 
 class DemoStrategy(Strategy):
     """
-    this demo shows how to access markets and assets
+    this demo shows how to handle backtest results.
     """
 
     def __init__(self):
@@ -94,8 +94,8 @@ class DemoStrategy(Strategy):
 
 
 if __name__ == "__main__":
-    usdc = TokenInfo(name="usdc", decimal=6)  # TokenInfo(name='usdc', decimal=6)
-    eth = TokenInfo(name="eth", decimal=18)  # TokenInfo(name='eth', decimal=18)
+    usdc = TokenInfo(name="usdc", decimal=6)
+    eth = TokenInfo(name="eth", decimal=18)
     pool = UniV3Pool(usdc, eth, 0.05, usdc)
 
     market_key = MarketInfo("market1")  # market1
