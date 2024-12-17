@@ -391,7 +391,7 @@ class DeribitOptionMarket(Market):
 
 
         """
-        amount, instrument, price_in_token = self._check_transaction(
+        amount, instrument, price_in_token = self.check_transaction(
             instrument_name, amount, price_in_token, price_in_usd, True, max_mark_price_multiple
         )
 
@@ -478,17 +478,17 @@ class DeribitOptionMarket(Market):
         :type price_in_token: float | Decimal | None = None,
         :param price_in_usd: price, based in usd,
         :type price_in_usd: float | Decimal | None = None,
-        :param max_mark_price_multiple: times to mark_price, if order price is greater than mark_price * max_allowed, will not buy at this price
+        :param max_mark_price_multiple: times to mark_price, if order price is greater than mark_price * max_allowed, will not sell at this price
 
         """
-        amount, instrument, price_in_token = self._check_transaction(
+        amount, instrument, price_in_token = self.check_transaction(
             instrument_name, amount, price_in_token, price_in_usd, False, max_mark_price_multiple
         )
 
         # deduct  amount
         if max_mark_price_multiple is not None:
             bids = list(
-                filter(lambda x: x[0] > max_mark_price_multiple / Decimal(instrument.mark_price), instrument.bids)
+                filter(lambda x: x[0] > Decimal(instrument.mark_price) / max_mark_price_multiple, instrument.bids)
             )
         else:
             bids = instrument.bids
@@ -560,7 +560,7 @@ class DeribitOptionMarket(Market):
                     break
         return order_list
 
-    def _check_transaction(
+    def check_transaction(
         self, instrument_name, amount, price_in_token, price_in_usd, is_buy, max_mark_price_multiple=None
     ) -> Tuple[Decimal, InstrumentStatus, Decimal]:
         """
@@ -593,7 +593,7 @@ class DeribitOptionMarket(Market):
                 available_orders = instrument.asks
         else:
             if max_mark_price_multiple is not None:
-                min_price = max_mark_price_multiple / Decimal(instrument.mark_price)
+                min_price = Decimal(instrument.mark_price) / max_mark_price_multiple
                 available_orders = list(filter(lambda x: x[0] > min_price, instrument.bids))
             else:
                 available_orders = instrument.bids
@@ -612,7 +612,7 @@ class DeribitOptionMarket(Market):
             available_amount = sum([Decimal(x[1]) for x in available_orders])
         if amount > available_amount:
             raise DemeterError(
-                f"insufficient order to buy {instrument_name}, required amount is {amount}, "
+                f"insufficient order to buy/sell {instrument_name}, required amount is {amount}, "
                 f"available amount is {available_amount}"
             )
 

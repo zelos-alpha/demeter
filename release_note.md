@@ -1,3 +1,8 @@
+# Ver 0.8.3
+
+* fix errors in deribit market.
+* _check_transaction function in deribit was set to public 
+
 # Ver 0.8.2
 
 * change order when saving backtest result

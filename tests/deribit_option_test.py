@@ -107,12 +107,12 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
     def test_buy_amount(self):
         broker = self.get_broker()
         market: DeribitOptionMarket = broker.markets.default
-        amount, instrument, price_in_token = market._check_transaction(
+        amount, instrument, price_in_token = market.check_transaction(
             "ETH-22SEP23-1600-C", Decimal("1.2"), Decimal("0.05005"), None, True
         )
         self.assertEqual(price_in_token, Decimal("0.05"))
         self.assertEqual(amount, Decimal("1"))
-        amount, instrument, price_in_token = market._check_transaction(
+        amount, instrument, price_in_token = market.check_transaction(
             "ETH-22SEP23-1600-C", Decimal("1.8"), Decimal("0.05005"), None, True
         )
         self.assertEqual(amount, Decimal("2"))
