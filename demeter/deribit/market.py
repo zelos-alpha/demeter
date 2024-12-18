@@ -653,8 +653,8 @@ class DeribitOptionMarket(Market):
                 delta += instrument_premium * round_decimal(instr_status.delta, self.decimal)
                 gamma += instrument_premium * round_decimal(instr_status.gamma, self.decimal)
 
-            delta = Decimal(0) if total_premium == Decimal(0) else delta / total_premium
-            gamma = Decimal(0) if total_premium == Decimal(0) else gamma / total_premium
+            # delta = Decimal(0) if total_premium == Decimal(0) else delta / total_premium
+            # gamma = Decimal(0) if total_premium == Decimal(0) else gamma / total_premium
             equity = self.balance + total_premium
             self._balance_cache = OptionMarketBalance(equity, self.balance, total_premium, delta, gamma)
         return self._balance_cache

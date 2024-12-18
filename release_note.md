@@ -1,7 +1,8 @@
 # Ver 0.8.3
 
 * fix errors in deribit market.
-* _check_transaction function in deribit was set to public 
+* _check_transaction function in deribit market was set to public
+* [Breaking change] Delta and gamma in deribit option market was changed from average value to total value
 
 # Ver 0.8.2
 

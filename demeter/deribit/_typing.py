@@ -289,6 +289,7 @@ class OptionTradeAction(BaseAction):
                 "amount": str(self.amount),
                 "total_premium": str(self.total_premium),
                 "underlying_price": str(self.underlying_price),
+                "fee": str(self.fee),
             },
         )
 
