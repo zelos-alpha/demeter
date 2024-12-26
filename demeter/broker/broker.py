@@ -196,7 +196,7 @@ class Broker:
         for k, v in self.assets.items():
             account_status.asset_balances[k] = v.balance
         asset_sum = sum([v * prices[k.name] for k, v in account_status.asset_balances.items()])
-
+        account_status.asset_value = asset_sum
         account_status.net_value = asset_sum + market_sum
         return account_status
 
@@ -223,9 +223,7 @@ class Broker:
             raise DemeterError("Quote token of broker not set")
 
         market_types = set([x.market_info.type for x in self.markets.values()])
-        has_usd_market = {
-            MarketTypeEnum.squeeth, MarketTypeEnum.aave_v3
-        }.intersection(market_types)
+        has_usd_market = {MarketTypeEnum.squeeth, MarketTypeEnum.aave_v3}.intersection(market_types)
 
         if has_usd_market:
             if self.quote_token.name not in STABLE_COINS:

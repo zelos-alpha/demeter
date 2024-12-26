@@ -426,6 +426,7 @@ class AccountStatus(AccountStatusCommon):
     """
 
     asset_balances: AssetDict[Decimal] = field(default_factory=AssetDict)
+    asset_value: Decimal = Decimal(0)
     market_status: MarketDict[MarketBalance] = field(default_factory=MarketDict)
 
     def to_array(self) -> List:
