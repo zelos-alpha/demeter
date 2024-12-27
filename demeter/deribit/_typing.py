@@ -180,6 +180,12 @@ class OptionPosition:
     avg_sell_price: Decimal
     sell_amount: Decimal
 
+    def __repr__(self):
+        return f"{self.instrument_name}, {self.amount}"
+
+    def __str__(self):
+        return f"{self.instrument_name}, {self.amount}"
+
 
 @dataclass
 class DeribitMarketStatus(MarketStatus):
