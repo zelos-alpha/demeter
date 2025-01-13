@@ -1,3 +1,9 @@
+# Ver 1.0.0
+
+* Run multiple strategy, so there are a lot of breaking change
+  * The way to start a backtest has changed.
+  * Data was moved away from market, and data will be shared among all sub process
+
 # Ver 0.8.3
 
 * fix errors in deribit market.

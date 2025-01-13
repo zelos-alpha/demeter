@@ -1,22 +1,21 @@
-import tempfile
+import logging
+import platform
+import traceback
+from multiprocessing import Pool, cpu_count
 from typing import List
-
-from joblib import Memory, Parallel, delayed
 
 from ._typing import StrategyConfig, BacktestData
 from .actuator import Actuator
 from .. import Strategy, DemeterError
 
-with tempfile.TemporaryDirectory() as tempdir:
-    memory = Memory(tempdir, verbose=0)
+global_data: BacktestData | None = None
 
 
-@memory.cache
-def multi_processes_start(config: StrategyConfig, data: BacktestData, strategy: Strategy):
-    start(config, data, strategy)
+def start_with_global_data(config: StrategyConfig, strategy: Strategy):
+    start(config, global_data, strategy)
 
 
-def single_process_start(config: StrategyConfig, data: BacktestData, strategy: Strategy):
+def start_with_param_data(config: StrategyConfig, data: BacktestData, strategy: Strategy):
     start(config, data, strategy)
 
 
@@ -35,6 +34,14 @@ def start(config: StrategyConfig, data: BacktestData, strategy: Strategy):
     actuator.run()
     if True:
         actuator.save_result("xxx.csv")
+
+
+def callback(result):
+    print(f"Result: {result}")
+
+
+def e_callback(e):
+    traceback.print_exception(e)
 
 
 class Backtest:
@@ -61,11 +68,46 @@ class Backtest:
             raise DemeterError("Config has not set")
         if self.data is None:
             raise DemeterError("Data has not set")
+
         if len(self.strategies) < 1:
             return
         elif len(self.strategies) == 1:
-            single_process_start(self.config, self.data, self.strategies[0])
+            # start in single thread by default
+            start_with_param_data(self.config, self.data, self.strategies[0])
         else:
-            Parallel(n_jobs=self.threads)(
-                delayed(multi_processes_start)(self.config, self.data, stg) for stg in self.strategies
-            )
+            if self.threads > cpu_count():
+                raise DemeterError("Threads should lower than " + cpu_count())
+
+            if "Windows" in platform.system():
+                logging.warning(
+                    "In windows data will be copied to every subprocess, which will lead to a waste of memory, please consider use wsl"
+                )
+                with Pool(processes=self.threads) as pool:
+                    tasks = []
+                    for strategy in self.strategies:
+                        result1 = pool.apply_async(
+                            start_with_param_data,
+                            args=(self.config, self.data, strategy),
+                            callback=callback,
+                            error_callback=e_callback,
+                        )
+                        tasks.append(result1)
+                    [x.get() for x in tasks]
+            else:
+                global global_data
+                global_data = self.data  # to keep there only one instance among processes
+                with Pool(processes=self.threads) as pool:
+                    tasks = []
+                    for strategy in self.strategies:
+                        result1 = pool.apply_async(
+                            start_with_global_data,
+                            args=(
+                                self.config,
+                                strategy,
+                            ),  # do not pass data here as it will generate a new copy in subprocess
+                            callback=callback,
+                            error_callback=e_callback,
+                        )
+                        tasks.append(result1)
+                    [x.get() for x in tasks]
+                pass
