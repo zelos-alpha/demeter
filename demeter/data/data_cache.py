@@ -44,7 +44,9 @@ class CacheManager:
             key_to_remove = []
             for k, v in config.items():
                 if v.last_visit + timedelta(days=CACHE_KEEP_DAYS) < datetime.now():
-                    os.remove(os.path.join(CACHE_PATH, v.file_name))
+                    file_path  = os.path.join(CACHE_PATH, v.file_name)
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
                     key_to_remove.append(k)
             for k in key_to_remove:
                 del config[k]

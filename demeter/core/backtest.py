@@ -9,20 +9,25 @@ from typing import List
 from ._typing import StrategyConfig, BacktestData, BacktestConfig
 from .actuator import Actuator
 from ..strategy import Strategy
+from ..utils import config_log
 
 global_data: BacktestData | None = None
 
+config_log()
+
+logger = logging.getLogger("BacktestManager")
+
 
 def _start_with_global_data(config: StrategyConfig, strategy: Strategy, bk_config: BacktestConfig):
-    _start(config, global_data, strategy, bk_config)
+    return _start(config, global_data, strategy, bk_config)
 
 
 def _start_with_param_data(config: StrategyConfig, data: BacktestData, strategy: Strategy, bk_config: BacktestConfig):
-    _start(config, data, strategy, bk_config)
+    return _start(config, data, strategy, bk_config)
 
 
 def _start(config: StrategyConfig, data: BacktestData, strategy: Strategy, bk_config: BacktestConfig) -> Actuator:
-    logging.info(f"Process id: {os.getpid()}, id of data object {id(data)}")
+    logger.info(f"Process id: {os.getpid()}, id of data object {id(data)}")
     actuator = Actuator()
     for market in config.markets:
         # add market to broker
@@ -42,7 +47,7 @@ def _start(config: StrategyConfig, data: BacktestData, strategy: Strategy, bk_co
 
 
 def callback(result):
-    print(f"Result: {result}")
+    print(f"pid: {os.getpid()},  Result: {result}")
 
 
 def e_callback(e):
@@ -89,7 +94,7 @@ class BacktestManager:
                 raise RuntimeError("Threads should lower than " + cpu_count())
 
             if "Windows" in platform.system():
-                logging.warning(
+                logger.warning(
                     "In windows data will be copied to every subprocess, which will cause a waste of memory, please consider use WSL"
                 )
                 with Pool(processes=self.threads) as pool:
@@ -102,7 +107,7 @@ class BacktestManager:
                             error_callback=e_callback,
                         )
                         tasks.append(result1)
-                    [x.get() for x in tasks]
+                    [x.wait() for x in tasks]
             else:
                 global global_data
                 global_data = self.data  # to keep there only one instance among processes

@@ -19,3 +19,4 @@ from .console_text import (
     get_formatted_predefined,
     get_formatted_from_dict,
 )
+from .logging_util import config_log

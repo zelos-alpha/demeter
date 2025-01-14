@@ -12,7 +12,8 @@ from .data import fillna
 from .liquitidy_math import get_sqrt_ratio_at_tick, get_liquidity, get_amounts
 from .. import DemeterError, TokenInfo, MarketTypeEnum
 from ..data import CacheManager
-from ..utils import to_decimal
+from ..utils import to_decimal, config_log
+
 
 
 Q96 = Decimal(2**96)
@@ -307,7 +308,9 @@ def find_tick_range_at_rate(
     return None
 
 
-def load_data(chain: str, contract_addr: str, start_date: date, end_date: date, data_path: str = "./data"):
+def load_data(
+    pool_info: UniV3Pool, chain: str, contract_addr: str, start_date: date, end_date: date, data_path: str = "./data"
+):
     """
 
     load data, and preprocess. preprocess actions including:
@@ -316,6 +319,8 @@ def load_data(chain: str, contract_addr: str, start_date: date, end_date: date, 
     * calculate statistic column
     * set timestamp as index
 
+    :param pool_info: pool information
+    :type pool_info: UniV3Pool
     :param chain: chain name
     :type chain: str
     :param contract_addr: pool contract address
@@ -327,12 +332,14 @@ def load_data(chain: str, contract_addr: str, start_date: date, end_date: date, 
     :param data_path: path to load data
     :type data_path: str
     """
+    logger = logging.getLogger("Uni data")
     cache_key = CacheManager.get_cache_key(MarketTypeEnum.uniswap_v3.name, start_date, end_date, chain, contract_addr)
     cache_df = CacheManager.load(cache_key)
     if cache_df is not None:
+        logger.info(f"Load data from cache")
         return cache_df
 
-    logging.info(f"{MarketTypeEnum.uniswap_v3.name} start load files from {start_date} to {end_date}...")
+    logger.info(f"{MarketTypeEnum.uniswap_v3.name} start load files from {start_date} to {end_date}...")
     df = pd.DataFrame()
     day = start_date
     if start_date > end_date:
@@ -364,7 +371,7 @@ def load_data(chain: str, contract_addr: str, start_date: date, end_date: date, 
         if len(day_df.index) > 0:
             df = pd.concat([df, day_df])
         day = day + timedelta(days=1)
-    logging.info("load file complete, preparing...")
+    logger.info("load file complete, preparing...")
 
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     df.set_index("timestamp", inplace=True)
@@ -382,9 +389,9 @@ def load_data(chain: str, contract_addr: str, start_date: date, end_date: date, 
     if pd.isna(df.iloc[0]["closeTick"]):
         df = df.bfill()
 
-    _add_statistic_column(df)
+    _add_statistic_column(df, pool_info)
     CacheManager.save(cache_key, df)
-    logging.info("data has been prepared")
+    logger.info("data has been prepared")
     return df
 
 

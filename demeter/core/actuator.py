@@ -24,8 +24,9 @@ from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketSt
 from ..result import BackTestDescription
 from ..strategy import Strategy
 from ..uniswap import PositionInfo
-from ..utils import console_text
-from ..utils import get_formatted_predefined, STYLE, to_decimal, to_multi_index_df
+from ..utils import get_formatted_predefined, STYLE, to_decimal, to_multi_index_df,console_text,config_log
+
+config_log()
 
 BASIC_INTERVAL = pd.Timedelta("1min")
 
@@ -60,9 +61,7 @@ class Actuator(object):
         # strategy
         self._strategy: Strategy = Strategy()
         self._token_prices: pd.DataFrame | None = None
-        # logging
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger("Actuator")
         # internal var
         self.__start_time = None
         self.__backtest_duration = None

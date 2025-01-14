@@ -58,6 +58,7 @@ if __name__ == "__main__":
     market.data_path = "../data"  # set data path
 
     data_df = load_data(
+        pool,
         ChainType.polygon.name,
         "0x45dda9cb7c25131df268515131f647d726f50608",
         date(2023, 8, 15),
