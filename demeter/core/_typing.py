@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from typing import NamedTuple, List, Dict, Tuple
+from typing import NamedTuple, List, Dict, Tuple, Callable
 
 import pandas as pd
 
+from .actuator import Actuator
 from .. import TokenInfo, MarketInfo
 from ..broker import Market
 
@@ -25,5 +26,5 @@ class BacktestConfig:
     print_actions = False
     print_result = False
     interval: str = "1min"
-
+    callback: Callable[[Actuator], None] | None = None
     # save_result = False

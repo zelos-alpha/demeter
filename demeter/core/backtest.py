@@ -42,12 +42,9 @@ def _start(config: StrategyConfig, data: BacktestData, strategy: Strategy, bk_co
     actuator.print_action = bk_config.print_actions
     actuator.interval = bk_config.interval
     actuator.run(bk_config.print_result)
-
+    if bk_config.callback is not None:
+        bk_config.callback(actuator)
     return actuator
-
-
-def callback(result):
-    print(f"pid: {os.getpid()},  Result: {result}")
 
 
 def e_callback(e):
@@ -103,7 +100,6 @@ class BacktestManager:
                         result1 = pool.apply_async(
                             _start_with_param_data,
                             args=(self.config, self.data, strategy, self.backtest_config),
-                            callback=callback,
                             error_callback=e_callback,
                         )
                         tasks.append(result1)
@@ -121,7 +117,6 @@ class BacktestManager:
                                 strategy,
                                 self.backtest_config,
                             ),  # do not pass data here as it will generate a new copy in subprocess
-                            callback=callback,
                             error_callback=e_callback,
                         )
                         tasks.append(result1)

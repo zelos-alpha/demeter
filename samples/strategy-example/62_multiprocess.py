@@ -1,3 +1,4 @@
+import os
 from datetime import date, datetime
 from typing import Tuple
 
@@ -14,7 +15,7 @@ from demeter import (
     BacktestManager,
     StrategyConfig,
     BacktestConfig,
-    BacktestData,
+    BacktestData, Actuator,
 )
 
 pd.options.display.max_columns = None
@@ -45,6 +46,9 @@ class DemoStrategy(Strategy):
         )  # add liquidity
         self.comment_last_action("Add liquidity because ...")  # add comment to last transaction
 
+def after_backtest(actuator:Actuator):
+    print(os.getpid())
+
 
 if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)
@@ -72,7 +76,7 @@ if __name__ == "__main__":
         config=strategy_config,
         data=BacktestData({market_key: data_df}, price_data),
         strategies=[DemoStrategy((1000, 3000)), DemoStrategy((1500, 2500))],
-        backtest_config=BacktestConfig(),
+        backtest_config=BacktestConfig(callback=after_backtest),
         threads=2,
     )
     backtest.run()
