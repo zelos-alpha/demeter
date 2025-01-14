@@ -8,7 +8,7 @@ import pandas as pd
 from ._typing import BaseAction, MarketBalance, MarketStatus, MarketInfo, Snapshot
 from .._typing import DECIMAL_0, DemeterError, TokenInfo, USD
 
-DEFAULT_DATA_PATH = "./data"
+# DEFAULT_DATA_PATH = "./data"
 
 
 def write_func(func):
@@ -32,22 +32,17 @@ class Market(ABC):
 
     :param market_info: Key of this market.
     :type market_info: MarketInfo
-    :param data: Data is used to simulate market status. usually it is downloaded from log event of ethereum, then indexed by timestamp with minute interval.
-    :type data: DataFrame
-    :param data_path: default folder path for data files. Each day has a corresponding csv file.
-    :type data_path: str
     """
 
-    def __init__(self, market_info: MarketInfo, data: pd.DataFrame = None, data_path=DEFAULT_DATA_PATH):
+    def __init__(self, market_info: MarketInfo):
         """
         Initialize a Market
 
         """
-        self._data: pd.DataFrame = data
+        self._data: pd.DataFrame | None = None
         self._market_info: MarketInfo = market_info
         self.broker = None
         self._record_action_callback: Callable[[BaseAction], None] = None
-        self.data_path: str = data_path
         self.logger = logging.getLogger(__name__)
         self._market_status: MarketStatus = MarketStatus(None, pd.Series())
         self._price_status: pd.Series | None = None
@@ -73,28 +68,28 @@ class Market(ABC):
         """
         return self._market_info
 
-    # @property
-    # def data(self) -> pd.DataFrame:
-    #     """
-    #     | Market data is used to simulate the status of market. For example, in uniswap market, data describe pool liquidity, price of this pool.
-    #     | Usually data is got by demeter-fetch which can download and decode on chain event log. Data will be saved in CSV format, each day has a corresponding csv file.
-    #     | Those csv file is indexed by timestamp, and resampled to one minute.
-    #     | Data files will be loaded as dataframe. The whole back test process is based on minutely timestamp.
-    #
-    #     :return: market data
-    #     :rtype: DataFrame
-    #     """
-    #     return self._data
-    #
-    # @data.setter
-    # def data(self, value):
-    #     """
-    #     Set data and check its type
-    #     """
-    #     if isinstance(value, pd.DataFrame):
-    #         self._data = value
-    #     else:
-    #         raise ValueError()
+    @property
+    def data(self) -> pd.DataFrame:
+        """
+        | Market data is used to simulate the status of market. For example, in uniswap market, data describe pool liquidity, price of this pool.
+        | Usually data is got by demeter-fetch which can download and decode on chain event log. Data will be saved in CSV format, each day has a corresponding csv file.
+        | Those csv file is indexed by timestamp, and resampled to one minute.
+        | Data files will be loaded as dataframe. The whole back test process is based on minutely timestamp.
+
+        :return: market data
+        :rtype: DataFrame
+        """
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        """
+        Set data and check its type
+        """
+        if isinstance(value, pd.DataFrame):
+            self._data = value
+        else:
+            raise ValueError()
 
     def _record_action(self, action: BaseAction):
         if self._record_action_callback is not None:

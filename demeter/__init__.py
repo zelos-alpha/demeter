@@ -27,7 +27,9 @@ from .broker import (
     ActionTypeEnum,
 )
 
-from .core import Actuator
+from .core import Actuator, BacktestManager, BacktestConfig, BacktestData, StrategyConfig
+
+
 from .indicator import simple_moving_average, exponential_moving_average, realized_volatility
 from .strategy import (
     Strategy,

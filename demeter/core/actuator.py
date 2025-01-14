@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Dict
 
 import pandas as pd
 from pandas import Timestamp

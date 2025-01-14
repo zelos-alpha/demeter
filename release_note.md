@@ -1,8 +1,10 @@
 # Ver 1.0.0
 
 * Run multiple strategy, so there are a lot of breaking change
-  * The way to start a backtest has changed.
-  * Data was moved away from market, and data will be shared among all sub process
+  * Add `BacktestManager` who can start multiple backtest in one or multiple subprocesses. 
+  * [Breaking change]As data will be shared among all sub process and markets, Data loading was moved from market to helper.
+* [Breaking change] RowData class in strategy was renamed to Snapshot
+
 
 # Ver 0.8.3
 

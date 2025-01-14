@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Callable
 
 import pandas as pd
@@ -21,10 +22,10 @@ class Strategy(object):
         self.triggers: [Trigger] = []
         self.account_status: List[AccountStatus] = []
         self.account_status_df: pd.DataFrame | None = None
-        self.comment_last_action: Callable = lambda msg: msg
+        self.comment_last_action: Callable[[str], None] | None = None
         self.assets: AssetDict[Asset] = AssetDict()
         self.actions: List[BaseAction] = []
-        self.log: Callable = lambda t, msg, info: msg
+        self.log: Callable[[datetime, str, int], None] | None = None
 
     def initialize(self):
         """

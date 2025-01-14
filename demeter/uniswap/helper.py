@@ -1,13 +1,23 @@
+import logging
 import math
+import os
+from datetime import date, timedelta, time, datetime
 from decimal import Decimal, getcontext
 from typing import Tuple, NamedTuple
 
+import pandas as pd
+
+from . import UniV3Pool
+from .data import fillna
 from .liquitidy_math import get_sqrt_ratio_at_tick, get_liquidity, get_amounts
-from .. import DemeterError
+from .. import DemeterError, TokenInfo, MarketTypeEnum
+from ..data import CacheManager
+from ..utils import to_decimal
+
 
 Q96 = Decimal(2**96)
 SQRT_1p0001 = math.sqrt(Decimal(1.0001))
-getcontext().prec = 35  # default is 28, 33 is good enough for 3000
+getcontext().prec = 35  # default is 28, 33 is good enough for fee 3000
 MIN_ERROR = Decimal("1e-31")
 
 
@@ -295,3 +305,134 @@ def find_tick_range_at_rate(
                 )
         idx += tick_spacing
     return None
+
+
+def load_data(chain: str, contract_addr: str, start_date: date, end_date: date, data_path: str = "./data"):
+    """
+
+    load data, and preprocess. preprocess actions including:
+
+    * fill empty data
+    * calculate statistic column
+    * set timestamp as index
+
+    :param chain: chain name
+    :type chain: str
+    :param contract_addr: pool contract address
+    :type contract_addr: str
+    :param start_date: start test date
+    :type start_date: date
+    :param end_date: end test date
+    :type end_date: date
+    :param data_path: path to load data
+    :type data_path: str
+    """
+    cache_key = CacheManager.get_cache_key(MarketTypeEnum.uniswap_v3.name, start_date, end_date, chain, contract_addr)
+    cache_df = CacheManager.load(cache_key)
+    if cache_df is not None:
+        return cache_df
+
+    logging.info(f"{MarketTypeEnum.uniswap_v3.name} start load files from {start_date} to {end_date}...")
+    df = pd.DataFrame()
+    day = start_date
+    if start_date > end_date:
+        raise DemeterError(f"start date {start_date} should earlier than end date {end_date}")
+    while day <= end_date:
+        new_type_path = os.path.join(
+            data_path,
+            f"{chain.lower()}-{contract_addr}-{day.strftime('%Y-%m-%d')}.minute.csv",
+        )
+        path = (
+            new_type_path
+            if os.path.exists(new_type_path)
+            else os.path.join(data_path, f"{chain}-{contract_addr}-{day.strftime('%Y-%m-%d')}.csv")
+        )
+        if not os.path.exists(path):
+            raise IOError(
+                f"resource file {new_type_path} not found, please download with demeter-fetch: https://github.com/zelos-alpha/demeter-fetch"
+            )
+        day_df = pd.read_csv(
+            path,
+            converters={
+                "inAmount0": to_decimal,
+                "inAmount1": to_decimal,
+                "netAmount0": to_decimal,
+                "netAmount1": to_decimal,
+                "currentLiquidity": to_decimal,
+            },
+        )
+        if len(day_df.index) > 0:
+            df = pd.concat([df, day_df])
+        day = day + timedelta(days=1)
+    logging.info("load file complete, preparing...")
+
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
+    df.set_index("timestamp", inplace=True)
+
+    # fill empty row (first minutes in a day, might be blank)
+    full_indexes = pd.date_range(
+        start=start_date,
+        end=datetime.combine(end_date, time(0, 0, 0)) + timedelta(days=1) - timedelta(minutes=1),
+        freq="1min",
+    )
+    df = df.reindex(full_indexes)
+    # df = Lines.from_dataframe(df)
+    # df = df.fillna()
+    df: pd.DataFrame = fillna(df)
+    if pd.isna(df.iloc[0]["closeTick"]):
+        df = df.bfill()
+
+    _add_statistic_column(df)
+    CacheManager.save(cache_key, df)
+    logging.info("data has been prepared")
+    return df
+
+
+def get_price_from_data(data: pd.DataFrame, pool_info: UniV3Pool) -> Tuple[pd.DataFrame, TokenInfo]:
+    """
+    Extract token pair price from pool data.
+
+    :return: a dataframe includes quote token price, and quote token price will be set to 1
+    :rtype: Tuple[pd.DataFrame, TokenInfo]
+
+    """
+    price_series: pd.Series = data.price
+    df = pd.DataFrame(index=price_series.index, data={pool_info.base_token.name: price_series})
+    df[pool_info.quote_token.name] = 1
+    return df, pool_info.quote_token
+
+
+def _add_statistic_column(df: pd.DataFrame, pool_info: UniV3Pool):
+    """
+    add statistic column to data, new columns including:
+
+    * open: open price
+    * price: close price (current price)
+    * low: lowest price
+    * high: height price
+    * volume0: swap volume for token 0
+    * volume1: swap volume for token 1
+
+    :param df: original data
+    :type df: pd.DataFrame
+
+    """
+    # add statistic column
+    # df["open"] = df["openTick"].map(lambda x: self.tick_to_price(x))
+    df["close"] = df["closeTick"].map(
+        lambda x: tick_to_base_unit_price(
+            int(x), pool_info.token0.decimal, pool_info.token1.decimal, pool_info.is_token0_quote
+        )
+    )
+    # price in the beginning of this minute is decided by last tx in the previous minute
+    df["price"] = df["close"].shift(1)
+    df.loc[df.index[0], "price"] = tick_to_base_unit_price(
+        int(df["openTick"].iloc[0]), pool_info.token0.decimal, pool_info.token1.decimal, pool_info.is_token0_quote
+    )  # fill the first one
+    # low_name, high_name = (
+    #     ("lowestTick", "highestTick") if self.pool_info.is_token0_quote else ("highestTick", "lowestTick")
+    # )
+    # df["low"] = df[high_name].map(lambda x: self.tick_to_price(x))
+    # df["high"] = df[low_name].map(lambda x: self.tick_to_price(x))
+    df["volume0"] = df["inAmount0"].map(lambda x: Decimal(x) / 10**pool_info.token0.decimal)
+    df["volume1"] = df["inAmount1"].map(lambda x: Decimal(x) / 10**pool_info.token1.decimal)
