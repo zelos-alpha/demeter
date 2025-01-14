@@ -3,7 +3,7 @@ from datetime import date, timedelta
 import pandas as pd
 
 import demeter.indicator
-from demeter import TokenInfo, Actuator, Strategy, ChainType, PeriodTrigger, MarketInfo, RowData
+from demeter import TokenInfo, Actuator, Strategy, ChainType, PeriodTrigger, MarketInfo, Snapshot
 from demeter.uniswap import UniLpMarket, UniV3Pool
 from strategy_ploter import plot_position_return_decomposition
 
@@ -33,7 +33,7 @@ class AddLiquidityByMA(Strategy):
         self.add_column(lp_market, "ma5", demeter.indicator.simple_moving_average(self.data.default.price, timedelta(hours=5)))
         self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=1), trigger_immediately=True, do=self.work))
 
-    def work(self, row_data: RowData):
+    def work(self, row_data: Snapshot):
         lp_market: UniLpMarket = self.broker.markets[market_key]
         if len(lp_market.positions) > 0:
             lp_market.remove_all_liquidity()

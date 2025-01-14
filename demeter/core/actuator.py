@@ -20,7 +20,7 @@ from .._typing import (
     USD,
     DemeterLog,
 )
-from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, RowData
+from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketStatus, Snapshot
 from ..result import BackTestDescription
 from ..strategy import Strategy
 from ..uniswap import PositionInfo
@@ -333,8 +333,8 @@ class Actuator(object):
     def _log(self, timestamp: datetime, message: str, level: int = logging.INFO):
         self._logs.append(DemeterLog(timestamp, message, level))
 
-    def __get_row_data(self, timestamp, row_id, current_price) -> RowData:
-        row_data = RowData(timestamp.to_pydatetime(), row_id, current_price)
+    def __get_row_data(self, timestamp, row_id, current_price) -> Snapshot:
+        row_data = Snapshot(timestamp.to_pydatetime(), row_id, current_price)
         for market_info, market in self.broker.markets.items():
             row_data.market_status[market_info] = market.market_status.data
         row_data.market_status.set_default_key(self.broker.markets.get_default_key())

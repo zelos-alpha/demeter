@@ -12,7 +12,7 @@ from demeter import (
     realized_volatility,
     simple_moving_average,
     MarketInfo,
-    RowData,
+    Snapshot,
 )
 from demeter.uniswap import UniV3Pool, UniLpMarket
 
@@ -48,7 +48,7 @@ class AddByVolatility(Strategy):
         self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=4), trigger_immediately=True, do=self.work))
         self.markets.default.even_rebalance(self.data[market_key].iloc[0]["price"])
 
-    def work(self, row_data: RowData):
+    def work(self, row_data: Snapshot):
         lp_market: UniLpMarket = self.broker.markets[market_key]
         lp_row_data = row_data.market_status[market_key]
         if len(lp_market.positions) > 0:

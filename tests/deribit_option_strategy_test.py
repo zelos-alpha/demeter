@@ -3,7 +3,7 @@ from datetime import datetime, date
 
 import pandas as pd
 
-from demeter import Strategy, AtTimeTrigger, MarketInfo, Actuator, RowData
+from demeter import Strategy, AtTimeTrigger, MarketInfo, Actuator, Snapshot
 from demeter.deribit import DeribitOptionMarket
 
 market_key = MarketInfo("option_test")
@@ -21,7 +21,7 @@ class SimpleStrategy(Strategy):
         new_trigger = AtTimeTrigger(time=datetime(2024, 2, 15, 12, 0, 0), do=self.buy)
         self.triggers.append(new_trigger)
 
-    def buy(self, row_data: RowData):
+    def buy(self, row_data: Snapshot):
         market: DeribitOptionMarket = self.broker.markets.default
         market.buy("ETH-26APR24-2700-C", 20)
 
@@ -31,7 +31,7 @@ class SimpleEventStrategy(Strategy):
         new_trigger = AtTimeTrigger(time=datetime(2024, 2, 15, 12, 0, 0), do=self.buy)
         self.triggers.append(new_trigger)
 
-    def buy(self, row_data: RowData):
+    def buy(self, row_data: Snapshot):
         market: DeribitOptionMarket = self.broker.markets.default
         market.buy("ETH-26APR24-2700-C", 20)
 

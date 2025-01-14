@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 
-from demeter import ChainType, Strategy, TokenInfo, Actuator, MarketInfo, RowData, AtTimeTrigger, MarketTypeEnum
+from demeter import ChainType, Strategy, TokenInfo, Actuator, MarketInfo, Snapshot, AtTimeTrigger, MarketTypeEnum
 from demeter.aave import AaveV3Market
 from demeter.uniswap import UniV3Pool, UniLpMarket, V3CoreLib
 from demeter.uniswap.helper import base_unit_price_to_sqrt_price_x96
@@ -92,7 +92,7 @@ class DeltaHedgingStrategy(Strategy):
             market_aave.withdraw(s_key)
         market_uni.sell(broker.assets[eth].balance)
 
-    def change_position(self, row_data: RowData):
+    def change_position(self, row_data: Snapshot):
         self.reset_funds()
 
         pos_h = H * row_data.prices[eth.name]
@@ -134,7 +134,7 @@ class DeltaHedgingStrategy(Strategy):
 
         return cash + aave_status.net_value + lp_value
 
-    def on_bar(self, row_data: RowData):
+    def on_bar(self, row_data: Snapshot):
         if not self.last_net_value * Decimal("0.96") < self.get_current_net_value(row_data.prices) < self.last_net_value * Decimal("1.04"):
             self.change_position(row_data)
         elif not self.l <= row_data.prices[eth.name] <= self.h:

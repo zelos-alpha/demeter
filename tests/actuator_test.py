@@ -7,7 +7,7 @@ from datetime import date, datetime
 import pandas as pd
 
 import demeter.indicator
-from demeter import TokenInfo, Actuator, Strategy, MarketInfo, RowData, MarketDict, ChainType, BackTestDescription
+from demeter import TokenInfo, Actuator, Strategy, MarketInfo, Snapshot, MarketDict, ChainType, BackTestDescription
 from demeter.uniswap import PositionInfo, UniV3Pool, UniLpMarket
 
 pd.options.display.max_columns = None
@@ -25,14 +25,14 @@ class EmptyStrategy(Strategy):
 
 
 class BuyOnSecond(Strategy):
-    def on_bar(self, row_data: RowData):
+    def on_bar(self, row_data: Snapshot):
         if row_data.row_id == 2:
             self.markets.default.buy(0.5)
             pass
 
 
 class AddLiquidity(Strategy):
-    def on_bar(self, row_data: RowData):
+    def on_bar(self, row_data: Snapshot):
         if row_data.row_id == 2:
             market: UniLpMarket = self.broker.markets[test_market]
             market.add_liquidity(1000, 2000)

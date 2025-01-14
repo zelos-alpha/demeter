@@ -12,7 +12,7 @@ from demeter import (
     Actuator,
     AtTimeTrigger,
     ActionTypeEnum,
-    RowData,
+    Snapshot,
 )
 from demeter.squeeth import SqueethMarket
 from demeter.uniswap import UniLpMarket, UniV3Pool
@@ -38,7 +38,7 @@ class SimpleStrategy(Strategy):
         new_trigger = AtTimeTrigger(time=datetime(2023, 8, 17, 23, 56, 0), do=self.buy)
         self.triggers.append(new_trigger)
 
-    def buy(self, row_data: RowData):
+    def buy(self, row_data: Snapshot):
         market: SqueethMarket = self.broker.markets[squeeth_key]
         market.buy_squeeth(eth_amount=5)
 
@@ -48,7 +48,7 @@ class SimpleShortStrategy(Strategy):
         new_trigger = AtTimeTrigger(time=datetime(2023, 8, 17, 23, 56, 0), do=self.short)
         self.triggers.append(new_trigger)
 
-    def short(self, row_data: RowData):
+    def short(self, row_data: Snapshot):
         market: SqueethMarket = self.broker.markets[squeeth_key]
         market.open_deposit_mint_by_collat_rate(10)
 

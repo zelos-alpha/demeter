@@ -1,4 +1,5 @@
 import logging
+import os
 import platform
 import traceback
 from multiprocessing import Pool, cpu_count
@@ -20,6 +21,7 @@ def start_with_param_data(config: StrategyConfig, data: BacktestData, strategy: 
 
 
 def start(config: StrategyConfig, data: BacktestData, strategy: Strategy):
+    logging.info(f"Process id: {os.getpid()}, id of data object {id(data)}")
     actuator = Actuator()
     for market in config.markets:
         # add market to broker
@@ -80,7 +82,7 @@ class Backtest:
 
             if "Windows" in platform.system():
                 logging.warning(
-                    "In windows data will be copied to every subprocess, which will lead to a waste of memory, please consider use wsl"
+                    "In windows data will be copied to every subprocess, which will cause a waste of memory, please consider use WSL"
                 )
                 with Pool(processes=self.threads) as pool:
                     tasks = []

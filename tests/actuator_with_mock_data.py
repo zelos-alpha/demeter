@@ -4,7 +4,7 @@ from decimal import Decimal
 import pandas as pd
 
 import utils
-from demeter import TokenInfo, Actuator, Strategy, MarketDict, RowData, MarketInfo
+from demeter import TokenInfo, Actuator, Strategy, MarketDict, Snapshot, MarketInfo
 from demeter.uniswap import UniLpBalance, UniV3Pool, V3CoreLib, UniLpMarket
 from demeter.uniswap.liquitidy_math import get_sqrt_ratio_at_tick
 
@@ -19,7 +19,7 @@ tick_width = 500
 
 
 class AddOnFirstTickStrategy(Strategy):
-    def on_bar(self, row_data: RowData):
+    def on_bar(self, row_data: Snapshot):
         market: UniLpMarket = self.broker.markets[test_market]
         if row_data.row_id == 0:
             tick = market.price_to_tick(row_data.market_status[test_market].price)

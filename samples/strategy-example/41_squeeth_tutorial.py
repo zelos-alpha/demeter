@@ -2,7 +2,7 @@ from datetime import datetime, date
 
 import pandas as pd
 
-from demeter import TokenInfo, MarketInfo, MarketTypeEnum, Strategy, Actuator, AtTimeTrigger, RowData
+from demeter import TokenInfo, MarketInfo, MarketTypeEnum, Strategy, Actuator, AtTimeTrigger, Snapshot
 from demeter.squeeth import SqueethMarket
 from demeter.uniswap import UniLpMarket, UniV3Pool
 
@@ -21,7 +21,7 @@ class SimpleShortStrategy(Strategy):
         new_trigger = AtTimeTrigger(time=datetime(2023, 8, 17, 23, 56, 0), do=self.short)
         self.triggers.append(new_trigger)
 
-    def short(self, row_data: RowData):
+    def short(self, row_data: Snapshot):
         market: SqueethMarket = self.broker.markets[squeeth_key]
         market.open_deposit_mint_by_collat_rate(10)
 

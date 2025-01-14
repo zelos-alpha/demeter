@@ -5,7 +5,7 @@ from typing import Dict, Callable
 from abc import abstractmethod, ABC
 import pandas as pd
 
-from ._typing import BaseAction, MarketBalance, MarketStatus, MarketInfo, RowData
+from ._typing import BaseAction, MarketBalance, MarketStatus, MarketInfo, Snapshot
 from .._typing import DECIMAL_0, DemeterError, TokenInfo, USD
 
 DEFAULT_DATA_PATH = "./data"
@@ -57,7 +57,7 @@ class Market(ABC):
         # so user liquidity will be added to total liquidity in this minute, and get more fee
         # remember set this flag to False after set_market_status
         self.has_update = False
-        self.open: Callable[[RowData], None] = None
+        self.open: Callable[[Snapshot], None] = None
         # if market interval is minutely, is_open will always true,
         # or it will be false until timestamp is on its interval
         self.is_open: bool = True

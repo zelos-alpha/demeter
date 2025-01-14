@@ -6,7 +6,7 @@ from demeter import (
     TokenInfo,
     Actuator,
     Strategy,
-    RowData,
+    Snapshot,
     ChainType,
     MarketInfo,
     AtTimeTrigger,
@@ -38,7 +38,7 @@ class DemoStrategy(Strategy):
         self.triggers.append(new_trigger)
 
 
-    def add(self, snapshot: RowData):
+    def add(self, snapshot: Snapshot):
         market.add_liquidity(1600, 2000)  # add liquidity
         # estimate gas used
         gas_fee = gas_used["add_liquidity"] * gas_price_df.loc[snapshot.timestamp]["gas_price"] / 1e9

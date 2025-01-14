@@ -7,7 +7,7 @@ from demeter import (
     TokenInfo,
     Actuator,
     Strategy,
-    RowData,
+    Snapshot,
     simple_moving_average,
     ChainType,
     MarketInfo,

@@ -15,7 +15,7 @@ from ._typing import (
     MarketStatus,
     Rule,
     MarketTypeEnum,
-    RowData,
+    Snapshot,
     BASE_FREQ,
 )
 from .broker import Broker

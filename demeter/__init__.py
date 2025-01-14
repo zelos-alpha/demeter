@@ -23,7 +23,7 @@ from .broker import (
     AccountStatus,
     MarketTypeEnum,
     BaseAction,
-    RowData,
+    Snapshot,
     ActionTypeEnum,
 )
 

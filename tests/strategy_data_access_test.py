@@ -3,7 +3,7 @@ from datetime import timedelta, datetime
 
 import pandas as pd
 
-from demeter import TokenInfo, Actuator, Strategy, MarketInfo, MarketDict, MarketStatus, RowData
+from demeter import TokenInfo, Actuator, Strategy, MarketInfo, MarketDict, MarketStatus, Snapshot
 from demeter.uniswap import UniV3Pool, UniLpMarket
 from .common import assert_equal
 from .utils import get_uni_v3_mock_data
@@ -22,7 +22,7 @@ test access data in different ways
 
 
 class WithSMA(Strategy):
-    def on_bar(self, row_data: RowData):
+    def on_bar(self, row_data: Snapshot):
         if row_data.timestamp == datetime(2022, 10, 8, 8, 0, 1):
             # access current row, method is provided by demeter
             assert_equal(row_data.uni_market.closeTick, 2)

@@ -10,7 +10,7 @@ from demeter import (
     TokenInfo,
     Actuator,
     Strategy,
-    RowData,
+    Snapshot,
     MarketInfo,
     MarketDict,
     MarketTypeEnum,
@@ -75,7 +75,7 @@ class BasicStrategy(Strategy):
         supply_trigger = AtTimeTrigger(time=datetime(2023, 8, 15, 0, 0), do=self.supply_and_borrow)
         self.triggers.extend([supply_trigger])
 
-    def supply_and_borrow(self, row_data: RowData):
+    def supply_and_borrow(self, row_data: Snapshot):
         aave_market: AaveV3Market = self.broker.markets[market_key]
         supply_key = aave_market.supply(weth, 10, True)
         borrow_key = aave_market.borrow(weth, 7)
@@ -88,17 +88,17 @@ class AllOperationStrategy(Strategy):
         withdraw_trigger = AtTimeTrigger(time=datetime(2023, 8, 15, 0, 8), do=self.withdraw)
         self.triggers.extend([supply_trigger, repay_trigger, withdraw_trigger])
 
-    def supply_and_borrow(self, row_data: RowData):
+    def supply_and_borrow(self, row_data: Snapshot):
         aave_market: AaveV3Market = self.broker.markets[market_key]
         supply_key = aave_market.supply(weth, 10, True)
         borrow_key = aave_market.borrow(weth, 7)
 
-    def repay(self, row_data: RowData):
+    def repay(self, row_data: Snapshot):
         aave_market: AaveV3Market = self.broker.markets[market_key]
         for key in aave_market.borrow_keys:
             aave_market.repay(key)
 
-    def withdraw(self, row_data: RowData):
+    def withdraw(self, row_data: Snapshot):
         aave_market: AaveV3Market = self.broker.markets[market_key]
         for key in aave_market.supply_keys:
             aave_market.withdraw(key)
@@ -110,12 +110,12 @@ class RepayWithCollateralStrategy(Strategy):
         repay_trigger = AtTimeTrigger(time=datetime(2023, 8, 15, 0, 7), do=self.repay)
         self.triggers.extend([supply_trigger, repay_trigger])
 
-    def supply_and_borrow(self, row_data: RowData):
+    def supply_and_borrow(self, row_data: Snapshot):
         aave_market: AaveV3Market = self.broker.markets[market_key]
         supply_key = aave_market.supply(weth, 10, True)
         borrow_key = aave_market.borrow(weth, aave_market.get_max_borrow_amount(weth))
 
-    def repay(self, row_data: RowData):
+    def repay(self, row_data: Snapshot):
         aave_market: AaveV3Market = self.broker.markets[market_key]
         aave_market.repay(borrow_token=weth, interest_rate_mode=InterestRateMode.variable, repay_with_collateral=True)
 

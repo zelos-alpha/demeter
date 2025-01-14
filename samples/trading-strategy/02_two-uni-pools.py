@@ -13,7 +13,7 @@ from decimal import Decimal
 import pandas as pd
 from tradeexecutor.strategy.demeter.adapter import load_clmm_data_to_uni_lp_market
 
-from demeter import Actuator, MarketInfo, TokenInfo, ChainType, MarketTypeEnum, AtTimeTrigger, RowData
+from demeter import Actuator, MarketInfo, TokenInfo, ChainType, MarketTypeEnum, AtTimeTrigger, Snapshot
 from demeter import Strategy
 from demeter.uniswap import UniLpMarket, UniV3Pool
 from utils import load_from_trading_strategy
@@ -27,7 +27,7 @@ class DemoStrategy(Strategy):
         new_trigger = AtTimeTrigger(time=start, do=self.add_liq)
         self.triggers.append(new_trigger)
 
-    def add_liq(self, row_data: RowData):
+    def add_liq(self, row_data: Snapshot):
         lower = Decimal("0.95")
         upper = Decimal("1.05")
 

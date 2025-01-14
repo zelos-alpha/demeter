@@ -6,7 +6,7 @@ from demeter import (
     TokenInfo,
     Actuator,
     Strategy,
-    RowData,
+    Snapshot,
     ChainType,
     MarketInfo,
     AtTimeTrigger,
@@ -36,15 +36,15 @@ class DemoStrategy(Strategy):
         remove_trigger = AtTimeTrigger(time=datetime(2023, 8, 16, 12, 0, 0), do=self.remove_liquidity)
         self.triggers.append(remove_trigger)
 
-    def on_bar(self, row_data: RowData):
+    def on_bar(self, row_data: Snapshot):
         self.some_record.append({"custom1": row_data.market_status[market_key]["open"]})
 
-    def work(self, row_data: RowData):
+    def work(self, row_data: Snapshot):
         lp_market: UniLpMarket = self.markets[market_key]  # pick our market.
         self.new_position, amount0_used, amount1_used, liquidity = lp_market.add_liquidity(1000, 4000)  # add liquidity
         self.comment_last_action("Add liquidity because ...")  # add comment to last transaction
 
-    def remove_liquidity(self, row_data: RowData):
+    def remove_liquidity(self, row_data: Snapshot):
         lp_market: UniLpMarket = self.markets[market_key]
         lp_market.remove_liquidity(self.new_position)
 

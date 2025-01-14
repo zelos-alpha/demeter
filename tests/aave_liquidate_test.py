@@ -4,7 +4,7 @@ from _decimal import Decimal
 from datetime import datetime
 from io import StringIO
 
-from demeter import TokenInfo, Actuator, Strategy, RowData, MarketInfo, MarketTypeEnum, AtTimeTrigger, BaseAction
+from demeter import TokenInfo, Actuator, Strategy, Snapshot, MarketInfo, MarketTypeEnum, AtTimeTrigger, BaseAction
 from demeter.aave import AaveV3Market, LiquidationAction
 
 # To print all the columns of dataframe, we should set up display option.
@@ -69,7 +69,7 @@ class LiquidiateStrategy(Strategy):
         supply_trigger = AtTimeTrigger(time=datetime(2023, 8, 15, 0, 0), do=self.supply_and_borrow)
         self.triggers.extend([supply_trigger])
 
-    def supply_and_borrow(self, row_data: RowData):
+    def supply_and_borrow(self, row_data: Snapshot):
         aave_market: AaveV3Market = self.broker.markets[market_key]
         supply_key = aave_market.supply(weth, 10, True)
         borrow_key = aave_market.borrow(usdc, 7500)

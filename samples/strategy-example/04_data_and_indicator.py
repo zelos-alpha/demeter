@@ -3,7 +3,7 @@ from typing import List
 
 import pandas as pd
 
-from demeter import TokenInfo, Actuator, Strategy, RowData, ChainType, MarketInfo, MarketDict, AtTimeTrigger, simple_moving_average, AccountStatus
+from demeter import TokenInfo, Actuator, Strategy, Snapshot, ChainType, MarketInfo, MarketDict, AtTimeTrigger, simple_moving_average, AccountStatus
 from demeter.uniswap import UniLPData, UniV3Pool, UniLpMarket
 
 pd.options.display.max_columns = None
@@ -21,7 +21,7 @@ class DemoStrategy(Strategy):
         # add an indicator column, this column will be appended to corresponding market data
         self.add_column(market=market_key, name="sma", column_data=simple_moving_average(self.data[market_key].price))  # name,
 
-    def work(self, row_data: RowData):
+    def work(self, row_data: Snapshot):
         # price set to actuator
         eth_price_external = row_data.prices["ETH"]
         eth_price_external = row_data.prices[eth.name]

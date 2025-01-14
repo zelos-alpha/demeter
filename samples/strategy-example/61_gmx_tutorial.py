@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 import pandas as pd
 
-from demeter import TokenInfo, Actuator, Strategy, RowData, ChainType, MarketInfo, AtTimeTrigger, MarketTypeEnum
+from demeter import TokenInfo, Actuator, Strategy, Snapshot, ChainType, MarketInfo, AtTimeTrigger, MarketTypeEnum
 from demeter.gmx import GmxMarket
 
 # To print all the columns of dataframe, we should set up display option.
@@ -16,13 +16,13 @@ class GmxStrategy(Strategy):
         sell_trigger = AtTimeTrigger(time=datetime(2024, 10, 16, 14, 25, 0), do=self.sell_glp)
         self.triggers.extend([buy_trigger, sell_trigger])
 
-    def buy_glp(self, row_data: RowData):
+    def buy_glp(self, row_data: Snapshot):
         market.buy_glp(weth, Decimal('0.000455889485162217'))
 
-    def sell_glp(self, row_data: RowData):
+    def sell_glp(self, row_data: Snapshot):
         market.sell_glp(weth)
 
-    def on_bar(self, row_data: RowData):
+    def on_bar(self, row_data: Snapshot):
         pass
 
 

@@ -9,13 +9,13 @@ Here is a simple example of backtesting on uniswap.
 
 ```python
 from datetime import date
-from demeter import TokenInfo, Actuator, Strategy, RowData, ChainType, MarketInfo
+from demeter import TokenInfo, Actuator, Strategy, Snapshot, ChainType, MarketInfo
 from demeter.uniswap import UniV3Pool, UniLpMarket
 
 
 class MyFirstStrategy(Strategy):
 
-    def on_bar(self, row_data: RowData):
+    def on_bar(self, row_data: Snapshot):
         if row_data.prices[eth] > 1500:
             market.add_liquidity(1000, 4000)
 

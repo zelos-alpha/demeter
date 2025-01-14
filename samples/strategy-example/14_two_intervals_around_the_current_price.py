@@ -2,7 +2,7 @@ from datetime import timedelta, date
 
 import pandas as pd
 
-from demeter import TokenInfo, Actuator, ChainType, MarketInfo, Strategy, PeriodTrigger, MarketDict, RowData
+from demeter import TokenInfo, Actuator, ChainType, MarketInfo, Strategy, PeriodTrigger, MarketDict, Snapshot
 from demeter.uniswap import UniV3Pool, UniLpMarket
 from strategy_ploter import plot_position_return_decomposition
 
@@ -27,7 +27,7 @@ class TwoIntervalsAroundtheCurrentPrice(Strategy):
             lp_market.add_liquidity(init_price, init_price + self.b)
         self.triggers.append(PeriodTrigger(time_delta=timedelta(days=1), do=self.work))
 
-    def work(self, row_data: RowData):
+    def work(self, row_data: Snapshot):
         lp_market: UniLpMarket = self.broker.markets[market_key]
 
         if len(lp_market.positions) > 0:

@@ -528,7 +528,7 @@ class PositionManager:
 
 
 @dataclass
-class RowData:
+class Snapshot:
     timestamp: datetime  # Time of this iteration
     row_id: int  # index of this iteration, start from 0
     prices: pd.Series  # price of tokens at this time

@@ -1,5 +1,5 @@
 import os.path
-from demeter import RowData, MarketStatus
+from demeter import Snapshot, MarketStatus
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_DOWN
 from typing import List, Set, Dict, Tuple, Union

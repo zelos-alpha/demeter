@@ -3,7 +3,7 @@ from datetime import timedelta, date
 
 import pandas as pd
 
-from demeter import TokenInfo, Actuator, Strategy, RowData, simple_moving_average, ChainType, MarketInfo, PeriodTrigger, BaseAction
+from demeter import TokenInfo, Actuator, Strategy, Snapshot, simple_moving_average, ChainType, MarketInfo, PeriodTrigger, BaseAction
 from demeter.uniswap import UniV3Pool, UniLpMarket
 
 pd.options.display.max_columns = None
@@ -46,7 +46,7 @@ class DemoStrategy(Strategy):
         # Register a trigger, every day, we split both assets into two shares of equal value
         self.triggers.append(PeriodTrigger(time_delta=timedelta(days=1), trigger_immediately=True, do=self.rebalance))
 
-    def rebalance(self, row_data: RowData):
+    def rebalance(self, row_data: Snapshot):
         self.markets[market_key].even_rebalance(row_data.market_status[market_key].price)
 
     """
@@ -54,7 +54,7 @@ class DemoStrategy(Strategy):
     Here you can set conditions and execute liquidity operations 
     """
 
-    def on_bar(self, row_data: RowData):
+    def on_bar(self, row_data: Snapshot):
         """
         This function is called after trigger, but before market is updated(Fees will be distributed in this step).
         """
@@ -72,7 +72,7 @@ class DemoStrategy(Strategy):
             lp_market.remove_all_liquidity()
             lp_market.add_liquidity(current_price - 100, current_price)
 
-    def after_bar(self, row_data: RowData):
+    def after_bar(self, row_data: Snapshot):
         """
         this function is called after market has updated.
         """

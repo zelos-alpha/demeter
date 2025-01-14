@@ -4,7 +4,7 @@ from typing import Callable, Any, List
 
 import pandas as pd
 
-from .. import RowData
+from .. import Snapshot
 from .._typing import DemeterError
 
 
@@ -32,22 +32,22 @@ class Trigger:
     :type do: Callable[[RowData], Any]
     """
 
-    def __init__(self, do: Callable[[RowData], Any], **kwargs):
+    def __init__(self, do: Callable[[Snapshot], Any], **kwargs):
         self._do = do if do is not None else lambda x: x
         self.kwargs = kwargs
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Snapshot) -> bool:
         """
         If the condition is met or not.
 
         :param row_data: data of this iteration. used to decide to if the condition is meet.
-        :type row_data: RowData
+        :type row_data: Snapshot
         :return: if condition is met, return true
         :rtype: bool
         """
         return False
 
-    def do(self, row_data: RowData):
+    def do(self, row_data: Snapshot):
         """
         when condition is met, what actions will be taken
 
@@ -78,7 +78,7 @@ class AtTimeTrigger(Trigger):
         self._time = to_minute(time)
         super().__init__(do, **kwargs)
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Snapshot) -> bool:
         return row_data.timestamp == self._time
 
     def is_out_date(self, t) -> bool:
@@ -102,7 +102,7 @@ class AtTimesTrigger(Trigger):
         self._time = [to_minute(t) for t in time]
         super().__init__(do, **kwargs)
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Snapshot) -> bool:
         return self._time in row_data.timestamp
 
     def is_out_date(self, t) -> bool:
@@ -135,7 +135,7 @@ class TimeRangeTrigger(Trigger):
         self._time_range = TimeRange(to_minute(time_range.start), to_minute(time_range.end))
         super().__init__(do, **kwargs)
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Snapshot) -> bool:
         return self._time_range.start <= row_data.timestamp < self._time_range.end
 
     def is_out_date(self, t) -> bool:
@@ -158,7 +158,7 @@ class TimeRangesTrigger(Trigger):
         self._time_range: [TimeRange] = [TimeRange(to_minute(t.start), to_minute(t.end)) for t in time_range]
         super().__init__(do, **kwargs)
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Snapshot) -> bool:
         for r in self._time_range:
             if r.start <= row_data.timestamp < r.end:
                 return True
@@ -200,7 +200,7 @@ class PeriodTrigger(Trigger):
     def reset(self):
         self._next_match = None
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Snapshot) -> bool:
         if self._next_match is None:
             self._next_match = row_data.timestamp + self._delta + self._pending
             return self._trigger_immediately
@@ -243,7 +243,7 @@ class PeriodsTrigger(Trigger):
     def reset(self):
         self._next_matches = [None for _ in self._deltas]
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Snapshot) -> bool:
         if self._next_matches[0] is None:
             self._next_matches = [row_data.timestamp + d + self._pending for d in self._deltas]
             return self._trigger_immediately
@@ -272,7 +272,7 @@ class PriceTrigger(Trigger):
         self._condition = condition
         super().__init__(do, **kwargs)
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Snapshot) -> bool:
         return self._condition(row_data.prices)
 
 
@@ -288,9 +288,9 @@ class CustomizedTrigger(Trigger):
     :type do: Callable[[RowData], Any]
     """
 
-    def __init__(self, condition: Callable[[RowData], bool], do, **kwargs):
+    def __init__(self, condition: Callable[[Snapshot], bool], do, **kwargs):
         self._condition = condition
         super().__init__(do, **kwargs)
 
-    def when(self, row_data: RowData) -> bool:
+    def when(self, row_data: Snapshot) -> bool:
         return self._condition(row_data)

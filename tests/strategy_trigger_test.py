@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import numpy as np
-from demeter import TokenInfo, PriceTrigger, MarketDict, MarketInfo, AtTimeTrigger, PeriodTrigger, MarketStatus, RowData
+from demeter import TokenInfo, PriceTrigger, MarketDict, MarketInfo, AtTimeTrigger, PeriodTrigger, MarketStatus, Snapshot
 
 eth = TokenInfo(name="weth", decimal=18, address="0x7ceb23fd6bc0add59e62ac25578270cff1b9f619")
 usdc = TokenInfo(name="usdc", decimal=6)
@@ -12,7 +12,7 @@ usdc = TokenInfo(name="usdc", decimal=6)
 class UniLpCoreTest(unittest.TestCase):
     @staticmethod
     def __get_moke_row_data(timestamp, prices) -> MarketDict[MarketStatus]:
-        d = RowData(timestamp=timestamp, row_id=0, prices=prices)
+        d = Snapshot(timestamp=timestamp, row_id=0, prices=prices)
         d.market_status[MarketInfo("m")] = pd.Series()
         return d
 
