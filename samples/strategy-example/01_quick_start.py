@@ -57,7 +57,7 @@ if __name__ == "__main__":
     # load data for market. those data is prepared by download tool
     market.data_path = "../data"  # set data path
 
-    data_df = load_uni_v3_data(
+    market.data = load_uni_v3_data(
         pool,
         ChainType.polygon.name,
         "0x45dda9cb7c25131df268515131f647d726f50608",
@@ -65,9 +65,7 @@ if __name__ == "__main__":
         date(2023, 8, 16),
         "../data",
     )
-    price_data = get_price_from_data(data_df, pool)
-
-    market.data = data_df
+    price_data = get_price_from_data(market.data, pool)
 
     # Declare the Actuator, which controls the whole process
     actuator = Actuator()  # declare actuator, Demeter Actuator (broker:assets: ; markets: )

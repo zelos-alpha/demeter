@@ -12,4 +12,4 @@ from ._typing import (
     DeribitOptionDescription,
     InsufficientBalanceError,
 )
-from .helper import round_decimal, decode_instrument, load_deribit_option_data
+from .helper import round_decimal, decode_instrument, load_deribit_option_data, get_price_from_data

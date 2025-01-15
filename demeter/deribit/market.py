@@ -238,22 +238,6 @@ class DeribitOptionMarket(Market):
             self.decimal,
         )
 
-    def get_price_from_data(self) -> pd.Series:
-        """
-        Get hourly underlying price.
-        """
-        if self._data is None:
-            raise DemeterError("data is empty")
-        price = []
-        for hour, hour_df in self._data.groupby(level=0):
-            price.append({"time": hour, self.token.name: hour_df.iloc[0]["underlying_price"]})
-        price_df = pd.DataFrame(price)
-        price_df.set_index(["time"], inplace=True)
-        # expend to the end of the day
-        price_df.loc[price_df.tail(1).index[0].ceil("1d")] = 0
-        price_df = price_df.resample(BASE_FREQ).ffill()
-        return price_df.drop(price_df.index[-1])
-
     def __get_trade_amount(self, amount: Decimal):
         """
         Round trade amount, and ensure amount is above dust amount
@@ -353,7 +337,9 @@ class DeribitOptionMarket(Market):
                 filter(lambda x: x[0] < max_mark_price_multiple * Decimal(instrument.mark_price), instrument.asks)
             )
         else:
-            asks = instrument.asks.copy()
+            asks = instrument.asks
+        asks = copy.deepcopy(asks)
+
         # deduct bids amount
         ask_list = self._deduct_order_amount(amount, asks, price_in_token)
 
@@ -442,7 +428,9 @@ class DeribitOptionMarket(Market):
                 filter(lambda x: x[0] > Decimal(instrument.mark_price) / max_mark_price_multiple, instrument.bids)
             )
         else:
-            bids = instrument.bids.copy()
+            bids = list(instrument.bids)
+
+        bids = copy.deepcopy(bids)
 
         bid_list = self._deduct_order_amount(amount, bids, price_in_token)
 

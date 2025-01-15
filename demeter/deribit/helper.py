@@ -9,6 +9,7 @@ from typing import Any, List
 import pandas as pd
 
 from demeter import MarketTypeEnum
+from demeter.broker import BASE_FREQ
 from demeter.data import CacheManager
 from demeter.utils import console_text
 
@@ -128,3 +129,18 @@ def load_deribit_option_data(start_date: date, end_date: date, data_path: str) -
     CacheManager.save(cache_key, df)
     logger.info("data has been prepared")
     return df
+
+
+def get_price_from_data(data: pd.DataFrame) -> pd.Series:
+    """
+    Get hourly underlying price.
+    """
+    price = []
+    for hour, hour_df in data.groupby(level=0):
+        price.append({"time": hour, "ETH": hour_df.iloc[0]["underlying_price"]})
+    price_df = pd.DataFrame(price)
+    price_df.set_index(["time"], inplace=True)
+    # expend to the end of the day
+    price_df.loc[price_df.tail(1).index[0].ceil("1d")] = 0
+    price_df = price_df.resample(BASE_FREQ).ffill()
+    return price_df.drop(price_df.index[-1])
