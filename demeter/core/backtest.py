@@ -105,7 +105,7 @@ class BacktestManager:
                         tasks.append(result1)
                     [x.wait() for x in tasks]
             else:
-                set_start_method("fork")
+                set_start_method("fork") # ensure linux and macos have the same behavior
                 global global_data
                 global_data = self.data  # to keep there only one instance among processes
                 with Pool(processes=self.threads) as pool:

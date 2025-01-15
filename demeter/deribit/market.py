@@ -402,7 +402,7 @@ class DeribitOptionMarket(Market):
                 filter(lambda x: x[0] < max_mark_price_multiple * Decimal(instrument.mark_price), instrument.asks)
             )
         else:
-            asks = instrument.asks
+            asks = instrument.asks.copy()
         # deduct bids amount
         ask_list = self._deduct_order_amount(amount, asks, price_in_token)
 
@@ -491,7 +491,7 @@ class DeribitOptionMarket(Market):
                 filter(lambda x: x[0] > Decimal(instrument.mark_price) / max_mark_price_multiple, instrument.bids)
             )
         else:
-            bids = instrument.bids
+            bids = instrument.bids.copy()
 
         bid_list = self._deduct_order_amount(amount, bids, price_in_token)
 

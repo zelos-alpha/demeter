@@ -15,7 +15,8 @@ from demeter import (
     BacktestManager,
     StrategyConfig,
     BacktestConfig,
-    BacktestData, Actuator,
+    BacktestData,
+    Actuator,
 )
 
 pd.options.display.max_columns = None
@@ -46,8 +47,10 @@ class DemoStrategy(Strategy):
         )  # add liquidity
         self.comment_last_action("Add liquidity because ...")  # add comment to last transaction
 
-def after_backtest(actuator:Actuator):
+
+def after_backtest(actuator: Actuator):
     files = actuator.save_result(path="./result", file_name=f"strategy-{actuator.strategy.lp_range}")
+    pass
 
 
 if __name__ == "__main__":

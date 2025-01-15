@@ -339,9 +339,9 @@ class Actuator(object):
         row_data.market_status.set_default_key(self.broker.markets.get_default_key())
         return row_data
 
-    def __set_market_timestamp(self, timestamp: Timestamp, update: bool = False):
+    def __set_market_snapshot(self, timestamp: Timestamp, update: bool = False):
         """
-        set markets row data
+        set markets snapshot
         :param timestamp:
         :param update: enable or disable has_update flag in markets, if set to false, will always update, if set to true, just update when necessary
         :return:
@@ -405,7 +405,7 @@ class Actuator(object):
         self.logger.info("init strategy...")
 
         # set initial status for strategy, so user can run some calculation in initial function.
-        self.__set_market_timestamp(index_array[0], False)
+        self.__set_market_snapshot(index_array[0], False)
         self._currents.timestamp = index_array[0].to_pydatetime()
         # keep initial balance for evaluating
         self.init_account_status = self._broker.get_account_status(
@@ -421,7 +421,7 @@ class Actuator(object):
                     current_price = self._token_prices.loc[timestamp_index]
                     # prepare data of a row
 
-                    self.__set_market_timestamp(timestamp_index, False)
+                    self.__set_market_snapshot(timestamp_index, False)
                     # execute strategy, and some calculate
                     self._currents.timestamp = timestamp_index.to_pydatetime()
                     row_data = self.__get_row_data(timestamp_index, row_id, current_price)
@@ -442,7 +442,7 @@ class Actuator(object):
                     # important, take uniswap market for example,
                     # if liquidity has changed in the head of this minute,
                     # this will add the new liquidity to total_liquidity in current minute.
-                    self.__set_market_timestamp(timestamp_index, True)
+                    self.__set_market_snapshot(timestamp_index, True)
 
                     # update broker status, e.g. re-calculate fee
                     # and read the latest status from broker
