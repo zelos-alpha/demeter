@@ -47,7 +47,7 @@ class DemoStrategy(Strategy):
         self.comment_last_action("Add liquidity because ...")  # add comment to last transaction
 
 def after_backtest(actuator:Actuator):
-    print(os.getpid())
+    files = actuator.save_result(path="./result", file_name=f"strategy-{actuator.strategy.lp_range}")
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import logging
 import os
 import platform
 import traceback
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, set_start_method
 from multiprocessing.pool import ApplyResult
 from typing import List
 
@@ -105,6 +105,7 @@ class BacktestManager:
                         tasks.append(result1)
                     [x.wait() for x in tasks]
             else:
+                set_start_method("fork")
                 global global_data
                 global_data = self.data  # to keep there only one instance among processes
                 with Pool(processes=self.threads) as pool:
