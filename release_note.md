@@ -2,7 +2,7 @@
 
 * Run multiple strategy, so there are a lot of breaking change
   * Add `BacktestManager` who can start multiple backtest in one or multiple subprocesses. 
-  * [Breaking change]As data will be shared among all sub process and markets, Data loading was moved from market to helper.
+  * [Breaking change]As data will be shared among all sub process and markets, Data loading in every market was moved from market to helper.
 * [Breaking change] RowData class in strategy was renamed to Snapshot
 * Gmx market:
   * [Breaking change]market type was change to `gmx_v1`

@@ -1,13 +1,12 @@
 from decimal import Decimal, ROUND_DOWN
-from decimal import Decimal, ROUND_DOWN
 from typing import List, Set
 
 import pandas as pd
 from orjson import orjson
 
 from demeter import MarketStatus
-from ._typing import GmxDescription, TokenInfo, GmxBalance, BuyGlpAction, SellGlpAction
-from .._typing import DemeterError
+from ._typing import GmxDescription, GmxBalance, BuyGlpAction, SellGlpAction
+from .._typing import DemeterError, TokenInfo
 from ..broker import Market, MarketInfo
 from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE, console_text
 
