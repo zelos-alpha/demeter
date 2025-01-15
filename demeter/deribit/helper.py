@@ -76,7 +76,7 @@ def order_converter(array_str) -> List:
     return json.loads(array_str)
 
 
-def load_data(start_date: date, end_date: date, data_path: str) -> pd.DataFrame:
+def load_deribit_option_data(start_date: date, end_date: date, data_path: str) -> pd.DataFrame:
     """
     Load data from folder set in data_path. Those data file should be downloaded by demeter, and meet name rule.
     Deribit-option-book-{token}-{day.strftime('%Y%m%d')}.csv

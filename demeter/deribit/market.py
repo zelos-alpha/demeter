@@ -295,7 +295,7 @@ class DeribitOptionMarket(Market):
         amount: float | Decimal,
         trade_type: str = "buy",  # buy or sell
         price_in_token: float | Decimal | None = None,
-    )->Decimal:
+    ) -> Decimal:
         """
         Estimate trading cost.
 

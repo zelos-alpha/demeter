@@ -26,6 +26,8 @@ def sub_base_amount(old_v, value):
         return 0
     else:
         return new_v
+
+
 REQUIRED_DATA_COLUMN = [
     "liquidity_rate",
     "stable_borrow_rate",
@@ -33,6 +35,7 @@ REQUIRED_DATA_COLUMN = [
     "liquidity_index",
     "variable_borrow_index",
 ]
+
 
 def load_risk_parameter(token_setting_path: str) -> pd.DataFrame | Dict[str, RiskParameter]:
     """
@@ -76,7 +79,9 @@ def load_risk_parameter(token_setting_path: str) -> pd.DataFrame | Dict[str, Ris
     return rp
 
 
-def load_data(chain: ChainType, token_info_list: List[TokenInfo], start_date: date, end_date: date, data_path: str):
+def load_aave_data(
+    chain: ChainType, token_info_list: List[TokenInfo], start_date: date, end_date: date, data_path: str
+):
     """
     Load data from folder set in data_path. Those data file should be downloaded by demeter, and meet name rule. [chain]-aave_v3-[token_contract_address]-[date].minute.csv
 
@@ -88,6 +93,8 @@ def load_data(chain: ChainType, token_info_list: List[TokenInfo], start_date: da
     :type start_date: date
     :param end_date: end day, the end day will be included
     :type end_date: date
+    :param data_path: path to load data
+    :type data_path: str
     """
     logger = logging.getLogger("Aave data")
     logger.info(f"{MarketTypeEnum.aave_v3.name} start load files from {start_date} to {end_date}...")

@@ -3,7 +3,7 @@ from datetime import date, datetime
 import pandas as pd
 
 from demeter import TokenInfo, Actuator, Strategy, Snapshot, ChainType, MarketInfo, AtTimeTrigger
-from demeter.uniswap import UniV3Pool, UniLpMarket, load_data, get_price_from_data
+from demeter.uniswap import UniV3Pool, UniLpMarket, load_uni_v3_data, get_price_from_data
 
 # To print all the columns of dataframe, we should set up display option.
 pd.options.display.max_columns = None
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     # load data for market. those data is prepared by download tool
     market.data_path = "../data"  # set data path
 
-    data_df = load_data(
+    data_df = load_uni_v3_data(
         pool,
         ChainType.polygon.name,
         "0x45dda9cb7c25131df268515131f647d726f50608",

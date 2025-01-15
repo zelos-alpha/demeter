@@ -8,7 +8,7 @@ from demeter.gmx import GmxMarket
 pd.options.display.max_columns = None
 pd.set_option("display.width", 5000)
 
-market_key = MarketInfo("gmx", MarketTypeEnum.gmx)
+market_key = MarketInfo("gmx", MarketTypeEnum.gmx_v1)
 weth = TokenInfo(name="weth", decimal=18)
 
 

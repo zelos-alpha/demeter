@@ -73,8 +73,16 @@ class Market(ABC):
         if self._record_action_callback is not None:
             self._record_action_callback(action)
 
-    @abstractmethod
+    @property
+    def market_status(self):
+        """
+        Get market status, such as current total liquidity, current apy, etc.
+        In short, it's a row of market.data.
+        """
+        return self._market_status
+
     # region for subclass to override
+    @abstractmethod
     def check_market(self):
         """
         check market before back test
@@ -90,15 +98,6 @@ class Market(ABC):
         Update market in every loop. It was used for triggering market status calculation.
         """
         ...
-
-    @property
-    @abstractmethod
-    def market_status(self):
-        """
-        Get market status, such as current total liquidity, current apy, etc.
-        In short, it's a row of market.data.
-        """
-        return self._market_status
 
     @abstractmethod
     def set_market_status(

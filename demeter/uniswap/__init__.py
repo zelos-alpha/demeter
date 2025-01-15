@@ -31,6 +31,6 @@ from .helper import (
     base_unit_price_to_sqrt_price_x96,
     get_swap_value,
     get_swap_value_with_part_balance_used,
-    load_data,
+    load_uni_v3_data,
     get_price_from_data,
 )

@@ -308,7 +308,7 @@ def find_tick_range_at_rate(
     return None
 
 
-def load_data(
+def load_uni_v3_data(
     pool_info: UniV3Pool, chain: str, contract_addr: str, start_date: date, end_date: date, data_path: str = "./data"
 ):
     """

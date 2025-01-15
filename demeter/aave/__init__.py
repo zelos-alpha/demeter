@@ -26,4 +26,4 @@ from ._typing import (
 )
 from .core import AaveV3CoreLib
 from .market import AaveV3Market
-from .helper import load_data
+from .helper import load_aave_data

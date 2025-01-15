@@ -31,8 +31,7 @@ from .. import DemeterError, TokenInfo
 from .._typing import DECIMAL_0, UnitDecimal
 from ..broker import Market, MarketInfo, write_func
 from ..utils import get_formatted_predefined, STYLE, get_formatted_from_dict, console_text
-from ..utils.application import require, float_param_formatter, to_decimal
-
+from ..utils.application import require, float_param_formatter
 
 
 class AaveV3Market(Market):
@@ -144,7 +143,6 @@ class AaveV3Market(Market):
         Get risk parameters
         """
         return self._risk_parameters
-
 
     @property
     def tokens(self) -> Set[TokenInfo]:
@@ -1094,4 +1092,3 @@ class AaveV3Market(Market):
 
     def _resample(self, freq: str):
         self._data = self.data.resample(freq).first()
-

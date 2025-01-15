@@ -60,10 +60,8 @@ class SqueethMarket(Market):
         self,
         market_info: MarketInfo,
         squeeth_uni_pool: UniLpMarket,
-        data: pd.DataFrame = None,
-        data_path: str = "./data",
     ):
-        super().__init__(market_info=market_info, data_path=data_path, data=data)
+        super().__init__(market_info=market_info)
         self._network = ETH_MAINNET
         self._squeeth_uni_pool = squeeth_uni_pool
         self.vault: Dict[VaultKey, Vault] = {}
@@ -190,49 +188,6 @@ class SqueethMarket(Market):
         """
         self.get_twap_price(WETH)
         return self.get_twap_price(WETH) ** 2 * Decimal(1e10)
-
-    def load_data(self, start_date: date, end_date: date):
-        """
-        Load data from .minute.csv, then update index and fill null data.
-
-        :param start_date: start test date
-        :type start_date: date
-        :param end_date: end test date
-        :type end_date: date
-        """
-        cache_key = CacheManager.get_cache_key(self.market_info.type.name, start_date, end_date)
-        cache_df = CacheManager.load(cache_key)
-        if cache_df is not None:
-            self.data = cache_df
-            return
-        self.logger.info(f"{self.market_info.name} start load files from {start_date} to {end_date}...")
-        df = pd.DataFrame()
-        day = start_date
-        if start_date > end_date:
-            raise DemeterError(f"start date {start_date} should earlier than end date {end_date}")
-        while day <= end_date:
-            path = os.path.join(
-                self.data_path,
-                f"{self._network.chain.name.lower()}-squeeth-controller-{day.strftime('%Y-%m-%d')}.minute.csv",
-            )
-            day_df = pd.read_csv(
-                path,
-                converters={"norm_factor": to_decimal, "WETH": to_decimal, "OSQTH": to_decimal},
-            )
-            df = pd.concat([df, day_df])
-            day = day + timedelta(days=1)
-        self.logger.info("load file complete, preparing...")
-
-        df["block_timestamp"] = pd.to_datetime(df["block_timestamp"])
-        df.set_index("block_timestamp", inplace=True)
-        df = df.ffill()
-        if pd.isnull(df.index[0]):
-            raise DemeterError(
-                f"start date {start_date} does not have available data, Consider start from previous day"
-            )
-        self.data = df
-        CacheManager.save(cache_key, df)
-        self.logger.info("data has been prepared")
 
     def set_market_status(self, market_status: MarketStatus, price: pd.Series | None):
         """
@@ -866,3 +821,9 @@ class SqueethMarket(Market):
 
     def _resample(self, freq: str):
         self._data = self.data.resample(freq).first()
+
+    def check_market(self):
+        """
+        check market before back test
+        """
+        super().check_market()

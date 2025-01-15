@@ -65,7 +65,7 @@ if __name__ == "__main__":
         assets={usdc: 10000, eth: 10},
         markets=[market],
     )
-    data_df = uniswap.load_data(
+    data_df = uniswap.load_uni_v3_data(
         pool,
         ChainType.polygon.name,
         "0x45dda9cb7c25131df268515131f647d726f50608",

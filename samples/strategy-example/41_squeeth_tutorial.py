@@ -2,9 +2,10 @@ from datetime import datetime, date
 
 import pandas as pd
 
-from demeter import TokenInfo, MarketInfo, MarketTypeEnum, Strategy, Actuator, AtTimeTrigger, Snapshot
+from demeter import TokenInfo, MarketInfo, MarketTypeEnum, Strategy, Actuator, AtTimeTrigger, Snapshot, ChainType
 from demeter.squeeth import SqueethMarket
-from demeter.uniswap import UniLpMarket, UniV3Pool
+from demeter.squeeth.helper import load_squeeth_data
+from demeter.uniswap import UniLpMarket, UniV3Pool, load_uni_v3_data
 
 pd.options.display.max_columns = None
 pd.set_option("display.width", 5000)
@@ -32,10 +33,18 @@ class SimpleShortStrategy(Strategy):
 if __name__ == "__main__":
     actuator = Actuator()
 
-    uni_market = UniLpMarket(osqth_pool, UniV3Pool(weth, oSQTH, 0.3, weth), data_path="../../tests/data")
-    uni_market.load_data("ethereum", "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c", date(2023, 8, 17), date(2023, 8, 17))
-    squeeth_market = SqueethMarket(squeeth_key, uni_market, data_path="../../tests/data")
-    squeeth_market.load_data(date(2023, 8, 17), date(2023, 8, 17))
+    pool = UniV3Pool(weth, oSQTH, 0.3, weth)
+    uni_market = UniLpMarket(osqth_pool, pool)
+    uni_market.data = load_uni_v3_data(
+        pool,
+        ChainType.ethereum.name,
+        "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c",
+        date(2023, 8, 17),
+        date(2023, 8, 17),
+        data_path="../../tests/data",
+    )
+    squeeth_market = SqueethMarket(squeeth_key, uni_market)
+    squeeth_market.data = load_squeeth_data(date(2023, 8, 17), date(2023, 8, 17), data_path="../../tests/data")
     actuator.broker.add_market(uni_market)
     actuator.broker.add_market(squeeth_market)
     actuator.broker.set_balance(weth, 10)

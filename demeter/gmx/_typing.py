@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from .._typing import MarketDescription, UnitDecimal
+from .._typing import MarketDescription
 from ..broker import MarketBalance, BaseAction, ActionTypeEnum
 from decimal import Decimal
 
