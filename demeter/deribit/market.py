@@ -1,10 +1,8 @@
-import json
+import copy
 import logging
 import os
 from _decimal import Decimal
-from datetime import date, timedelta
 from typing import List, Dict, Tuple
-import copy
 
 import pandas as pd
 from orjson import orjson
@@ -31,7 +29,6 @@ from .helper import round_decimal, position_to_df
 from .. import TokenInfo
 from .._typing import DemeterError
 from ..broker import Market, MarketInfo, write_func, BASE_FREQ
-from ..data import CacheManager
 from ..utils import (
     float_param_formatter,
     get_formatted_predefined,
@@ -44,10 +41,6 @@ DEFAULT_DATA_PATH = "./data"
 BASIC_INTERVAL = pd.Timedelta("1h")
 
 
-def order_converter(array_str) -> List:
-    return json.loads(array_str)
-
-
 class DeribitOptionMarket(Market):
     """
     The Deribit options market can be utilized for options investment or backtesting of Greek hedging strategies.
@@ -58,10 +51,6 @@ class DeribitOptionMarket(Market):
     :type market_info: MarketInfo,
     :param token: token for this market, if you want to trade another token, you can initial another market,
     :type token: TokenInfo,
-    :param data: hourly orderbook data of deribit option market for this token
-    :type data: pd.DataFrame = None,
-    :param data_path: str = path to load data,
-    :type data_path: str = DEFAULT_DATA_PATH,
 
     """
 
@@ -69,10 +58,8 @@ class DeribitOptionMarket(Market):
         self,
         market_info: MarketInfo,
         token: TokenInfo,
-        data: pd.DataFrame = None,
-        data_path: str = DEFAULT_DATA_PATH,
     ):
-        super().__init__(market_info=market_info, data_path=data_path, data=data)
+        super().__init__(market_info=market_info)
         self.token: TokenInfo = token
         self.token_config: DeribitTokenConfig = DeribitOptionMarket.TOKEN_CONFIGS[token]
         self.positions: Dict[str, OptionPosition] = {}
@@ -119,59 +106,6 @@ class DeribitOptionMarket(Market):
             raise DemeterError(f"{path} doesn't exist")
         self.logger.info(f"start load files in {path}")
         self._data = pd.read_pickle(path)
-        self.logger.info("data has been prepared")
-
-    def load_data(self, start_date: date, end_date: date):
-        """
-        Load data from folder set in data_path. Those data file should be downloaded by demeter, and meet name rule.
-        Deribit-option-book-{token}-{day.strftime('%Y%m%d')}.csv
-        data can be downloaded from dropbox: https://www.dropbox.com/scl/fo/kwk5kgiseu5rvccjscd0f/ANswtRLzpCxOc6cMTH0oRlE?rlkey=ai071f9695uz287lt8k0bci5e&dl=0
-
-        :param start_date: start day
-        :type start_date: date
-        :param end_date: end day, the end day will be included
-        :type end_date: date
-        """
-
-        cache_key = CacheManager.get_cache_key(
-            self.market_info.type.name, start_date, end_date, address=self.token.name
-        )
-        cache_df = CacheManager.load(cache_key)
-        if cache_df is not None:
-            self.data = cache_df
-            return
-
-        self.logger.info(f"{self.market_info.name} start load files from {start_date} to {end_date}...")
-        day = start_date
-        df = pd.DataFrame()
-        from tqdm import tqdm
-
-        with tqdm(total=(end_date - start_date).days + 1, ncols=150) as pbar:
-            while day <= end_date:
-                path = os.path.join(
-                    self.data_path,
-                    f"Deribit-option-book-{self.token.name}-{day.strftime('%Y%m%d')}.csv",
-                )
-                if not os.path.exists(path):
-                    logging.warning(f"resource file {path} not found")
-                    day += timedelta(days=1)
-                    pbar.update()
-                    continue
-
-                day_df = pd.read_csv(
-                    str(path),
-                    parse_dates=["time", "expiry_time"],
-                    index_col=["time", "instrument_name"],
-                    converters={"asks": order_converter, "bids": order_converter},
-                )
-                day_df["t"] = pd.to_timedelta(day_df["t"])
-                day_df.drop(columns=["actual_time", "min_price", "max_price"], inplace=True)
-                df = pd.concat([df, day_df])
-                day += timedelta(days=1)
-                pbar.update()
-
-        self._data = df
-        CacheManager.save(cache_key, df)
         self.logger.info("data has been prepared")
 
     @float_param_formatter
@@ -234,6 +168,14 @@ class DeribitOptionMarket(Market):
         """
         if not isinstance(self.data, pd.DataFrame):
             raise DemeterError("data must be type of data frame")
+
+    @property
+    def market_status(self) -> DeribitMarketStatus:
+        """
+        Get market status, such as current total liquidity, current apy, etc.
+        In short, it's a row of market.data.
+        """
+        return self._market_status
 
     def set_market_status(
         self,
@@ -351,12 +293,21 @@ class DeribitOptionMarket(Market):
         self,
         instrument_name: str,
         amount: float | Decimal,
-        type: str = "buy",  # buy or sell
+        trade_type: str = "buy",  # buy or sell
         price_in_token: float | Decimal | None = None,
-    ):
+    )->Decimal:
+        """
+        Estimate trading cost.
+
+        :param instrument_name: option name
+        :param amount: amount to trade
+        :param trade_type: buy or sell
+        :param price_in_token: trading price, if set to none, will use price in orderbook
+        :return: cost amount + fee amount
+        """
         amount = self.__get_trade_amount(amount)
         row = self.data.loc[(self._market_status.timestamp, instrument_name)]
-        order_list = row.asks if type == "buy" else row.bids
+        order_list = row.asks if trade_type == "buy" else row.bids
         order_list = copy.deepcopy(order_list)
         used_order = self._deduct_order_amount(amount, order_list, price_in_token)
 
@@ -628,7 +579,7 @@ class DeribitOptionMarket(Market):
     def _is_open(self):
         """
         ensure this market is writable. e.g. deribit option market only has data at the hour,
-        but uniswap data is minutely. so at the rest 59 minutes, deribit option market is readonly.
+        but uni-swap data is minutely. so at the rest 59 minutes, deribit option market is readonly.
         which means, you can read status, but you can not buy or sell options.
         """
         return self._market_status.timestamp == self._market_status.timestamp.floor(DERIBIT_OPTION_FREQ)

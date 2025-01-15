@@ -60,7 +60,7 @@ class CacheManager:
 
     @staticmethod
     def save(key: CacheKey, df: pd.DataFrame):
-
+        logger = logging.getLogger("Cache manager")
         CacheManager.prepare_cache()
         with open(CACHE_CONFIG_PATH, "rb") as f:
             config = pickle.load(f)
@@ -70,7 +70,7 @@ class CacheManager:
         file_name = f"{key.market}_{key.chain}_{key.start}_{key.end}_{key.address}.feather"
         config[key] = CacheItem(create_time=datetime.now(), last_visit=datetime.now(), file_name=file_name)
         df.to_feather(os.path.join(CACHE_PATH, file_name), compression="lz4")
-        logging.info(f"Cache file was saved to {os.path.join(CACHE_PATH, file_name)}")
+        logger.info(f"Cache file has saved to {os.path.join(CACHE_PATH, file_name)}")
         with open(CACHE_CONFIG_PATH, "wb") as f:
             pickle.dump(config, f)
 

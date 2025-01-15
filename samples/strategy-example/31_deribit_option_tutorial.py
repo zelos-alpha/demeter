@@ -3,7 +3,7 @@ from datetime import datetime, date, timedelta
 import pandas as pd
 
 from demeter import Strategy, AtTimeTrigger, MarketInfo, Actuator, Snapshot, MarketTypeEnum
-from demeter.deribit import DeribitOptionMarket
+from demeter.deribit import DeribitOptionMarket, load_data
 
 market_key = MarketInfo("option_test", MarketTypeEnum.deribit_option)
 
@@ -25,8 +25,9 @@ class SimpleStrategy(Strategy):
 
 
 if __name__ == "__main__":
-    market = DeribitOptionMarket(market_key, DeribitOptionMarket.ETH, data_path="../../tests/data")
-    market.load_data(date(2024, 2, 15), date(2024, 2, 16))
+    market = DeribitOptionMarket(market_key, DeribitOptionMarket.ETH)
+    data = load_data(date(2024, 2, 15), date(2024, 2, 16), data_path="../../tests/data")
+    market.data = data
     actuator = Actuator()
     actuator.broker.add_market(market)
     actuator.broker.set_balance(DeribitOptionMarket.ETH, 10)

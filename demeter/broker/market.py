@@ -1,12 +1,13 @@
 import logging
-from decimal import Decimal
-from functools import wraps
-from typing import Dict, Callable
 from abc import abstractmethod, ABC
+from functools import wraps
+from typing import Callable
+
 import pandas as pd
 
 from ._typing import BaseAction, MarketBalance, MarketStatus, MarketInfo, Snapshot
-from .._typing import DECIMAL_0, DemeterError, TokenInfo, USD
+from .._typing import DemeterError, TokenInfo, USD
+
 
 # DEFAULT_DATA_PATH = "./data"
 
@@ -42,8 +43,8 @@ class Market(ABC):
         self._data: pd.DataFrame | None = None
         self._market_info: MarketInfo = market_info
         self.broker = None
-        self._record_action_callback: Callable[[BaseAction], None] = None
-        self.logger = logging.getLogger(__name__) #TODO  delete this!
+        self._record_action_callback: Callable[[BaseAction], None] | None = None
+        self.logger = logging.getLogger(__name__)  # TODO  delete this!
         self._market_status: MarketStatus = MarketStatus(None, pd.Series())
         self._price_status: pd.Series | None = None
         # if some var that related to market status has changed, should set this to True,
@@ -52,7 +53,7 @@ class Market(ABC):
         # so user liquidity will be added to total liquidity in this minute, and get more fee
         # remember set this flag to False after set_market_status
         self.has_update = False
-        self.open: Callable[[Snapshot], None] = None
+        self.open: Callable[[Snapshot], None] | None = None
         # if market interval is minutely, is_open will always true,
         # or it will be false until timestamp is on its interval
         self.is_open: bool = True
@@ -67,29 +68,6 @@ class Market(ABC):
         Get market info, it is the key of a market.
         """
         return self._market_info
-
-    @property
-    def data(self) -> pd.DataFrame:
-        """
-        | Market data is used to simulate the status of market. For example, in uniswap market, data describe pool liquidity, price of this pool.
-        | Usually data is got by demeter-fetch which can download and decode on chain event log. Data will be saved in CSV format, each day has a corresponding csv file.
-        | Those csv file is indexed by timestamp, and resampled to one minute.
-        | Data files will be loaded as dataframe. The whole back test process is based on minutely timestamp.
-
-        :return: market data
-        :rtype: DataFrame
-        """
-        return self._data
-
-    @data.setter
-    def data(self, value):
-        """
-        Set data and check its type
-        """
-        if isinstance(value, pd.DataFrame):
-            self._data = value
-        else:
-            raise ValueError()
 
     def _record_action(self, action: BaseAction):
         if self._record_action_callback is not None:
@@ -165,5 +143,28 @@ class Market(ABC):
         Resample data in this market
         """
         ...
+
+    @property
+    def data(self) -> pd.DataFrame:
+        """
+        | Market data is used to simulate the status of market. For example, in uniswap market, data describe pool liquidity, price of this pool.
+        | Usually data is got by demeter-fetch which can download and decode on chain event log. Data will be saved in CSV format, each day has a corresponding csv file.
+        | Those csv file is indexed by timestamp, and resampled to one minute.
+        | Data files will be loaded as dataframe. The whole back test process is based on minutely timestamp.
+
+        :return: market data
+        :rtype: DataFrame
+        """
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        """
+        Set data and check its type
+        """
+        if isinstance(value, pd.DataFrame):
+            self._data = value
+        else:
+            raise ValueError()
 
     # endregion
