@@ -20,6 +20,7 @@ class SimpleStrategy(Strategy):
         market: DeribitOptionMarket = self.broker.markets.default
         market.estimate_cost("ETH-26APR24-2700-C", 20,"buy")
         market.buy("ETH-26APR24-2700-C", 20)
+        pass
 
     def notify(self, action):
         print(action)

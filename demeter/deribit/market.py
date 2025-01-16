@@ -25,7 +25,7 @@ from ._typing import (
     DepositAction,
     WithdrawAction,
 )
-from .helper import round_decimal, position_to_df
+from .helper import round_decimal, position_to_df, get_new_order_list
 from .. import TokenInfo
 from .._typing import DemeterError
 from ..broker import Market, MarketInfo, write_func
@@ -342,17 +342,17 @@ class DeribitOptionMarket(Market):
         # deduct bids amount
         """
         note:
-        Asks is updated as it's a deepcopy, but instrument.asks/market_status.loc[instrument]["asks"]/self._data.loc[time].loc[instrument]["asks"] is not updated
+        Asks is updated as it's a deepcopy, 
+        but instrument.asks/market_status.loc[instrument]["asks"]/self._data.loc[time].loc[instrument]["asks"] is not updated
         In fact, as I tested, if I use pyarraw as back_end,
         the last three asks is different instance. that's because when you call .loc, it will return a new instance who has different id
-        So I cannot modify asks in market_status.loc[instrument]["asks"]
-        And when I use numpy as back_end, those three object will be the same instance. and the asks instance is read only therefore can not be updated.
-        As a result, I can not update  market_status.loc[instrument]["asks"]
-        so when you buy option twice in a bar, amount can not be correctly checked.
-        e.g. order has 100 option, you can not buy 150 because I will stop any order above 100, but you can buy 75 twice, as amount is checked separately.
+        So I cannot modify items in asks in market_status.loc[instrument]["asks"]
+        And when I use numpy as back_end, those three object will be the same instance. and items in the asks instance is read only therefore can not be updated.
+        
+        so I have to write entire list back
         """
-
         ask_list = self._deduct_order_amount(amount, asks, price_in_token)
+        self.market_status.data.at[instrument_name, "asks"] = get_new_order_list(instrument.asks, ask_list)
 
         total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in ask_list]))
         fee_amount = self.get_trade_fee(amount, total_premium)
@@ -446,8 +446,7 @@ class DeribitOptionMarket(Market):
         bid_list = self._deduct_order_amount(amount, bids, price_in_token)
 
         # write positions back
-        # if self.data is not None:
-        #     self.data.loc[(self._market_status.timestamp, instrument_name), "bids"] = bids
+        self.market_status.data.at[instrument_name, "bids"] = get_new_order_list(instrument.bids, bid_list)
 
         total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in bid_list]))
         fee = self.get_trade_fee(amount, total_premium)

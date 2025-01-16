@@ -1,3 +1,4 @@
+import copy
 import decimal
 import json
 import logging
@@ -12,6 +13,17 @@ from demeter import MarketTypeEnum
 from demeter.broker import BASE_FREQ
 from demeter.data import CacheManager
 from demeter.utils import console_text
+
+
+def get_new_order_list(old, used):
+    to_update = copy.deepcopy(old)
+    for x in used:
+        for y in range(len(to_update)):
+            if float(x[0]) == to_update[y][0]:
+                to_update[y][1] -= float(x[1])
+                break
+
+    return to_update
 
 
 def round_decimal(num: Any, exponent: int) -> Decimal:

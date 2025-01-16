@@ -44,7 +44,7 @@ class Market(ABC):
         self._market_info: MarketInfo = market_info
         self.broker = None
         self._record_action_callback: Callable[[BaseAction], None] | None = None
-        self.logger = logging.getLogger(__name__)  # TODO  delete this!
+        self.logger = logging.getLogger(__name__)
         self._market_status: MarketStatus = MarketStatus(None, pd.Series())
         self._price_status: pd.Series | None = None
         # if some var that related to market status has changed, should set this to True,

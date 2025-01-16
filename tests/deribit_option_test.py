@@ -177,6 +177,7 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
         # [[0.0285, 5], [0.029, 605], [0.0295, 197], [0.03, 40], [0.0305, 18]]
         op = market.positions["ETH-22SEP23-1650-C"]
 
+        self.assertEqual(market.market_status.data.loc["ETH-22SEP23-1650-C"]["asks"][1][1],5)
         self.assertEqual(market.balance, Decimal("3.276"))
         self.assertEqual(op.amount, Decimal(605))
         self.assertEqual(op.avg_buy_price, Decimal("0.028995867768595041322314049586776860"))
