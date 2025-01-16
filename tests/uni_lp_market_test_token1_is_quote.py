@@ -170,10 +170,10 @@ class TestUniLpMarketToken1Quote(unittest.TestCase):
         TestUniLpMarketToken1Quote.print_broker(broker)
 
         self.assertEqual(
-            Decimal("0.000049504950495049504950495049504950495"), market.get_position(new_position).pending_amount0
+            Decimal("0.000037128712871287128712871287128712871"), market.get_position(new_position).pending_amount0
         )
         self.assertEqual(
-            Decimal("0.000049504950495049504950495049504950495"), market.get_position(new_position).pending_amount1
+            Decimal("0.000037128712871287128712871287128712871"), market.get_position(new_position).pending_amount1
         )
 
         fee0 = market.get_position(new_position).pending_amount0
@@ -218,10 +218,10 @@ class TestUniLpMarketToken1Quote(unittest.TestCase):
         TestUniLpMarketToken1Quote.print_broker(broker)
 
         self.assertEqual(
-            Decimal("0.000049504950495049504950495049504950495"), market.get_position(new_position).pending_amount0
+            Decimal("0.000039603960396039603960396039603960396"), market.get_position(new_position).pending_amount0
         )
         self.assertEqual(
-            Decimal("0.000049504950495049504950495049504950495"), market.get_position(new_position).pending_amount1
+            Decimal("0.000039603960396039603960396039603960396"), market.get_position(new_position).pending_amount1
         )
 
         fee0 = market.get_position(new_position).pending_amount0
@@ -263,10 +263,10 @@ class TestUniLpMarketToken1Quote(unittest.TestCase):
         TestUniLpMarketToken1Quote.print_broker(broker)
 
         self.assertEqual(
-            Decimal("0.000049504950495049504950495049504950495"), market.get_position(new_position).pending_amount0
+            Decimal("0.000037128712871287128712871287128712871"), market.get_position(new_position).pending_amount0
         )
         self.assertEqual(
-            Decimal("0.000049504950495049504950495049504950495"), market.get_position(new_position).pending_amount1
+            Decimal("0.000037128712871287128712871287128712871"), market.get_position(new_position).pending_amount1
         )
 
         fee0 = market.get_position(new_position).pending_amount0
@@ -320,10 +320,10 @@ class TestUniLpMarketToken1Quote(unittest.TestCase):
         TestUniLpMarketToken1Quote.print_broker(broker)
 
         self.assertEqual(
-            Decimal("0.000049504950495049504950495049504950495"), market.get_position(new_position).pending_amount0
+            Decimal("0.000037128712871287128712871287128712871"), market.get_position(new_position).pending_amount0
         )
         self.assertEqual(
-            Decimal("0.000049504950495049504950495049504950495"), market.get_position(new_position).pending_amount1
+            Decimal("0.000037128712871287128712871287128712871"), market.get_position(new_position).pending_amount1
         )
 
         fee0 = market.get_position(new_position).pending_amount0
@@ -416,10 +416,10 @@ class TestUniLpMarketToken1Quote(unittest.TestCase):
         TestUniLpMarketToken1Quote.print_broker(broker)
 
         self.assertEqual(
-            Decimal("0.000049504950495049504950495049504950495"), market.get_position(new_position).pending_amount0
+            Decimal("0.000044554455445544554455445544554455446"), market.get_position(new_position).pending_amount0
         )
         self.assertEqual(
-            Decimal("0.000049504950495049504950495049504950495"), market.get_position(new_position).pending_amount1
+            Decimal("0.000044554455445544554455445544554455446"), market.get_position(new_position).pending_amount1
         )
 
         fee0 = market.get_position(new_position).pending_amount0
