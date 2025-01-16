@@ -19,23 +19,23 @@ class MyFirstAaveStrategy(Strategy):
 
         self.triggers.extend([supply_trigger, withdraw_trigger, borrow_trigger, repay_trigger])
 
-    def supply(self, row_data: Snapshot):
+    def supply(self, snapshot: Snapshot):
         supply_key = aave_market.supply(weth, 10, True)
 
-    def borrow(self, row_data: Snapshot):
+    def borrow(self, snapshot: Snapshot):
         borrow_key = aave_market.borrow(weth, 3)
 
-    def repay(self, row_data: Snapshot):
+    def repay(self, snapshot: Snapshot):
         for key in aave_market.borrow_keys:
             aave_market.repay(key)
 
-    def withdraw(self, row_data: Snapshot):
+    def withdraw(self, snapshot: Snapshot):
         for key in aave_market.supply_keys:
             aave_market.withdraw(key)
 
-    def on_bar(self, row_data: Snapshot):
+    def on_bar(self, snapshot: Snapshot):
         balance: AaveBalance = aave_market.get_market_balance()
-        market_status: Union[pd.Series, AaveTokenStatus] = row_data.market_status[market_key]
+        market_status: Union[pd.Series, AaveTokenStatus] = snapshot.market_status[market_key]
 
         pass
 

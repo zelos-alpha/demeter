@@ -18,15 +18,15 @@ class GmxBasicStrategy(Strategy):
         sell_trigger = AtTimeTrigger(time=datetime(2024, 10, 16, 14, 25, 0), do=self.sell_glp)
         self.triggers.extend([buy_trigger, sell_trigger])
 
-    def buy_glp(self, row_data: Snapshot):
+    def buy_glp(self, snapshot: Snapshot):
         market: GmxMarket = self.broker.markets[market_key]
         market.buy_glp(weth, Decimal('0.000455889485162217'))
 
-    def sell_glp(self, row_data: Snapshot):
+    def sell_glp(self, snapshot: Snapshot):
         market: GmxMarket = self.broker.markets[market_key]
         market.sell_glp(weth)
 
-    def on_bar(self, row_data: Snapshot):
+    def on_bar(self, snapshot: Snapshot):
         pass
 
 

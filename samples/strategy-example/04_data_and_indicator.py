@@ -34,19 +34,19 @@ class DemoStrategy(Strategy):
             market=market_key, name="sma", column_data=simple_moving_average(self.data[market_key].price)
         )  # name,
 
-    def work(self, row_data: Snapshot):
+    def work(self, snapshot: Snapshot):
         # price set to actuator
-        eth_price_external = row_data.prices["ETH"]
-        eth_price_external = row_data.prices[eth.name]
+        eth_price_external = snapshot.prices["ETH"]
+        eth_price_external = snapshot.prices[eth.name]
 
         # current data row,
-        eth_price_in_uniswap = row_data.market_status[market_key].price
-        row: pd.Series | UniLPData = row_data.market_status[market_key]
+        eth_price_in_uniswap = snapshot.market_status[market_key].price
+        row: pd.Series | UniLPData = snapshot.market_status[market_key]
         eth_price_in_uniswap = row.price
-        eth_price_in_uniswap = row_data.market_status.market1.price
-        eth_price_in_uniswap = row_data.market_status.default.price
+        eth_price_in_uniswap = snapshot.market_status.market1.price
+        eth_price_in_uniswap = snapshot.market_status.default.price
         # access extra column by its name
-        ma_value = row_data.market_status[market_key].sma
+        ma_value = snapshot.market_status[market_key].sma
 
         # access data, every market has its own data, so data is also kept in MarketDict.
         data: pd.DataFrame = self.broker.markets[market_key].data
@@ -54,9 +54,9 @@ class DemoStrategy(Strategy):
         data: pd.DataFrame = self.data.default
         data: pd.DataFrame = self.data.market1
         # access current row
-        assert data.loc[row_data.timestamp].netAmount0 == data.iloc[row_data.row_id].netAmount0
+        assert data.loc[snapshot.timestamp].netAmount0 == data.iloc[snapshot.row_id].netAmount0
         # access one minute before
-        assert data.loc[row_data.timestamp - timedelta(minutes=1)].price == data.iloc[row_data.row_id - 1].price
+        assert data.loc[snapshot.timestamp - timedelta(minutes=1)].price == data.iloc[snapshot.row_id - 1].price
         # access extra column by its name
         ma = self.data[market_key].sma
 

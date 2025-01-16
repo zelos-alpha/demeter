@@ -21,7 +21,7 @@ class SimpleStrategy(Strategy):
         new_trigger = AtTimeTrigger(time=datetime(2024, 2, 15, 12, 0, 0), do=self.buy)
         self.triggers.append(new_trigger)
 
-    def buy(self, row_data: Snapshot):
+    def buy(self, snapshot: Snapshot):
         market: DeribitOptionMarket = self.broker.markets.default
         market.buy("ETH-26APR24-2700-C", 20)
 
@@ -31,7 +31,7 @@ class SimpleEventStrategy(Strategy):
         new_trigger = AtTimeTrigger(time=datetime(2024, 2, 15, 12, 0, 0), do=self.buy)
         self.triggers.append(new_trigger)
 
-    def buy(self, row_data: Snapshot):
+    def buy(self, snapshot: Snapshot):
         market: DeribitOptionMarket = self.broker.markets.default
         market.buy("ETH-26APR24-2700-C", 20)
 
@@ -44,7 +44,8 @@ class OptionStrategyTest(unittest.TestCase):
         super(OptionStrategyTest, self).__init__(*args, **kwargs)
 
     def test_empty_strategy(self):
-        market = DeribitOptionMarket(market_key, DeribitOptionMarket.ETH, data_path="data")
+        market = DeribitOptionMarket(market_key, DeribitOptionMarket.ETH)
+        market.data_path = "data"
         market.load_data(date(2024, 2, 15), date(2024, 2, 16))
         actuator = Actuator()
         actuator.broker.add_market(market)
@@ -55,7 +56,8 @@ class OptionStrategyTest(unittest.TestCase):
         actuator.run()
 
     def test_simple_strategy(self):
-        market = DeribitOptionMarket(market_key, DeribitOptionMarket.ETH, data_path="data")
+        market = DeribitOptionMarket(market_key, DeribitOptionMarket.ETH)
+        market.data_path = "data"
         market.load_data(date(2024, 2, 15), date(2024, 2, 16))
         actuator = Actuator()
         actuator.broker.add_market(market)
@@ -66,7 +68,8 @@ class OptionStrategyTest(unittest.TestCase):
         actuator.run()
 
     def test_event(self):
-        market = DeribitOptionMarket(market_key, DeribitOptionMarket.ETH, data_path="data")
+        market = DeribitOptionMarket(market_key, DeribitOptionMarket.ETH)
+        market.data_path = "data"
         market.load_data(date(2024, 2, 15), date(2024, 2, 16))
         actuator = Actuator()
         actuator.broker.add_market(market)

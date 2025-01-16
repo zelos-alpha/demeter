@@ -46,37 +46,37 @@ class DemoStrategy(Strategy):
         # Register a trigger, every day, we split both assets into two shares of equal value
         self.triggers.append(PeriodTrigger(time_delta=timedelta(days=1), trigger_immediately=True, do=self.rebalance))
 
-    def rebalance(self, row_data: Snapshot):
-        self.markets[market_key].even_rebalance(row_data.market_status[market_key].price)
+    def rebalance(self, snapshot: Snapshot):
+        self.markets[market_key].even_rebalance(snapshot.market_status[market_key].price)
 
     """
     After a test is executed, actuator will loop the data, and bar series functions will be called on every time. 
     Here you can set conditions and execute liquidity operations 
     """
 
-    def on_bar(self, row_data: Snapshot):
+    def on_bar(self, snapshot: Snapshot):
         """
         This function is called after trigger, but before market is updated(Fees will be distributed in this step).
         """
         lp_market: UniLpMarket = self.markets[market_key]
-        current_price = row_data.market_status[market_key].price
+        current_price = snapshot.market_status[market_key].price
         # get moving average price, if value is nan, fill it with current price
-        ma_price = self.data[market_key].loc[row_data.timestamp]["sma"]
-        ma_price = row_data.market_status[market_key].price if math.isnan(ma_price) else ma_price
+        ma_price = self.data[market_key].loc[snapshot.timestamp]["sma"]
+        ma_price = snapshot.market_status[market_key].price if math.isnan(ma_price) else ma_price
 
         # this is a nonsense strategy, just to show how to trigger actions
-        if row_data.market_status[market_key].price > ma_price + 25 and len(self.markets[market_key].positions) < 1:
+        if snapshot.market_status[market_key].price > ma_price + 25 and len(self.markets[market_key].positions) < 1:
             lp_market.remove_all_liquidity()
             lp_market.add_liquidity(current_price, current_price + 100)
-        elif row_data.market_status[market_key].price < ma_price - 25 and len(self.markets[market_key].positions) < 1:
+        elif snapshot.market_status[market_key].price < ma_price - 25 and len(self.markets[market_key].positions) < 1:
             lp_market.remove_all_liquidity()
             lp_market.add_liquidity(current_price - 100, current_price)
 
-    def after_bar(self, row_data: Snapshot):
+    def after_bar(self, snapshot: Snapshot):
         """
         this function is called after market has updated.
         """
-        timestamp = row_data.timestamp
+        timestamp = snapshot.timestamp
         net_value_after_bar = self.broker.get_account_status(self.prices.loc[timestamp]).net_value
         net_value_diff = net_value_after_bar - self.net_value_before_bar
         self.net_value_diff_list.append(net_value_diff)

@@ -22,24 +22,24 @@ test access data in different ways
 
 
 class WithSMA(Strategy):
-    def on_bar(self, row_data: Snapshot):
-        if row_data.timestamp == datetime(2022, 10, 8, 8, 0, 1):
+    def on_bar(self, snapshot: Snapshot):
+        if snapshot.timestamp == datetime(2022, 10, 8, 8, 0, 1):
             # access current row, method is provided by demeter
-            assert_equal(row_data.uni_market.closeTick, 2)
+            assert_equal(snapshot.uni_market.closeTick, 2)
             assert_equal(id(self.data.uni_market), id(self.data[test_market]))
             assert_equal(id(self.data.default), id(self.data[test_market]))
-            assert_equal(id(row_data.uni_market), id(row_data[test_market]))
-            assert_equal(id(row_data.default), id(row_data[test_market]))
+            assert_equal(id(snapshot.uni_market), id(snapshot[test_market]))
+            assert_equal(id(snapshot.default), id(snapshot[test_market]))
 
             # access current row, method is provided by pandas
             assert_equal(self.data[test_market].closeTick[0], 0)
-            assert_equal(self.data[test_market].loc[row_data[test_market].timestamp].closeTick, 2)
+            assert_equal(self.data[test_market].loc[snapshot[test_market].timestamp].closeTick, 2)
             assert_equal(self.data[test_market]["closeTick"].iloc[0], 0)
 
             # access previous or after row
-            assert_equal(self.data.default.iloc[row_data.row_id - 2].closeTick, 0)
-            assert_equal(self.data.default.loc[row_data.default.timestamp - timedelta(minutes=2)].closeTick, 0)
-            assert_equal(self.data.default.loc[row_data.default.timestamp + timedelta(minutes=2)].closeTick, 4)
+            assert_equal(self.data.default.iloc[snapshot.row_id - 2].closeTick, 0)
+            assert_equal(self.data.default.loc[snapshot.default.timestamp - timedelta(minutes=2)].closeTick, 0)
+            assert_equal(self.data.default.loc[snapshot.default.timestamp + timedelta(minutes=2)].closeTick, 4)
 
 
 class TestActuator(unittest.TestCase):

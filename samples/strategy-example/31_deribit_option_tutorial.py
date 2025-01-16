@@ -16,7 +16,7 @@ class SimpleStrategy(Strategy):
         new_trigger = AtTimeTrigger(time=datetime(2024, 2, 15, 12, 0, 0), do=self.buy)
         self.triggers.append(new_trigger)
 
-    def buy(self, row_data: Snapshot):
+    def buy(self, snapshot: Snapshot):
         market: DeribitOptionMarket = self.broker.markets.default
         market.estimate_cost("ETH-26APR24-2700-C", 20,"buy")
         market.buy("ETH-26APR24-2700-C", 20)

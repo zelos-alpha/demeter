@@ -36,27 +36,27 @@ class Trigger:
         self._do = do if do is not None else lambda x: x
         self.kwargs = kwargs
 
-    def when(self, row_data: Snapshot) -> bool:
+    def when(self, snapshot: Snapshot) -> bool:
         """
         If the condition is met or not.
 
-        :param row_data: data of this iteration. used to decide to if the condition is meet.
-        :type row_data: Snapshot
+        :param snapshot: data of this iteration. used to decide to if the condition is meet.
+        :type snapshot: Snapshot
         :return: if condition is met, return true
         :rtype: bool
         """
         return False
 
-    def do(self, row_data: Snapshot):
+    def do(self, snapshot: Snapshot):
         """
         when condition is met, what actions will be taken
 
-        :param row_data: data of this iteration
-        :type row_data: condition
+        :param snapshot: data of this iteration
+        :type snapshot: condition
         :return: Anything do function returns
         :rtype: Any
         """
-        return self._do(row_data, **self.kwargs)
+        return self._do(snapshot, **self.kwargs)
 
     def is_out_date(self, t) -> bool:
         return False
@@ -78,8 +78,8 @@ class AtTimeTrigger(Trigger):
         self._time = to_minute(time)
         super().__init__(do, **kwargs)
 
-    def when(self, row_data: Snapshot) -> bool:
-        return row_data.timestamp == self._time
+    def when(self, snapshot: Snapshot) -> bool:
+        return snapshot.timestamp == self._time
 
     def is_out_date(self, t) -> bool:
         return t >= self._time
@@ -102,8 +102,8 @@ class AtTimesTrigger(Trigger):
         self._time = [to_minute(t) for t in time]
         super().__init__(do, **kwargs)
 
-    def when(self, row_data: Snapshot) -> bool:
-        return self._time in row_data.timestamp
+    def when(self, snapshot: Snapshot) -> bool:
+        return self._time in snapshot.timestamp
 
     def is_out_date(self, t) -> bool:
         return t >= max(self._time)
@@ -135,8 +135,8 @@ class TimeRangeTrigger(Trigger):
         self._time_range = TimeRange(to_minute(time_range.start), to_minute(time_range.end))
         super().__init__(do, **kwargs)
 
-    def when(self, row_data: Snapshot) -> bool:
-        return self._time_range.start <= row_data.timestamp < self._time_range.end
+    def when(self, snapshot: Snapshot) -> bool:
+        return self._time_range.start <= snapshot.timestamp < self._time_range.end
 
     def is_out_date(self, t) -> bool:
         return t >= self._time_range.end
@@ -158,9 +158,9 @@ class TimeRangesTrigger(Trigger):
         self._time_range: [TimeRange] = [TimeRange(to_minute(t.start), to_minute(t.end)) for t in time_range]
         super().__init__(do, **kwargs)
 
-    def when(self, row_data: Snapshot) -> bool:
+    def when(self, snapshot: Snapshot) -> bool:
         for r in self._time_range:
-            if r.start <= row_data.timestamp < r.end:
+            if r.start <= snapshot.timestamp < r.end:
                 return True
         return False
 
@@ -200,12 +200,12 @@ class PeriodTrigger(Trigger):
     def reset(self):
         self._next_match = None
 
-    def when(self, row_data: Snapshot) -> bool:
+    def when(self, snapshot: Snapshot) -> bool:
         if self._next_match is None:
-            self._next_match = row_data.timestamp + self._delta + self._pending
+            self._next_match = snapshot.timestamp + self._delta + self._pending
             return self._trigger_immediately
 
-        if self._next_match == row_data.timestamp:
+        if self._next_match == snapshot.timestamp:
             self._next_match = self._next_match + self._delta
             return True
 
@@ -243,13 +243,13 @@ class PeriodsTrigger(Trigger):
     def reset(self):
         self._next_matches = [None for _ in self._deltas]
 
-    def when(self, row_data: Snapshot) -> bool:
+    def when(self, snapshot: Snapshot) -> bool:
         if self._next_matches[0] is None:
-            self._next_matches = [row_data.timestamp + d + self._pending for d in self._deltas]
+            self._next_matches = [snapshot.timestamp + d + self._pending for d in self._deltas]
             return self._trigger_immediately
 
         for i in range(len(self._deltas)):
-            if self._next_matches[i] == row_data.timestamp:
+            if self._next_matches[i] == snapshot.timestamp:
                 self._next_matches[i] = self._next_matches[i] + self._deltas[i]
                 return True
 
@@ -272,8 +272,8 @@ class PriceTrigger(Trigger):
         self._condition = condition
         super().__init__(do, **kwargs)
 
-    def when(self, row_data: Snapshot) -> bool:
-        return self._condition(row_data.prices)
+    def when(self, snapshot: Snapshot) -> bool:
+        return self._condition(snapshot.prices)
 
 
 class CustomizedTrigger(Trigger):
@@ -292,5 +292,5 @@ class CustomizedTrigger(Trigger):
         self._condition = condition
         super().__init__(do, **kwargs)
 
-    def when(self, row_data: Snapshot) -> bool:
-        return self._condition(row_data)
+    def when(self, snapshot: Snapshot) -> bool:
+        return self._condition(snapshot)

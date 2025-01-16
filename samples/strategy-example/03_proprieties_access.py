@@ -18,7 +18,7 @@ class DemoStrategy(Strategy):
         new_trigger = AtTimeTrigger(time=datetime(2023, 8, 15, 12, 0, 0), do=self.work)  # init trigger object
         self.triggers.append(new_trigger)
 
-    def work(self, row_data: Snapshot):
+    def work(self, snapshot: Snapshot):
         # access market, all market are stored in a property, whose type is MarketDict.
         # you can access elements of MarketDict by
         # 1. market key as index

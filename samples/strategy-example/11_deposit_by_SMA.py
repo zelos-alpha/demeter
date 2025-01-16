@@ -33,12 +33,12 @@ class AddLiquidityByMA(Strategy):
         self.add_column(lp_market, "ma5", demeter.indicator.simple_moving_average(self.data.default.price, timedelta(hours=5)))
         self.triggers.append(PeriodTrigger(time_delta=timedelta(hours=1), trigger_immediately=True, do=self.work))
 
-    def work(self, row_data: Snapshot):
+    def work(self, snapshot: Snapshot):
         lp_market: UniLpMarket = self.broker.markets[market_key]
         if len(lp_market.positions) > 0:
             lp_market.remove_all_liquidity()
-            lp_market.even_rebalance(row_data.prices[eth.name])
-        ma_price = row_data.market_status.default.ma5 if row_data.market_status.default.ma5 > 0 else row_data.prices[eth.name]
+            lp_market.even_rebalance(snapshot.prices[eth.name])
+        ma_price = snapshot.market_status.default.ma5 if snapshot.market_status.default.ma5 > 0 else snapshot.prices[eth.name]
         lp_market.add_liquidity(ma_price - self.price_width, ma_price + self.price_width)
 
 

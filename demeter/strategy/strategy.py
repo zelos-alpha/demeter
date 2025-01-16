@@ -34,21 +34,21 @@ class Strategy(object):
         """
         pass
 
-    def on_bar(self, row_data: Snapshot):
+    def on_bar(self, snapshot: Snapshot):
         """
         Called after triggers on each iteration, at this time, market are not updated yet(Take uniswap market for example, fee of this minute are not added to positions).
 
-        :param row_data: data in this iteration, include current timestamp, price, all columns data, and indicators(such as simple moving average)
-        :type row_data: Snapshot
+        :param snapshot: data in this iteration, include current timestamp, price, all columns data, and indicators(such as simple moving average)
+        :type snapshot: Snapshot
         """
         pass
 
-    def after_bar(self, row_data: Snapshot):
+    def after_bar(self, snapshot: Snapshot):
         """
         called after market are updated on each iteration
 
-        :param row_data: data in this iteration, include current timestamp, price, all columns data, and indicators(such as simple moving average)
-        :type row_data: Snapshot
+        :param snapshot: data in this iteration, include current timestamp, price, all columns data, and indicators(such as simple moving average)
+        :type snapshot: Snapshot
         """
         pass
 

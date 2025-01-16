@@ -22,7 +22,7 @@ class SimpleShortStrategy(Strategy):
         new_trigger = AtTimeTrigger(time=datetime(2023, 8, 17, 23, 56, 0), do=self.short)
         self.triggers.append(new_trigger)
 
-    def short(self, row_data: Snapshot):
+    def short(self, snapshot: Snapshot):
         market: SqueethMarket = self.broker.markets[squeeth_key]
         market.open_deposit_mint_by_collat_rate(10)
 

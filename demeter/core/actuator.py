@@ -332,12 +332,12 @@ class Actuator(object):
     def _log(self, timestamp: datetime, message: str, level: int = logging.INFO):
         self._logs.append(DemeterLog(timestamp, message, level))
 
-    def __get_row_data(self, timestamp, row_id, current_price) -> Snapshot:
-        row_data = Snapshot(timestamp.to_pydatetime(), row_id, current_price)
+    def __get_snapshot(self, timestamp, row_id, current_price) -> Snapshot:
+        snapshot = Snapshot(timestamp.to_pydatetime(), row_id, current_price)
         for market_info, market in self.broker.markets.items():
-            row_data.market_status[market_info] = market.market_status.data
-        row_data.market_status.set_default_key(self.broker.markets.get_default_key())
-        return row_data
+            snapshot.market_status[market_info] = market.market_status.data
+        snapshot.market_status.set_default_key(self.broker.markets.get_default_key())
+        return snapshot
 
     def __set_market_snapshot(self, timestamp: Timestamp, update: bool = False):
         """
@@ -424,20 +424,20 @@ class Actuator(object):
                     self.__set_market_snapshot(timestamp_index, False)
                     # execute strategy, and some calculate
                     self._currents.timestamp = timestamp_index.to_pydatetime()
-                    row_data = self.__get_row_data(timestamp_index, row_id, current_price)
+                    snapshot = self.__get_snapshot(timestamp_index, row_id, current_price)
                     if self._strategy.triggers:
                         for trigger in self._strategy.triggers:
-                            if trigger.when(row_data):
-                                trigger.do(row_data)
+                            if trigger.when(snapshot):
+                                trigger.do(snapshot)
                     # remove outdate triggers
                     self._strategy.triggers = [
                         x for x in self._strategy.triggers if not x.is_out_date(self._currents.timestamp)
                     ]
                     for market in self.broker.markets.values():
                         if market.is_open and market.open is not None:
-                            market.open(row_data)
+                            market.open(snapshot)
 
-                    self._strategy.on_bar(row_data)
+                    self._strategy.on_bar(snapshot)
 
                     # important, take uniswap market for example,
                     # if liquidity has changed in the head of this minute,
@@ -449,8 +449,8 @@ class Actuator(object):
                     for market in self._broker.markets.values():
                         market.update()
 
-                    row_data = self.__get_row_data(timestamp_index, row_id, current_price)
-                    self._strategy.after_bar(row_data)
+                    snapshot = self.__get_snapshot(timestamp_index, row_id, current_price)
+                    self._strategy.after_bar(snapshot)
 
                     self._account_status_list.append(
                         self._broker.get_account_status(current_price, timestamp_index.to_pydatetime())
@@ -462,7 +462,7 @@ class Actuator(object):
                     pbar.update()
                     row_id += 1
             except RuntimeError as e:
-                print(f"timestamp on error: " + str(row_data.timestamp))
+                print(f"timestamp on error: " + str(snapshot.timestamp))
                 self._generate_account_status_df()
                 self.save_result("./", "backtest-with-error")
                 raise e

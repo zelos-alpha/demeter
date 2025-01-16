@@ -92,30 +92,30 @@ class DeltaHedgingStrategy(Strategy):
             market_aave.withdraw(s_key)
         market_uni.sell(broker.assets[eth].balance)
 
-    def change_position(self, row_data: Snapshot):
+    def change_position(self, snapshot: Snapshot):
         self.reset_funds()
 
-        pos_h = H * row_data.prices[eth.name]
-        pos_l = L * row_data.prices[eth.name]
+        pos_h = H * snapshot.prices[eth.name]
+        pos_l = L * snapshot.prices[eth.name]
         self.h = pos_h
         self.l = pos_l
-        total_cash = self.get_cash_net_value(row_data.prices)
+        total_cash = self.get_cash_net_value(snapshot.prices)
 
         # work
         aave_supply_value = total_cash * self.usdc_aave_supply
         aave_borrow_value = aave_supply_value * AAVE_POLYGON_USDC_ALPHA
 
         market_aave.supply(usdc, aave_supply_value)
-        market_aave.borrow(eth, aave_borrow_value / row_data.prices[eth.name])
+        market_aave.borrow(eth, aave_borrow_value / snapshot.prices[eth.name])
 
         self.last_net_value = total_cash
 
-        market_uni.sell(self.usdc_aave_borrow * total_cash / row_data.prices[eth.name])  # eth => usdc
+        market_uni.sell(self.usdc_aave_borrow * total_cash / snapshot.prices[eth.name])  # eth => usdc
 
         market_uni.add_liquidity(pos_l, pos_h)
 
         # result monitor
-        print("Position changed", row_data.timestamp)
+        print("Position changed", snapshot.timestamp)
         pass
 
     def get_cash_net_value(self, price: pd.Series):
@@ -134,11 +134,11 @@ class DeltaHedgingStrategy(Strategy):
 
         return cash + aave_status.net_value + lp_value
 
-    def on_bar(self, row_data: Snapshot):
-        if not self.last_net_value * Decimal("0.96") < self.get_current_net_value(row_data.prices) < self.last_net_value * Decimal("1.04"):
-            self.change_position(row_data)
-        elif not self.l <= row_data.prices[eth.name] <= self.h:
-            self.change_position(row_data)
+    def on_bar(self, snapshot: Snapshot):
+        if not self.last_net_value * Decimal("0.96") < self.get_current_net_value(snapshot.prices) < self.last_net_value * Decimal("1.04"):
+            self.change_position(snapshot)
+        elif not self.l <= snapshot.prices[eth.name] <= self.h:
+            self.change_position(snapshot)
 
 
 if __name__ == "__main__":

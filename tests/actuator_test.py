@@ -25,15 +25,15 @@ class EmptyStrategy(Strategy):
 
 
 class BuyOnSecond(Strategy):
-    def on_bar(self, row_data: Snapshot):
-        if row_data.row_id == 2:
+    def on_bar(self, snapshot: Snapshot):
+        if snapshot.row_id == 2:
             self.markets.default.buy(0.5)
             pass
 
 
 class AddLiquidity(Strategy):
-    def on_bar(self, row_data: Snapshot):
-        if row_data.row_id == 2:
+    def on_bar(self, snapshot: Snapshot):
+        if snapshot.row_id == 2:
             market: UniLpMarket = self.broker.markets[test_market]
             market.add_liquidity(1000, 2000)
             pass
@@ -43,7 +43,7 @@ class WithSMA(Strategy):
     def initialize(self):
         self.add_column(self.market1, "ma5", demeter.indicator.simple_moving_average(self.market1.data.closeTick))
 
-    def on_bar(self, row_data):
+    def on_bar(self, snapshot):
         pass
 
 

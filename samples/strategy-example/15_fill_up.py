@@ -27,12 +27,12 @@ class FillUp(Strategy):
             lp_market.add_liquidity(init_price, init_price + self.a)
         self.triggers.append(PeriodTrigger(time_delta=timedelta(days=1), do=self.work))
 
-    def work(self, row_data: Snapshot):
+    def work(self, snapshot: Snapshot):
         lp_market: UniLpMarket = self.broker.markets[market_key]
         if len(lp_market.positions) > 0:
             lp_market.remove_all_liquidity()
-            lp_market.even_rebalance(row_data.prices[eth.name])
-        price = row_data.prices[eth.name]
+            lp_market.even_rebalance(snapshot.prices[eth.name])
+        price = snapshot.prices[eth.name]
         lp_market.add_liquidity(price - self.a, price + self.a)
         if self.broker.assets[market.base_token].balance > 0:
             lp_market.add_liquidity(price - self.a, price)
