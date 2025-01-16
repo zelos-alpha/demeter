@@ -4,7 +4,7 @@ from decimal import Decimal
 import pandas as pd
 
 import utils
-from demeter import TokenInfo, Actuator, Strategy, MarketDict, Snapshot, MarketInfo
+from demeter import TokenInfo, Actuator, Strategy, Snapshot, MarketInfo
 from demeter.uniswap import UniLpBalance, UniV3Pool, V3CoreLib, UniLpMarket
 from demeter.uniswap.liquitidy_math import get_sqrt_ratio_at_tick
 

@@ -35,19 +35,32 @@ class UniLpDataTest(unittest.TestCase):
         self.assertTrue("liqThereshold" in market.risk_parameters.columns)
 
     def test_apy_to_rate(self):
-        self.assertEqual(Decimal("0.0558916165865621190990895936500967"), AaveV3CoreLib.rate_to_apy(Decimal("0.054385544255370350575778874")))
+        self.assertEqual(
+            Decimal("0.0558916165865621190990895936500967"),
+            AaveV3CoreLib.rate_to_apy(Decimal("0.054385544255370350575778874")),
+        )
         self.assertEqual(Decimal("1.7182817853609708212635582654585362"), AaveV3CoreLib.rate_to_apy(Decimal("1")))
         self.assertEqual(Decimal("0"), AaveV3CoreLib.rate_to_apy(Decimal("0")))
 
     def test_status_calc_with_moke_data(self):
-        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "./aave_risk_parameters/polygon.csv", tokens=[usdt, dai, matic])
+        market = AaveV3Market(
+            MarketInfo("aave_test", MarketTypeEnum.aave_v3),
+            "./aave_risk_parameters/polygon.csv",
+            tokens=[usdt, dai, matic],
+        )
         timestamp = datetime(2023, 9, 12, 15)
 
         price = pd.DataFrame(data={"USDT": Decimal(1), "WETH": Decimal(1000)}, index=[timestamp])
 
         iterables = [
             [usdt.name, weth.name],
-            ["liquidity_rate", "stable_borrow_rate", "variable_borrow_rate", "liquidity_index", "variable_borrow_index"],
+            [
+                "liquidity_rate",
+                "stable_borrow_rate",
+                "variable_borrow_rate",
+                "liquidity_index",
+                "variable_borrow_index",
+            ],
         ]
         index = pd.MultiIndex.from_product(iterables)
         pool_stat = MarketStatus(timestamp)
@@ -73,9 +86,9 @@ class UniLpDataTest(unittest.TestCase):
         b_usdt = BorrowKey(usdt, InterestRateMode.variable)
 
         market.set_market_status(data=pool_stat, price=price.iloc[0])
-        market._supplies[s_weth] = SupplyInfo(Decimal(1), True)
-        market._supplies[s_usdt] = SupplyInfo(Decimal(100), False)
-        market._borrows[b_usdt] = BorrowInfo(Decimal(600))
+        market._supplies[s_weth] = SupplyInfo(Decimal(1), True, Decimal(0))
+        market._supplies[s_usdt] = SupplyInfo(Decimal(100), False, Decimal(0))
+        market._borrows[b_usdt] = BorrowInfo(Decimal(600), Decimal(0))
         stat = market.get_market_balance()
 
         self.assertEqual(market.get_supply(s_weth).value, Decimal("1100"))
@@ -105,14 +118,26 @@ class UniLpDataTest(unittest.TestCase):
         self.assertEqual(stat.net_value, Decimal("600"))
 
     def test_status_calc_with_real_data(self):
-        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "./aave_risk_parameters/polygon.csv", tokens=[usdt, dai, matic])
+        market = AaveV3Market(
+            MarketInfo("aave_test", MarketTypeEnum.aave_v3),
+            "./aave_risk_parameters/polygon.csv",
+            tokens=[usdt, dai, matic],
+        )
         timestamp = datetime(2023, 9, 12, 15)
 
-        price = pd.DataFrame(data={"USDT": Decimal(0.999990), "DAI": Decimal(1), "WMATIC": Decimal(0.509952)}, index=[timestamp])
+        price = pd.DataFrame(
+            data={"USDT": Decimal(0.999990), "DAI": Decimal(1), "WMATIC": Decimal(0.509952)}, index=[timestamp]
+        )
 
         iterables = [
             [dai.name, usdt.name, matic.name],
-            ["liquidity_rate", "stable_borrow_rate", "variable_borrow_rate", "liquidity_index", "variable_borrow_index"],
+            [
+                "liquidity_rate",
+                "stable_borrow_rate",
+                "variable_borrow_rate",
+                "liquidity_index",
+                "variable_borrow_index",
+            ],
         ]
 
         index = pd.MultiIndex.from_product(iterables)
@@ -143,10 +168,10 @@ class UniLpDataTest(unittest.TestCase):
         b_matic_v = BorrowKey(matic, InterestRateMode.variable)
         b_usdt_s = BorrowKey(usdt, InterestRateMode.stable)
         market.set_market_status(data=pool_stat, price=price.iloc[0])
-        market._supplies[s_dai] = SupplyInfo(Decimal(97.56471188217428), True)
-        market._supplies[s_matic] = SupplyInfo(Decimal(19.35174760735758), True)
-        market._borrows[b_matic_v] = BorrowInfo(Decimal(4.583153411559582))
-        market._borrows[b_usdt_s] = BorrowInfo(Decimal(4.709392084139431))
+        market._supplies[s_dai] = SupplyInfo(Decimal(97.56471188217428), True, Decimal(0))
+        market._supplies[s_matic] = SupplyInfo(Decimal(19.35174760735758), True, Decimal(0))
+        market._borrows[b_matic_v] = BorrowInfo(Decimal(4.583153411559582), Decimal(0))
+        market._borrows[b_usdt_s] = BorrowInfo(Decimal(4.709392084139431), Decimal(0))
         stat = market.get_market_balance()
         print(stat)
         # supplies
@@ -226,7 +251,13 @@ class UniLpDataTest(unittest.TestCase):
         price_series = pd.Series(data=[Decimal(1000), Decimal(1)], index=[weth.name, dai.name])
         iterables = [
             [weth.name, dai.name],
-            ["liquidity_rate", "stable_borrow_rate", "variable_borrow_rate", "liquidity_index", "variable_borrow_index"],
+            [
+                "liquidity_rate",
+                "stable_borrow_rate",
+                "variable_borrow_rate",
+                "liquidity_index",
+                "variable_borrow_index",
+            ],
         ]
 
         index = pd.MultiIndex.from_product(iterables)
@@ -259,7 +290,9 @@ class UniLpDataTest(unittest.TestCase):
         supply_key = market.supply(weth, amount, False)
 
         self.assertEqual(len(market._supplies), 1)
-        self.assertEqual(market._supplies[supply_key].base_amount, amount / market.market_status.data[weth.name].liquidity_index)
+        self.assertEqual(
+            market._supplies[supply_key].base_amount, amount / market.market_status.data[weth.name].liquidity_index
+        )
         self.assertEqual(broker.get_token_balance(weth), 0)
 
         self.assertEqual(market.supplies[supply_key].amount, amount)
@@ -274,7 +307,9 @@ class UniLpDataTest(unittest.TestCase):
         supply_key = market.supply(weth, Decimal(4), False)
 
         self.assertEqual(len(market._supplies), 1)
-        self.assertEqual(market._supplies[supply_key].base_amount, Decimal(5) / market.market_status.data[weth.name].liquidity_index)
+        self.assertEqual(
+            market._supplies[supply_key].base_amount, Decimal(5) / market.market_status.data[weth.name].liquidity_index
+        )
         self.assertEqual(broker.get_token_balance(weth), 0)
 
         pass
@@ -286,7 +321,9 @@ class UniLpDataTest(unittest.TestCase):
         supply_key = market.supply(weth, amount, True)
 
         self.assertEqual(len(market._supplies), 1)
-        self.assertEqual(market._supplies[supply_key].base_amount, Decimal(5) / market.market_status.data[weth.name].liquidity_index)
+        self.assertEqual(
+            market._supplies[supply_key].base_amount, Decimal(5) / market.market_status.data[weth.name].liquidity_index
+        )
         self.assertEqual(market._supplies[supply_key].collateral, True)
 
         self.assertEqual(broker.get_token_balance(weth), 0)
