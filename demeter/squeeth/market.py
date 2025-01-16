@@ -60,8 +60,10 @@ class SqueethMarket(Market):
         self,
         market_info: MarketInfo,
         squeeth_uni_pool: UniLpMarket,
+        data: pd.DataFrame | None = None,
+        data_path: str = "./data",
     ):
-        super().__init__(market_info=market_info)
+        super().__init__(market_info=market_info, data=data, data_path=data_path)
         self._network = ETH_MAINNET
         self._squeeth_uni_pool = squeeth_uni_pool
         self.vault: Dict[VaultKey, Vault] = {}

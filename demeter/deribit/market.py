@@ -59,8 +59,10 @@ class DeribitOptionMarket(Market):
         self,
         market_info: MarketInfo,
         token: TokenInfo,
+        data: pd.DataFrame | None = None,
+        data_path: str = "./data",
     ):
-        super().__init__(market_info=market_info)
+        super().__init__(market_info=market_info, data=data, data_path=data_path)
         self.token: TokenInfo = token
         self.token_config: DeribitTokenConfig = DeribitOptionMarket.TOKEN_CONFIGS[token]
         self.positions: Dict[str, OptionPosition] = {}

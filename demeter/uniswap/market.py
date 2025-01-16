@@ -69,8 +69,14 @@ class UniLpMarket(Market):
 
     """
 
-    def __init__(self, market_info: MarketInfo, pool_info: UniV3Pool):
-        super().__init__(market_info=market_info)
+    def __init__(
+        self,
+        market_info: MarketInfo,
+        pool_info: UniV3Pool,
+        data: pd.DataFrame = None,
+        data_path: str = "./data",
+    ):
+        super().__init__(market_info=market_info, data=data, data_path=data_path)
         self._pool: UniV3Pool = pool_info
         # init balance
         self._is_token0_quote = pool_info.is_token0_quote
@@ -200,7 +206,7 @@ class UniLpMarket(Market):
 
         :param any0: token0 or any property of token0, e.g. balance...
         :param any1: token1 or any property of token1, e.g. balance...
-        :return: (base,qoute) or (token0,token1)
+        :return: (base,quote) or (token0,token1)
         """
         return (any1, any0) if self._is_token0_quote else (any0, any1)
 
@@ -711,7 +717,7 @@ class UniLpMarket(Market):
         :type position: PositionInfo
         :param liquidity: liquidity amount to remove, if set to None, all the liquidity will be removed
         :type liquidity: int
-        :param collect: collect or not, if collect, will call collect function. and tokens will be sent to broker. if not, token will be kept in fee property of postion
+        :param collect: collect or not, if collect, will call collect function. and tokens will be sent to broker. if not, token will be kept in fee property of position
         :type collect: bool
         :param sqrt_price_x96: precise price.  if set to none, it will be calculated from current price.
         :type sqrt_price_x96: int

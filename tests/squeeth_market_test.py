@@ -42,7 +42,8 @@ class TestSqueethMarket(TestCase):
                 "OSQTH": [100, 101, 102, 103, 104, 105, 106, 107],
             },
         )
-        market = SqueethMarket(squeeth_key, None, data)
+        market = SqueethMarket(squeeth_key, None)
+        market.data = data
         market.set_market_status(MarketStatus(datetime(2024, 1, 1, 0, 7)), None)
         price = market.get_twap_price(TokenInfo("eth", 18))
         self.assertEqual(price, 1003.9980079631864)
@@ -57,7 +58,8 @@ class TestSqueethMarket(TestCase):
                 "OSQTH": [100, 101, 102, 103, 104, 105, 106, 107],
             },
         )
-        market = SqueethMarket(squeeth_key, None, data)
+        market = SqueethMarket(squeeth_key, None)
+        market.data = data
         market.set_market_status(MarketStatus(datetime(2024, 1, 1, 0, 1)), None)
         price = market.get_twap_price(TokenInfo("eth", 18))
         self.assertEqual(price, 1000.49987506246)

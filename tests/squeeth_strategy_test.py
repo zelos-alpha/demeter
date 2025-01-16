@@ -59,9 +59,11 @@ class SimpleShortStrategy(Strategy):
 def get_actuator():
     actuator = Actuator()
 
-    uni_market = UniLpMarket(osqth_pool, UniV3Pool(weth, oSQTH, 0.3, weth), data_path="data")
+    uni_market = UniLpMarket(osqth_pool, UniV3Pool(weth, oSQTH, 0.3, weth))
+    uni_market.data_path = "data"
     uni_market.load_data("ethereum", "0x82c427adfdf2d245ec51d8046b41c4ee87f0d29c", date(2023, 8, 14), date(2023, 8, 17))
-    squeeth_market = SqueethMarket(squeeth_key, uni_market, data_path="data")
+    squeeth_market = SqueethMarket(squeeth_key, uni_market)
+    squeeth_market.data_path = "data"
     squeeth_market.load_data(date(2023, 8, 14), date(2023, 8, 17))
     actuator.broker.add_market(uni_market)
     actuator.broker.add_market(squeeth_market)

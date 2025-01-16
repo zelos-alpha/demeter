@@ -53,8 +53,10 @@ class AaveV3Market(Market):
         market_info: MarketInfo,
         risk_parameters_path: str,
         tokens: List[TokenInfo] = None,
+        data: pd.DataFrame | None = None,
+        data_path: str = "./data",
     ):
-        super().__init__(market_info=market_info)
+        super().__init__(market_info=market_info, data=data, data_path=data_path)
         tokens = tokens if tokens is not None else []  # just to set an initial value
         self._supplies: Dict[SupplyKey, SupplyInfo] = {}
         self._borrows: Dict[BorrowKey, BorrowInfo] = {}

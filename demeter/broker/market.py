@@ -35,12 +35,13 @@ class Market(ABC):
     :type market_info: MarketInfo
     """
 
-    def __init__(self, market_info: MarketInfo):
+    def __init__(self, market_info: MarketInfo, data: pd.DataFrame | None = None, data_path: str = "./data"):
         """
         Initialize a Market
 
         """
-        self._data: pd.DataFrame | None = None
+        self._data: pd.DataFrame | None = data
+        self.data_path = data_path
         self._market_info: MarketInfo = market_info
         self.broker = None
         self._record_action_callback: Callable[[BaseAction], None] | None = None
@@ -58,7 +59,6 @@ class Market(ABC):
         # or it will be false until timestamp is on its interval
         self.is_open: bool = True
         self.quote_token: TokenInfo = USD
-        self.data_path = "./data"
 
     def __str__(self):
         return f"{self._market_info.name}:{type(self).__name__}"

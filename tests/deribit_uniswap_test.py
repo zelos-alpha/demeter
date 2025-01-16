@@ -46,7 +46,8 @@ class OptionStrategyTest(unittest.TestCase):
         super(OptionStrategyTest, self).__init__(*args, **kwargs)
 
     def _get_actuator(self):
-        market_deribit = DeribitOptionMarket(market_d, DeribitOptionMarket.ETH, data_path="data")
+        market_deribit = DeribitOptionMarket(market_d, DeribitOptionMarket.ETH)
+        market_deribit.data_path = "data"
         market_deribit.load_data(date(2024, 2, 15), date(2024, 2, 16))
 
         pool = UniV3Pool(token0=usdc, token1=eth, fee=0.05, quote_token=usdc)

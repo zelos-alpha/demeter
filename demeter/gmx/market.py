@@ -22,8 +22,10 @@ class GmxMarket(Market):
         self,
         market_info: MarketInfo,
         tokens: List[TokenInfo] = None,
+        data: pd.DataFrame | None = None,
+        data_path: str = "./data",
     ):
-        super().__init__(market_info=market_info)
+        super().__init__(market_info=market_info, data=data, data_path=data_path)
         tokens = tokens if tokens is not None else []
         self.glp_amount = Decimal("0.00")  # glp liquidity
         self.glp_decimal = 18
