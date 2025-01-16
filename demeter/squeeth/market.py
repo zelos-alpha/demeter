@@ -25,7 +25,7 @@ from ._typing import (
     LiquidationAction,
     SqueethDescription,
 )
-from .helper import calc_twap_price, vault_to_dataframe
+from .helper import calc_twap_price, vault_to_dataframe, load_squeeth_data, get_price_from_data
 from .. import MarketInfo, TokenInfo, DemeterError, MarketStatus, DECIMAL_0, UnitDecimal, MarketTypeEnum
 from ..broker import Market
 from ..data import CacheManager
@@ -203,7 +203,6 @@ class SqueethMarket(Market):
         if market_status.data is None:
             market_status.data = self.data.loc[market_status.timestamp]
         self._market_status = market_status
-
 
     def formatted_str(self):
         """
@@ -818,3 +817,9 @@ class SqueethMarket(Market):
         check market before back test
         """
         super().check_market()
+
+    def load_data(self, start_date: date, end_date: date):
+        self._data = load_squeeth_data(start_date, end_date, self.data_path)
+
+    def get_price_from_data(self) -> pd.DataFrame:
+        return get_price_from_data(self.data)

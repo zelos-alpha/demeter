@@ -1,32 +1,30 @@
 # Ver 1.0.0
 
-* Run multiple strategy, so there are a lot of breaking change
-  * Add `BacktestManager` who can start multiple backtest in one or multiple subprocesses. 
-  * [Breaking change]As data will be shared among all sub process and markets, Data loading in every market was moved from market to helper.
+* Add `BacktestManager` who can start multiple backtest in one or multiple subprocesses.
 * [Breaking change] RowData class in strategy was renamed to Snapshot
 * Gmx market:
-  * [Breaking change]market type was change to `gmx_v1`
+    * [Breaking change]market type was change to `gmx_v1`
 
 # Ver 0.8.3
 
 * fix errors in deribit market.
 * _check_transaction function in deribit market was set to public
 * [Breaking change] Delta and gamma in deribit option market was changed from average value to total value
-* Add cash value in AccountStatus of broker 
+* Add cash value in AccountStatus of broker
 
 # Ver 0.8.2
 
 * change order when saving backtest result
-* data and price has updated. The value in the beginning of the minute will follow the value in the last minute(In old version it will be decided by the first transaction in this minute.)
-* fix issues in data cache(when feather file is lost, a error will be raised) 
+* data and price has updated. The value in the beginning of the minute will follow the value in the last minute(In old version it will be decided by
+  the first transaction in this minute.)
+* fix issues in data cache(when feather file is lost, a error will be raised)
 * show market name when loading data
 * add lp net value for uniswap market balance
 * deribit: convert type of t when loading csv
 * fix other bugs
 
-
-
 # Ver 0.8.0
+
 * add GMX Market
 
 # Ver 0.7.7
@@ -36,26 +34,26 @@
 * Add start liquidity index for aave position
 * Add net value for metrics
 * Add cache to backtest data
-* You can set account status file format in actuator.save_result() 
+* You can set account status file format in actuator.save_result()
 
 # Ver 0.7.6
 
-* For uniswap v3, when price is in and out of price range in this minute, fee will be calculated more accurately  
+* For uniswap v3, when price is in and out of price range in this minute, fee will be calculated more accurately
 
-# Ver 0.7.5 
+# Ver 0.7.5
 
 * Fix bugs in aave
 
 # Ver 0.7.4
 
-* [Breaking change]Value of ChainType enum has changed to chain id. 
+* [Breaking change]Value of ChainType enum has changed to chain id.
 * Add base_token to UniV3Pool class
 
 # Ver 0.7.3
 
 * update dependency according to issue [here](https://github.com/zelos-alpha/demeter/issues/16)
 
-# Ver 0.7.2 
+# Ver 0.7.2
 
 * Add comment to action.get_output_str()
 * When exception was raised in backtesting, demeter will save actions and account status

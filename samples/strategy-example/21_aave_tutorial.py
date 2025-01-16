@@ -3,7 +3,7 @@ from datetime import date, datetime
 from typing import Union
 
 from demeter import TokenInfo, Actuator, Strategy, Snapshot, MarketInfo, MarketTypeEnum, ChainType, AtTimeTrigger
-from demeter.aave import AaveBalance, AaveV3Market, AaveTokenStatus,load_aave_data
+from demeter.aave import AaveBalance, AaveV3Market, AaveTokenStatus, load_aave_data
 
 # To print all the columns of dataframe, we should set up display option.
 pd.options.display.max_columns = None
@@ -44,9 +44,10 @@ if __name__ == "__main__":
     weth = TokenInfo(name="weth", decimal=18, address="0x7ceb23fd6bc0add59e62ac25578270cff1b9f619")  # declare token eth
 
     market_key = MarketInfo("aave", MarketTypeEnum.aave_v3)
-    aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="../../tests/aave_risk_parameters/polygon.csv", tokens=[weth])
-    data = load_aave_data(ChainType.polygon, [weth], date(2023, 8, 14), date(2023, 8, 14), "../data")
-    aave_market.data = data
+    aave_market = AaveV3Market(
+        market_info=market_key, risk_parameters_path="../../tests/aave_risk_parameters/polygon.csv", tokens=[weth]
+    )
+    aave_market.data = load_aave_data(ChainType.polygon, [weth], date(2023, 8, 14), date(2023, 8, 14), "../data")
     actuator = Actuator()
     actuator.broker.add_market(aave_market)
     actuator.broker.set_balance(weth, 15)

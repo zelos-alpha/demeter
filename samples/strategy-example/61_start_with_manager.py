@@ -21,9 +21,6 @@ pd.set_option("display.width", 5000)
 
 
 class DemoStrategy(Strategy):
-    """
-    this demo shows how to handle backtest results.
-    """
 
     def __init__(self):
         super().__init__()
@@ -42,7 +39,12 @@ class DemoStrategy(Strategy):
         self.new_position, amount0_used, amount1_used, liquidity = lp_market.add_liquidity(1000, 4000)  # add liquidity
         self.comment_last_action("Add liquidity because ...")  # add comment to last transaction
 
+"""
+This demo shows how to work with BacktestManager. 
+BacktestManager is a backtesting engine that allows multiple strategies to be executed concurrently, 
+reducing the overall backtesting time.
 
+"""
 
 if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)
@@ -52,10 +54,14 @@ if __name__ == "__main__":
     market_key = MarketInfo("market1")  # market1
     market = uniswap.UniLpMarket(market_key, pool)
 
+    # We have several things to config:
+    # 1. StrategyConfig, you can set initial asset and market here
     strategy_config = StrategyConfig(
         assets={usdc: 10000, eth: 10},
         markets=[market],
     )
+    # 2. data.
+    # As data is shared in all subprocess, it should be loaded outside the market.
     data_df = uniswap.load_uni_v3_data(
         pool,
         ChainType.polygon.name,
@@ -66,11 +72,13 @@ if __name__ == "__main__":
     )
     price_df = uniswap.get_price_from_data(data_df, pool)
 
+    # 3. Create a BacktestManager instance, set your strategy, configs and data.
     backtest = BacktestManager(
         config=strategy_config,
         data=BacktestData({market_key: data_df}, price_df),
         strategies=[DemoStrategy()],
         backtest_config=BacktestConfig(),
     )
+    # As we have only on strategy, backtest will run in main process.
     backtest.run()
     pass

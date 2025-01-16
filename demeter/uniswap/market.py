@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from typing import Dict, Tuple
 
@@ -34,6 +35,8 @@ from .helper import (
     MIN_ERROR,
     nearest_usable_tick,
     sqrt_price_x96_to_tick,
+    load_uni_v3_data,
+    get_price_from_data,
 )
 from .liquitidy_math import (
     get_sqrt_ratio_at_tick,
@@ -1056,3 +1059,9 @@ class UniLpMarket(Market):
 
     def _resample(self, freq: str):
         self._data = resample(self._data, freq)
+
+    def load_data(self, chain: str, contract_addr: str, start_date: date, end_date: date):
+        self.data = load_uni_v3_data(self.pool_info, chain, contract_addr, start_date, end_date, self.data_path)
+
+    def get_price_from_data(self):
+        return get_price_from_data(self.data, self.pool_info)

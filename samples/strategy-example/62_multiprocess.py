@@ -49,9 +49,17 @@ class DemoStrategy(Strategy):
 
 
 def after_backtest(actuator: Actuator):
+    # save result and etc.
     files = actuator.save_result(path="./result", file_name=f"strategy-{actuator.strategy.lp_range}")
     pass
 
+
+"""
+Now, let's take a look at the true power of BacktestManager. 
+Here, we will backtest two strategies, which differ only in their parameters (although they could also be two completely different strategies). 
+They will be executed in parallel.
+
+"""
 
 if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)
@@ -78,9 +86,9 @@ if __name__ == "__main__":
     backtest = BacktestManager(
         config=strategy_config,
         data=BacktestData({market_key: data_df}, price_data),
-        strategies=[DemoStrategy((1000, 3000)), DemoStrategy((1500, 2500))],
+        strategies=[DemoStrategy((1000, 3000)), DemoStrategy((1500, 2500))], # two strategies
         backtest_config=BacktestConfig(callback=after_backtest),
-        threads=2,
+        threads=2, # concurrent number
     )
     backtest.run()
     pass

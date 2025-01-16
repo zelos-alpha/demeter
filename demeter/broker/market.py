@@ -58,6 +58,7 @@ class Market(ABC):
         # or it will be false until timestamp is on its interval
         self.is_open: bool = True
         self.quote_token: TokenInfo = USD
+        self.data_path = "./data"
 
     def __str__(self):
         return f"{self._market_info.name}:{type(self).__name__}"

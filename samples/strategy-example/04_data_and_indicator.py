@@ -3,8 +3,19 @@ from typing import List
 
 import pandas as pd
 
-from demeter import TokenInfo, Actuator, Strategy, Snapshot, ChainType, MarketInfo, MarketDict, AtTimeTrigger, simple_moving_average, AccountStatus
-from demeter.uniswap import UniLPData, UniV3Pool, UniLpMarket
+from demeter import (
+    TokenInfo,
+    Actuator,
+    Strategy,
+    Snapshot,
+    ChainType,
+    MarketInfo,
+    MarketDict,
+    AtTimeTrigger,
+    simple_moving_average,
+    AccountStatus,
+)
+from demeter.uniswap import UniLPData, UniV3Pool, UniLpMarket, load_uni_v3_data, get_price_from_data
 
 pd.options.display.max_columns = None
 pd.set_option("display.width", 5000)
@@ -19,7 +30,9 @@ class DemoStrategy(Strategy):
         new_trigger = AtTimeTrigger(time=datetime(2023, 8, 15, 12, 0, 0), do=self.work)
         self.triggers.append(new_trigger)  # add new trigger at 2023-8-15 12:00:00
         # add an indicator column, this column will be appended to corresponding market data
-        self.add_column(market=market_key, name="sma", column_data=simple_moving_average(self.data[market_key].price))  # name,
+        self.add_column(
+            market=market_key, name="sma", column_data=simple_moving_average(self.data[market_key].price)
+        )  # name,
 
     def work(self, row_data: Snapshot):
         # price set to actuator
@@ -61,14 +74,22 @@ if __name__ == "__main__":
 
     market_key = MarketInfo("market1")
     market = UniLpMarket(market_key, pool)
-    market.data_path = "../data"
-    market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 15), date(2023, 8, 15))
+
+    # load data in a new way
+    market.data = load_uni_v3_data(
+        pool,
+        ChainType.polygon.name,
+        "0x45dda9cb7c25131df268515131f647d726f50608",
+        date(2023, 8, 15),
+        date(2023, 8, 15),
+        "../data",
+    )
 
     actuator = Actuator()
     actuator.broker.add_market(market)
     actuator.broker.set_balance(usdc, 10000)
     actuator.broker.set_balance(eth, 10)
     actuator.strategy = DemoStrategy()
-    actuator.set_price(market.get_price_from_data())
+    actuator.set_price(get_price_from_data(market.data, pool))
 
     actuator.run()

@@ -56,16 +56,8 @@ if __name__ == "__main__":
     market = UniLpMarket(market_key, pool)  # uni_market:UniLpMarket, positions: 0, total liquidity: 0
     # load data for market. those data is prepared by download tool
     market.data_path = "../data"  # set data path
+    market.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 15), date(2023, 8, 15))
 
-    market.data = load_uni_v3_data(
-        pool,
-        ChainType.polygon.name,
-        "0x45dda9cb7c25131df268515131f647d726f50608",
-        date(2023, 8, 15),
-        date(2023, 8, 16),
-        "../data",
-    )
-    price_data = get_price_from_data(market.data, pool)
 
     # Declare the Actuator, which controls the whole process
     actuator = Actuator()  # declare actuator, Demeter Actuator (broker:assets: ; markets: )
@@ -79,6 +71,6 @@ if __name__ == "__main__":
     # Set price. Those price will be used in all markets.
     # Usually, you will have to find the price list from outer source.
     # Luckily, uniswap pool data contains price information. So UniLpMarket provides a function to retrieve price list.
-    actuator.set_price(price_data)
+    actuator.set_price(market.get_price_from_data())  # set actuator price
     # run test, If you use default parameter, final fund status will be printed in console.
     actuator.run()

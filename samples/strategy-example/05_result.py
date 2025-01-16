@@ -37,7 +37,7 @@ class DemoStrategy(Strategy):
         self.triggers.append(remove_trigger)
 
     def on_bar(self, row_data: Snapshot):
-        self.some_record.append({"custom1": row_data.market_status[market_key]["open"]})
+        self.some_record.append({"custom1": row_data.market_status[market_key]["netAmount1"]})
 
     def work(self, row_data: Snapshot):
         lp_market: UniLpMarket = self.markets[market_key]  # pick our market.
@@ -126,5 +126,5 @@ if __name__ == "__main__":
     files = actuator.save_result(path="./result", file_name="custom-file-name", custom_param="custom_value", decimals=3)
 
     # load equity list
-    account_df_loaded = load_account_status(files[0])
+    account_df_loaded = load_account_status(files[1])
     pass

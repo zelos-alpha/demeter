@@ -1,4 +1,5 @@
 from _decimal import Decimal
+from datetime import date
 from typing import Dict, List, Set
 
 import pandas as pd
@@ -28,10 +29,10 @@ from ._typing import (
 )
 from .core import AaveV3CoreLib
 from .. import DemeterError, TokenInfo
-from .._typing import DECIMAL_0, UnitDecimal
+from .._typing import DECIMAL_0, UnitDecimal, ChainType
 from ..broker import Market, MarketInfo, write_func
 from ..utils import get_formatted_predefined, STYLE, get_formatted_from_dict, console_text
-from ..utils.application import require, float_param_formatter
+from ..utils.application import require, float_param_formatter, to_decimal
 
 
 class AaveV3Market(Market):
@@ -87,62 +88,30 @@ class AaveV3Market(Market):
         """
         return AaveDescription(type(self).__name__, self._market_info.name, len(self._supplies), len(self._borrows))
 
-    # @property
-    # def data(self) -> pd.DataFrame:
-    #     """
-    #     | Get data attribute. data have multiple column index.
-    #     | Columns are organized by token, like this:
-    #
-    #     +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+
-    #     |                   | WETH           |                   |                     |                 |                      |
-    #     +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+
-    #     |block_timestamp    | liquidity_rate |stable_borrow_rate |variable_borrow_rate | liquidity_index | variable_borrow_index|
-    #     +===================+================+===================+=====================+=================+======================+
-    #     |2023-08-15 00:00:00|              0 |                 0 |                   0 |            1    |             1        |
-    #     +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+
-    #     |2023-08-15 00:01:00|              0 |                 0 |                   0 |        1.001    |         1.001        |
-    #     +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+
-    #     |2023-08-15 00:02:00|              0 |                 0 |                   0 |        1.002    |         1.002        |
-    #     +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+
-    #     |2023-08-15 00:03:00|              0 |                 0 |                   0 |        1.003    |         1.003        |
-    #     +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+
-    #     |2023-08-15 00:04:00|              0 |                 0 |                   0 |        1.004    |         1.004        |
-    #     +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+
-    #
-    #
-    #
-    #     | So if you want to read a element in this dataframe, such as liquidity_rate of weth, you should do: data.iloc[0]["WETH"]["liquidity_rate"],
-    #     | and if you access a column, you can do data["WETH"]["liquidity_rate"]
-    #     | If you append a new column to data, the new column will be
-    #
-    #     +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+----------------------+
-    #     |                   | WETH           |                   |                     |                 |                      |     new_column       |
-    #     +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+----------------------+
-    #     |block_timestamp    | liquidity_rate |stable_borrow_rate |variable_borrow_rate | liquidity_index | variable_borrow_index|                      |
-    #     +===================+================+===================+=====================+=================+======================+======================+
-    #     |2023-08-15 00:00:00|              0 |                 0 |                   0 |            1    |             1        |             1        |
-    #     +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+----------------------+
-    #     |2023-08-15 00:01:00|              0 |                 0 |                   0 |        1.001    |         1.001        |             2        |
-    #     +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+----------------------+
-    #     |2023-08-15 00:02:00|              0 |                 0 |                   0 |        1.002    |         1.002        |             3        |
-    #     +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+----------------------+
-    #     |2023-08-15 00:03:00|              0 |                 0 |                   0 |        1.003    |         1.003        |             4        |
-    #     +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+----------------------+
-    #     |2023-08-15 00:04:00|              0 |                 0 |                   0 |        1.004    |         1.004        |             5        |
-    #     +-------------------+----------------+-------------------+---------------------+-----------------+----------------------+----------------------+
-    #
-    #     This bring an odd thing, if you access a element in new_column by access row first. data.iloc[0]["new_column"] will return a series instead a item. so data.iloc[0]["new_column"][0] will work
-    #     and if you access by column first, data["new_column"] will return a series, so data["new_column"].iloc[0] will work, no need to write extra [0]
-    #
-    #     """
-    #     return self._data
-
     @property
     def risk_parameters(self) -> pd.DataFrame:
         """
         Get risk parameters
         """
         return self._risk_parameters
+
+    def set_token_data(self, token_info: TokenInfo, token_data: pd.DataFrame):
+        """
+        Set aave pool data of one token. Usually demeter-fetch will keep one csv file for each token.
+
+        :param token_info: which token to set
+        :type token_info: TokenInfo
+        :param token_data: data
+        :type token_data: DataFrame
+        """
+        if self._data is not None and token_info.name in self._data:
+            raise DemeterError(f"{token_info.name} has already set to data")
+        if isinstance(token_data, pd.DataFrame):
+            token_data = token_data.map(to_decimal)
+            token_data.columns = pd.MultiIndex.from_tuples([(token_info.name, c) for c in token_data.columns])
+            self._data = pd.concat([self._data, token_data], axis="columns")
+        else:
+            raise ValueError()
 
     @property
     def tokens(self) -> Set[TokenInfo]:
@@ -1092,3 +1061,12 @@ class AaveV3Market(Market):
 
     def _resample(self, freq: str):
         self._data = self.data.resample(freq).first()
+
+    def load_data(
+        self,
+        chain: ChainType,
+        token_info_list: List[TokenInfo],
+        start_date: date,
+        end_date: date,
+    ):
+        self._data = helper.load_aave_data(chain, token_info_list, start_date, end_date, self.data_path)

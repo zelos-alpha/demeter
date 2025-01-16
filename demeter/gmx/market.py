@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal, ROUND_DOWN
 from typing import List, Set
 
@@ -6,7 +7,8 @@ from orjson import orjson
 
 from demeter import MarketStatus
 from ._typing import GmxDescription, GmxBalance, BuyGlpAction, SellGlpAction, PRICE_PRECISION
-from .._typing import TokenInfo
+from .helper import load_gmx_v1_data, get_price_from_data
+from .._typing import TokenInfo, ChainType
 from ..broker import Market, MarketInfo
 from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE, console_text
 
@@ -218,3 +220,9 @@ class GmxMarket(Market):
         )
 
         return value
+
+    def load_data(self, chain: ChainType, start_date: date, end_date: date):
+        self._data = load_gmx_v1_data(chain, start_date, end_date, self.data_path)
+
+    def get_price_from_data(self) -> pd.DataFrame:
+        return get_price_from_data(self.data)

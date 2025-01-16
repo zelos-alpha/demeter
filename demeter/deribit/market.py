@@ -2,6 +2,7 @@ import copy
 import logging
 import os
 from _decimal import Decimal
+from datetime import date
 from typing import List, Dict, Tuple
 
 import pandas as pd
@@ -25,7 +26,7 @@ from ._typing import (
     DepositAction,
     WithdrawAction,
 )
-from .helper import round_decimal, position_to_df, get_new_order_list
+from .helper import round_decimal, position_to_df, get_new_order_list, load_deribit_option_data, get_price_from_data
 from .. import TokenInfo
 from .._typing import DemeterError
 from ..broker import Market, MarketInfo, write_func
@@ -702,3 +703,9 @@ class DeribitOptionMarket(Market):
             return
         else:
             self._data = self._data.groupby(level=1).resample(freq, level=0).first().swaplevel(1, 0)
+
+    def load_data(self, start_date: date, end_date: date):
+        self._data = load_deribit_option_data(start_date, end_date, self.data_path)
+
+    def get_price_from_data(self) -> pd.Series:
+        return get_price_from_data(self.data)
