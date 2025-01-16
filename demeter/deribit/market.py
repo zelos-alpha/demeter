@@ -28,7 +28,7 @@ from ._typing import (
 from .helper import round_decimal, position_to_df
 from .. import TokenInfo
 from .._typing import DemeterError
-from ..broker import Market, MarketInfo, write_func, BASE_FREQ
+from ..broker import Market, MarketInfo, write_func
 from ..utils import (
     float_param_formatter,
     get_formatted_predefined,
@@ -195,7 +195,8 @@ class DeribitOptionMarket(Market):
         if data.data is None:
             tmr_idx = data.timestamp.floor(DERIBIT_OPTION_FREQ)
             if tmr_idx in self._data.index:
-                data.data = self._data.loc[tmr_idx]
+                # isolate data in every process
+                data.data = self._data.loc[tmr_idx].copy()
             else:
                 data.data = pd.DataFrame(columns=self._data.columns)
                 if self._is_open():
@@ -330,8 +331,6 @@ class DeribitOptionMarket(Market):
             instrument_name, amount, price_in_token, price_in_usd, True, max_mark_price_multiple
         )
 
-        # this actually pass reference of the array, so asks array will be updated in _deduct_order_amount.
-        # so when orders are deducted, asks order number will be changed.
         if max_mark_price_multiple is not None:
             asks = list(
                 filter(lambda x: x[0] < max_mark_price_multiple * Decimal(instrument.mark_price), instrument.asks)
@@ -341,6 +340,18 @@ class DeribitOptionMarket(Market):
         asks = copy.deepcopy(asks)
 
         # deduct bids amount
+        """
+        note:
+        Asks is updated as it's a deepcopy, but instrument.asks/market_status.loc[instrument]["asks"]/self._data.loc[time].loc[instrument]["asks"] is not updated
+        In fact, as I tested, if I use pyarraw as back_end,
+        the last three asks is different instance. that's because when you call .loc, it will return a new instance who has different id
+        So I cannot modify asks in market_status.loc[instrument]["asks"]
+        And when I use numpy as back_end, those three object will be the same instance. and the asks instance is read only therefore can not be updated.
+        As a result, I can not update  market_status.loc[instrument]["asks"]
+        so when you buy option twice in a bar, amount can not be correctly checked.
+        e.g. order has 100 option, you can not buy 150 because I will stop any order above 100, but you can buy 75 twice, as amount is checked separately.
+        """
+
         ask_list = self._deduct_order_amount(amount, asks, price_in_token)
 
         total_premium = Decimal(sum([Decimal(t.amount) * Decimal(t.price) for t in ask_list]))
