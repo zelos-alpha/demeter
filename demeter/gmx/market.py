@@ -5,8 +5,8 @@ import pandas as pd
 from orjson import orjson
 
 from demeter import MarketStatus
-from ._typing import GmxDescription, GmxBalance, BuyGlpAction, SellGlpAction
-from .._typing import DemeterError, TokenInfo
+from ._typing import GmxDescription, GmxBalance, BuyGlpAction, SellGlpAction, PRICE_PRECISION
+from .._typing import TokenInfo
 from ..broker import Market, MarketInfo
 from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE, console_text
 
@@ -25,7 +25,6 @@ class GmxMarket(Market):
         tokens = tokens if tokens is not None else []
         self.glp_amount = Decimal("0.00")  # glp liquidity
         self.glp_decimal = 18
-        self.PRICE_PRECISION = 10**30
         self.reward = Decimal("0.00")  # pending fee
         self.mint_burn_fee_basis_points = 25
         self.tax_basis_points = 60
@@ -134,7 +133,7 @@ class GmxMarket(Market):
         return amount_after_fee
 
     def get_redemption_amount(self, token: TokenInfo, usdg_amount: Decimal | float):
-        price = Decimal(self.market_status.data[f"{token.name.lower()}_price"]) / self.PRICE_PRECISION
+        price = Decimal(self.market_status.data[f"{token.name.lower()}_price"]) / PRICE_PRECISION
         redemption_amount = usdg_amount / Decimal(price)
         return redemption_amount
 
@@ -180,21 +179,11 @@ class GmxMarket(Market):
         after_fee_amount = token_amount - fee_amount
         return after_fee_amount
 
-    def get_price_from_data(self):
-        if self.data is None:
-            raise DemeterError("data has not set")
-        # keep weth/wavax
-        df_price = self.data[["weth_price", "wavax_price"]].copy()
-        df_price["weth_price"] = df_price["weth_price"].apply(lambda r: r / self.PRICE_PRECISION)
-        df_price["wavax_price"] = df_price["wavax_price"].apply(lambda r: r / self.PRICE_PRECISION)
-        df_price.rename(columns={"weth_price": "WETH", "wavax_price": "WAVAX"}, inplace=True)
-        return df_price
-
     def get_market_balance(self) -> GmxBalance:
         # market 有glp + weth/avax fee  change by chain config
         net_value = (
             self.glp_amount * Decimal(self.market_status.data.glp_price)
-            + self.reward * Decimal(self.market_status.data["wavax_price"]) / self.PRICE_PRECISION
+            + self.reward * Decimal(self.market_status.data["wavax_price"]) / PRICE_PRECISION
         )
         val = GmxBalance(net_value=net_value, reward=self.reward, glp=self.glp_amount)
         return val

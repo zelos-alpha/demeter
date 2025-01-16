@@ -204,15 +204,6 @@ class SqueethMarket(Market):
             market_status.data = self.data.loc[market_status.timestamp]
         self._market_status = market_status
 
-    def get_price_from_data(self) -> pd.DataFrame:
-        """
-        Extract token price from relative uniswap pool. All price is quoted in usd
-        """
-        if self.data is None:
-            raise DemeterError("data has not set")
-        price_df = self._data[[WETH.name, oSQTH.name]].copy()
-        price_df[oSQTH.name] = price_df[oSQTH.name] * price_df[WETH.name]
-        return price_df
 
     def formatted_str(self):
         """

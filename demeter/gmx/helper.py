@@ -7,6 +7,16 @@ import pandas as pd
 from demeter import ChainType, MarketTypeEnum
 from demeter.data import CacheManager
 from demeter.utils import to_decimal
+from ._typing import PRICE_PRECISION
+
+
+def get_price_from_data(data: pd.DataFrame):
+    # keep weth/wavax
+    df_price = data[["weth_price", "wavax_price"]].copy()
+    df_price["weth_price"] = df_price["weth_price"].apply(lambda r: r / PRICE_PRECISION)
+    df_price["wavax_price"] = df_price["wavax_price"].apply(lambda r: r / PRICE_PRECISION)
+    df_price.rename(columns={"weth_price": "WETH", "wavax_price": "WAVAX"}, inplace=True)
+    return df_price
 
 
 def load_gmx_v1_data(chain: ChainType, start_date: date, end_date: date, data_path: str) -> pd.DataFrame:

@@ -10,6 +10,7 @@ import pandas as pd
 from demeter import DemeterError, MarketTypeEnum
 from demeter.data import CacheManager
 from demeter.squeeth import VaultKey, Vault
+from ._typing import WETH, oSQTH
 from demeter.utils import console_text, to_decimal
 
 
@@ -91,3 +92,11 @@ def load_squeeth_data(start_date: date, end_date: date, data_path: str) -> pd.Da
     CacheManager.save(cache_key, df)
     logger.info("data has been prepared")
     return df
+
+def get_price_from_data(data:pd.DataFrame) -> pd.DataFrame:
+    """
+    Extract token price from relative uniswap pool. All price is quoted in usd
+    """
+    price_df = data[[WETH.name, oSQTH.name]].copy()
+    price_df[oSQTH.name] = price_df[oSQTH.name] * price_df[WETH.name]
+    return price_df

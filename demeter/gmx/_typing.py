@@ -3,6 +3,8 @@ from .._typing import MarketDescription
 from ..broker import MarketBalance, BaseAction, ActionTypeEnum
 from decimal import Decimal
 
+PRICE_PRECISION = 10**30
+
 
 @dataclass
 class GmxDescription(MarketDescription):

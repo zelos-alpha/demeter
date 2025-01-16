@@ -4,7 +4,7 @@ import pandas as pd
 
 from demeter import TokenInfo, MarketInfo, MarketTypeEnum, Strategy, Actuator, AtTimeTrigger, Snapshot, ChainType
 from demeter.squeeth import SqueethMarket
-from demeter.squeeth.helper import load_squeeth_data
+from demeter.squeeth import load_squeeth_data, get_price_from_data
 from demeter.uniswap import UniLpMarket, UniV3Pool, load_uni_v3_data
 
 pd.options.display.max_columns = None
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     actuator.broker.add_market(uni_market)
     actuator.broker.add_market(squeeth_market)
     actuator.broker.set_balance(weth, 10)
-    price_df = squeeth_market.get_price_from_data()
+    price_df = get_price_from_data(squeeth_market.data)
     actuator.set_price(price_df)
     actuator.strategy = SimpleShortStrategy()
     actuator.run()
