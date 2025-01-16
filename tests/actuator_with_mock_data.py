@@ -3,7 +3,8 @@ from decimal import Decimal
 
 import pandas as pd
 
-import utils
+
+from tests.utils import get_uni_v3_mock_data
 from demeter import TokenInfo, Actuator, Strategy, Snapshot, MarketInfo
 from demeter.uniswap import UniLpBalance, UniV3Pool, V3CoreLib, UniLpMarket
 from demeter.uniswap.liquitidy_math import get_sqrt_ratio_at_tick
@@ -58,7 +59,7 @@ class TestActuator(unittest.TestCase):
             center_tick + tick_width,
             get_sqrt_ratio_at_tick(center_tick),
         )
-        market.data = utils.get_uni_v3_mock_data(
+        market.data = get_uni_v3_mock_data(
             market,
             center_tick,
             usdc_amount * 10**usdc.decimal,
