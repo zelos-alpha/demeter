@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     #============ Load data from trading strategy==============
     # create a client. you will need an api key to query data.
-    client = Client.create_jupyter_client()
+    client = Client.create_live_client()
     # Load pairs in all exchange
     exchange_universe = client.fetch_exchange_universe()
     pairs_df = client.fetch_pair_universe().to_pandas()

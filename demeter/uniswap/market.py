@@ -37,6 +37,7 @@ from .helper import (
     sqrt_price_x96_to_tick,
     load_uni_v3_data,
     get_price_from_data,
+    _add_statistic_column,
 )
 from .liquitidy_math import (
     get_sqrt_ratio_at_tick,
@@ -1065,3 +1066,6 @@ class UniLpMarket(Market):
 
     def get_price_from_data(self):
         return get_price_from_data(self.data, self.pool_info)
+
+    def add_statistic_column(self, df: pd.DataFrame):
+        _add_statistic_column(df, self.pool_info)

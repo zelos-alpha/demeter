@@ -46,7 +46,7 @@ def load_from_trading_strategy(
 ) -> pd.DataFrame:
     # Load pairs in all exchange
     print("Loading markets")
-    client = Client.create_jupyter_client()
+    client = Client.create_live_client()
     exchange_universe = client.fetch_exchange_universe()
     pairs_df = client.fetch_pair_universe().to_pandas()
     pair_universe = PandasPairUniverse(
