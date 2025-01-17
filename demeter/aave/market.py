@@ -74,7 +74,7 @@ class AaveV3Market(Market):
         self._borrows_amount_cache = DictCache()
         self._borrows_cache = DictCache()
 
-        self._market_status: AaveMarketStatus = None
+        self._market_status: AaveMarketStatus | None = None
         self._tokens: Set[TokenInfo] = set()
         self.add_token(tokens)
 
@@ -332,7 +332,7 @@ class AaveV3Market(Market):
         :type supply_key: SupplyKey
         :param token_info: token info, you can query by supply_key or token_info
         :type token_info: TokenInfo
-        :return: details of supply position
+        :return: Details of positions
         :rtype: Supply
         """
         key, token_info = AaveV3Market.__get_supply_key(supply_key, token_info)
@@ -807,7 +807,7 @@ class AaveV3Market(Market):
 
         """
         (key, borrow_token, interest_rate_mode) = AaveV3Market.__get_borrow_key(key, borrow_token, interest_rate_mode)
-        # because liqThereshold<1, so repay will collateral will increase health factor, so there is no need to check health factor
+        # because liqThreshold<1, so repay will collateral will increase health factor, so there is no need to check health factor
         token_status = self._market_status.data[borrow_token.name]
         borrow = self.get_borrow(key)
 

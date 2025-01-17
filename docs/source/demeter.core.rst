@@ -4,6 +4,14 @@ demeter.core package
 Submodules
 ----------
 
+demeter.core._typing module
+----------------------------
+
+.. automodule:: demeter.core._typing
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 demeter.core.actuator module
 ----------------------------
 
@@ -12,10 +20,10 @@ demeter.core.actuator module
    :undoc-members:
    :show-inheritance:
 
-demeter.core.math\_helper module
+demeter.core.backtest module
 --------------------------------
 
-.. automodule:: demeter.core.math_helper
+.. automodule:: demeter.core.backtest
    :members:
    :undoc-members:
    :show-inheritance:

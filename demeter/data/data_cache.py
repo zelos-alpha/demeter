@@ -28,6 +28,14 @@ class CacheItem:
 
 
 class CacheManager:
+    """
+    | For certain markets, such as Deribit, data loading can be slow.
+    | To address this, a cache has been implemented.
+    | The CacheManager stores backtest data in Feather format under the `~/.demeter` directory.
+    | This allows for direct loading of the cached data during subsequent backtests,
+    | eliminating the need to parse and concatenate CSV files. The cache is periodically cleared.
+
+    """
     @staticmethod
     def get_cache_key(market: str, start: date, end: date, chain: str = "", address: str = ""):
         return CacheKey(market, start.strftime("%y%m%d"), end.strftime("%y%m%d"), chain, address)
@@ -37,7 +45,7 @@ class CacheManager:
         if not os.path.exists(CACHE_PATH):
             os.mkdir(CACHE_PATH)
         if os.path.exists(CACHE_CONFIG_PATH):
-
+            # remove outdata cache
             with open(CACHE_CONFIG_PATH, "rb") as f:
                 config = pickle.load(f)
             # remove old files
@@ -84,7 +92,7 @@ class CacheManager:
             return None
 
         path = os.path.join(CACHE_PATH, config[key].file_name)
-        if not os.path.exists(path):
+        if not os.path.exists(path): # if cache file is missing
             del config[key]
             with open(CACHE_CONFIG_PATH, "wb") as f:
                 pickle.dump(config, f)

@@ -4,6 +4,14 @@ demeter.broker package
 Submodules
 ----------
 
+demeter.broker._typing module
+----------------------------
+
+.. automodule:: demeter.broker._typing
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 demeter.broker.broker module
 ----------------------------
 

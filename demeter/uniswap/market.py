@@ -252,6 +252,10 @@ class UniLpMarket(Market):
         return base * pool_price + quote
 
     def get_position_status(self, pos_key: PositionInfo) -> PositionStatus:
+        """
+        Get position amounts, including amount, fee
+
+        """
         require(pos_key in self.positions, "Position not exist")
 
         pool_price = self._market_status.data.price
@@ -277,6 +281,10 @@ class UniLpMarket(Market):
         )
 
     def get_position_amount(self, position_info: PositionInfo) -> Tuple[Decimal, Decimal]:
+        """
+        Calculate amount0 and amount1 of a position
+
+        """
         if position_info not in self.positions:
             return DECIMAL_0, DECIMAL_0
         pool_price = self._market_status.data.price
@@ -336,12 +344,20 @@ class UniLpMarket(Market):
         return val
 
     def transfer_position_out(self, position_info: PositionInfo):
+        """
+        Move position out, so It will not be count in total net value
+
+        """
         if position_info in self.positions and not self.positions[position_info].transferred:
             self.positions[position_info].transferred = True
         else:
             raise DemeterError("position not exist or has transferred out ")
 
     def transfer_position_in(self, position_info: PositionInfo):
+        """
+        Move position back in,
+
+        """
         if position_info in self.positions and self.positions[position_info].transferred:
             self.positions[position_info].transferred = False
         else:
@@ -810,6 +826,15 @@ class UniLpMarket(Market):
         price: Decimal | float = None,
         throw_action=True,
     ):
+        """
+        Swap token with this pool.
+
+        :param from_amount: amount to spend
+        :param from_token: token to spend
+        :param to_token: token to get
+        :param price: price, if leave to none, will use current price.
+        :param throw_action: leave a log
+        """
         if from_token == to_token:
             raise DemeterError("from and to token can not same")
         if from_token not in [self.quote_token, self.base_token] or to_token not in [self.quote_token, self.base_token]:

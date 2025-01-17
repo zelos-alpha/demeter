@@ -22,16 +22,6 @@ class Rule(NamedTuple):
     fillna_value: int | None
 
 
-# @dataclass
-# class RowData:
-#     """
-#     Row properties
-#     """
-#
-#     timestamp: datetime = None
-#     row_id: int = None
-
-
 class MarketTypeEnum(Enum):
     uniswap_v3 = 1
     aave_v3 = 2
