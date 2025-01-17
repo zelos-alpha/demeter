@@ -1,9 +1,11 @@
 # Download data
 
-Backtesting need data from real market. For DEFI protocol, market data can be restored from transaction event log on
+Backtesting need data from real market. 
+For DEFI protocol, market data can be restored from transaction event log on
 chain.
+For centralized exchanges, such as Deribit, we set up a service to periodically collect order books and store them in Dropbox.
 
-We create demeter-fetch to do this job. Tutorial is [here](https://github.com/zelos-alpha/demeter-fetch)
+To download DEFI data, we created the demeter-fetch project, Tutorial is [here](https://github.com/zelos-alpha/demeter-fetch)
 
 To run the backtest, you need to download the data in minute type.
 

@@ -22,14 +22,3 @@ The version there would not be updated frequently, so if you want to get latest 
 ```bash
 git clone https://github.com/zelos-alpha/demeter.git
 ```
-
-## Versions
-
-For now, demeter have two main branch: 
-
-* Versions above 0.3.x: latest version, support uniswap market and aave market. It's a major update, so there is some breaking change. 
-* Ver 0.2.x: older version, support uniswap market only. If you mind those breaking change, you can stay in this branch
-
-0.2.x version will only have bug-fixing. If you insist on staying in version 0.2.x, you can check out v0.2 branch or the latest tag on v0.2.
-
-

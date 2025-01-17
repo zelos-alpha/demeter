@@ -4,7 +4,13 @@ Demeter
 Introduction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Demeter is a backtesting framework for Defi of ethereum-like chain. It allows investors test their strategy and evaluate return rate with real market data. At present, demeter support backtest on uniswap v3 and aave v3
+Demeter is a backtesting framework for Defi of ethereum-like chain. It allows investors test their strategy and evaluate return rate with real market data. At present, demeter support backtest on
+
+- Uniswap v3
+- Aave v3
+- Deribit option
+- Squeeth
+- Gmx V1
 
 Demeter's style is borrowed from backtrader, allowing developers of traditional financial engineering to get started quickly.
 
@@ -28,6 +34,7 @@ Features
 - **Rich interface in strategy:** In strategy, demeter provide a lot of interface, which help user to write strategy freely. With triggers, user can make transactions a specified time or price. With on_bar and after_bar function, user can check and calculate on each iteration. Initialize and finalize function are also provided.
 - **Price:** Price is the key to calculate token net value, since it will be used among markets. We separate price from market.data. Prices can be downloaded from coingecko and some centralized market.
 - **Decimal places:** You can define decimal places to avoid long decimal.
+- **Concurrent:** With `BacktestManager` you can run multiple backtest at the same time.
 
 .. _GammaStrategies: https://github.com/l0c4t0r/active-strategy-framework
 .. _demeter-fetch: https://github.com/zelos-alpha/demeter-fetch
@@ -45,9 +52,10 @@ links
 * Documentation: https://zelos-demeter.readthedocs.io/en/latest/index.html
 * Medium: https://medium.com/zelos-research
 * Pypi: https://pypi.org/project/zelos-demeter
-* Antalpha labs: https://labs.antalpha.com/
 * Uniswap: https://uniswap.org
 * aave: https://aave.com
+* Deribit: https://www.deribit.com/
+* Squeeth: https://squeeth.opyn.co/
 * gmx: https://gmx.io
 
 
@@ -58,6 +66,7 @@ links
    install
    download_data
    quickstart
+   concurrent
    modules
    market_uniswap
    market_aave
