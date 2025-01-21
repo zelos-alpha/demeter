@@ -476,7 +476,7 @@ class Actuator(object):
             self.print_result()
 
         self.__backtest_duration = time.time() - self.__start_time
-        self.logger.info(f"Backtesting finished, execute time {time.time() - self.__start_time}s")
+        self.logger.info(f"Backtest with process id: {os.getpid()} finished, execute time {(time.time() - self.__start_time):.3f}s")
 
     def _generate_account_status_df(self):
         self._account_status_df: pd.DataFrame = AccountStatus.to_dataframe(self._account_status_list)
@@ -596,6 +596,7 @@ class Actuator(object):
         self._strategy.actions = self._action_list
         self._strategy.assets = self.broker.assets
         self._strategy.account_status_df = self.account_status_df
+        self._strategy.actuator = self
         self._strategy.comment_last_action = self.comment_last_action
         self._strategy.log = self._log
         for k, v in self.broker.markets.items():

@@ -41,10 +41,10 @@ class DemoStrategy(Strategy):
         self.comment_last_action("Add liquidity because ...")  # add comment to last transaction
 
 
-def after_backtest(actuator: Actuator):
-    # save result and etc.
-    files = actuator.save_result(path="./result", file_name=f"strategy-{actuator.strategy.lp_range}")
-    pass
+    def finalize(self):
+        # save result and etc.
+        files = self.actuator.save_result(path="./result", file_name=f"strategy-{self.lp_range}")
+        pass
 
 
 """

@@ -1,3 +1,9 @@
+# Ver 1.0.1
+
+[Breaking change] Remove callback in BacktestManager, because if subprocess return actuator, 
+it will cause object copy between subprocess and main process, which will cost a lot of time. 
+You can do saving or calculating performance in Strategy.finialize().
+
 # Ver 1.0.0
 
 * Add `BacktestManager` who can start multiple backtest in one or multiple subprocesses.

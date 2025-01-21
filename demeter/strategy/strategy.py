@@ -5,6 +5,8 @@ import pandas as pd
 
 from .trigger import Trigger
 from .. import Broker, MarketDict, AccountStatus, AssetDict, Asset, Snapshot
+
+# from ..core import Actuator
 from .._typing import DemeterError
 from ..broker import MarketInfo, BaseAction, Market
 
@@ -25,6 +27,7 @@ class Strategy(object):
         self.comment_last_action: Callable[[str], None] | None = None
         self.assets: AssetDict[Asset] = AssetDict()
         self.actions: List[BaseAction] = []
+        self.actuator = None
         self.log: Callable[[datetime, str, int], None] | None = None
 
     def initialize(self):

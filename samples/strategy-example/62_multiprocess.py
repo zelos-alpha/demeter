@@ -46,11 +46,10 @@ class DemoStrategy(Strategy):
         )  # add liquidity
         self.comment_last_action("Add liquidity because ...")  # add comment to last transaction
 
-
-def after_backtest(actuator: Actuator):
-    # save result and etc.
-    files = actuator.save_result(path="./result", file_name=f"strategy-{actuator.strategy.lp_range}")
-    pass
+    def finalize(self):
+        # save result and etc.
+        files = self.actuator.save_result(path="./result", file_name=f"strategy-{self.lp_range}")
+        pass
 
 
 """
@@ -85,9 +84,9 @@ if __name__ == "__main__":
     backtest = BacktestManager(
         config=strategy_config,
         data=BacktestData({market_key: data_df}, price_data),
-        strategies=[DemoStrategy((1000, 3000)), DemoStrategy((1500, 2500))], # two strategies
-        backtest_config=BacktestConfig(callback=after_backtest),
-        threads=2, # concurrent number
+        strategies=[DemoStrategy((1000, 3000)), DemoStrategy((1500, 2500))],  # two strategies
+        backtest_config=BacktestConfig(),
+        threads=2,  # concurrent number
     )
     backtest.run()
     pass

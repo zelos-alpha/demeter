@@ -55,5 +55,3 @@ class BacktestConfig:
     print_actions:bool = False
     print_result: bool = False
     interval: str = "1min"
-    callback: Callable[[Actuator], None] | None = None
-    # save_result = False
