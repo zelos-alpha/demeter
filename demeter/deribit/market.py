@@ -353,6 +353,11 @@ class DeribitOptionMarket(Market):
         And when I use numpy as back_end, those three object will be the same instance. and items in the asks instance is read only therefore can not be updated.
         
         so I have to write entire list back
+        
+        Why I care? If amounts can be writen back, overdue buying through buying twice can be stopped. 
+        e.g. if orderbook has 100, and you buy 90. if order list not writen back, you can buy 90 next time.
+        but if order list is writen back, you can only buy 10 in the second buying.
+        this only works in this loop(which means only affect self.mark_status.data. not self._data
         """
         ask_list = self._deduct_order_amount(amount, asks, price_in_token)
         self.market_status.data.at[instrument_name, "asks"] = get_new_order_list(instrument.asks, ask_list)
