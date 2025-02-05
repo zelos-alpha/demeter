@@ -53,6 +53,7 @@ our [release_note](https://github.com/zelos-alpha/demeter/blob/master/release_no
 * Medium: https://medium.com/zelos-research
 * Pypi: https://pypi.org/project/zelos-demeter
 * demeter-fetch: https://github.com/zelos-alpha/demeter-fetch
+* Deribit option data(ETH): https://www.dropbox.com/scl/fo/kwk5kgiseu5rvccjscd0f/ANswtRLzpCxOc6cMTH0oRlE?rlkey=ai071f9695uz287lt8k0bci5e&e=1&st=ntbog1sr&dl=0
 
 Please go to the [website](https://zelos-demeter.readthedocs.io/) for a full description
 

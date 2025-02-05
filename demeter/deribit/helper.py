@@ -93,7 +93,7 @@ def load_deribit_option_data(start_date: date, end_date: date, data_path: str) -
     """
     Load data from folder set in data_path. Those data file should be downloaded by demeter, and meet name rule.
     Deribit-option-book-{token}-{day.strftime('%Y%m%d')}.csv
-    data can be downloaded from dropbox: https://www.dropbox.com/scl/fo/kwk5kgiseu5rvccjscd0f/ANswtRLzpCxOc6cMTH0oRlE?rlkey=ai071f9695uz287lt8k0bci5e&dl=0
+    data can be downloaded from dropbox: https://www.dropbox.com/scl/fo/kwk5kgiseu5rvccjscd0f/ANswtRLzpCxOc6cMTH0oRlE?rlkey=ai071f9695uz287lt8k0bci5e&e=1&st=ntbog1sr&dl=0
 
     :param start_date: start day
     :type start_date: date
