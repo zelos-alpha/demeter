@@ -1,3 +1,7 @@
+# Ver 1.0.2
+
+Improve performance in deribit market. You should clear cache in your first running to make it work.
+
 # Ver 1.0.1
 
 [Breaking change] Remove callback in BacktestManager, because if subprocess return actuator, 

@@ -138,6 +138,7 @@ def load_deribit_option_data(start_date: date, end_date: date, data_path: str) -
             day += timedelta(days=1)
             pbar.update()
 
+    df = df.sort_index()
     CacheManager.save(cache_key, df)
     logger.info("data has been prepared")
     return df
