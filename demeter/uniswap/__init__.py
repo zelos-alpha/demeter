@@ -5,6 +5,8 @@ Uniswap market, this module can simulate common operations in Uniswap V3, such a
 from ._typing import (
     UniV3Pool,
     UniV3PoolStatus,
+    UniV4Pool,
+    UniV4PoolStatus,
     Position,
     UniLpBalance,
     PositionInfo,

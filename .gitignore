@@ -147,5 +147,5 @@ dmypy.json
 cython_debug/
 demeter/*.pkl
 /tests/result/
-
+samples/strategy-example/result
 

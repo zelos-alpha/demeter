@@ -101,6 +101,8 @@ class UniV3Pool(object):
     def __repr__(self):
         return self.__str__()
 
+class UniV4Pool(UniV3Pool):
+    pass
 
 @dataclass
 class UniLpBalance(MarketBalance):
@@ -295,6 +297,12 @@ class UniV3PoolStatus:
     volume1: Decimal = None
     """swap volumn of token 1"""
 
+class UniV4PoolStatus(UniV3PoolStatus):
+    """
+    current status of a pool, actuators can notify current status to broker by filling this entity
+    """
+    fee_rate: int = None
+    """fee rate"""
 
 @dataclass
 class UniswapMarketStatus(MarketStatus):

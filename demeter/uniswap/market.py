@@ -6,6 +6,7 @@ import numpy as np
 import orjson
 import pandas as pd
 
+from . import UniV4Pool
 from ._typing import (
     UniV3Pool,
     TokenInfo,
