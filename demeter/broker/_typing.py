@@ -28,6 +28,7 @@ class MarketTypeEnum(Enum):
     deribit_option = 3
     squeeth = 4
     gmx_v1 = 5
+    gmx_v2 = 6
 
 
 class MarketInfo(NamedTuple):
