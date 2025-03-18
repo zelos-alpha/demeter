@@ -1,10 +1,20 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Union
 
 import pandas as pd
 
-from demeter import TokenInfo, MarketStatus
-from demeter._typing import MarketDescription
+from .. import TokenInfo, MarketStatus
+from .._typing import MarketDescription
+from ..broker import MarketBalance
+from .gmx_v2 import GmxV2PoolStatus
+
+
+@dataclass
+class GmxV2Balance(MarketBalance):
+    gm_amount: Decimal
+    long_amount: Decimal
+    short_amount: Decimal
 
 
 @dataclass
@@ -17,18 +27,6 @@ class GmxV2Pool(object):
 @dataclass
 class GmxV2Description(MarketDescription):
     amount: float
-
-@dataclass
-class GmxV2PoolStatus:
-     longAmount:float
-     shortAmount:float
-     virtualSwapInventoryLong:float
-     virtualSwapInventoryShort:float
-     poolValue:float
-     marketTokensSupply:float
-     longPrice:float
-     shortPrice:float
-     indexPrice:float
 
 
 @dataclass

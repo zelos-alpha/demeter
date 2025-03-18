@@ -2,31 +2,31 @@ from typing import Tuple
 
 from .MarketUtils import MarketUtils
 from .SwapPricingUtils import SwapPriceUtils, SwapPricingType, GetPriceImpactUsdParams, SwapFees
-from ._typing import Prices, PoolConfig, PoolStatus, LPResult
+from ._typing import PoolConfig, GmxV2PoolStatus, LPResult
 from .utils import PricingUtils
 
 
 class ExecuteDepositUtils:
     @staticmethod
     def get_mint_amount(
-        pool_config: PoolConfig, pool_status: PoolStatus, long_amount: float, short_amount: float
+        pool_config: PoolConfig, pool_status: GmxV2PoolStatus, long_amount: float, short_amount: float
     ) -> LPResult:
-        long_value = long_amount * pool_status.longPrice.midPrice
-        short_value = short_amount * pool_status.shortPrice.midPrice
+        long_value = long_amount * pool_status.longPrice
+        short_value = short_amount * pool_status.shortPrice
 
         # long_value_in_base = Decimal(
         #     long_amount / 10**pool_config.longDecimal
-        # ) * PricingUtils.get_price_in_base_unit(pool_status.longPrice.midPrice, pool_config.longDecimal)
+        # ) * PricingUtils.get_price_in_base_unit(pool_status.longPrice, pool_config.longDecimal)
         #
         # short_value_in_base = Decimal(
         #     short_amount / 10**pool_config.shortDecimal
-        # ) * PricingUtils.get_price_in_base_unit(pool_status.shortPrice.midPrice, pool_config.shortDecimal)
+        # ) * PricingUtils.get_price_in_base_unit(pool_status.shortPrice, pool_config.shortDecimal)
 
         priceImpactUsd = SwapPriceUtils.getPriceImpactUsd(
             GetPriceImpactUsdParams(
                 pool_config,
-                pool_status.longPrice.midPrice,
-                pool_status.shortPrice.midPrice,
+                pool_status.longPrice,
+                pool_status.shortPrice,
                 long_value,
                 short_value,
                 True,
@@ -47,7 +47,7 @@ class ExecuteDepositUtils:
                 priceImpactUsd * long_value / (long_value + short_value),
             )
             gm_amount += amount
-            total_fee_value += long_fee.totalFee * pool_status.longPrice.midPrice
+            total_fee_value += long_fee.totalFee * pool_status.longPrice
             long_fee_amount = long_fee.totalFee
         if short_amount > 0:
             amount, short_fee = ExecuteDepositUtils.calc_token_amount(
@@ -59,7 +59,7 @@ class ExecuteDepositUtils:
                 priceImpactUsd * short_value / (long_value + short_value),
             )
             gm_amount += amount
-            total_fee_value += short_fee.totalFee * pool_status.shortPrice.midPrice
+            total_fee_value += short_fee.totalFee * pool_status.shortPrice
             short_fee_amount = short_fee.totalFee
 
         result = LPResult(
@@ -78,9 +78,9 @@ class ExecuteDepositUtils:
     @staticmethod
     def calc_token_amount(
         pool_config: PoolConfig,
-        pool_status: PoolStatus,
-        tokenInPrice: Prices,
-        tokenOutPrice: Prices,
+        pool_status: GmxV2PoolStatus,
+        tokenInPrice: float,
+        tokenOutPrice: float,
         amount: float,
         priceImpactUsd: float,
     ) -> Tuple[float, SwapFees]:
@@ -97,7 +97,7 @@ class ExecuteDepositUtils:
                 tokenOutPrice, priceImpactUsd, pool_status.impactPoolAmount
             )
             mintAmount += MarketUtils.usdToMarketTokenAmount(
-                positiveImpactAmount * tokenOutPrice.midPrice, pool_status.poolValue, pool_status.marketTokensSupply
+                positiveImpactAmount * tokenOutPrice, pool_status.poolValue, pool_status.marketTokensSupply
             )
         if priceImpactUsd < 0:
             # when there is a negative price impact factor,
@@ -110,6 +110,6 @@ class ExecuteDepositUtils:
             )
             fees.amountAfterFees -= -negativeImpactAmount
         mintAmount += MarketUtils.usdToMarketTokenAmount(
-            fees.amountAfterFees * tokenInPrice.minPrice, pool_status.poolValue, pool_status.marketTokensSupply
+            fees.amountAfterFees * tokenInPrice, pool_status.poolValue, pool_status.marketTokensSupply
         )
         return mintAmount, fees

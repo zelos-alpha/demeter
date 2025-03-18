@@ -66,7 +66,7 @@ STYLE = {
         "mode": ModeEnum.invert,
         "fore": ForColorEnum.red,
         "back": BackColorEnum.default,
-        "width": 50,
+        "width": 100,
     },
     "header2": {
         "mode": ModeEnum.invert,

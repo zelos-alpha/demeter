@@ -1,8 +1,6 @@
-from decimal import Decimal
 from typing import Tuple
 
-from ._typing import PoolConfig, Prices, PoolStatus, MarketPoolValueInfo
-from .utils import PricingUtils, Calc
+from ._typing import PoolConfig, GmxV2PoolStatus, MarketPoolValueInfo
 
 
 class MarketUtils:
@@ -25,23 +23,23 @@ class MarketUtils:
 
     @staticmethod
     def getSwapImpactAmountWithCap(
-        tokenPrice: Prices, priceImpactUsd: float, impactPoolAmount: float
+        tokenPrice: float, priceImpactUsd: float, impactPoolAmount: float
     ) -> Tuple[float, float]:
         cappedDiffUsd: float = 0
 
         if priceImpactUsd > 0:
             # positive impact: minimize impactAmount, use tokenPrice.max
             # round positive impactAmount down, this will be deducted from the swap impact pool for the user
-            impactAmount = priceImpactUsd / tokenPrice.maxPrice
+            impactAmount = priceImpactUsd / tokenPrice
 
             maxImpactAmount = impactPoolAmount
             if impactAmount > maxImpactAmount:
-                cappedDiffUsd = (impactAmount - maxImpactAmount) * tokenPrice.maxPrice
+                cappedDiffUsd = (impactAmount - maxImpactAmount) * tokenPrice
                 impactAmount = maxImpactAmount
         else:
             # negative impact: maximize impactAmount, use tokenPrice.min
             # round negative impactAmount up, this will be deducted from the user
-            impactAmount = priceImpactUsd / tokenPrice.minPrice
+            impactAmount = priceImpactUsd / tokenPrice
 
         return impactAmount, cappedDiffUsd
 
@@ -55,7 +53,7 @@ class MarketUtils:
 
     @staticmethod
     def getTokenAmountsFromGM(
-        pool_status: PoolStatus,
+        pool_status: GmxV2PoolStatus,
         marketTokenAmount: float,
     ) -> Tuple[float, float]:
         """
@@ -69,8 +67,8 @@ class MarketUtils:
         poolValue: float = pool_status.poolValue
         marketTokensSupply: float = pool_status.marketTokensSupply
 
-        longTokenPoolUsd = pool_status.longAmount * pool_status.longPrice.maxPrice
-        shortTokenPoolUsd = pool_status.shortAmount * pool_status.shortPrice.maxPrice
+        longTokenPoolUsd = pool_status.longAmount * pool_status.longPrice
+        shortTokenPoolUsd = pool_status.shortAmount * pool_status.shortPrice
 
         totalPoolUsd = longTokenPoolUsd + shortTokenPoolUsd
 
@@ -80,28 +78,22 @@ class MarketUtils:
         shortTokenOutputUsd: float = marketTokensUsd * shortTokenPoolUsd / totalPoolUsd
 
         return (
-            longTokenOutputUsd / pool_status.longPrice.maxPrice,
-            shortTokenOutputUsd / pool_status.shortPrice.maxPrice,
+            longTokenOutputUsd / pool_status.longPrice,
+            shortTokenOutputUsd / pool_status.shortPrice,
         )
-
-    @staticmethod
-    def pickPrice(props: Prices, maximize: bool) -> float:
-        return props.maxPrice if maximize else props.minPrice
 
     @staticmethod
     def get_values(amount: float, price: float, decimal: float) -> Tuple[float, float]:
         return amount, amount * price
 
     @staticmethod
-    def getPoolValueInfo(
-        pool_config: PoolConfig, pool_status: PoolStatus, pnlFactorType, maximize: bool
-    ) -> MarketPoolValueInfo:
+    def getPoolValueInfo(pool_status: GmxV2PoolStatus) -> MarketPoolValueInfo:
         result = MarketPoolValueInfo()
         result.longTokenAmount = pool_status.longAmount
         result.shortTokenAmount = pool_status.shortAmount
 
-        result.longTokenUsd = result.longTokenAmount * MarketUtils.pickPrice(pool_status.longPrice, maximize)
-        result.shortTokenUsd = result.shortTokenAmount * MarketUtils.pickPrice(pool_status.shortPrice, maximize)
+        result.longTokenUsd = result.longTokenAmount * pool_status.longPrice
+        result.shortTokenUsd = result.shortTokenAmount * pool_status.shortPrice
 
         result.poolValue = result.longTokenUsd + result.shortTokenUsd
 

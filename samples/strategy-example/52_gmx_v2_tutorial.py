@@ -16,13 +16,11 @@ class GmxV2LpStrategy(Strategy):
     def initialize(self):
         new_trigger = AtTimeTrigger(time=datetime(2025, 1, 8, 0, 0, 0), do=self.work)
         self.triggers.append(new_trigger)
+        pass
 
     def work(self, snapshot: Snapshot):
-        """
-        When time is up, work function will be called.
-        """
-        lp_market: UniLpMarket = self.markets[market_key]  # pick our market.
-        new_position, amount0_used, amount1_used, liquidity = lp_market.add_liquidity(1000, 4000)  # add liquidity
+        gmx_market: GmxV2Market = self.markets[market_key]
+        result = gmx_market.deposit(1, 3384)
         pass
 
 
@@ -39,7 +37,7 @@ if __name__ == "__main__":
 
     actuator = Actuator()
     actuator.broker.add_market(market)
-    actuator.broker.set_balance(usdc, 2000)
+    actuator.broker.set_balance(usdc, 3384)
     actuator.broker.set_balance(weth, 1)
     actuator.strategy = GmxV2LpStrategy()  # set strategy to actuator
     actuator.set_price(market.get_price_from_data())  # set actuator price

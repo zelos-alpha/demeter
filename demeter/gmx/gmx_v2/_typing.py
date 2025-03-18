@@ -43,26 +43,18 @@ class Prices:
 
 
 @dataclass
-class PoolStatus:
-    longAmount: float  # deposit, event MarketPoolValueInfo
-    shortAmount: float  # deposit, event MarketPoolValueInfo
-    virtualSwapInventoryLong: float  # deposit,VirtualSwapInventoryUpdated
-    virtualSwapInventoryShort: float  # deposit,VirtualSwapInventoryUpdated
-    poolValue: float  # deposit, event MarketPoolValueInfo
-    marketTokensSupply: float  # deposit, event MarketPoolValueInfo
-    longPrice: Prices  # deposit, event OraclePriceUpdate
-    shortPrice: Prices  # deposit, event OraclePriceUpdate
-    impactPoolAmount: float  # deposit, event MarketPoolValueInfo
-    # =======计算poolvalue===============
-    indexPrice: Prices | None = None
-    openInterestLongIsLong: int = 0
-    openInterestLongNotLong: int = 0
-    openInterestShortIsLong: int = 0
-    openInterestShortNotLong: int = 0
-    openInterestInTokensLongIsLong: int = 0
-    openInterestInTokensLongNotLong: int = 0
-    openInterestInTokensShortIsLong: int = 0
-    openInterestInTokensShortNotLong: int = 0
+class GmxV2PoolStatus:
+    longAmount: float
+    shortAmount: float
+    virtualSwapInventoryLong: float
+    virtualSwapInventoryShort: float
+    poolValue: float
+    marketTokensSupply: float
+    impactPoolAmount: float
+    longPrice: float
+    shortPrice: float
+    indexPrice: float
+
 
 
 @dataclass

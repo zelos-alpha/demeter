@@ -1,7 +1,7 @@
 import enum
 from dataclasses import dataclass
 
-from ._typing import PoolConfig, PoolStatus
+from ._typing import PoolConfig, GmxV2PoolStatus
 from .utils import Calc, PricingUtils, Precision
 from .MarketUtils import MarketUtils
 
@@ -69,7 +69,7 @@ class Amounts:
 
 class SwapPriceUtils:
     @staticmethod
-    def getPriceImpactUsd(params: GetPriceImpactUsdParams, pool_status: PoolStatus) -> float:
+    def getPriceImpactUsd(params: GetPriceImpactUsdParams, pool_status: GmxV2PoolStatus) -> float:
         """
         @dev get the price impact in USD
 

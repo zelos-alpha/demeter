@@ -8,9 +8,10 @@ from .helper2 import load_gmx_v2_data, get_price_from_v2_data
 from .gmx_v2 import PoolConfig, LPResult
 from .gmx_v2.ExecuteDepositUtils import ExecuteDepositUtils
 from .gmx_v2.ExecuteWithdrawUtils import ExecuteWithdrawUtils
-from .. import MarketStatus, TokenInfo, DECIMAL_0, ChainType
+from .. import MarketStatus, TokenInfo, DECIMAL_0, ChainType, DemeterWarning, DemeterError
 from ..broker import Market, MarketInfo, MarketBalance
-from ._typing2 import GmxV2Pool, GmxV2Description, GmxV2MarketStatus
+from ._typing2 import GmxV2Pool, GmxV2Description, GmxV2MarketStatus, GmxV2Balance, GmxV2PoolStatus
+from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE
 
 
 class GmxV2Market(Market):
@@ -60,17 +61,43 @@ class GmxV2Market(Market):
             self.broker.set_balance(self.short_token, DECIMAL_0)
 
     def update(self):
-        # calculate total value
         pass
 
-    def set_market_status(self, data: MarketStatus, price: pd.Series):
+    def set_market_status(self, data: GmxV2MarketStatus | pd.Series, price: pd.Series):
         super().set_market_status(data, price)
+        data.data = self.data.loc[data.timestamp]
+        self._market_status = data
 
-    def get_market_balance(self) -> MarketBalance:
-        pass
+    def get_market_balance(self) -> GmxV2Balance:
+        if self.amount > 0:
+            pool_data: GmxV2PoolStatus = self._market_status.data
+            result = ExecuteWithdrawUtils.getOutputAmount(self.pool_config, pool_data, self.amount)
+            long_amount = Decimal(result.long_amount)
+            short_amount = Decimal(result.short_amount)
+            net_value = Decimal(self.amount * pool_data.poolValue / pool_data.marketTokensSupply)
+        else:
+            net_value = long_amount = short_amount = Decimal(0)
+
+        return GmxV2Balance(
+            net_value=net_value,
+            gm_amount=Decimal(self.amount),
+            long_amount=long_amount,
+            short_amount=short_amount,
+        )
 
     def formatted_str(self):
-        pass
+        value = get_formatted_predefined(f"{self.market_info.name}({type(self).__name__})", STYLE["header3"]) + "\n"
+        value += (
+            get_formatted_from_dict(
+                {
+                    "long token": self.pool.long_token.name,
+                    "short token": self.pool.short_token.name,
+                    "amount": self.amount,
+                }
+            )
+            + "\n"
+        )
+        return value
 
     def load_data(self, chain: str, pool_address: str, start_date: date, end_date: date):
         self._data = load_gmx_v2_data(chain, pool_address, start_date, end_date, self.data_path)
@@ -93,8 +120,12 @@ class GmxV2Market(Market):
         return result
 
     def withdraw(self, amount: float | None = None) -> LPResult:
+        if amount is None:
+            amount = self.amount
         result = ExecuteWithdrawUtils.getOutputAmount(self.pool_config, self._market_status.data, amount)
         self.amount -= result.gm_amount
         self.broker.add_to_balance(self.long_token, Decimal(result.long_amount))
         self.broker.add_to_balance(self.short_token, Decimal(result.short_amount))
+        if amount < 0:
+            raise DemeterError("amount cannot be negative, value is {}".format(amount))
         return result
