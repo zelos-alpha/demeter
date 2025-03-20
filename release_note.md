@@ -2,6 +2,7 @@
 
 * Add gmx v2 market
 * Improve aave market, you can download risk parameter with demeter-fetch
+* Remove stable rate borrowing in aave v3
 
 # Ver 1.0.2
 
