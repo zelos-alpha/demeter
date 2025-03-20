@@ -53,7 +53,7 @@ def load_risk_parameter(token_setting_path: str) -> pd.DataFrame | Dict[str, Ris
         raise DemeterError(f"risk parameter file {path} not exist, please download csv with 'demeter-fetch aave -h'")
     rp = pd.read_csv(path)
     usdc = rp["symbol"] == "USDC"
-    rp.loc[usdc, "symbol"] = rp.loc[usdc, "name"].apply(lambda x: "USDC" if x == "USD Coin" else "USDC.e")
+    rp.loc[usdc, "symbol"] = rp.loc[usdc, "name"].apply(lambda x: "USDC" if x == "USD Coin" else "USDC.E")
     rp = rp[
         [
             "symbol",  # "symbol",

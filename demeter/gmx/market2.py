@@ -99,7 +99,7 @@ class GmxV2Market(Market):
         )
         return value
 
-    def load_data(self, chain: str, pool_address: str, start_date: date, end_date: date):
+    def load_data(self, chain: ChainType, pool_address: str, start_date: date, end_date: date):
         self._data = load_gmx_v2_data(chain, pool_address, start_date, end_date, self.data_path)
 
     def get_price_from_data(self):
