@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     market_key = MarketInfo("aave", MarketTypeEnum.aave_v3)
     aave_market = AaveV3Market(
-        market_info=market_key, risk_parameters_path="../../tests/aave_risk_parameters/polygon.csv", tokens=[weth]
+        market_info=market_key, risk_parameters_path="../../tests/aave_risk_parameters/demo.csv", tokens=[weth]
     )
     aave_market.data = load_aave_data(ChainType.polygon, [weth], date(2023, 8, 14), date(2023, 8, 14), "../data")
     actuator = Actuator()

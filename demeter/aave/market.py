@@ -493,7 +493,9 @@ class AaveV3Market(Market):
         :rtype: SupplyKey
         """
         if collateral:
-            require(self._risk_parameters.loc[token_info.name].canCollateral, "Can not supplied as collateral")
+            require(
+                self._risk_parameters.loc[token_info.name].usageAsCollateralEnabled, "Can not supplied as collateral"
+            )
         token_status = self._market_status.data[token_info.name]
         #  calc in pool value
         pool_amount = AaveV3CoreLib.get_base_amount(amount, token_status.liquidity_index)
@@ -686,7 +688,10 @@ class AaveV3Market(Market):
         # check
         token_status = self._market_status.data[token_info.name]
 
-        require(self._risk_parameters.loc[token_info.name, "canBorrow"], f"borrow is not enabled for {token_info.name}")
+        require(
+            self._risk_parameters.loc[token_info.name, "borrowingEnabled"],
+            f"borrow is not enabled for {token_info.name}",
+        )
         collateral_balance = sum(self.collateral_value.values())
         require(collateral_balance != 0, "collateral balance is zero")
         current_ltv = self.current_ltv
@@ -698,23 +703,13 @@ class AaveV3Market(Market):
         )
 
         value = amount * self._price_status.loc[token_info.name]
-        collateral_needed = sum(self.borrows.values()) + value / current_ltv
+        collateral_needed = (sum([x.value for x in self.borrows.values()]) + value) / current_ltv
         require(collateral_needed <= collateral_balance, "collateral cannot cover new borrow")
 
         if interest_rate_mode == InterestRateMode.stable:
-            require(self._risk_parameters.loc[token_info.name, "canBorrowStable"], "stable borrowing not enabled")
-
-            is_using_as_collateral = (token_info in self._supplies) and (
-                self._supplies[SupplyKey(token_info)].collateral is True
+            raise DemeterError(
+                "Due to an upgrade of the Aave V3 protocol, borrows at a stable rate were halted since Jul, 27th 2024, only allowing variable rates borrows from that date forward."
             )
-
-            require(
-                (not is_using_as_collateral)
-                or self._risk_parameters.loc[token_info.name, "LTV"] == 0
-                or amount > self.broker.get_token_balance(token_info),
-                "collateral same as borrowing currency",
-            )
-            # ignore pool amount check, I don't have pool amount
 
         # do borrow
         base_amount = AaveV3CoreLib.get_base_amount(amount, token_status.variable_borrow_index)
@@ -961,7 +956,7 @@ class AaveV3Market(Market):
         stable_key = BorrowKey(delt_token, InterestRateMode.stable)
         variable_key = BorrowKey(delt_token, InterestRateMode.variable)
         collateral_key = SupplyKey(collateral_token)
-        liquidation_bonus = self._risk_parameters.loc[collateral_token.name].liqBonus
+        liquidation_bonus = self._risk_parameters.loc[collateral_token.name].reserveLiquidationBonus
 
         # _calculateDebt
         stable_delt = self.get_borrow(stable_key).amount if stable_key in self._borrows else DECIMAL_0
@@ -979,7 +974,7 @@ class AaveV3Market(Market):
 
         # validate delt
         is_collateral_enabled = (
-            self._risk_parameters.loc[collateral_token.name].liqThereshold != 0
+            self._risk_parameters.loc[collateral_token.name].reserveLiquidationThreshold != 0
             and self._supplies[collateral_key].collateral
         )
 

@@ -70,7 +70,11 @@ if __name__ == "__main__":
     usdc = TokenInfo(name="usdc", decimal=6)
 
     market_key = MarketInfo("aave", MarketTypeEnum.aave_v3)
-    aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="../../tests/aave_risk_parameters/polygon.csv", tokens=[weth, usdc])
+    aave_market = AaveV3Market(
+        market_info=market_key,
+        risk_parameters_path="../../tests/aave_risk_parameters/demo.csv",
+        tokens=[weth, usdc],
+    )
 
     aave_market.set_token_data(weth, pd.read_csv(StringIO(eth_data_csv), index_col=0, parse_dates=True))
     aave_market.set_token_data(usdc, pd.read_csv(StringIO(usdc_data_csv), index_col=0, parse_dates=True))

@@ -160,7 +160,7 @@ if __name__ == "__main__":
     market_uni.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", start_date, end_date)
     broker.add_market(market_uni)  # add market
 
-    market_aave = AaveV3Market(market_key_aave, "../../tests/aave_risk_parameters/polygon.csv", [usdc, eth])
+    market_aave = AaveV3Market(market_key_aave, "../../tests/aave_risk_parameters/demo.csv", [usdc, eth])
     market_aave.data_path = "../data/"
     market_aave.load_data(ChainType.polygon, [usdc, eth], start_date, end_date)
     broker.add_market(market_aave)  # add market

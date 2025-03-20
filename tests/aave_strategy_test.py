@@ -123,7 +123,7 @@ class RepayWithCollateralStrategy(Strategy):
 class TestActuator(unittest.TestCase):
     def test_basic(self):
         aave_market = AaveV3Market(
-            market_info=market_key, risk_parameters_path="./aave_risk_parameters/polygon.csv", tokens=[weth]
+            market_info=market_key, risk_parameters_path="aave_risk_parameters/demo.csv", tokens=[weth]
         )
 
         aave_market.set_token_data(weth, pd.read_csv(StringIO(eth_data_csv), index_col=0, parse_dates=True))
@@ -142,7 +142,7 @@ class TestActuator(unittest.TestCase):
 
     def test_all_operation(self):
         aave_market = AaveV3Market(
-            market_info=market_key, risk_parameters_path="./aave_risk_parameters/polygon.csv", tokens=[weth]
+            market_info=market_key, risk_parameters_path="aave_risk_parameters/demo.csv", tokens=[weth]
         )
 
         aave_market.set_token_data(weth, pd.read_csv(StringIO(eth_data_csv), index_col=0, parse_dates=True))
@@ -167,7 +167,7 @@ class TestActuator(unittest.TestCase):
 
     def test_repay_with_collateral(self):
         aave_market = AaveV3Market(
-            market_info=market_key, risk_parameters_path="./aave_risk_parameters/polygon.csv", tokens=[weth]
+            market_info=market_key, risk_parameters_path="aave_risk_parameters/demo.csv", tokens=[weth]
         )
 
         aave_market.set_token_data(weth, pd.read_csv(StringIO(eth_data_csv), index_col=0, parse_dates=True))

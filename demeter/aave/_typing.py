@@ -146,6 +146,7 @@ class Supply:
     begin_supply_index: Decimal
     """index value when do supply"""
 
+
 def supply_to_dataframe(supplies: Dict[SupplyKey, Supply]) -> pd.DataFrame:
     """
     convert supply dict to a dataframe
@@ -216,6 +217,7 @@ class Borrow:
     """value at this moment. unit is usd, e.g. 1400 usd"""
     begin_borrow_index: Decimal
     """borrow index value when borrow"""
+
 
 def borrow_to_dataframe(supplies: Dict[BorrowKey, Borrow]) -> pd.DataFrame:
     """
@@ -344,21 +346,20 @@ class RiskParameter:
     """
 
     symbol: str
-    canCollateral: bool
-    LTV: float
-    liqThereshold: float
-    liqBonus: float
-    reserveFactor: float
-    canBorrow: bool
-    optimalUtilization: float
-    canBorrowStable: bool
-    debtCeiling: float
-    supplyCap: float
-    borrowCap: float
-    eModeLtv: float
-    eModeLiquidationThereshold: float
-    eModeLiquidationBonus: float
-    borrowableInIsolation: float
+    usageAsCollateralEnabled: bool
+    baseLTVasCollateral: Decimal
+    reserveLiquidationThreshold: Decimal
+    reserveLiquidationBonus: Decimal
+    reserveFactor: Decimal
+    borrowingEnabled: Decimal
+    optimalUsageRatio: Decimal
+    variableRateSlope1: Decimal
+    variableRateSlope2: Decimal
+    baseVariableBorrowRate: Decimal
+    supplyCap: Decimal
+    borrowCap: Decimal
+    borrowableInIsolation: Decimal
+    flashLoanEnabled: bool
 
 
 @dataclass

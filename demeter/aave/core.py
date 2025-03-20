@@ -6,7 +6,7 @@ from demeter.aave._typing import SupplyKey, ActionKey, BorrowKey
 import pandas as pd
 
 
-class AaveV3CoreLib(object):
+class  AaveV3CoreLib(object):
     """
     | The core calculation library for aave v3 market
     | Note: All functions are static
@@ -126,11 +126,11 @@ class AaveV3CoreLib(object):
         supplies_liq_threshold = Decimal(0)
         for s, v in collaterals.items():
             if s.token != token:
-                supplies_liq_threshold += risk_parameters.loc[s.token.name].liqThereshold * v
+                supplies_liq_threshold += risk_parameters.loc[s.token.name].reserveLiquidationThreshold * v
 
         amount = (AaveV3CoreLib.HEALTH_FACTOR_LIQUIDATION_THRESHOLD * Decimal(sum(borrows.values())) - supplies_liq_threshold) / risk_parameters.loc[
             token.name
-        ].liqThereshold
+        ].reserveLiquidationThreshold
 
         return amount / price
 
@@ -148,8 +148,8 @@ class AaveV3CoreLib(object):
         :return: health factor
         :rtype: Decimal
         """
-        # (all supplies * liqThereshold) / all borrows
-        a = Decimal(sum([s * risk_parameters.loc[key.token.name].liqThereshold for key, s in collaterals.items()]))
+        # (all supplies * reserveLiquidationThreshold) / all borrows
+        a = Decimal(sum([s * risk_parameters.loc[key.token.name].reserveLiquidationThreshold for key, s in collaterals.items()]))
         b = Decimal(sum(borrows.values()))
         return AaveV3CoreLib.safe_div(a, b)
 
@@ -167,7 +167,7 @@ class AaveV3CoreLib(object):
         """
         all_supplies = DECIMAL_0
         for t, s in collaterals.items():
-            all_supplies += s * risk_parameters.loc[t.token.name].LTV
+            all_supplies += s * risk_parameters.loc[t.token.name].baseLTVasCollateral
 
         amount = sum(collaterals.values())
         return AaveV3CoreLib.safe_div(all_supplies, Decimal(amount))
@@ -189,7 +189,7 @@ class AaveV3CoreLib(object):
         rate = DECIMAL_0
         for t, s in collaterals.items():
             sum_amount += s
-            rate += s * risk_parameters.loc[t.token.name].liqThereshold
+            rate += s * risk_parameters.loc[t.token.name].reserveLiquidationThreshold
 
         return AaveV3CoreLib.safe_div(rate, sum_amount)
 

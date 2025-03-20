@@ -81,7 +81,7 @@ class LiquidiateStrategy(Strategy):
 
 class TestActuator(unittest.TestCase):
     def test_delt_larger_than_collateral(self):
-        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="aave_risk_parameters/polygon.csv", tokens=[weth, usdc])
+        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="aave_risk_parameters/demo.csv", tokens=[weth, usdc])
 
         aave_market.set_token_data(weth, pd.read_csv(StringIO(simple_data_csv), index_col=0, parse_dates=True))
         aave_market.set_token_data(usdc, pd.read_csv(StringIO(simple_data_csv), index_col=0, parse_dates=True))
@@ -99,7 +99,7 @@ class TestActuator(unittest.TestCase):
         pass
 
     def test_delt_larger_than_collateral_with_growing_liqindex(self):
-        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="aave_risk_parameters/polygon.csv", tokens=[weth, usdc])
+        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="aave_risk_parameters/demo.csv", tokens=[weth, usdc])
 
         aave_market.set_token_data(weth, pd.read_csv(StringIO(simple_data_growing_index_csv), index_col=0, parse_dates=True))
         aave_market.set_token_data(usdc, pd.read_csv(StringIO(simple_data_growing_index_csv), index_col=0, parse_dates=True))
@@ -117,7 +117,7 @@ class TestActuator(unittest.TestCase):
         pass
 
     def test_liquidate_all(self):
-        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="aave_risk_parameters/polygon.csv", tokens=[weth, usdc])
+        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="aave_risk_parameters/demo.csv", tokens=[weth, usdc])
 
         aave_market.set_token_data(weth, pd.read_csv(StringIO(simple_data_csv), index_col=0, parse_dates=True))
         aave_market.set_token_data(usdc, pd.read_csv(StringIO(simple_data_csv), index_col=0, parse_dates=True))
@@ -135,7 +135,7 @@ class TestActuator(unittest.TestCase):
         pass
 
     def test_liquidate_half(self):
-        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="aave_risk_parameters/polygon.csv", tokens=[weth, usdc])
+        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path="aave_risk_parameters/demo.csv", tokens=[weth, usdc])
 
         aave_market.set_token_data(weth, pd.read_csv(StringIO(simple_data_csv), index_col=0, parse_dates=True))
         aave_market.set_token_data(usdc, pd.read_csv(StringIO(simple_data_csv), index_col=0, parse_dates=True))

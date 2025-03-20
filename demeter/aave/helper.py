@@ -40,7 +40,7 @@ REQUIRED_DATA_COLUMN = [
 def load_risk_parameter(token_setting_path: str) -> pd.DataFrame | Dict[str, RiskParameter]:
     """
     | Load risk parameter, and convert float to decimal.
-    | Files are downloaded from: https://www.config.fyi, please choose the right chain
+    | Download by "demeter-fetch aave -h"
 
     :param token_setting_path: risk parameter file path
     :type token_setting_path: str
@@ -49,32 +49,42 @@ def load_risk_parameter(token_setting_path: str) -> pd.DataFrame | Dict[str, Ris
     """
     path = os.path.join(token_setting_path)
     if not os.path.exists(path):
-        raise DemeterError(f"risk parameter file {path} not exist, please download csv from https://www.config.fyi/")
-    rp = pd.read_csv(path, sep=";")
+        # raise DemeterError(f"risk parameter file {path} not exist, please download csv from https://www.config.fyi/")
+        raise DemeterError(f"risk parameter file {path} not exist, please download csv with 'demeter-fetch aave -h'")
+    rp = pd.read_csv(path)
+    usdc = rp["symbol"] == "USDC"
+    rp.loc[usdc, "symbol"] = rp.loc[usdc, "name"].apply(lambda x: "USDC" if x == "USD Coin" else "USDC.e")
     rp = rp[
         [
-            "symbol",
-            "canCollateral",
-            "LTV",
-            "liqThereshold",
-            "liqBonus",
-            "reserveFactor",
-            "canBorrow",
-            "optimalUtilization",
-            "canBorrowStable",
-            "debtCeiling",
-            "supplyCap",
-            "borrowCap",
-            "eModeLtv",
-            "eModeLiquidationThereshold",
-            "eModeLiquidationBonus",
-            "borrowableInIsolation",
+            "symbol",  # "symbol",
+            "usageAsCollateralEnabled",  # "canCollateral",
+            "baseLTVasCollateral",  # "LTV",
+            "reserveLiquidationThreshold",  # "liqThereshold",
+            "reserveLiquidationBonus",  # "liqBonus",
+            "reserveFactor",  # "reserveFactor",
+            "borrowingEnabled",  # "canBorrow",
+            "optimalUsageRatio",  # "optimalUtilization",
+            "variableRateSlope1",
+            "variableRateSlope2",
+            "baseVariableBorrowRate",
+            "supplyCap",  # "supplyCap",
+            "borrowCap",  # "borrowCap",
+            "borrowableInIsolation",  # "borrowableInIsolation",
+            "flashLoanEnabled",
         ]
     ]
 
-    rp["LTV"] = rp["LTV"].str.rstrip("%").apply(lambda x: Decimal(x)) / 100
-    rp["liqBonus"] = rp["liqBonus"].str.rstrip("%").apply(lambda x: Decimal(x)) / 100
-    rp["liqThereshold"] = rp["liqThereshold"].str.rstrip("%").apply(lambda x: Decimal(x)) / 100
+    rp["reserveLiquidationBonus"] = rp["reserveLiquidationBonus"].apply(lambda x: Decimal(x - 10000)) / 10000
+    rp[["baseLTVasCollateral", "reserveLiquidationThreshold", "reserveFactor"]] = (
+        rp[["baseLTVasCollateral", "reserveLiquidationThreshold", "reserveFactor"]].map(lambda x: Decimal(x)) / 10000
+    )
+    rp[["optimalUsageRatio", "baseVariableBorrowRate", "variableRateSlope1", "variableRateSlope2"]] = (
+        rp[["optimalUsageRatio", "baseVariableBorrowRate", "variableRateSlope1", "variableRateSlope2"]].map(
+            lambda x: Decimal(x)
+        )
+        / 10**27
+    )
+
     rp = rp.set_index("symbol")
     return rp
 

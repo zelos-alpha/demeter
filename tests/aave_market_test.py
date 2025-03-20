@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, date, timezone
 import numpy as np
 import pandas as pd
 
-from demeter import MarketInfo, TokenInfo, MarketTypeEnum, Broker, MarketStatus, ChainType
+from demeter import MarketInfo, TokenInfo, MarketTypeEnum, Broker, MarketStatus, ChainType, DemeterError
 from demeter.aave import (
     AaveTokenStatus,
     SupplyInfo,
@@ -30,9 +30,10 @@ def to_decimal(v: int) -> Decimal:
 
 class UniLpDataTest(unittest.TestCase):
     def test_load_risk_parameter(self):
-        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "./aave_risk_parameters/polygon.csv")
+        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3),
+                              "aave_risk_parameters/demo.csv")
         self.assertTrue("WETH" in market.risk_parameters.index)
-        self.assertTrue("liqThereshold" in market.risk_parameters.columns)
+        self.assertTrue("reserveLiquidationThreshold" in market.risk_parameters.columns)
 
     def test_apy_to_rate(self):
         self.assertEqual(
@@ -45,7 +46,7 @@ class UniLpDataTest(unittest.TestCase):
     def test_status_calc_with_moke_data(self):
         market = AaveV3Market(
             MarketInfo("aave_test", MarketTypeEnum.aave_v3),
-            "./aave_risk_parameters/polygon.csv",
+            "./aave_risk_parameters/demo.csv",
             tokens=[usdt, dai, matic],
         )
         timestamp = datetime(2023, 9, 12, 15)
@@ -120,7 +121,7 @@ class UniLpDataTest(unittest.TestCase):
     def test_status_calc_with_real_data(self):
         market = AaveV3Market(
             MarketInfo("aave_test", MarketTypeEnum.aave_v3),
-            "./aave_risk_parameters/polygon.csv",
+            "./aave_risk_parameters/demo.csv",
             tokens=[usdt, dai, matic],
         )
         timestamp = datetime(2023, 9, 12, 15)
@@ -210,7 +211,7 @@ class UniLpDataTest(unittest.TestCase):
         # net_apy=Decimal('0.01683792283834931728886791969'))
 
     def test_data(self):
-        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "./aave_risk_parameters/polygon.csv")
+        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "aave_risk_parameters/demo.csv")
         start = datetime(2023, 10, 1, 0, 0)
         data_size = 10
         df_index = pd.date_range(start, start + timedelta(minutes=data_size - 1), freq="1min")
@@ -234,7 +235,7 @@ class UniLpDataTest(unittest.TestCase):
 
     def test_load_data(self):
         market_key = MarketInfo("aave_test", MarketTypeEnum.aave_v3)
-        market = AaveV3Market(market_key, "./aave_risk_parameters/polygon.csv")
+        market = AaveV3Market(market_key, "./aave_risk_parameters/demo.csv")
         market.data_path = "data"
         market.load_data(ChainType.polygon, [weth], date(2023, 8, 14), date(2023, 8, 17))
         self.assertEqual(len(market.data.index), 1440 * 4)
@@ -246,7 +247,7 @@ class UniLpDataTest(unittest.TestCase):
 
     def get_test_market(self):
         market_key = MarketInfo("aave_test", MarketTypeEnum.aave_v3)
-        market = AaveV3Market(market_key, "./aave_risk_parameters/polygon.csv", tokens=[weth])
+        market = AaveV3Market(market_key, "aave_risk_parameters/demo.csv", tokens=[weth])
         t = datetime(2023, 8, 1)
         price_series = pd.Series(data=[Decimal(1000), Decimal(1)], index=[weth.name, dai.name])
         iterables = [
@@ -424,17 +425,8 @@ class UniLpDataTest(unittest.TestCase):
         supply_key = market.supply(weth, amount, True)
         try:
             borrow_key = market.borrow(weth, 0.1, InterestRateMode.stable)
-        except AssertionError as e:
-            self.assertIn("stable borrowing not enabled", str(e))
-
-        borrow_key = market.borrow(dai, 1000, InterestRateMode.stable)
-
-        borrows = market.borrows[borrow_key]
-        self.assertEqual(borrows.amount, 1000)
-        self.assertEqual(borrows.base_amount, 625)
-        self.assertEqual(market.health_factor, Decimal("4.125"))
-        self.assertEqual(market.current_ltv, Decimal("0.8"))
-
+        except DemeterError as e:
+            self.assertIn("borrows at a stable rate were halted", str(e))
         pass
 
     def test_repay(self):
