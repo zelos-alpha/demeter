@@ -2,10 +2,9 @@ from datetime import date, datetime
 
 import pandas as pd
 
-from demeter import TokenInfo, Actuator, Strategy, Snapshot, ChainType, MarketInfo, AtTimeTrigger
+from demeter import TokenInfo, Actuator, Strategy, Snapshot, ChainType, MarketInfo, AtTimeTrigger, MarketTypeEnum
 from demeter.gmx import GmxV2Market
 from demeter.gmx._typing2 import GmxV2Pool
-from demeter.uniswap import UniV3Pool, UniLpMarket, load_uni_v3_data, get_price_from_data
 
 # To print all the columns of dataframe, we should set up display option.
 pd.options.display.max_columns = None
@@ -29,7 +28,7 @@ if __name__ == "__main__":
     weth = TokenInfo(name="weth", decimal=18)
     pool = GmxV2Pool(weth, usdc, weth)
 
-    market_key = MarketInfo("ETHUSDC")
+    market_key = MarketInfo("GMX_ETH", MarketTypeEnum.gmx_v2)
     market = GmxV2Market(market_key, pool, data_path="../data")
     market.load_data(
         ChainType.arbitrum.name, "0x70d95587d40a2caf56bd97485ab3eec10bee6336", date(2025, 1, 8), date(2025, 1, 8)
