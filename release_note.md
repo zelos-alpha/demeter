@@ -1,3 +1,8 @@
+# Ver 1.1.0
+
+* Add gmx v2 market
+* Improve aave market, you can download risk parameter with demeter-fetch
+
 # Ver 1.0.2
 
 Improve performance in deribit market. You should clear cache in your first running to make it work.
