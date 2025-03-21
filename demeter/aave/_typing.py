@@ -259,8 +259,8 @@ class AaveBalance(MarketBalance):
     :type collaterals_value: Decimal
     :param health_factor: current health factor
     :type health_factor: Decimal
-    :param current_ltv: max ltv allowed, in decimal, e.g. 0.7568
-    :type current_ltv: Decimal
+    :param max_ltv: max ltv allowed, in decimal, e.g. 0.7568
+    :type max_ltv: Decimal
     :param liquidation_threshold: current liquidation threshold, in decimal, e.g.0.8
     :type liquidation_threshold: Decimal
     :param supply_apy: annual interest rate of supplies
@@ -283,8 +283,10 @@ class AaveBalance(MarketBalance):
     """total collateral value in supplies(in usd)"""
     health_factor: Decimal
     """current health factor"""
-    current_ltv: Decimal
+    max_ltv: Decimal
     """max ltv allowed, in decimal, e.g. 0.7568"""
+    ltv: Decimal
+    """current ltv, in decimal, e.g. 0.7568"""
     liquidation_threshold: Decimal
     """current liquidation threshold, in decimal, e.g.0.8"""
     supply_apy: Decimal

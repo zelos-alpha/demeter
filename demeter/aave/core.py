@@ -90,11 +90,11 @@ class  AaveV3CoreLib(object):
         :return: borrow amount (in usd)
         :rtype: Decimal
         """
-        ltv = AaveV3CoreLib.current_ltv(collaterals, risk_parameters)
+        max_ltv = AaveV3CoreLib.max_ltv(collaterals, risk_parameters)
         total_borrow = Decimal(sum(borrows.values()))
         total_collateral = Decimal(sum(collaterals.values()))
 
-        return (total_collateral * ltv - total_borrow) * Decimal("0.99")  # because dapp web ui will multiply 0.99
+        return (total_collateral * max_ltv - total_borrow) * Decimal("0.99")  # because dapp web ui will multiply 0.99
 
     @staticmethod
     def get_min_withdraw_kept_amount(
@@ -154,7 +154,7 @@ class  AaveV3CoreLib(object):
         return AaveV3CoreLib.safe_div(a, b)
 
     @staticmethod
-    def current_ltv(collaterals: Dict[SupplyKey, Decimal], risk_parameters) -> Decimal:
+    def max_ltv(collaterals: Dict[SupplyKey, Decimal], risk_parameters) -> Decimal:
         """
         Get max ltv of this user, calculated by token ltv and positions
 

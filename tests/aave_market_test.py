@@ -113,7 +113,7 @@ class UniLpDataTest(unittest.TestCase):
 
         self.assertEqual(stat.health_factor, Decimal("1.5125"))
         self.assertEqual(stat.liquidation_threshold, Decimal("0.825"))
-        self.assertEqual(stat.current_ltv, Decimal("0.8"))
+        self.assertEqual(stat.max_ltv, Decimal("0.8"))
         self.assertEqual(stat.net_apy, Decimal("0.3182"))
 
         self.assertEqual(stat.net_value, Decimal("600"))
@@ -203,7 +203,7 @@ class UniLpDataTest(unittest.TestCase):
 
         assert_equal_with_error(stat.health_factor, Decimal("11.711114759422364164"), 0.001)
         assert_equal_with_error(stat.liquidation_threshold, Decimal("0.8025"), 0.001)
-        assert_equal_with_error(stat.current_ltv, Decimal("0.7525"), 0.001)
+        assert_equal_with_error(stat.max_ltv, Decimal("0.7525"), 0.001)
         assert_equal_with_error(stat.net_apy, Decimal("0.01970"), 0.001)
 
         assert_equal_with_error(stat.net_value, Decimal("102.64"), 0.001)
@@ -403,7 +403,7 @@ class UniLpDataTest(unittest.TestCase):
         self.assertEqual(market.borrows[borrow_key].amount, 1000)
         self.assertEqual(market.borrows[borrow_key].base_amount, 625)
         self.assertEqual(market.health_factor, Decimal("4.125"))
-        self.assertEqual(market.current_ltv, Decimal("0.8"))
+        self.assertEqual(market.max_ltv, Decimal("0.8"))
         pass
 
     def test_borrow_too_much(self):

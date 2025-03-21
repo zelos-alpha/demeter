@@ -273,11 +273,21 @@ class AaveV3Market(Market):
         return AaveV3CoreLib.total_liquidation_threshold(self.collateral_value, self._risk_parameters)
 
     @property
-    def current_ltv(self) -> Decimal:
+    def max_ltv(self) -> Decimal:
         """
         Get current ltv, it's the max ltv of current user
         """
-        return AaveV3CoreLib.current_ltv(self.collateral_value, self._risk_parameters)
+        return AaveV3CoreLib.max_ltv(self.collateral_value, self._risk_parameters)
+
+    @property
+    def ltv(self) -> Decimal:
+        """
+        Get current ltv, it's the max ltv of current user
+        """
+        total_supply = self.total_supply_value
+        if total_supply == DECIMAL_0:
+            return Decimal("inf")
+        return self.total_borrows_value / self.total_supply_value
 
     @property
     def health_factor(self) -> Decimal:
@@ -413,7 +423,8 @@ class AaveV3Market(Market):
             borrows_value=total_borrows,
             supplies_value=total_supplies,
             collaterals_value=self.total_collateral_value.quantize(rounding),
-            current_ltv=AaveV3CoreLib.safe_rounding(self.current_ltv, rounding),
+            max_ltv=AaveV3CoreLib.safe_rounding(self.max_ltv, rounding),
+            ltv=self.ltv,
             supply_apy=supply_apy,
             borrow_apy=borrow_apy,
             net_apy=net_apy,
@@ -694,8 +705,8 @@ class AaveV3Market(Market):
         )
         collateral_balance = sum(self.collateral_value.values())
         require(collateral_balance != 0, "collateral balance is zero")
-        current_ltv = self.current_ltv
-        require(current_ltv != 0, "ltv validation failed")
+        max_ltv = self.max_ltv
+        require(max_ltv != 0, "ltv validation failed")
 
         require(
             self.health_factor > AaveV3CoreLib.HEALTH_FACTOR_LIQUIDATION_THRESHOLD,
@@ -703,7 +714,7 @@ class AaveV3Market(Market):
         )
 
         value = amount * self._price_status.loc[token_info.name]
-        collateral_needed = (sum([x.value for x in self.borrows.values()]) + value) / current_ltv
+        collateral_needed = (sum([x.value for x in self.borrows.values()]) + value) / max_ltv
         require(collateral_needed <= collateral_balance, "collateral cannot cover new borrow")
 
         if interest_rate_mode == InterestRateMode.stable:
