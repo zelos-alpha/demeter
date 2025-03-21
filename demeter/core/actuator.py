@@ -501,10 +501,14 @@ class Actuator(object):
         if not self.__backtest_finished:
             raise DemeterError("Please run strategy first")
         self.logger.info(f"Print actuator summary")
+        print("")
         print(get_formatted_predefined("Final account status", STYLE["header1"]))
+        print("")
         print(self.broker.formatted_str())
         print(get_formatted_predefined(f"Quote by: {self.broker.quote_token}", STYLE["key"]))
+        print("")
         print(get_formatted_predefined("Account balance history", STYLE["header1"]))
+        print("")
         console_text.print_dataframe_with_precision(self._account_status_df)
 
     def save_result(
