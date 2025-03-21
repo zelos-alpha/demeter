@@ -243,3 +243,33 @@ class Broker:
             market.check_market()  # check each market, including assets
 
         self._check_quote_token()
+
+    def swap_by_from(
+        self,
+        from_token: TokenInfo,
+        to_token: TokenInfo,
+        amount: Decimal | float,
+        prices: pd.Series,
+        fee_rate: Decimal = Decimal("0.003"),
+    ):
+        assert Decimal(0) <= fee_rate < Decimal(1)
+        from_value = Decimal(amount) * prices[from_token.name]
+        from_value_without_fee = amount * (1 - fee_rate)
+        to_amount = from_value_without_fee / prices[to_token.name]
+        self.subtract_from_balance(from_token, amount)
+        self.add_to_balance(to_token, to_amount)
+
+    def swap_by_to(
+        self,
+        from_token: TokenInfo,
+        to_token: TokenInfo,
+        amount: Decimal | float,
+        prices: pd.Series,
+        fee_rate: Decimal = Decimal("0.003"),
+    ):
+        assert Decimal(0) <= fee_rate < Decimal(1)
+        to_value = Decimal(amount) * prices[to_token.name]
+        to_value_with_fee = to_value / (1 - fee_rate)
+        from_amount = to_value_with_fee / prices[from_token.name]
+        self.subtract_from_balance(from_token, from_amount)
+        self.add_to_balance(to_token, amount)

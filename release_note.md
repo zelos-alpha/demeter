@@ -1,6 +1,7 @@
 # Ver 1.1.0
 
 * Add gmx v2 market
+* Add swap in broker, in case there is no swapble market in backtest 
 * AAVE market:
   * [Breaking change] Improve aave market, you can download risk parameter with demeter-fetch
   * Remove stable rate borrowing in aave v3
