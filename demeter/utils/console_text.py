@@ -67,30 +67,35 @@ STYLE = {
         "fore": ForColorEnum.red,
         "back": BackColorEnum.default,
         "width": 100,
+        "prefix": "        😀 ",
     },
     "header2": {
         "mode": ModeEnum.invert,
         "fore": ForColorEnum.purple,
         "back": BackColorEnum.default,
-        "width": 30,
+        "width": 50,
+        "prefix": "  🟡 ",
     },
     "header3": {
         "mode": ModeEnum.underline,
         "fore": ForColorEnum.yellow,
         "back": BackColorEnum.default,
         "width": -1,
+        "prefix": "",
     },
     "key": {
         "mode": ModeEnum.normal,
         "fore": ForColorEnum.blue,
         "back": BackColorEnum.default,
         "width": 10,
+        "prefix": "",
     },
     "value": {
         "mode": ModeEnum.normal,
         "fore": ForColorEnum.default,
         "back": BackColorEnum.default,
         "width": 25,
+        "prefix": "",
     },
 }
 
@@ -100,6 +105,7 @@ def get_formatted(
     mode: ModeEnum = ModeEnum.normal,
     fore: ForColorEnum = ForColorEnum.default,
     back: BackColorEnum = BackColorEnum.default,
+    prefix: str = "",
     width=-1,
 ) -> str:
     """
@@ -126,6 +132,7 @@ def get_formatted(
     if style != "":
         style = """\033[{}m""".format(style)
         end = """\033[0m"""
+    string = prefix + string
     if width > 0:
         string = "{}{:<{}}{}".format(style, string, width, end)
     else:
@@ -145,7 +152,7 @@ def get_formatted_predefined(string: str, style: Dict) -> str:
     :return: string with console format
     :rtype: str
     """
-    return get_formatted(string, style["mode"], style["fore"], style["back"], style["width"])
+    return get_formatted(string, style["mode"], style["fore"], style["back"], style["prefix"], style["width"])
 
 
 def get_formatted_from_dict(values: Dict[str, str]) -> str:
