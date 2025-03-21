@@ -20,10 +20,10 @@ class MyFirstAaveStrategy(Strategy):
         self.triggers.extend([supply_trigger, withdraw_trigger, borrow_trigger, repay_trigger])
 
     def supply(self, snapshot: Snapshot):
-        supply_key = aave_market.supply(weth, 10, True)
+        aave_market.supply(weth, 10, True)
 
     def borrow(self, snapshot: Snapshot):
-        borrow_key = aave_market.borrow(weth, 3)
+        aave_market.borrow(weth, 3)
 
     def repay(self, snapshot: Snapshot):
         for key in aave_market.borrow_keys:

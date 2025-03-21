@@ -1,8 +1,7 @@
 import unittest
 from _decimal import Decimal
-from datetime import date, datetime
+from datetime import datetime
 from io import StringIO
-from typing import Union
 
 import pandas as pd
 
@@ -12,12 +11,10 @@ from demeter import (
     Strategy,
     Snapshot,
     MarketInfo,
-    MarketDict,
     MarketTypeEnum,
-    ChainType,
     AtTimeTrigger,
 )
-from demeter.aave import AaveBalance, InterestRateMode, AaveV3Market, AaveTokenStatus
+from demeter.aave import AaveV3Market
 
 # To print all the columns of dataframe, we should set up display option.
 pd.options.display.max_columns = None
@@ -77,8 +74,8 @@ class BasicStrategy(Strategy):
 
     def supply_and_borrow(self, snapshot: Snapshot):
         aave_market: AaveV3Market = self.broker.markets[market_key]
-        supply_key = aave_market.supply(weth, 10, True)
-        borrow_key = aave_market.borrow(weth, 7)
+        aave_market.supply(weth, 10, True)
+        aave_market.borrow(weth, 7)
 
 
 class AllOperationStrategy(Strategy):
@@ -90,8 +87,8 @@ class AllOperationStrategy(Strategy):
 
     def supply_and_borrow(self, snapshot: Snapshot):
         aave_market: AaveV3Market = self.broker.markets[market_key]
-        supply_key = aave_market.supply(weth, 10, True)
-        borrow_key = aave_market.borrow(weth, 7)
+        aave_market.supply(weth, 10, True)
+        aave_market.borrow(weth, 7)
 
     def repay(self, snapshot: Snapshot):
         aave_market: AaveV3Market = self.broker.markets[market_key]
@@ -117,7 +114,7 @@ class RepayWithCollateralStrategy(Strategy):
 
     def repay(self, snapshot: Snapshot):
         aave_market: AaveV3Market = self.broker.markets[market_key]
-        aave_market.repay(borrow_token=weth, interest_rate_mode=InterestRateMode.variable, repay_with_collateral=True)
+        aave_market.repay(borrow_token=weth, repay_with_collateral=True)
 
 
 class TestActuator(unittest.TestCase):

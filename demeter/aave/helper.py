@@ -11,7 +11,7 @@ from demeter.aave._typing import RiskParameter
 from demeter.data import CacheManager
 from demeter.utils import to_decimal
 
-MIN_TOKEN_VALUE = (1e-18) - (1e-27)
+MIN_TOKEN_VALUE = 1e-18 - 1e-27
 
 
 def sub_base_amount(old_v, value):
@@ -59,7 +59,7 @@ def load_risk_parameter(token_setting_path: str) -> pd.DataFrame | Dict[str, Ris
             "symbol",  # "symbol",
             "usageAsCollateralEnabled",  # "canCollateral",
             "baseLTVasCollateral",  # "LTV",
-            "reserveLiquidationThreshold",  # "liqThereshold",
+            "reserveLiquidationThreshold",  # "liqThreshold",
             "reserveLiquidationBonus",  # "liqBonus",
             "reserveFactor",  # "reserveFactor",
             "borrowingEnabled",  # "canBorrow",

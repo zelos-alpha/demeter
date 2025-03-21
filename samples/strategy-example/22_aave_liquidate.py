@@ -57,8 +57,8 @@ class LiquidiateStrategy(Strategy):
         self.triggers.extend([supply_trigger])
 
     def supply_and_borrow(self, snapshot: Snapshot):
-        supply_key = aave_market.supply(weth, 10, True)
-        borrow_key = aave_market.borrow(usdc, 7500)
+        aave_market.supply(weth, 10, True)
+        aave_market.borrow(usdc, 7500)
 
     def notify(self, action: BaseAction):
         if isinstance(action, LiquidationAction):

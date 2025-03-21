@@ -1,8 +1,11 @@
 # Ver 1.1.0
 
 * Add gmx v2 market
-* Improve aave market, you can download risk parameter with demeter-fetch
-* Remove stable rate borrowing in aave v3
+* AAVE market:
+  * [Breaking change] Improve aave market, you can download risk parameter with demeter-fetch
+  * Remove stable rate borrowing in aave v3
+  * [Breaking change] remove supply and borrow key, just use token instead, because there are only one interest rate.
+  * add ltv and max_ltv in market balance
 
 # Ver 1.0.2
 
