@@ -176,9 +176,7 @@ class AaveV3Market(Market):
             for k, v in self._borrows.items():
                 self._borrows_amount_cache.set(
                     k,
-                    AaveV3CoreLib.get_amount(
-                        v.base_amount, self._market_status.data[k.name].variable_borrow_index
-                    )
+                    AaveV3CoreLib.get_amount(v.base_amount, self._market_status.data[k.name].variable_borrow_index)
                     * self._price_status[k.name],
                 )
         return self._borrows_amount_cache.value
@@ -327,7 +325,7 @@ class AaveV3Market(Market):
             supply_apy * total_supplies - borrow_apy * total_borrows, total_supplies - total_borrows
         )
 
-    def get_supply(self, token_info: TokenInfo = None) -> Supply:
+    def get_supply(self, token_info: TokenInfo) -> Supply:
         """
         Get details of supply position, include value, amount, apy etc.
 
@@ -524,7 +522,7 @@ class AaveV3Market(Market):
         )
 
     @write_func
-    def change_collateral(self, collateral: bool, token_info: TokenInfo = None):
+    def change_collateral(self, token_info: TokenInfo, collateral: bool):
         """
         Change collateral type of supply position. Health factor will be checked to prevent liquidation
 
@@ -552,7 +550,7 @@ class AaveV3Market(Market):
     @float_param_formatter
     def withdraw(
         self,
-        token_info: TokenInfo = None,
+        token_info: TokenInfo,
         amount: Decimal | float = None,
     ):
         """
@@ -597,7 +595,7 @@ class AaveV3Market(Market):
 
         pass
 
-    def get_max_withdraw_amount(self, token_info: TokenInfo = None) -> Decimal:
+    def get_max_withdraw_amount(self, token_info: TokenInfo) -> Decimal:
         """
         Get max available withdraw amount
 
@@ -690,7 +688,7 @@ class AaveV3Market(Market):
             )
         )
 
-    def get_max_repay_amount(self, token_info: TokenInfo = None) -> Decimal:
+    def get_max_repay_amount(self, token_info: TokenInfo) -> Decimal:
         """
         Get max token amount to repay.
 
@@ -710,7 +708,7 @@ class AaveV3Market(Market):
     @float_param_formatter
     def repay(
         self,
-        borrow_token: TokenInfo = None,
+        borrow_token: TokenInfo,
         payback_amount: Decimal | float = None,
         repay_with_collateral: bool = False,
         repay_collateral_token: TokenInfo = None,
