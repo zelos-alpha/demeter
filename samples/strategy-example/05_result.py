@@ -118,8 +118,8 @@ if __name__ == "__main__":
     metrics = performance_metrics(
         actuator.account_status_df["net_value"], benchmark=actuator.account_status_df["price"]["ETH"]
     )
-    print(metrics)
-
+    metrics_df = pd.DataFrame(data=metrics.items(), columns=["item", "value"])
+    print(metrics_df)
     # save backtest result(include backtest information(.pkl) and account status(.csv) to this folder)
     # default file name has timestamp. If you want a custom file name, you can set file_name
     # if you want to add some custom parameter to pkl file, you can use dict, such as custom_param in this example.
