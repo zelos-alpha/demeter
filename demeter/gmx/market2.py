@@ -32,6 +32,7 @@ class GmxV2Market(Market):
         # return repr(self.description().__dict__)
         return orjson.dumps(self.description, default=orjson_default).decode()
 
+    @property
     def description(self) -> GmxV2Description:
         return GmxV2Description(
             type=type(self).__name__,

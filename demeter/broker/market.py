@@ -130,6 +130,12 @@ class Market(ABC):
         """
         ...
 
+    @property
+    @abstractmethod
+    def description(self):
+        ...
+
+
     @abstractmethod
     def formatted_str(self):
         """
