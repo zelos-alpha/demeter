@@ -8,9 +8,10 @@ from .helper2 import load_gmx_v2_data, get_price_from_v2_data
 from .gmx_v2 import PoolConfig, LPResult
 from .gmx_v2.ExecuteDepositUtils import ExecuteDepositUtils
 from .gmx_v2.ExecuteWithdrawUtils import ExecuteWithdrawUtils
-from .. import MarketStatus, TokenInfo, DECIMAL_0, ChainType, DemeterWarning, DemeterError
+from .. import MarketStatus, TokenInfo, DECIMAL_0, ChainType, DemeterWarning, DemeterError, UnitDecimal
 from ..broker import Market, MarketInfo, MarketBalance
-from ._typing2 import GmxV2Pool, GmxV2Description, GmxV2MarketStatus, GmxV2Balance, GmxV2PoolStatus
+from ._typing2 import GmxV2Pool, GmxV2Description, GmxV2MarketStatus, GmxV2Balance, GmxV2PoolStatus, Gmx2WithdrawAction, \
+    Gmx2DepositAction
 from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE
 
 
@@ -117,15 +118,43 @@ class GmxV2Market(Market):
         self.amount += result.gm_amount
         self.broker.subtract_from_balance(self.long_token, Decimal(result.long_amount))
         self.broker.subtract_from_balance(self.short_token, Decimal(result.short_amount))
+        self._record_action(
+            Gmx2DepositAction(
+                market=self.market_info,
+                gm_amount=UnitDecimal(result.gm_amount, "GM"),
+                gm_usd=UnitDecimal(result.gm_usd, "USD"),
+                long_amount=UnitDecimal(result.long_amount, self.long_token.name),
+                short_amount=UnitDecimal(result.short_amount, self.short_token.name),
+                deposit_usd=UnitDecimal(result.total_usd, "USD"),
+                long_fee=UnitDecimal(result.long_fee, self.long_token.name),
+                short_fee=UnitDecimal(result.short_fee, self.short_token.name),
+                fee_usd=UnitDecimal(result.fee_usd, "USD"),
+                price_impact_usd = UnitDecimal(result.price_impact_usd, "USD"),
+            )
+        )
         return result
 
     def withdraw(self, amount: float | None = None) -> LPResult:
         if amount is None:
             amount = self.amount
-        result = ExecuteWithdrawUtils.getOutputAmount(self.pool_config, self._market_status.data, amount)
+        result: LPResult = ExecuteWithdrawUtils.getOutputAmount(self.pool_config, self._market_status.data, amount)
         self.amount -= result.gm_amount
         self.broker.add_to_balance(self.long_token, Decimal(result.long_amount))
         self.broker.add_to_balance(self.short_token, Decimal(result.short_amount))
         if amount < 0:
             raise DemeterError("amount cannot be negative, value is {}".format(amount))
+
+        self._record_action(
+            Gmx2WithdrawAction(
+                market=self.market_info,
+                gm_amount=UnitDecimal(result.gm_amount, "GM"),
+                gm_usd=UnitDecimal(result.gm_usd, "USD"),
+                long_amount=UnitDecimal(result.long_amount, self.long_token.name),
+                short_amount=UnitDecimal(result.short_amount, self.short_token.name),
+                withdraw_usd=UnitDecimal(result.total_usd, "USD"),
+                long_fee=UnitDecimal(result.long_fee, self.long_token.name),
+                short_fee=UnitDecimal(result.short_fee, self.short_token.name),
+                fee_usd=UnitDecimal(result.fee_usd, "USD"),
+            )
+        )
         return result
