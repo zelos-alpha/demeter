@@ -3,7 +3,17 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Dict, Callable
 
-from ._typing import Asset, TokenInfo, AccountStatus, MarketDict, AssetDict, BaseAction, MarketTypeEnum
+from ._typing import (
+    Asset,
+    TokenInfo,
+    AccountStatus,
+    MarketDict,
+    AssetDict,
+    BaseAction,
+    MarketTypeEnum,
+    BrokerSwapAction,
+    MarketInfo,
+)
 from .market import Market
 from .._typing import DemeterError, UnitDecimal, STABLE_COINS
 from ..utils import get_formatted_from_dict, get_formatted_predefined, STYLE, float_param_formatter
@@ -258,6 +268,18 @@ class Broker:
         to_amount = from_value_without_fee / prices[to_token.name]
         self.subtract_from_balance(from_token, amount)
         self.add_to_balance(to_token, to_amount)
+        if self._record_action_callback is not None:
+            self._record_action_callback(
+                BrokerSwapAction(
+                    market=MarketInfo("broker", type=MarketTypeEnum.broker),
+                    from_token=from_token,
+                    from_amount=UnitDecimal(amount, from_token.name),
+                    to_token=to_token,
+                    to_amount=UnitDecimal(to_amount, to_token.name),
+                    fee_rate=fee_rate,
+                    fee=UnitDecimal(amount * fee_rate, from_token.name),
+                )
+            )
 
     def swap_by_to(
         self,
@@ -273,3 +295,15 @@ class Broker:
         from_amount = to_value_with_fee / prices[from_token.name]
         self.subtract_from_balance(from_token, from_amount)
         self.add_to_balance(to_token, amount)
+        if self._record_action_callback is not None:
+            self._record_action_callback(
+                BrokerSwapAction(
+                    market=MarketInfo("broker", type=MarketTypeEnum.broker),
+                    from_token=from_token,
+                    from_amount=UnitDecimal(from_amount, from_token.name),
+                    to_token=to_token,
+                    to_amount=UnitDecimal(amount, to_token.name),
+                    fee_rate=fee_rate,
+                    fee=UnitDecimal(from_amount * fee_rate, from_token.name),
+                )
+            )

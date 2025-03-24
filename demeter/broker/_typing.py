@@ -6,8 +6,9 @@ from decimal import Decimal
 from enum import Enum
 from typing import Generic, NamedTuple, List, Dict, TypeVar, Union
 
-from .._typing import DemeterError, TokenInfo
+from .._typing import DemeterError, TokenInfo, UnitDecimal
 from ..utils import to_multi_index_df
+from ..utils.console_text import get_action_str, ForColorEnum
 
 T = TypeVar("T")
 
@@ -23,6 +24,7 @@ class Rule(NamedTuple):
 
 
 class MarketTypeEnum(Enum):
+    broker = 0
     uniswap_v3 = 1
     aave_v3 = 2
     deribit_option = 3
@@ -148,6 +150,7 @@ class ActionTypeEnum(Enum):
     * collect_fee
     """
 
+    general_swap = "swap"
     uni_lp_add_liquidity = "add_liquidity"
     uni_lp_remove_liquidity = "remove_liquidity"
     uni_lp_buy = "buy"
@@ -216,6 +219,31 @@ class BaseAction(object):
 
     def __repr__(self):
         return f"{self.timestamp.strftime('%Y-%m-%d %H:%M:%S')} {self.market.name}\t{self.action_type.name}"
+
+
+@dataclass
+class BrokerSwapAction(BaseAction):
+    from_token: TokenInfo
+    from_amount: UnitDecimal
+    to_token: TokenInfo
+    to_amount: UnitDecimal
+    fee_rate: Decimal
+    fee: UnitDecimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.general_swap
+
+    def get_output_str(self):
+        return get_action_str(
+            self,
+            ForColorEnum.cyan,
+            {
+                "token": f"{self.from_token.name}->{self.to_token.name}",
+                "from_amount": self.from_amount.to_str(),
+                "to_amount": self.to_amount.to_str(),
+                "fee": self.fee.to_str(),
+            },
+        )
 
 
 @dataclass
