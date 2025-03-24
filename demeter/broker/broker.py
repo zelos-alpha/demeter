@@ -264,7 +264,7 @@ class Broker:
     ):
         assert Decimal(0) <= fee_rate < Decimal(1)
         from_value = Decimal(amount) * prices[from_token.name]
-        from_value_without_fee = amount * (1 - fee_rate)
+        from_value_without_fee = from_value * (1 - fee_rate)
         to_amount = from_value_without_fee / prices[to_token.name]
         self.subtract_from_balance(from_token, amount)
         self.add_to_balance(to_token, to_amount)
