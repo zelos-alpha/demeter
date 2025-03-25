@@ -39,7 +39,7 @@ class Broker:
         self._assets: AssetDict[Asset] = AssetDict()
         self._markets: MarketDict[Market] = MarketDict()
         self._record_action_callback: Callable[[BaseAction], None] = record_action_callback
-        self.quote_token = None
+        self.quote_token: TokenInfo | None = None
 
     # region properties
 

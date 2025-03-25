@@ -24,7 +24,7 @@ from ..broker import BaseAction, AccountStatus, MarketInfo, MarketDict, MarketSt
 from ..result import BackTestDescription
 from ..strategy import Strategy
 from ..uniswap import PositionInfo
-from ..utils import get_formatted_predefined, STYLE, to_decimal, to_multi_index_df,console_text,config_log
+from ..utils import get_formatted_predefined, STYLE, to_decimal, to_multi_index_df, console_text, config_log
 
 config_log()
 
@@ -452,9 +452,11 @@ class Actuator(object):
                     snapshot = self.__get_snapshot(timestamp_index, row_id, current_price)
                     self._strategy.after_bar(snapshot)
 
-                    self._account_status_list.append(
-                        self._broker.get_account_status(current_price, timestamp_index.to_pydatetime())
+                    account_status = self._broker.get_account_status(current_price, timestamp_index.to_pydatetime())
+                    pbar.set_description(
+                        desc=f"Net Value: {account_status.net_value:.2f} {self._broker.quote_token.name}", refresh=False
                     )
+                    self._account_status_list.append(account_status)
                     # notify actions in current loop
                     self.notify(self.strategy, self._currents.actions)
                     self._currents.actions = []
@@ -476,7 +478,9 @@ class Actuator(object):
             self.print_result()
 
         self.__backtest_duration = time.time() - self.__start_time
-        self.logger.info(f"Backtest with process id: {os.getpid()} finished, execute time {(time.time() - self.__start_time):.3f}s")
+        self.logger.info(
+            f"Backtest with process id: {os.getpid()} finished, execute time {(time.time() - self.__start_time):.3f}s"
+        )
 
     def _generate_account_status_df(self):
         self._account_status_df: pd.DataFrame = AccountStatus.to_dataframe(self._account_status_list)
