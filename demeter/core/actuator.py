@@ -454,7 +454,7 @@ class Actuator(object):
 
                     account_status = self._broker.get_account_status(current_price, timestamp_index.to_pydatetime())
                     pbar.set_description(
-                        desc=f"Net Value: {account_status.net_value:.2f} {self._broker.quote_token.name}", refresh=False
+                        desc=f"{timestamp_index}: {account_status.net_value:.2f} {self._broker.quote_token.name}", refresh=False
                     )
                     self._account_status_list.append(account_status)
                     # notify actions in current loop
