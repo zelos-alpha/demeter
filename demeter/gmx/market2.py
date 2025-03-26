@@ -10,8 +10,15 @@ from .gmx_v2.ExecuteDepositUtils import ExecuteDepositUtils
 from .gmx_v2.ExecuteWithdrawUtils import ExecuteWithdrawUtils
 from .. import MarketStatus, TokenInfo, DECIMAL_0, ChainType, DemeterWarning, DemeterError, UnitDecimal
 from ..broker import Market, MarketInfo, MarketBalance
-from ._typing2 import GmxV2Pool, GmxV2Description, GmxV2MarketStatus, GmxV2Balance, GmxV2PoolStatus, Gmx2WithdrawAction, \
-    Gmx2DepositAction
+from ._typing2 import (
+    GmxV2Pool,
+    GmxV2Description,
+    GmxV2MarketStatus,
+    GmxV2Balance,
+    GmxV2PoolStatus,
+    Gmx2WithdrawAction,
+    Gmx2DepositAction,
+)
 from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE
 
 
@@ -112,7 +119,9 @@ class GmxV2Market(Market):
     def _resample(self, freq: str):
         self._data.resample(freq=freq, inplace=True)
 
-    def deposit(self, long_amount: float | None, short_amount: float | None) -> LPResult:
+    def deposit(self, long_amount: Decimal | float, short_amount: Decimal | float) -> LPResult:
+        long_amount = float(long_amount)
+        short_amount = float(short_amount)
         result = ExecuteDepositUtils.get_mint_amount(
             self.pool_config, self._market_status.data, long_amount, short_amount
         )
@@ -130,7 +139,7 @@ class GmxV2Market(Market):
                 long_fee=UnitDecimal(result.long_fee, self.long_token.name),
                 short_fee=UnitDecimal(result.short_fee, self.short_token.name),
                 fee_usd=UnitDecimal(result.fee_usd, "USD"),
-                price_impact_usd = UnitDecimal(result.price_impact_usd, "USD"),
+                price_impact_usd=UnitDecimal(result.price_impact_usd, "USD"),
             )
         )
         return result
@@ -138,6 +147,7 @@ class GmxV2Market(Market):
     def withdraw(self, amount: float | None = None) -> LPResult:
         if amount is None:
             amount = self.amount
+        amount = float(amount)
         result: LPResult = ExecuteWithdrawUtils.getOutputAmount(self.pool_config, self._market_status.data, amount)
         self.amount -= result.gm_amount
         self.broker.add_to_balance(self.long_token, Decimal(result.long_amount))
