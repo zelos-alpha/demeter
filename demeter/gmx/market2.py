@@ -4,6 +4,7 @@ from decimal import Decimal
 import pandas as pd
 from orjson import orjson
 
+from .gmx_v2.MarketUtils import MarketUtils
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
 from .gmx_v2 import PoolConfig, LPResult
 from .gmx_v2.ExecuteDepositUtils import ExecuteDepositUtils
@@ -80,9 +81,9 @@ class GmxV2Market(Market):
     def get_market_balance(self) -> GmxV2Balance:
         if self.amount > 0:
             pool_data: GmxV2PoolStatus = self._market_status.data
-            result = ExecuteWithdrawUtils.getOutputAmount(self.pool_config, pool_data, self.amount)
-            long_amount = Decimal(result.long_amount)
-            short_amount = Decimal(result.short_amount)
+            longAmount, shortAmount = MarketUtils.getTokenAmountsFromGM(pool_data, self.amount)
+            long_amount = Decimal(longAmount)
+            short_amount = Decimal(shortAmount)
             net_value = Decimal(self.amount * pool_data.poolValue / pool_data.marketTokensSupply)
         else:
             net_value = long_amount = short_amount = Decimal(0)
