@@ -37,6 +37,12 @@ class Strategy(object):
         """
         pass
 
+    def before_bar(self, snapshot: Snapshot):
+        """
+        Called before trigger and on_bar on each iteration
+        """
+        pass
+
     def on_bar(self, snapshot: Snapshot):
         """
         Called after triggers on each iteration, at this time, market are not updated yet(Take uniswap market for example, fee of this minute are not added to positions).
