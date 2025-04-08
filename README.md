@@ -21,12 +21,6 @@ some optimizations for backtesting speed.
 * **Data feeding:** Backtesting requires real market data. Thanks to the transparency of blockchain, those data can be
   fetched from event logs of transaction. We provided [demeter-fetch](https://github.com/zelos-alpha/demeter-fetch) to
   do this work. It can download event logs from rpc or google big query and decode them to market data.
-* **Uniswap market:** As a popular automated market maker, uniswap is famous for its complexity. To raise fund
-  utilization rate, uniswap add tick range to position, which makes it difficult to estimate the return on investment.
-  Demeter provides comprehensive calculation and evaluation tools to help users test the returns of various positions.
-* **Aave market:** Aave is a popular liquidity protocol which allow user to deposit and borrow assets. Through supply
-  asset to aave, user can earn interest, and borrowing allow user to earn extra profit or to hedging price changes.
-  Demeter support supply/repay/borrow/repay/liquidation transactions on aave.
 * **Accuracy:** In the design of demeter, accuracy is an important consideration. In order to provide higher accuracy,
   the core calculations of uniswap and aave do not follow theoretical formulas, but draw on the code of the contract.
   This allows demeter to have higher calculations accuracy.
@@ -41,6 +35,19 @@ some optimizations for backtesting speed.
 * **Price:** Price is the key to calculate token net value, since it will be used among markets. We separate price from
   market.data. Prices can be downloaded from coingecko and some centralized market.
 * **Decimal places:** You can define decimal places to avoid long decimal.
+
+## Markets
+
+* **Uniswap V3** As a popular automated market maker, uniswap is famous for its complexity. To raise fund
+  utilization rate, uniswap add tick range to position, which makes it difficult to estimate the return on investment.
+  Demeter provides comprehensive calculation and evaluation tools to help users test the returns of various positions.
+* **Aave V3** Aave is a popular liquidity protocol which allow user to deposit and borrow assets. Through supply
+  asset to aave, user can earn interest, and borrowing allow user to earn extra profit or to hedging price changes.
+  Demeter support supply/repay/borrow/repay/liquidation transactions on aave.
+* **Deribit**
+* **Sequeeth**
+* **GMX V1**
+* **GMX V2**
 
 ## Conclusion
 
