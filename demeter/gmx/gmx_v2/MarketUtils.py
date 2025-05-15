@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from ._typing import PoolConfig, GmxV2PoolStatus, MarketPoolValueInfo
+from ._typing import PoolConfig, GmxV2PoolStatus
 
 
 class MarketUtils:
@@ -86,15 +86,3 @@ class MarketUtils:
     def get_values(amount: float, price: float, decimal: float) -> Tuple[float, float]:
         return amount, amount * price
 
-    @staticmethod
-    def getPoolValueInfo(pool_status: GmxV2PoolStatus) -> MarketPoolValueInfo:
-        result = MarketPoolValueInfo()
-        result.longTokenAmount = pool_status.longAmount
-        result.shortTokenAmount = pool_status.shortAmount
-
-        result.longTokenUsd = result.longTokenAmount * pool_status.longPrice
-        result.shortTokenUsd = result.shortTokenAmount * pool_status.shortPrice
-
-        result.poolValue = result.longTokenUsd + result.shortTokenUsd
-
-        return result

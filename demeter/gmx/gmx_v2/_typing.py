@@ -51,10 +51,11 @@ class GmxV2PoolStatus:
     poolValue: float
     marketTokensSupply: float
     impactPoolAmount: float
+    pendingPnl: float
+    realizedNetYield: float
     longPrice: float
     shortPrice: float
     indexPrice: float
-
 
 
 @dataclass
@@ -71,18 +72,3 @@ class LPResult:
     fee_usd: float
 
     price_impact_usd: float
-
-
-@dataclass
-class MarketPoolValueInfo:
-    poolValue: float = 0
-    longPnl: float = 0
-    shortPnl: float = 0
-    netPnl: float = 0
-    longTokenAmount: float = 0
-    shortTokenAmount: float = 0
-    longTokenUsd: float = 0
-    shortTokenUsd: float = 0
-    totalBorrowingFees: float = 0
-    borrowingFeePoolFactor: float = 0
-    impactPoolAmount: float = 0

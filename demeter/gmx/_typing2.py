@@ -16,6 +16,8 @@ class GmxV2Balance(MarketBalance):
     gm_amount: Decimal
     long_amount: Decimal
     short_amount: Decimal
+    net_yield: Decimal
+    pending_pnl: Decimal
 
 
 @dataclass

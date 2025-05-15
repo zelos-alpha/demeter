@@ -1,3 +1,7 @@
+# Ver 1.1.1
+
+* Add pending pnl and net yield for GMX v2 market
+
 # Ver 1.1.0
 
 * Add gmx v2 market

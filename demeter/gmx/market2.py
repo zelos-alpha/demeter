@@ -82,17 +82,22 @@ class GmxV2Market(Market):
         if self.amount > 0:
             pool_data: GmxV2PoolStatus = self._market_status.data
             longAmount, shortAmount = MarketUtils.getTokenAmountsFromGM(pool_data, self.amount)
+            share = Decimal(self.amount / pool_data.marketTokensSupply)
             long_amount = Decimal(longAmount)
             short_amount = Decimal(shortAmount)
-            net_value = Decimal(self.amount * pool_data.poolValue / pool_data.marketTokensSupply)
+            net_value = Decimal(pool_data.poolValue) * share
+            pending_pnl = Decimal(pool_data.pendingPnl) * share
+            net_yield = Decimal(pool_data.realizedNetYield) * share
         else:
-            net_value = long_amount = short_amount = Decimal(0)
+            net_value = long_amount = short_amount = net_yield = pending_pnl = Decimal(0)
 
         return GmxV2Balance(
             net_value=net_value,
             gm_amount=Decimal(self.amount),
             long_amount=long_amount,
             short_amount=short_amount,
+            net_yield=net_yield,
+            pending_pnl=pending_pnl,
         )
 
     def formatted_str(self):
