@@ -1,3 +1,7 @@
+# Ver 1.1.2
+
+* [Breaking change] Rename realizedNetYield in GMX V2 minute file to realizedProfit, rename net_yield to realized_profit
+
 # Ver 1.1.1
 
 * Add pending pnl and net yield for GMX v2 market

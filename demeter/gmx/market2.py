@@ -87,16 +87,16 @@ class GmxV2Market(Market):
             short_amount = Decimal(shortAmount)
             net_value = Decimal(pool_data.poolValue) * share
             pending_pnl = Decimal(pool_data.pendingPnl) * share
-            net_yield = Decimal(pool_data.realizedNetYield) * share
+            realized_profit = Decimal(pool_data.realizedProfit) * share
         else:
-            net_value = long_amount = short_amount = net_yield = pending_pnl = Decimal(0)
+            net_value = long_amount = short_amount = realized_profit = pending_pnl = Decimal(0)
 
         return GmxV2Balance(
             net_value=net_value,
             gm_amount=Decimal(self.amount),
             long_amount=long_amount,
             short_amount=short_amount,
-            net_yield=net_yield,
+            realized_profit=realized_profit,
             pending_pnl=pending_pnl,
         )
 

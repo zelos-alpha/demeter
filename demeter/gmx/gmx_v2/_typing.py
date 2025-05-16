@@ -52,7 +52,7 @@ class GmxV2PoolStatus:
     marketTokensSupply: float
     impactPoolAmount: float
     pendingPnl: float
-    realizedNetYield: float
+    realizedProfit: float
     longPrice: float
     shortPrice: float
     indexPrice: float
