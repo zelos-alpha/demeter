@@ -24,9 +24,7 @@ from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE
 
 
 class GmxV2Market(Market):
-    def __init__(
-        self, market_info: MarketInfo, pool: GmxV2Pool, data: pd.DataFrame | None = None, data_path: str = "./data"
-    ):
+    def __init__(self, market_info: MarketInfo, pool: GmxV2Pool, data: pd.DataFrame | None = None, data_path: str = "./data"):
         super().__init__(market_info=market_info, data=data, data_path=data_path)
         self.pool = pool
         self.amount: float = 0.0
@@ -88,8 +86,10 @@ class GmxV2Market(Market):
             net_value = Decimal(pool_data.poolValue) * share
             pending_pnl = Decimal(pool_data.pendingPnl) * share
             realized_profit = Decimal(pool_data.realizedProfit) * share
+            realized_pnl = Decimal(pool_data.realizedPnl) * share
+            profit_without_pnl = Decimal(pool_data.profitWithoutPnl) * share
         else:
-            net_value = long_amount = short_amount = realized_profit = pending_pnl = Decimal(0)
+            net_value = long_amount = short_amount = realized_profit = pending_pnl = realized_pnl = profit_without_pnl = Decimal(0)
 
         return GmxV2Balance(
             net_value=net_value,
@@ -98,6 +98,8 @@ class GmxV2Market(Market):
             short_amount=short_amount,
             realized_profit=realized_profit,
             pending_pnl=pending_pnl,
+            realized_pnl=realized_pnl,
+            profit_without_pnl=profit_without_pnl,
         )
 
     def formatted_str(self):
@@ -128,9 +130,7 @@ class GmxV2Market(Market):
     def deposit(self, long_amount: Decimal | float, short_amount: Decimal | float) -> LPResult:
         long_amount = float(long_amount)
         short_amount = float(short_amount)
-        result = ExecuteDepositUtils.get_mint_amount(
-            self.pool_config, self._market_status.data, long_amount, short_amount
-        )
+        result = ExecuteDepositUtils.get_mint_amount(self.pool_config, self._market_status.data, long_amount, short_amount)
         self.amount += result.gm_amount
         self.broker.subtract_from_balance(self.long_token, Decimal(result.long_amount))
         self.broker.subtract_from_balance(self.short_token, Decimal(result.short_amount))

@@ -1,6 +1,7 @@
 # Ver 1.1.2
 
 * [Breaking change] Rename realizedNetYield in GMX V2 minute file to realizedProfit, rename net_yield to realized_profit
+* Add profit and pnl column for gmx v2 market.
 
 # Ver 1.1.1
 
