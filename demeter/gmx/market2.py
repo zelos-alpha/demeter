@@ -87,9 +87,8 @@ class GmxV2Market(Market):
             pending_pnl = Decimal(pool_data.pendingPnl) * share
             realized_profit = Decimal(pool_data.realizedProfit) * share
             realized_pnl = Decimal(pool_data.realizedPnl) * share
-            profit_without_pnl = Decimal(pool_data.profitWithoutPnl) * share
         else:
-            net_value = long_amount = short_amount = realized_profit = pending_pnl = realized_pnl = profit_without_pnl = Decimal(0)
+            net_value = long_amount = short_amount = realized_profit = pending_pnl = realized_pnl = Decimal(0)
 
         return GmxV2Balance(
             net_value=net_value,
@@ -99,7 +98,6 @@ class GmxV2Market(Market):
             realized_profit=realized_profit,
             pending_pnl=pending_pnl,
             realized_pnl=realized_pnl,
-            profit_without_pnl=profit_without_pnl,
         )
 
     def formatted_str(self):

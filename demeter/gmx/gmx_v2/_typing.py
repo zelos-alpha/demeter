@@ -51,12 +51,9 @@ class GmxV2PoolStatus:
     poolValue: float
     marketTokensSupply: float
     impactPoolAmount: float
-    pendingPnl: float
-    realizedProfit: float
     pendingPnl:float  # pnl caused by open interest
     realizedPnl:float  # pnl for decreased position
     realizedProfit:float  # pnl + fee + priceImpact
-    profitWithoutPnl:float  # fee + priceImpact, so it can be negative
     longPrice: float
     shortPrice: float
     indexPrice: float

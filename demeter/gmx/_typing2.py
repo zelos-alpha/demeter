@@ -19,7 +19,6 @@ class GmxV2Balance(MarketBalance):
     pending_pnl: Decimal
     realized_pnl: Decimal
     realized_profit: Decimal
-    profit_without_pnl: Decimal
 
 
 
