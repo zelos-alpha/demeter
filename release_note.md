@@ -1,6 +1,8 @@
 # Ver 1.1.3
 
-* Add openinterest in gmx v2. 
+* Add openinterest in gmx v2 minute file.
+* [Breaking change]remove complex statistic column in gmx v2 balance. including pending_pnl, realized_profit,
+  realized_pnl, open_interest_in_tokens to speed up the calculation
 
 # Ver 1.1.2
 
@@ -17,10 +19,10 @@
 * Add swap in broker, in case there is no swapble market in backtest
 * Show net value in process bar during backtest
 * AAVE market:
-  * [Breaking change] Improve aave market, you can download risk parameter with demeter-fetch
-  * Remove stable rate borrowing in aave v3
-  * [Breaking change] remove supply and borrow key, just use token instead, because there are only one interest rate.
-  * add ltv and max_ltv in market balance
+    * [Breaking change] Improve aave market, you can download risk parameter with demeter-fetch
+    * Remove stable rate borrowing in aave v3
+    * [Breaking change] remove supply and borrow key, just use token instead, because there are only one interest rate.
+    * add ltv and max_ltv in market balance
 
 # Ver 1.0.2
 
@@ -28,8 +30,8 @@ Improve performance in deribit market. You should clear cache in your first runn
 
 # Ver 1.0.1
 
-[Breaking change] Remove callback in BacktestManager, because if subprocess return actuator, 
-it will cause object copy between subprocess and main process, which will cost a lot of time. 
+[Breaking change] Remove callback in BacktestManager, because if subprocess return actuator,
+it will cause object copy between subprocess and main process, which will cost a lot of time.
 You can do saving or calculating performance in Strategy.finialize().
 
 # Ver 1.0.0
@@ -49,7 +51,8 @@ You can do saving or calculating performance in Strategy.finialize().
 # Ver 0.8.2
 
 * change order when saving backtest result
-* data and price has updated. The value in the beginning of the minute will follow the value in the last minute(In old version it will be decided by
+* data and price has updated. The value in the beginning of the minute will follow the value in the last minute(In old
+  version it will be decided by
   the first transaction in this minute.)
 * fix issues in data cache(when feather file is lost, a error will be raised)
 * show market name when loading data

@@ -16,9 +16,6 @@ class GmxV2Balance(MarketBalance):
     gm_amount: Decimal
     long_amount: Decimal
     short_amount: Decimal
-    pending_pnl: Decimal
-    realized_pnl: Decimal
-    realized_profit: Decimal
 
 
 
