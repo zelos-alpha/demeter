@@ -54,6 +54,10 @@ class GmxV2PoolStatus:
     pendingPnl:float  # pnl caused by open interest
     realizedPnl:float  # pnl for decreased position
     realizedProfit:float  # pnl + fee + priceImpact
+    openInterestLong: float
+    openInterestShort: float
+    openInterestInTokensLong: float
+    openInterestInTokensShort: float
     longPrice: float
     shortPrice: float
     indexPrice: float

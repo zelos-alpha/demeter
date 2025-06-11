@@ -84,9 +84,9 @@ class GmxV2Market(Market):
             long_amount = Decimal(longAmount)
             short_amount = Decimal(shortAmount)
             net_value = Decimal(pool_data.poolValue) * share
-            pending_pnl = Decimal(pool_data.pendingPnl) * share
+            pending_pnl = -Decimal(pool_data.pendingPnl) * share # Reverse the sign of the PnL as it reflect the trader's perspective.
             realized_profit = Decimal(pool_data.realizedProfit) * share
-            realized_pnl = Decimal(pool_data.realizedPnl) * share
+            realized_pnl = -Decimal(pool_data.realizedPnl) * share
         else:
             net_value = long_amount = short_amount = realized_profit = pending_pnl = realized_pnl = Decimal(0)
 
