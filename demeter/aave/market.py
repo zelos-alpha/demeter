@@ -754,7 +754,7 @@ class AaveV3Market(Market):
 
         require(payback_base_amount > 0, "invalid amount")
         require(self._borrows[borrow_token].base_amount > 0, "no debt of selected type")
-        require(round(self._borrows[borrow_token].base_amount - payback_base_amount, 18) >= 0, "amount exceed debt")
+        require(round(self.borrows[borrow_token].amount - payback_base_amount, 18) >= 0, "amount exceed debt")
         if repay_with_collateral:
             payback_amount_in_collateral = self._get_swap_amount(borrow_token, repay_collateral_token, payback_amount)
             self.__sub_supply_amount(repay_collateral_token, payback_amount_in_collateral)
