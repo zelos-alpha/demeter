@@ -68,6 +68,12 @@ class Strategy(object):
         """
         pass
 
+    def on_error(self, snapshot: Snapshot, e: Exception):
+        """
+        this will be called on error
+        """
+        print("Exception on ", snapshot.timestamp, "Error message: ", e)
+
     def notify(self, action: BaseAction):
         """
         Notify when an action(buy/sell) happens

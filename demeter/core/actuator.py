@@ -401,16 +401,14 @@ class Actuator(object):
         data_length = len(index_array)
         self.logger.info("start main loop...")
         with tqdm(total=data_length, ncols=150) as pbar:
-            try:
-                for timestamp_index in index_array:
-                    current_price = self._token_prices.loc[timestamp_index]
-                    # prepare data of a row
-
-                    self.__set_market_snapshot(timestamp_index, False)
-                    # execute strategy, and some calculate
-                    self._currents.timestamp = timestamp_index.to_pydatetime()
-                    snapshot = self.__get_snapshot(timestamp_index, row_id, current_price)
-
+            for timestamp_index in index_array:
+                current_price = self._token_prices.loc[timestamp_index]
+                # prepare data of a row
+                self.__set_market_snapshot(timestamp_index, False)
+                # execute strategy, and some calculate
+                self._currents.timestamp = timestamp_index.to_pydatetime()
+                snapshot = self.__get_snapshot(timestamp_index, row_id, current_price)
+                try:
                     self._strategy.before_bar(snapshot)
 
                     if self._strategy.triggers:
@@ -447,12 +445,12 @@ class Actuator(object):
                     # move forward for process bar and index
                     pbar.update()
                     row_id += 1
-            except (RuntimeError, AssertionError) as e:
-                self.notify(self.strategy, self._currents.actions)
-                print(f"timestamp on error: " + str(snapshot.timestamp))
-                self._generate_account_status_df()
-                self.save_result("./", "backtest-with-error")
-                raise e
+                except (RuntimeError, AssertionError) as e:
+                    self.notify(self.strategy, self._currents.actions)
+                    self._strategy.on_error(snapshot, e)
+                    self._generate_account_status_df()
+                    self.save_result("./", "backtest-with-error")
+                    raise e
 
         self.logger.info("main loop finished")
         self.__backtest_finished = True
