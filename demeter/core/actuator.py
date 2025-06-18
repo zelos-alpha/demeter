@@ -432,25 +432,27 @@ class Actuator(object):
                     # and read the latest status from broker
                     for market in self._broker.markets.values():
                         market.update()
-
-                    snapshot = self.__get_snapshot(timestamp_index, row_id, current_price)
-                    self._strategy.after_bar(snapshot)
-
-                    account_status = self._broker.get_account_status(current_price, timestamp_index.to_pydatetime())
-                    pbar.set_description(desc=f"{timestamp_index}: {account_status.net_value:.2f} {self._broker.quote_token.name}", refresh=False)
-                    self._account_status_list.append(account_status)
-                    # notify actions in current loop
+                    after_snapshot = self.__get_snapshot(timestamp_index, row_id, current_price)
+                    self._strategy.after_bar(after_snapshot)
                     self.notify(self.strategy, self._currents.actions)
-                    self._currents.actions = []
-                    # move forward for process bar and index
-                    pbar.update()
-                    row_id += 1
                 except (RuntimeError, AssertionError) as e:
+                    # notify what has already happened
                     self.notify(self.strategy, self._currents.actions)
-                    self._strategy.on_error(snapshot, e)
-                    self._generate_account_status_df()
-                    self.save_result("./", "backtest-with-error")
-                    raise e
+                    # equal means after_snapshot has already set in this loop, so error should in after_bar or notify
+                    # will use the latest snapshot
+                    if snapshot.timestamp == after_snapshot.timestamp:
+                        self._strategy.on_error(after_snapshot, e)
+                    else: # after_snapshot is the old loop, use snapshot which updated in this loop
+                        self._strategy.on_error(snapshot, e)
+
+                account_status = self._broker.get_account_status(current_price, timestamp_index.to_pydatetime())
+                pbar.set_description(desc=f"{timestamp_index}: {account_status.net_value:.2f} {self._broker.quote_token.name}", refresh=False)
+                self._account_status_list.append(account_status)
+                # notify actions in current loop
+                self._currents.actions = []
+                # move forward for process bar and index
+                pbar.update()
+                row_id += 1
 
         self.logger.info("main loop finished")
         self.__backtest_finished = True

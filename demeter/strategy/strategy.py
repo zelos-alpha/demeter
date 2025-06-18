@@ -71,8 +71,11 @@ class Strategy(object):
     def on_error(self, snapshot: Snapshot, e: Exception):
         """
         this will be called on error
+
+        you can continue backtest if you do not throw this error again
         """
         print("Exception on ", snapshot.timestamp, "Error message: ", e)
+        raise e
 
     def notify(self, action: BaseAction):
         """
