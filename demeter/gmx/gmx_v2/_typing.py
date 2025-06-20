@@ -77,3 +77,12 @@ class LPResult:
     fee_usd: float
 
     price_impact_usd: float
+
+
+@dataclass
+class Market:
+    marketToken: str
+    indexToken: str
+    longToken: str
+    shortToken: str
+
