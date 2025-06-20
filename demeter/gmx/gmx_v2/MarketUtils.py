@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from ._typing import PoolConfig, GmxV2PoolStatus
+from ._typing import PoolConfig, GmxV2PoolStatus, Market
 
 
 class MarketUtils:
@@ -85,4 +85,20 @@ class MarketUtils:
     @staticmethod
     def get_values(amount: float, price: float, decimal: float) -> Tuple[float, float]:
         return amount, amount * price
+
+    @staticmethod
+    def getOppositeToken(inputToken: str, market: Market) -> str:
+        if inputToken == market.longToken:
+            return market.shortToken
+        if inputToken == market.shortToken:
+            return market.longToken
+
+    @staticmethod
+    def applySwapImpactWithCap(
+        tokenPrice: float, priceImpactUsd: float, impactPoolAmount: float
+    ) -> Tuple[float, float]:
+        impactAmount, cappedDiffUsd = MarketUtils.getSwapImpactAmountWithCap(
+            tokenPrice, priceImpactUsd, impactPoolAmount
+        )
+        return impactAmount, cappedDiffUsd
 
