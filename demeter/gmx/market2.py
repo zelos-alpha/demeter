@@ -120,6 +120,7 @@ class GmxV2Market(Market):
         self._data.resample(freq=freq, inplace=True)
 
     def deposit(self, long_amount: Decimal | float, short_amount: Decimal | float) -> LPResult:
+        assert long_amount >= 0 and short_amount >= 0
         long_amount = float(long_amount)
         short_amount = float(short_amount)
         result = ExecuteDepositUtils.get_mint_amount(self.pool_config, self._market_status.data, long_amount, short_amount)
@@ -143,6 +144,7 @@ class GmxV2Market(Market):
         return result
 
     def withdraw(self, amount: float | None = None) -> LPResult:
+        assert amount >= 0
         if amount is None:
             amount = self.amount
         amount = float(amount)
