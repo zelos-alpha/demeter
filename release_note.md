@@ -2,6 +2,8 @@
 
 * fix issue in check aave repay amount
 * add on_error function in Strategy which will be called on exceptions
+* fix duplicate values in ActionTypeEnum values
+
 
 # Ver 1.1.3
 
