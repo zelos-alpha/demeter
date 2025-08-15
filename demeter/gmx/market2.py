@@ -4,13 +4,6 @@ from decimal import Decimal
 import pandas as pd
 from orjson import orjson
 
-from .gmx_v2.MarketUtils import MarketUtils
-from .helper2 import load_gmx_v2_data, get_price_from_v2_data
-from .gmx_v2 import PoolConfig, LPResult
-from .gmx_v2.ExecuteDepositUtils import ExecuteDepositUtils
-from .gmx_v2.ExecuteWithdrawUtils import ExecuteWithdrawUtils
-from .. import MarketStatus, TokenInfo, DECIMAL_0, ChainType, DemeterWarning, DemeterError, UnitDecimal
-from ..broker import Market, MarketInfo, MarketBalance
 from ._typing2 import (
     GmxV2Pool,
     GmxV2Description,
@@ -20,7 +13,15 @@ from ._typing2 import (
     Gmx2WithdrawAction,
     Gmx2DepositAction,
 )
-from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE
+from .gmx_v2 import PoolConfig, LPResult
+from .gmx_v2.ExecuteDepositUtils import ExecuteDepositUtils
+from .gmx_v2.ExecuteWithdrawUtils import ExecuteWithdrawUtils
+from .gmx_v2.MarketUtils import MarketUtils
+from .helper2 import load_gmx_v2_data, get_price_from_v2_data
+from .. import TokenInfo, DECIMAL_0, ChainType, DemeterError, UnitDecimal
+from .._typing import USD
+from ..broker import Market, MarketInfo
+from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE, require
 
 
 class GmxV2Market(Market):
@@ -62,6 +63,7 @@ class GmxV2Market(Market):
 
     def check_market(self):
         super().check_market()
+        require(self.quote_token == USD, "Quote token of GMX v2 market must be USD")
 
         if self.long_token not in self.broker.assets:
             self.broker.set_balance(self.long_token, DECIMAL_0)

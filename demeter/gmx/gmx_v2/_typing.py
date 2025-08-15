@@ -15,6 +15,7 @@ class PoolConfig:
     withdrawFeeFactorForNegativeImpact: float = 0.0007
     maxPnlFactorDeposit: float = 0.9
     maxPnlFactorWithdraw: float = 0.7
+# {'swapImpactExponentFactor': 2.0, 'swapImpactFactorPositive': 2e-10, 'swapImpactFactorNegative': 3e-10, 'depositFeeFactorForPositiveImpact': 0.0005, 'depositFeeFactorForNegativeImpact': 0.0007, 'withdrawFeeFactorForPositiveImpact': 0.0005, 'withdrawFeeFactorForNegativeImpact': 0.0007, 'maxPnlFactorDepositIsLong': 0.9, 'maxPnlFactorDepositNotLong': 0.9, 'maxPnlFactorWithdrawIsLong': 0.7, 'maxPnlFactorWithdrawNotLong': 0.7}
 
 
 """

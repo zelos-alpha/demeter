@@ -21,7 +21,7 @@ class Strategy(object):
         self.data: MarketDict[pd.DataFrame] = MarketDict()
         self.markets: MarketDict[Market] = MarketDict()
         self.prices: pd.DataFrame | None = None
-        self.triggers: [Trigger] = []
+        self.triggers: List[Trigger] = []
         self.account_status: List[AccountStatus] = []
         self.account_status_df: pd.DataFrame | None = None
         self.comment_last_action: Callable[[str], None] | None = None

@@ -16,7 +16,7 @@ from ._typing import (
 )
 from .market import Market
 from .._typing import DemeterError, UnitDecimal, STABLE_COINS
-from ..utils import get_formatted_from_dict, get_formatted_predefined, STYLE, float_param_formatter
+from ..utils import get_formatted_from_dict, get_formatted_predefined, STYLE, float_param_formatter, require
 
 
 class Broker:
@@ -194,19 +194,20 @@ class Broker:
         """
         account_status = AccountStatus(timestamp=timestamp)
         market_sum = Decimal(0)
-        for k, v in self.markets.items():
-            ms = v.get_market_balance()
-            account_status.market_status[k] = ms
-            if v.quote_token == self.quote_token:
-                market_sum += ms.net_value
+        for market_key, market in self.markets.items():
+            market_balance = market.get_market_balance()
+            account_status.market_status[market_key] = market_balance
+            if market.quote_token == self.quote_token:
+                market_sum += market_balance.net_value
             else:
-                market_sum += ms.net_value * prices[v.quote_token.name]
+                market_sum += market_balance.net_value * prices[market.quote_token.name] / prices[self.quote_token.name]
         account_status.market_status.set_default_key(self.markets.get_default_key())
 
-        for k, v in self.assets.items():
-            account_status.asset_balances[k] = v.balance
-        asset_sum = sum([v * prices[k.name] for k, v in account_status.asset_balances.items()])
+        for asset_key, asset in self.assets.items():
+            account_status.asset_balances[asset_key] = asset.balance
+        asset_sum = sum([v * prices[k.name] for k, v in account_status.asset_balances.items()], Decimal(0))
         account_status.asset_value = asset_sum
+
         account_status.net_value = asset_sum + market_sum
         return account_status
 
@@ -229,23 +230,14 @@ class Broker:
         return str_to_print
 
     def _check_quote_token(self):
-        if self.quote_token is None:
-            raise DemeterError("Quote token of broker not set")
-
-        market_types = set([x.market_info.type for x in self.markets.values()])
-        has_usd_market = {MarketTypeEnum.squeeth, MarketTypeEnum.aave_v3}.intersection(market_types)
-
-        if has_usd_market:
-            if self.quote_token.name not in STABLE_COINS:
-                raise DemeterError("squeeth/AAVE market must quote by stable coin or None")
+        require(self.quote_token is not None, "Quote token of broker not set")
 
     def check_backtest(self):
         """
         check backtest result, including index of data, prices
         """
         # ensure a market exist
-        if len(self.markets) < 1:
-            raise DemeterError("No market assigned")
+        require(len(self.markets) > 0, "No market assigned")
 
         data_length = []  # [1440]
         for market in self.markets.values():
