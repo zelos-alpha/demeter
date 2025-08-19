@@ -1,11 +1,9 @@
-import os
 from datetime import date, timedelta, datetime
 from decimal import Decimal
-from orjson import orjson
 from typing import Tuple, Dict
 
-import numpy as np
 import pandas as pd
+from orjson import orjson
 
 from ._typing import (
     ETH_MAINNET,
@@ -14,7 +12,6 @@ from ._typing import (
     Vault,
     SqueethChain,
     SqueethBalance,
-    USDC,
     VaultKey,
     AddVaultAction,
     UpdateCollateralAction,
@@ -26,17 +23,17 @@ from ._typing import (
     SqueethDescription,
 )
 from .helper import calc_twap_price, vault_to_dataframe, load_squeeth_data, get_price_from_data
-from .. import MarketInfo, TokenInfo, DemeterError, MarketStatus, DECIMAL_0, UnitDecimal, MarketTypeEnum
+from .. import MarketInfo, TokenInfo, DemeterError, MarketStatus, DECIMAL_0, UnitDecimal
+from .._typing import USD
 from ..broker import Market
-from ..data import CacheManager
 from ..uniswap import UniLpMarket, PositionInfo
 from ..utils import (
-    to_decimal,
     float_param_formatter,
     get_formatted_predefined,
     STYLE,
     get_formatted_from_dict,
     console_text,
+    require,
 )
 
 
@@ -819,6 +816,8 @@ class SqueethMarket(Market):
         check market before back test
         """
         super().check_market()
+        require(self.quote_token == USD, "Quote token of Squeeth market must be USD")
+
 
     def load_data(self, start_date: date, end_date: date):
         self._data = load_squeeth_data(start_date, end_date, self.data_path)

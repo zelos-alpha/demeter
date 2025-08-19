@@ -6,6 +6,7 @@ import numpy as np
 import orjson
 import pandas as pd
 
+from demeter.utils import orjson_default
 from ._typing import (
     UniV3Pool,
     TokenInfo,
@@ -94,7 +95,6 @@ class UniLpMarket(Market):
     # region properties
 
     def __str__(self):
-        from demeter.utils import orjson_default
 
         return orjson.dumps(self.description, default=orjson_default).decode()
 

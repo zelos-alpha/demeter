@@ -8,9 +8,9 @@ from orjson import orjson
 from demeter import MarketStatus
 from ._typing import GmxDescription, GmxBalance, BuyGlpAction, SellGlpAction, PRICE_PRECISION
 from .helper import load_gmx_v1_data, get_price_from_data
-from .._typing import TokenInfo, ChainType
+from .._typing import TokenInfo, ChainType, USD
 from ..broker import Market, MarketInfo
-from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE, console_text
+from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE, console_text, require
 
 
 class GmxMarket(Market):
@@ -201,6 +201,8 @@ class GmxMarket(Market):
 
     def check_market(self):
         super().check_market()
+        require(self.quote_token == USD, "Quote token of GMX v1 market must be USD")
+
 
     def _resample(self, freq: str):
         self._data = self.data.resample(freq).first()
