@@ -144,9 +144,9 @@ class GmxV2Market(Market):
         return result
 
     def withdraw(self, amount: float | None = None) -> LPResult:
-        assert amount >= 0
         if amount is None:
             amount = self.amount
+        assert amount >= 0
         amount = float(amount)
         result: LPResult = ExecuteWithdrawUtils.getOutputAmount(self.pool_config, self._market_status.data, amount)
         self.amount -= result.gm_amount

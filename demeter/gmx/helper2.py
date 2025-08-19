@@ -12,6 +12,9 @@ from ._typing2 import GmxV2Pool
 
 
 def get_price_from_v2_data(data: pd.DataFrame, pool: GmxV2Pool) -> pd.DataFrame:
+    if pool.long_token == pool.short_token:
+        price_df = data[["longPrice"]]
+        return price_df.rename(columns={"longPrice": pool.long_token.name})
     price_df = data[["longPrice", "shortPrice"]]
     price_df = price_df.rename(columns={"longPrice": pool.long_token.name, "shortPrice": pool.short_token.name})
     if pool.long_token != pool.index_token:
