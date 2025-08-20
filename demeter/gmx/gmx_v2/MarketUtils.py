@@ -1,6 +1,21 @@
+import dataclasses
 from typing import Tuple
 
 from ._typing import PoolConfig, GmxV2PoolStatus, Market
+from .Position import Position
+
+
+@dataclasses.dataclass
+class Price:
+    min: float
+    max: float
+
+
+@dataclasses.dataclass
+class MarketPrices:
+    indexTokenPrice: Price
+    longTokenPrice: Price
+    shortTokenPrice: Price
 
 
 class MarketUtils:
@@ -101,4 +116,92 @@ class MarketUtils:
             tokenPrice, priceImpactUsd, impactPoolAmount
         )
         return impactAmount, cappedDiffUsd
+
+    @staticmethod
+    def getFundingAmount(
+            latestFundingAmountPerSize: float,
+            positionFundingAmountPerSize: float,
+            positionSizeInUsd: float
+    ) -> float:
+        fundingDiffFactor = latestFundingAmountPerSize - positionFundingAmountPerSize
+        fundingAmount = positionSizeInUsd * fundingDiffFactor  # todo denominator
+        return fundingAmount
+
+    @staticmethod
+    def getBorrowingFees(position: Position, pool_status: GmxV2PoolStatus):
+        cumulativeBorrowingFactor = MarketUtils.getCumulativeBorrowingFactor(position.isLong, pool_status)
+        diffFactor = cumulativeBorrowingFactor - position.borrowingFactor
+        return position.sizeInUsd * diffFactor
+
+    @staticmethod
+    def getCumulativeBorrowingFactor(isLong: bool, pool_status: GmxV2PoolStatus):
+        return pool_status.cumulativeBorrowingFactorLong if isLong else pool_status.cumulativeBorrowingFactorShort
+
+    @staticmethod
+    def getCappedPositionImpactUsd(indexTokenPrice: float, priceImpactUsd: float, sizeDeltaUsd: float, pool_status: GmxV2PoolStatus):
+        if priceImpactUsd < 0:
+            return priceImpactUsd
+        impactPoolAmount = pool_status.positionImpactPoolAmount
+        maxPriceImpactUsdBasedOnImpactPool = impactPoolAmount * indexTokenPrice
+        if priceImpactUsd > maxPriceImpactUsdBasedOnImpactPool:
+            priceImpactUsd = maxPriceImpactUsdBasedOnImpactPool
+        maxPriceImpactFactor = MarketUtils.getMaxPositionImpactFactor(True, pool_status)
+        maxPriceImpactUsdBasedOnMaxPriceImpactFactor = sizeDeltaUsd * maxPriceImpactFactor
+        if priceImpactUsd > maxPriceImpactUsdBasedOnMaxPriceImpactFactor:
+            priceImpactUsd = maxPriceImpactUsdBasedOnMaxPriceImpactFactor
+        return priceImpactUsd
+
+    @staticmethod
+    def getMaxPositionImpactFactor(isPositive: bool, pool_status: GmxV2PoolStatus):
+        maxPositiveImpactFactor = pool_status.maxPositiveImpactFactor
+        maxNegativeImpactFactor = pool_status.maxNegativeImpactFactor
+        if maxPositiveImpactFactor > maxNegativeImpactFactor:
+            maxPositiveImpactFactor = maxNegativeImpactFactor
+        return maxPositiveImpactFactor if isPositive else maxNegativeImpactFactor
+
+    @staticmethod
+    def getPoolAmount(market: Market, poolAmount: float):
+        divisor = MarketUtils.getPoolDivisor(market.longToken, market.shortToken)
+        return poolAmount / divisor
+
+    @staticmethod
+    def getPoolDivisor(longToken: str, shortToken: str) -> int:
+        return 2 if longToken == shortToken else 1
+
+    @staticmethod
+    def getPnl(indexTokenPrice: Price, isLong: bool, pool_status: GmxV2PoolStatus):
+        openInterest = pool_status.openInterestLong if isLong else pool_status.openInterestShort
+        openInterestInTokens = pool_status.openInterestInTokensLong if isLong else pool_status.openInterestInTokensShort
+
+        price = indexTokenPrice.max
+
+        openInterestValue = openInterestInTokens * price
+        pnl = openInterestValue - openInterest if isLong else openInterest - openInterestValue
+        return pnl
+
+    @staticmethod
+    def getCappedPnl(isLong: bool, pnl: float, poolUsd: float, pool_status: GmxV2PoolStatus):
+        maxPnlFactor = pool_status.maxPnlFactorForTraderLong if isLong else pool_status.maxPnlFactorForTraderShort
+        maxPnl = poolUsd * maxPnlFactor / 10 ** 30
+        return maxPnl if pnl > maxPnl else pnl
+
+    @staticmethod
+    def getMinCollateralFactorForOpenInterest(isLong: bool, openInterestDelta: float, pool_status: GmxV2PoolStatus):
+        openInterest = pool_status.openInterestLong if isLong else pool_status.openInterestShort
+        openInterest = openInterest + openInterestDelta
+        multiplierFactor = pool_status.minCollateralFactorForOpenInterestMultiplierLong if isLong else pool_status.minCollateralFactorForOpenInterestMultiplierShort
+        return openInterest * multiplierFactor / 10 ** 30
+
+    @staticmethod
+    def getAdjustedPositionImpactFactor(isPositive: bool, pool_status: GmxV2PoolStatus):
+        positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(pool_status)
+        return positiveImpactFactor if isPositive else negativeImpactFactor
+
+    @staticmethod
+    def getAdjustedPositionImpactFactors(pool_status: GmxV2PoolStatus):
+        positiveImpactFactor = pool_status.positionImpactFactorPositive
+        negativeImpactFactor = pool_status.positionImpactFactorNegative
+        if positiveImpactFactor > negativeImpactFactor:
+            positiveImpactFactor = negativeImpactFactor
+        return positiveImpactFactor, negativeImpactFactor
 

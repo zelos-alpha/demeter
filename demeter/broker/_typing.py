@@ -179,6 +179,8 @@ class ActionTypeEnum(Enum):
     gmx_sell_glp = "sell_glp"
     gmx2_deposit = "deposit"
     gmx2_withdraw = "withdraw"
+    gmx2_increase_position = "increase_position"
+    gmx2_decrease_position = "decrease_position"
 
     def __str__(self):
         return self.name

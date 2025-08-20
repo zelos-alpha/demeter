@@ -1,25 +1,9 @@
-from dataclasses import dataclass
-from enum import Enum
-from IncreaseOrderUtils import IncreaseOrderUtils
+from .IncreaseOrderUtils import IncreaseOrderUtils
+from .DecreaseOrderUtils import DecreaseOrderUtils
+from .SwapOrderUtils import SwapOrderUtils
+from ._typing import PoolConfig, GmxV2PoolStatus, Order, OrderType, ExecuteOrderParams
+from .._typing2 import GmxV2Pool
 
-class OrderType(Enum):
-    MarketSwap = 0
-    LimitSwap = 1
-    MarketIncrease = 2
-    LimitIncrease = 3
-    MarketDecrease = 4
-    LimitDecrease = 5
-    StopLossDecrease = 6
-    Liquidation = 7
-    StopIncrease = 8
-
-@dataclass
-class Order:
-    orderType: OrderType
-
-@dataclass
-class ExecuteOrderParams:
-    order: Order
 
 class ExecuteOrderUtils:
 
@@ -42,10 +26,11 @@ class ExecuteOrderUtils:
                 order.orderType == OrderType.LimitSwap)
 
     @staticmethod
-    def executeOrder(params: ExecuteOrderParams):
+    def executeOrder(pool_status: GmxV2PoolStatus, pool_config: PoolConfig, pool: GmxV2Pool):
+        params = ExecuteOrderParams()
         if ExecuteOrderUtils.isIncreaseOrder(params.order):
-            IncreaseOrderUtils.processOrder(params)
+            IncreaseOrderUtils.processOrder(params, pool_status, pool_config)
         elif ExecuteOrderUtils.isDecreaseOrder(params.order):
-            pass
+            DecreaseOrderUtils.processOrder(params, pool_status, pool_config, pool)
         elif ExecuteOrderUtils.isSwapOrder(params.order):
-            pass
+            SwapOrderUtils.processOrder(params, pool_status, pool_config)

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import List
 from .MarketUtils import MarketUtils
 from .SwapPricingUtils import SwapPriceUtils, GetPriceImpactUsdParams, SwapPricingType
+from ._typing import PoolConfig, GmxV2PoolStatus
 
 
 @dataclass
@@ -30,27 +31,22 @@ class _SwapParams:
 class SwapUtils:
 
     @staticmethod
-    def swap(params: SwapParams) -> (str, float):
+    def swap(params: SwapParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig) -> (str, float):  # done
         if params.amountIn == 0:
             return params.tokenIn, params.amountIn
         tokenOut = params.tokenIn
         outputAmount = params.amountIn
         for i, swapPathMarket in enumerate(params.swapPathMarkets):
             market = swapPathMarket[i]
-            nextIndex = i + 1
-            if nextIndex < len(params.swapPathMarkets):
-                receiver = params.swapPathMarkets[nextIndex].marketToken
-            else:
-                receiver = params.receiver
-            _params = _SwapParams(market, tokenOut, outputAmount, receiver)
-            tokenOut, outputAmount = SwapUtils._swap(params, _params)
+            _params = _SwapParams(market, tokenOut, outputAmount)
+            tokenOut, outputAmount = SwapUtils._swap(params, _params, pool_status, pool_config)
         return tokenOut, outputAmount
 
     @staticmethod
-    def _swap(params: SwapParams, _params: _SwapParams) -> (float, float):
+    def _swap(params: SwapParams, _params: _SwapParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig) -> (float, float): # done
         tokenOut = MarketUtils.getOppositeToken(_params.tokenIn, _params.market)
-        tokenInPrice = 0  # todo read from csv
-        tokenOutPrice = 0  # todo read from csv
+        tokenInPrice = pool_status.longPrice if _params.tokenIn == _params.market.longToken else pool_status.shortPrice
+        tokenOutPrice = pool_status.shortPrice if _params.tokenIn == _params.market.longToken else pool_status.longPrice
         priceImpactUsd = SwapPriceUtils.getPriceImpactUsd(GetPriceImpactUsdParams(
             pool_config,
             tokenInPrice,
@@ -59,7 +55,7 @@ class SwapUtils:
             _params.amountIn * tokenInPrice,
             True,
             True
-        ))  # todo
+        ), pool_status)
         fees = SwapPriceUtils.getSwapFees(
             pool_config,
             _params.amountIn,
@@ -73,14 +69,8 @@ class SwapUtils:
                 tokenInPriceImpactAmount, _ = MarketUtils.applySwapImpactWithCap(tokenOutPrice, cappedDiffUsd, pool_status.impactPoolAmount)
                 amountIn += tokenInPriceImpactAmount
             amountOut = amountIn * tokenInPrice / tokenOutPrice
-            poolAmountOut = amountOut
         else:
             priceImpactAmount, _ = MarketUtils.applySwapImpactWithCap(tokenOutPrice, priceImpactUsd, pool_status.impactPoolAmount)
             amountIn = fees.amountAfterFees - (-priceImpactAmount)
             amountOut = amountIn * tokenInPrice / tokenOutPrice
-            poolAmountOut = amountOut
-        if _params.receiver != _params.market.marketToken:
-            # todo receiver 是另一个market则转给新marekt
-            pass
-        # todo emit swap info
         return tokenOut, amountOut
