@@ -20,19 +20,19 @@ class PoolConfig:
     positionImpactExponentFactor = 1655417464419320500000000000000
     positionImpactFactorPositive = 34111358107691540000000
     positionImpactFactorNegative = 40933629729229850000000
-    maxPositiveImpactFactor = 5000000000000000000000000000
-    maxNegativeImpactFactor = 5000000000000000000000000000
-    positionFeeFactorPositive = 400000000000000000000000000
-    positionFeeFactorNegative = 600000000000000000000000000
+    maxPositiveImpactFactor = 5000000000000000000000000000  # 0.005
+    maxNegativeImpactFactor = 5000000000000000000000000000  # 0.005
+    positionFeeFactorPositive = 400000000000000000000000000  # 0.0004
+    positionFeeFactorNegative = 600000000000000000000000000  # 0.0006
     positionFeeReceiverFactor = 370000000000000000000000000000  # 0.37
     borrowingFeeReceiverFactor = 370000000000000000000000000000  # 0.37
     maxPnlFactorForTraderLong = 900000000000000000000000000000  # 0.9
     maxPnlFactorForTraderShort = 900000000000000000000000000000  # 0.9
     minCollateralFactorForOpenInterestMultiplierLong = 60000000000000000000
     minCollateralFactorForOpenInterestMultiplierShort = 60000000000000000000
-    minCollateralFactor = 5000000000000000000000000000
-    minCollateralUsd = 1000000000000000000000000000000
-    minPositionSizeUsd = 1000000000000000000000000000000
+    minCollateralFactor = 5000000000000000000000000000  # 0.005
+    minCollateralUsd = 1000000000000000000000000000000  # 1
+    minPositionSizeUsd = 1000000000000000000000000000000  # 1
 
 
 """
