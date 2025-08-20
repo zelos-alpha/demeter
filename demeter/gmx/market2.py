@@ -12,10 +12,13 @@ from ._typing2 import (
     GmxV2PoolStatus,
     Gmx2WithdrawAction,
     Gmx2DepositAction,
+    Gmx2IncreasePositionAction,
+    Gmx2DecreasePositionAction
 )
-from .gmx_v2 import PoolConfig, LPResult
+from .gmx_v2 import PoolConfig, LPResult, PositionResult
 from .gmx_v2.ExecuteDepositUtils import ExecuteDepositUtils
 from .gmx_v2.ExecuteWithdrawUtils import ExecuteWithdrawUtils
+from .gmx_v2.ExecuteOrderUtils import ExecuteOrderUtils
 from .gmx_v2.MarketUtils import MarketUtils
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
 from .. import TokenInfo, DECIMAL_0, ChainType, DemeterError, UnitDecimal
@@ -168,6 +171,52 @@ class GmxV2Market(Market):
                 long_fee=UnitDecimal(result.long_fee, self.long_token.name),
                 short_fee=UnitDecimal(result.short_fee, self.short_token.name),
                 fee_usd=UnitDecimal(result.fee_usd, "USD"),
+            )
+        )
+        return result
+
+    def increase_position(self):
+        result: PositionResult = ExecuteOrderUtils.executeOrder(
+            pool_status=self._market_status.data,
+            pool_config=self.pool_config,
+            pool=self.pool
+        )
+
+        self._record_action(
+            Gmx2IncreasePositionAction(
+                market=self.market_info,
+                collateralToken=result.collateralToken,
+                collateralAmount=UnitDecimal(result.collateralAmount),
+                sizeInUsd=UnitDecimal(result.sizeInUsd),
+                sizeInTokens=UnitDecimal(result.sizeInTokens),
+                borrowingFactor=UnitDecimal(result.borrowingFactor),
+                fundingFeeAmountPerSize=UnitDecimal(result.fundingFeeAmountPerSize),
+                longTokenClaimableFundingAmountPerSize=UnitDecimal(result.longTokenClaimableFundingAmountPerSize),
+                shortTokenClaimableFundingAmountPerSize=UnitDecimal(result.shortTokenClaimableFundingAmountPerSize),
+                isLong=result.isLong,
+            )
+        )
+        return result
+
+    def decrease_position(self):
+        result:PositionResult = ExecuteOrderUtils.executeOrder(
+            pool_status=self._market_status.data,
+            pool_config=self.pool_config,
+            pool=self.pool
+        )
+
+        self._record_action(
+            Gmx2IncreasePositionAction(
+                market=self.market_info,
+                collateralToken=result.collateralToken,
+                collateralAmount=UnitDecimal(result.collateralAmount),
+                sizeInUsd=UnitDecimal(result.sizeInUsd),
+                sizeInTokens=UnitDecimal(result.sizeInTokens),
+                borrowingFactor=UnitDecimal(result.borrowingFactor),
+                fundingFeeAmountPerSize=UnitDecimal(result.fundingFeeAmountPerSize),
+                longTokenClaimableFundingAmountPerSize=UnitDecimal(result.longTokenClaimableFundingAmountPerSize),
+                shortTokenClaimableFundingAmountPerSize=UnitDecimal(result.shortTokenClaimableFundingAmountPerSize),
+                isLong=result.isLong,
             )
         )
         return result

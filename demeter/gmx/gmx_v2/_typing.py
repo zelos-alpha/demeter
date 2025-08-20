@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
+from enum import Enum
+from typing import List
 
 
 @dataclass
@@ -15,6 +17,22 @@ class PoolConfig:
     withdrawFeeFactorForNegativeImpact: float = 0.0007
     maxPnlFactorDeposit: float = 0.9
     maxPnlFactorWithdraw: float = 0.7
+    positionImpactExponentFactor = 1655417464419320500000000000000
+    positionImpactFactorPositive = 34111358107691540000000
+    positionImpactFactorNegative = 40933629729229850000000
+    maxPositiveImpactFactor = 5000000000000000000000000000
+    maxNegativeImpactFactor = 5000000000000000000000000000
+    positionFeeFactorPositive = 400000000000000000000000000
+    positionFeeFactorNegative = 600000000000000000000000000
+    positionFeeReceiverFactor = 370000000000000000000000000000  # 0.37
+    borrowingFeeReceiverFactor = 370000000000000000000000000000  # 0.37
+    maxPnlFactorForTraderLong = 900000000000000000000000000000  # 0.9
+    maxPnlFactorForTraderShort = 900000000000000000000000000000  # 0.9
+    minCollateralFactorForOpenInterestMultiplierLong = 60000000000000000000
+    minCollateralFactorForOpenInterestMultiplierShort = 60000000000000000000
+    minCollateralFactor = 5000000000000000000000000000
+    minCollateralUsd = 1000000000000000000000000000000
+    minPositionSizeUsd = 1000000000000000000000000000000
 
 
 """
@@ -29,6 +47,77 @@ class PoolConfig:
     function depositFeeFactorKey(address market, bool forPositiveImpact) external pure returns (bytes32) {
         return keccak256(abi.encode(keccak256(abi.encode("DEPOSIT_FEE_FACTOR")),market,forPositiveImpact));
     }
+    function positionImpactExponentFactorKey(address market) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+            POSITION_IMPACT_EXPONENT_FACTOR,
+            market
+        ));
+    }
+    function positionImpactFactorKey(address market, bool isPositive) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+            POSITION_IMPACT_FACTOR,
+            market,
+            isPositive
+        ));
+    }
+    function maxPositionImpactFactorKey(address market, bool isPositive) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+            MAX_POSITION_IMPACT_FACTOR,
+            market,
+            isPositive
+        ));
+    }
+    function positionFeeFactorKey(address market, bool forPositiveImpact) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+            POSITION_FEE_FACTOR,
+            market,
+            forPositiveImpact
+        ));
+    }
+    function cumulativeBorrowingFactorKey(address market, bool isLong) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+            CUMULATIVE_BORROWING_FACTOR,
+            market,
+            isLong
+        ));
+    }
+    function fundingFeeAmountPerSizeKey(address market, address collateralToken, bool isLong) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+            FUNDING_FEE_AMOUNT_PER_SIZE,
+            market,
+            collateralToken,
+            isLong
+        ));
+    }
+    function claimableFundingAmountPerSizeKey(address market, address collateralToken, bool isLong) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+            CLAIMABLE_FUNDING_AMOUNT_PER_SIZE,
+            market,
+            collateralToken,
+            isLong
+        ));
+    }
+    function maxPnlFactorKey(bytes32 pnlFactorType, address market, bool isLong) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+            MAX_PNL_FACTOR,
+            pnlFactorType,
+            market,
+            isLong
+        ));
+    }
+    function minCollateralFactorForOpenInterestMultiplierKey(address market, bool isLong) internal pure returns (bytes32) {
+       return keccak256(abi.encode(
+           MIN_COLLATERAL_FACTOR_FOR_OPEN_INTEREST_MULTIPLIER,
+           market,
+           isLong
+       ));
+   }
+   function minCollateralFactorKey(address market) internal pure returns (bytes32) {
+       return keccak256(abi.encode(
+           MIN_COLLATERAL_FACTOR,
+           market
+       ));
+   }
 """
 
 
@@ -61,6 +150,31 @@ class GmxV2PoolStatus:
     longPrice: float
     shortPrice: float
     indexPrice: float
+    positionImpactExponentFactor: float
+    positionImpactFactorPositive: float
+    positionImpactFactorNegative: float
+    virtualInventoryForPositions: float  # VirtualPositionInventoryUpdated
+    positionImpactPoolAmount: float  # PositionImpactPoolAmountUpdated
+    maxPositiveImpactFactor: float
+    maxNegativeImpactFactor: float
+    positionFeeFactor: float  # -> positive & negative
+    positionFeeReceiverFactor: float
+    borrowingFeeReceiverFactor: float
+    cumulativeBorrowingFactorLong: float  # CumulativeBorrowingFactorUpdated
+    cumulativeBorrowingFactorShort: float  # CumulativeBorrowingFactorUpdated
+    fundingFeeAmountPerSizeLong: float  # FundingFeeAmountPerSizeUpdated
+    fundingFeeAmountPerSizeShort: float  # FundingFeeAmountPerSizeUpdated
+    longTokenClaimableFundingAmountPerSizeLong: float  # ClaimableFundingAmountPerSizeUpdated
+    longTokenClaimableFundingAmountPerSizeShort: float  # ClaimableFundingAmountPerSizeUpdated
+    shortTokenClaimableFundingAmountPerSizeLong: float  # ClaimableFundingAmountPerSizeUpdated
+    shortTokenClaimableFundingAmountPerSizeShort: float  # ClaimableFundingAmountPerSizeUpdated
+    maxPnlFactorForTraderLong: float
+    maxPnlFactorForTraderShort: float
+    minCollateralFactorForOpenInterestMultiplierLong: float
+    minCollateralFactorForOpenInterestMultiplierShort: float
+    minCollateralFactor: float
+    minCollateralUsd: float
+    minPositionSizeUsd: float
 
 
 @dataclass
@@ -80,9 +194,60 @@ class LPResult:
 
 
 @dataclass
-class Market:
-    marketToken: str
-    indexToken: str
-    longToken: str
-    shortToken: str
+class PositionResult:
+    collateralToken: str
+    collateralAmount: float
+    sizeInUsd: float
+    sizeInTokens: float
+    borrowingFactor: float
+    fundingFeeAmountPerSize: float
+    longTokenClaimableFundingAmountPerSize: float
+    shortTokenClaimableFundingAmountPerSize: float
+    isLong: bool
 
+
+@dataclass
+class Market:
+    marketToken: str = ''
+    indexToken: str = ''
+    longToken: str = ''
+    shortToken: str = ''
+
+
+class OrderType(Enum):
+    MarketSwap = 0
+    LimitSwap = 1
+    MarketIncrease = 2
+    LimitIncrease = 3
+    MarketDecrease = 4
+    LimitDecrease = 5
+    StopLossDecrease = 6
+    Liquidation = 7
+    StopIncrease = 8
+
+
+class DecreasePositionSwapType(Enum):
+    NoSwap = 0
+    SwapPnlTokenToCollateralToken = 1
+    SwapCollateralTokenToPnlToken = 2
+
+
+@dataclass
+class Order:
+    market: str
+    initialCollateralToken: str
+    swapPath: List
+    orderType: OrderType
+    sizeDeltaUsd: float
+    initialCollateralDeltaAmount: float
+    triggerPrice: float
+    acceptablePrice: float
+    isLong: bool
+    decreasePositionSwapType: DecreasePositionSwapType
+
+
+@dataclass
+class ExecuteOrderParams:
+    order: Order = None
+    swapPathMarkets: List = None
+    market: Market = None

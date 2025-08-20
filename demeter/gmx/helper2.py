@@ -50,6 +50,6 @@ def load_gmx_v2_data(chain: ChainType, gm_token_address: str, start_date: date, 
     # 前一个分钟的值是5+0=5, 当前分钟的值会是5+5=10, 下一个分钟才恢复为0+5=5, 这显然有问题
     # 所以于realized_pnl和realizedProfit, 用shift(1)推迟到下一分钟.
     # 如果pending pnl用结束(59秒)值(0)就没这个问题, 但这会让净值看起来推迟了一分钟.
-    df[["realizedProfit", "realizedPnl"]] = df[["realizedProfit", "realizedPnl"]].shift(1).fillna(0)
+    # df[["realizedProfit", "realizedPnl"]] = df[["realizedProfit", "realizedPnl"]].shift(1).fillna(0)
     CacheManager.save(cache_key, df)
     return df

@@ -95,3 +95,69 @@ class Gmx2DepositAction(BaseAction):
                 "price_impact_usd": self.price_impact_usd.to_str(),
             },
         )
+
+
+@dataclass
+class Gmx2IncreasePositionAction(BaseAction):
+    collateralToken: str
+    collateralAmount: UnitDecimal
+    sizeInUsd: UnitDecimal
+    sizeInTokens: UnitDecimal
+    borrowingFactor: UnitDecimal
+    fundingFeeAmountPerSize: UnitDecimal
+    longTokenClaimableFundingAmountPerSize: UnitDecimal
+    shortTokenClaimableFundingAmountPerSize: UnitDecimal
+    isLong: bool
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.gmx2_increase_position
+
+    def get_output_str(self):
+        return get_action_str(
+            self,
+            ForColorEnum.light_green,
+            {
+                'collateralToken': self.collateralToken,
+                'collateralAmount': self.collateralAmount.to_str(),
+                'sizeInUsd': self.sizeInUsd.to_str(),
+                'sizeInTokens': self.sizeInTokens.to_str(),
+                'borrowingFactor': self.borrowingFactor.to_str(),
+                'fundingFeeAmountPerSize': self.fundingFeeAmountPerSize.to_str(),
+                'longTokenClaimableFundingAmountPerSize': self.longTokenClaimableFundingAmountPerSize.to_str(),
+                'shortTokenClaimableFundingAmountPerSize': self.shortTokenClaimableFundingAmountPerSize.to_str(),
+                'isLong': self.isLong
+            }
+        )
+
+
+@dataclass
+class Gmx2DecreasePositionAction(BaseAction):
+    collateralToken: str
+    collateralAmount: UnitDecimal
+    sizeInUsd: UnitDecimal
+    sizeInTokens: UnitDecimal
+    borrowingFactor: UnitDecimal
+    fundingFeeAmountPerSize: UnitDecimal
+    longTokenClaimableFundingAmountPerSize: UnitDecimal
+    shortTokenClaimableFundingAmountPerSize: UnitDecimal
+    isLong: bool
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.gmx2_decrease_position
+
+    def get_output_str(self):
+        return get_action_str(
+            self,
+            ForColorEnum.light_green,
+            {
+                'collateralToken': self.collateralToken,
+                'collateralAmount': self.collateralAmount.to_str(),
+                'sizeInUsd': self.sizeInUsd.to_str(),
+                'sizeInTokens': self.sizeInTokens.to_str(),
+                'borrowingFactor': self.borrowingFactor.to_str(),
+                'fundingFeeAmountPerSize': self.fundingFeeAmountPerSize.to_str(),
+                'longTokenClaimableFundingAmountPerSize': self.longTokenClaimableFundingAmountPerSize.to_str(),
+                'shortTokenClaimableFundingAmountPerSize': self.shortTokenClaimableFundingAmountPerSize.to_str(),
+                'isLong': self.isLong
+            }
+        )
