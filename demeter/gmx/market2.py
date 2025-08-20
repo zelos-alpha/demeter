@@ -206,7 +206,7 @@ class GmxV2Market(Market):
         )
 
         self._record_action(
-            Gmx2IncreasePositionAction(
+            Gmx2DecreasePositionAction(
                 market=self.market_info,
                 collateralToken=result.collateralToken,
                 collateralAmount=UnitDecimal(result.collateralAmount),
