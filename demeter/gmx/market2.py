@@ -24,6 +24,7 @@ from ._typing2 import (
     Gmx2DecreasePositionAction
 )
 from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE
+from .gmx_v2._typing import OrderType, DecreasePositionSwapType
 
 
 class GmxV2Market(Market):
@@ -171,8 +172,28 @@ class GmxV2Market(Market):
         )
         return result
 
-    def increase_position(self):
+    def increase_position(
+        self,
+        initialCollateralToken,
+        initialCollateralDeltaAmount,
+        sizeDeltaUsd,
+        isLong,
+    ):
         result: PositionResult = ExecuteOrderUtils.executeOrder(
+            market='',
+            initialCollateralToken=initialCollateralToken,
+            swapPath=[],
+            orderType=OrderType.MarketIncrease,
+            sizeDeltaUsd=sizeDeltaUsd,
+            initialCollateralDeltaAmount=initialCollateralDeltaAmount,
+            triggerPrice=0,
+            acceptablePrice=0,
+            isLong=isLong,
+            decreasePositionSwapType=DecreasePositionSwapType.NoSwap,
+            marketToken='',
+            indexToken=self.pool.index_token,
+            longToken=self.pool.long_token,
+            shortToken=self.pool.short_token,
             pool_status=self._market_status.data,
             pool_config=self.pool_config,
             pool=self.pool
@@ -194,8 +215,28 @@ class GmxV2Market(Market):
         )
         return result
 
-    def decrease_position(self):
+    def decrease_position(
+        self,
+        initialCollateralToken,
+        initialCollateralDeltaAmount,
+        sizeDeltaUsd,
+        isLong,
+    ):
         result:PositionResult = ExecuteOrderUtils.executeOrder(
+            market='',
+            initialCollateralToken=initialCollateralToken,
+            swapPath=[],
+            orderType=OrderType.MarketDecrease,
+            sizeDeltaUsd=sizeDeltaUsd,
+            initialCollateralDeltaAmount=initialCollateralDeltaAmount,
+            triggerPrice=0,
+            acceptablePrice=0,
+            isLong=isLong,
+            decreasePositionSwapType=DecreasePositionSwapType.NoSwap,
+            marketToken='',
+            indexToken=self.pool.index_token,
+            longToken=self.pool.long_token,
+            shortToken=self.pool.short_token,
             pool_status=self._market_status.data,
             pool_config=self.pool_config,
             pool=self.pool
