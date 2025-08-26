@@ -13,13 +13,18 @@ pd.set_option("display.width", 5000)
 
 class GmxV2PositionStrategy(Strategy):
     def initialize(self):
-        new_trigger = AtTimeTrigger(time=datetime(2025, 1, 8, 0, 0, 0), do=self.work)
+        new_trigger = AtTimeTrigger(time=datetime(2025, 7, 1, 0, 0, 0), do=self.work)
         self.triggers.append(new_trigger)
         pass
 
     def work(self, snapshot: Snapshot):
         gmx_market: GmxV2Market = self.markets[market_key]
-        result = gmx_market.deposit(1, 3384)
+        result = gmx_market.increase_position(
+            initialCollateralToken=pool.short_token,
+            initialCollateralDeltaAmount=3384,
+            sizeDeltaUsd=3384,
+            isLong=True
+        )
         pass
 
 

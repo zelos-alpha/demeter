@@ -84,3 +84,4 @@ class DecreasePositionUtils:
             params.position.shortTokenClaimableFundingAmountPerSize = fees.funding.latestShortTokenClaimableFundingAmountPerSize
             # todo set position
 
+        # todo swapWithdrawnCollateralToPnlToken
