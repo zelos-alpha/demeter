@@ -3,6 +3,7 @@ from .MarketUtils import MarketUtils
 from .Position import Position
 from ._typing import GmxV2PoolStatus, PoolConfig
 from .utils import PricingUtils
+from .._typing2 import GmxV2Pool
 
 
 @dataclass
@@ -65,24 +66,6 @@ class GetPriceImpactUsdParams:
 
 
 @dataclass
-class PositionBorrowingFees:
-    borrowingFeeUsd: float
-    borrowingFeeAmount: float
-    borrowingFeeReceiverFactor: float
-    borrowingFeeAmountForFeeReceiver: float
-
-
-@dataclass
-class PositionFundingFees:
-    fundingFeeAmount: float
-    claimableLongTokenAmount: float
-    claimableShortTokenAmount: float
-    latestFundingFeeAmountPerSize: float
-    latestLongTokenClaimableFundingAmountPerSize: float
-    latestShortTokenClaimableFundingAmountPerSize: float
-
-
-@dataclass
 class OpenInterestParams:
     longOpenInterest: float
     shortOpenInterest: float
@@ -123,10 +106,10 @@ class PositionPricingUtils:
         nextDiffUsd = abs(openInterestParams.nextLongOpenInterest - openInterestParams.nextShortOpenInterest)
 
         isSameSideRebalance = (openInterestParams.longOpenInterest <= openInterestParams.shortOpenInterest) == (openInterestParams.nextLongOpenInterest <= openInterestParams.nextShortOpenInterest)
-        impactExponentFactor = pool_status.positionImpactExponentFactor
+        impactExponentFactor = pool_config.positionImpactExponentFactor
         if isSameSideRebalance:
             hasPositiveImpact = (nextDiffUsd < initialDiffUsd)
-            impactFactor = MarketUtils.getAdjustedPositionImpactFactor(hasPositiveImpact, pool_status)
+            impactFactor = MarketUtils.getAdjustedPositionImpactFactor(hasPositiveImpact, pool_status, pool_config)
             return PricingUtils.getPriceImpactUsdForSameSideRebalance(
                 initialDiffUsd, nextDiffUsd, impactFactor, impactExponentFactor
             )
@@ -163,21 +146,24 @@ class PositionPricingUtils:
         return openInterestParams
 
     @staticmethod
-    def getPositionFees(params: GetPositionFeesParams, pool_status: GmxV2PoolStatus) -> PositionFees:
+    def getPositionFees(params: GetPositionFeesParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig, pool: GmxV2Pool) -> PositionFees:
         fees = PositionPricingUtils.getPositionFeesAfterReferral(
+            forPositiveImpact=params.forPositiveImpact,
             collateralTokenPrice=params.collateralTokenPrice,
             sizeDeltaUsd=params.sizeDeltaUsd,
-            pool_status=pool_status
+            pool_status=pool_status,
+            pool_config=pool_config
         )
 
         borrowingFeeUsd = MarketUtils.getBorrowingFees(params.position, pool_status)
-        fees.borrowing = PositionPricingUtils.getBorrowingFees(params.collateralTokenPrice, borrowingFeeUsd, pool_status)
+        fees.borrowing = PositionPricingUtils.getBorrowingFees(params.collateralTokenPrice, borrowingFeeUsd, pool_status, pool_config)
 
         fees.feeAmountForPool = fees.positionFeeAmountForPool + fees.borrowing.borrowingFeeAmount - fees.borrowing.borrowingFeeAmountForFeeReceiver
         fees.feeReceiverAmount += fees.borrowing.borrowingFeeAmountForFeeReceiver
-        fees.funding.latestFundingFeeAmountPerSize = pool_status.fundingFeeAmountPerSizeLong if params.position.isLong else pool_status.fundingFeeAmountPerSizeShort  # todo read from csv
-        fees.funding.latestLongTokenClaimableFundingAmountPerSize = pool_status.longTokenClaimableFundingAmountPerSizeLong if params.position.isLong else pool_status.longTokenClaimableFundingAmountPerSizeShort  # todo read from csv
-        fees.funding.latestShortTokenClaimableFundingAmountPerSize = pool_status.shortTokenClaimableFundingAmountPerSizeLong if params.position.isLong else pool_status.shortTokenClaimableFundingAmountPerSizeShort  # todo read from csv
+        fees.funding = PositionFundingFees()
+        fees.funding.latestFundingFeeAmountPerSize = MarketUtils.getFundingFeeAmountPerSize(params.position.collateralToken, params.position.isLong, pool, pool_status)
+        fees.funding.latestLongTokenClaimableFundingAmountPerSize = MarketUtils.getClaimableFundingAmountPerSize(pool.long_token, params.position.isLong, pool, pool_status)
+        fees.funding.latestShortTokenClaimableFundingAmountPerSize = MarketUtils.getClaimableFundingAmountPerSize(pool.short_token, params.position.isLong, pool, pool_status)
         fees.funding = PositionPricingUtils.getFundingFees(fees.funding, params.position)
         fees.totalCostAmountExcludingFunding = fees.positionFeeAmount + fees.borrowing.borrowingFeeAmount
         fees.totalCostAmount = fees.totalCostAmountExcludingFunding + fees.funding.fundingFeeAmount
@@ -185,24 +171,26 @@ class PositionPricingUtils:
 
     @staticmethod
     def getPositionFeesAfterReferral(
+            forPositiveImpact: bool,
             collateralTokenPrice: float,
             sizeDeltaUsd: float,
-            pool_status: GmxV2PoolStatus) -> PositionFees:
+            pool_status: GmxV2PoolStatus,
+            pool_config: PoolConfig) -> PositionFees:
         fees = PositionFees()
         fees.collateralTokenPrice = collateralTokenPrice
-        fees.positionFeeFactor = pool_status.positionFeeFactor
+        fees.positionFeeFactor = pool_config.positionFeeFactorPositive if forPositiveImpact else pool_config.positionImpactFactorPositive
         fees.positionFeeAmount = sizeDeltaUsd * fees.positionFeeFactor / 10 ** 30 / collateralTokenPrice
         fees.protocolFeeAmount = fees.positionFeeAmount
-        fees.positionFeeReceiverFactor = pool_status.positionFeeReceiverFactor
+        fees.positionFeeReceiverFactor = pool_config.positionFeeReceiverFactor
         fees.feeReceiverAmount = fees.protocolFeeAmount * fees.positionFeeReceiverFactor / 10 ** 30
         fees.positionFeeAmountForPool = fees.protocolFeeAmount - fees.feeReceiverAmount
         return fees
 
     @staticmethod
-    def getBorrowingFees(collateralTokenPrice, borrowingFeeUsd, pool_status):
+    def getBorrowingFees(collateralTokenPrice, borrowingFeeUsd, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
         # read from csv
         borrowingFeeAmount = borrowingFeeUsd / collateralTokenPrice
-        borrowingFeeReceiverFactor = pool_status.borrowingFeeReceiverFactor  # todo from csv data BORROWING_FEE_RECEIVER_FACTOR
+        borrowingFeeReceiverFactor = pool_config.borrowingFeeReceiverFactor  # todo from csv data BORROWING_FEE_RECEIVER_FACTOR
         borrowingFees = PositionBorrowingFees(
             borrowingFeeUsd=borrowingFeeUsd,
             borrowingFeeAmount=borrowingFeeAmount,

@@ -3,6 +3,7 @@ from typing import Tuple
 
 from ._typing import PoolConfig, GmxV2PoolStatus, Market
 from .Position import Position
+from .._typing2 import GmxV2Pool
 
 
 @dataclasses.dataclass
@@ -193,15 +194,41 @@ class MarketUtils:
         return openInterest * multiplierFactor / 10 ** 30
 
     @staticmethod
-    def getAdjustedPositionImpactFactor(isPositive: bool, pool_status: GmxV2PoolStatus):
-        positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(pool_status)
+    def getAdjustedPositionImpactFactor(isPositive: bool, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
+        positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(pool_status, pool_config)
         return positiveImpactFactor if isPositive else negativeImpactFactor
 
     @staticmethod
-    def getAdjustedPositionImpactFactors(pool_status: GmxV2PoolStatus):
-        positiveImpactFactor = pool_status.positionImpactFactorPositive
-        negativeImpactFactor = pool_status.positionImpactFactorNegative
+    def getAdjustedPositionImpactFactors(pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
+        positiveImpactFactor = pool_config.positionImpactFactorPositive
+        negativeImpactFactor = pool_config.positionImpactFactorNegative
         if positiveImpactFactor > negativeImpactFactor:
             positiveImpactFactor = negativeImpactFactor
         return positiveImpactFactor, negativeImpactFactor
+
+    @staticmethod
+    def getFundingFeeAmountPerSize(collateralToken: str, isLong: bool, pool: GmxV2Pool, pool_status: GmxV2PoolStatus):
+        if collateralToken == pool.long_token:
+            if isLong:
+                return pool_status.longTokenFundingFeeAmountPerSizeLong
+            else:
+                return pool_status.longTokenFundingFeeAmountPerSizeShort
+        else:
+            if isLong:
+                return pool_status.shortTokenFundingFeeAmountPerSizeLong
+            else:
+                return pool_status.shortTokenFundingFeeAmountPerSizeShort
+
+    @staticmethod
+    def getClaimableFundingAmountPerSize(collateralToken, isLong: bool, pool: GmxV2Pool, pool_status: GmxV2PoolStatus):
+        if collateralToken == pool.long_token:
+            if isLong:
+                return pool_status.longTokenClaimableFundingAmountPerSizeLong
+            else:
+                return pool_status.longTokenClaimableFundingAmountPerSizeShort
+        else:
+            if isLong:
+                return pool_status.shortTokenClaimableFundingAmountPerSizeLong
+            else:
+                return pool_status.shortTokenClaimableFundingAmountPerSizeShort
 

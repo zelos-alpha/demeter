@@ -17,9 +17,9 @@ class PoolConfig:
     withdrawFeeFactorForNegativeImpact: float = 0.0007
     maxPnlFactorDeposit: float = 0.9
     maxPnlFactorWithdraw: float = 0.7
-    positionImpactExponentFactor = 1655417464419320500000000000000
-    positionImpactFactorPositive = 34111358107691540000000
-    positionImpactFactorNegative = 40933629729229850000000
+    positionImpactExponentFactor = 1655417464419320500000000000000 / 10 ** 30
+    positionImpactFactorPositive = 34111358107691540000000 / 10 ** 30
+    positionImpactFactorNegative = 40933629729229850000000 / 10 ** 30
     maxPositiveImpactFactor = 5000000000000000000000000000  # 0.005
     maxNegativeImpactFactor = 5000000000000000000000000000  # 0.005
     positionFeeFactorPositive = 400000000000000000000000000  # 0.0004
@@ -150,9 +150,9 @@ class GmxV2PoolStatus:
     longPrice: float
     shortPrice: float
     indexPrice: float
-    positionImpactExponentFactor: float
-    positionImpactFactorPositive: float
-    positionImpactFactorNegative: float
+    # positionImpactExponentFactor: float
+    # positionImpactFactorPositive: float
+    # positionImpactFactorNegative: float
     virtualInventoryForPositions: float  # VirtualPositionInventoryUpdated
     positionImpactPoolAmount: float  # PositionImpactPoolAmountUpdated
     maxPositiveImpactFactor: float
@@ -162,8 +162,10 @@ class GmxV2PoolStatus:
     borrowingFeeReceiverFactor: float
     cumulativeBorrowingFactorLong: float  # CumulativeBorrowingFactorUpdated
     cumulativeBorrowingFactorShort: float  # CumulativeBorrowingFactorUpdated
-    fundingFeeAmountPerSizeLong: float  # FundingFeeAmountPerSizeUpdated
-    fundingFeeAmountPerSizeShort: float  # FundingFeeAmountPerSizeUpdated
+    longTokenFundingFeeAmountPerSizeLong: float  # FundingFeeAmountPerSizeUpdated
+    longTokenFundingFeeAmountPerSizeShort: float  # FundingFeeAmountPerSizeUpdated
+    shortTokenFundingFeeAmountPerSizeLong: float  # FundingFeeAmountPerSizeUpdated
+    shortTokenFundingFeeAmountPerSizeShort: float  # FundingFeeAmountPerSizeUpdated
     longTokenClaimableFundingAmountPerSizeLong: float  # ClaimableFundingAmountPerSizeUpdated
     longTokenClaimableFundingAmountPerSizeShort: float  # ClaimableFundingAmountPerSizeUpdated
     shortTokenClaimableFundingAmountPerSizeLong: float  # ClaimableFundingAmountPerSizeUpdated

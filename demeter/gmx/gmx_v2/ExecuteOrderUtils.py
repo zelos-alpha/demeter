@@ -64,8 +64,8 @@ class ExecuteOrderUtils:
         )
         params = ExecuteOrderParams(order=order, swapPathMarkets=[], market=_market)
         if ExecuteOrderUtils.isIncreaseOrder(params.order):
-            IncreaseOrderUtils.processOrder(params, pool_status, pool_config)
+            return IncreaseOrderUtils.processOrder(params, pool_status, pool_config, pool)
         elif ExecuteOrderUtils.isDecreaseOrder(params.order):
-            DecreaseOrderUtils.processOrder(params, pool_status, pool_config, pool)
+            return DecreaseOrderUtils.processOrder(params, pool_status, pool_config, pool)
         elif ExecuteOrderUtils.isSwapOrder(params.order):
-            SwapOrderUtils.processOrder(params, pool_status, pool_config)
+            return SwapOrderUtils.processOrder(params, pool_status, pool_config)

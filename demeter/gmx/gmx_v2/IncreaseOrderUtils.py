@@ -3,6 +3,7 @@ from .SwapUtils import SwapUtils, SwapParams, SwapPricingType
 from .IncreasePositionUtils import IncreasePositionUtils
 from .PositionUtils import UpdatePositionParams
 from ._typing import PoolConfig, GmxV2PoolStatus, ExecuteOrderParams
+from .._typing2 import GmxV2Pool
 
 PositionList = {}
 
@@ -11,7 +12,7 @@ class IncreaseOrderUtils:
 
 
     @staticmethod
-    def processOrder(params: ExecuteOrderParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
+    def processOrder(params: ExecuteOrderParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig, pool: GmxV2Pool):
         collateralToken, collateralIncrementAmount = SwapUtils.swap(SwapParams(
             params.order.initialCollateralDeltaAmount,
             params.order.initialCollateralToken,
@@ -37,6 +38,8 @@ class IncreaseOrderUtils:
             ),
             collateralIncrementAmount,
             pool_status,
-            pool_config
+            pool_config,
+            pool
         )
         PositionList[positionKey] = increasePositonData.position
+        return increasePositonData.position
