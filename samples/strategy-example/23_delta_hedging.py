@@ -100,14 +100,14 @@ class DeltaHedgingStrategy(Strategy):
         pos_l = L * snapshot.prices[eth.name]
         self.h = pos_h
         self.l = pos_l
-        total_cash = self.get_cash_net_value(snapshot.prices)
+        total_cash = self.get_cash_net_value(snapshot.prices)  # u danwei
 
         # work
-        aave_supply_value = total_cash * self.usdc_aave_supply
-        aave_borrow_value = aave_supply_value * AAVE_POLYGON_USDC_ALPHA
+        aave_supply_value = total_cash * self.usdc_aave_supply #
+        aave_borrow_value = aave_supply_value * AAVE_POLYGON_USDC_ALPHA # anquan xishu
 
         market_aave.supply(usdc, aave_supply_value)
-        market_aave.borrow(eth, aave_borrow_value / snapshot.prices[eth.name])
+        market_aave.borrow(eth, aave_borrow_value / snapshot.prices[eth.name])  # borrow amount -delta weth
 
         self.last_net_value = total_cash
 

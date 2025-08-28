@@ -36,7 +36,7 @@ if __name__ == "__main__":
     market_key = MarketInfo("GMX_ETH", MarketTypeEnum.gmx_v2)
     market = GmxV2Market(market_key, pool, data_path="../data")
     market.load_data(
-        ChainType.arbitrum, "0x70d95587d40a2caf56bd97485ab3eec10bee6336", date(2025, 1, 8), date(2025, 1, 8)
+        ChainType.arbitrum, "0x70d95587d40a2caf56bd97485ab3eec10bee6336", date(2025, 7, 1), date(2025, 7, 2)
     )
 
     actuator = Actuator()
