@@ -116,6 +116,7 @@ class PositionUtils:
     @staticmethod
     def _getExecutionPriceForIncrease(sizeDeltaUsd, sizeDeltaInTokens, acceptablePrice, isLong):
         executionPrice = sizeDeltaUsd / sizeDeltaInTokens
+        return executionPrice
         if (isLong and executionPrice <= acceptablePrice) or (not isLong and executionPrice >= acceptablePrice):
             return executionPrice
 
