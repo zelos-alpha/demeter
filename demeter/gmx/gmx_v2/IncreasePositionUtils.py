@@ -18,7 +18,7 @@ class IncreasePositionUtils:
             params.position.longTokenClaimableFundingAmountPerSize = MarketUtils.getClaimableFundingAmountPerSize(params.market.longToken, params.position.isLong, pool, pool_status)
             params.position.shortTokenClaimableFundingAmountPerSize = MarketUtils.getClaimableFundingAmountPerSize(params.market.shortToken, params.position.isLong, pool, pool_status)
         priceImpactUsd, priceImpactAmount, sizeDeltaInTokens, executionPrice = PositionUtils.getExecutionPriceForIncrease(params, prices['indexTokenPrice']['max'], pool_status, pool_config)
-        collateralTokenPrice = prices['shortTokenPrice']['min']  # todo not correct
+        collateralTokenPrice = prices['shortTokenPrice']['min'] if params.position.collateralToken == pool.short_token else prices['longTokenPrice']['min']
 
         collateralDeltaAmount, fees = IncreasePositionUtils.processCollateral(params, collateralTokenPrice, collateralIncrementAmount, priceImpactUsd, pool_status, pool_config, pool)
 

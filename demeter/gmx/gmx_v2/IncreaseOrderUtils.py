@@ -5,14 +5,12 @@ from .PositionUtils import UpdatePositionParams
 from ._typing import PoolConfig, GmxV2PoolStatus, ExecuteOrderParams
 from .._typing2 import GmxV2Pool
 
-PositionList = {}
-
 
 class IncreaseOrderUtils:
 
 
     @staticmethod
-    def processOrder(params: ExecuteOrderParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig, pool: GmxV2Pool):
+    def processOrder(params: ExecuteOrderParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig, pool: GmxV2Pool, positions):
         collateralToken, collateralIncrementAmount = SwapUtils.swap(SwapParams(
             params.order.initialCollateralDeltaAmount,
             params.order.initialCollateralToken,
@@ -20,7 +18,7 @@ class IncreaseOrderUtils:
             SwapPricingType.Swap
         ), pool_status, pool_config)
         positionKey = Position.getPositionKey(params.order.market, collateralToken, params.order.isLong)
-        position = PositionList.get(positionKey)
+        position = positions.get(positionKey)
         if position is None:
             # init market collateral token
             position = Position(
@@ -41,5 +39,4 @@ class IncreaseOrderUtils:
             pool_config,
             pool
         )
-        PositionList[positionKey] = increasePositonData.position
-        return increasePositonData.position
+        return positionKey, increasePositonData.position

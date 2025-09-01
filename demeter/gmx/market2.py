@@ -32,6 +32,7 @@ class GmxV2Market(Market):
         super().__init__(market_info=market_info, data=data, data_path=data_path)
         self.pool = pool
         self.amount: float = 0.0
+        self.position_list = {}
         self.pool_config = PoolConfig(pool.long_token.decimal, pool.short_token.decimal)
 
     # region prop
@@ -179,8 +180,8 @@ class GmxV2Market(Market):
         sizeDeltaUsd,
         isLong,
     ):
-        result: PositionResult = ExecuteOrderUtils.executeOrder(
-            market='',
+        position_key, result = ExecuteOrderUtils.executeOrder(
+            market=self.pool.market_token.address,
             initialCollateralToken=initialCollateralToken,
             swapPath=[],
             orderType=OrderType.MarketIncrease,
@@ -196,8 +197,14 @@ class GmxV2Market(Market):
             shortToken=self.pool.short_token,
             pool_status=self._market_status.data,
             pool_config=self.pool_config,
-            pool=self.pool
+            pool=self.pool,
+            positions=self.position_list
         )
+        self.position_list[position_key] = result
+        if initialCollateralToken == self.short_token:
+            self.broker.subtract_from_balance(self.short_token, Decimal(initialCollateralDeltaAmount))
+        if initialCollateralToken == self.long_token:
+            self.broker.subtract_from_balance(self.long_token, Decimal(initialCollateralDeltaAmount))
 
         self._record_action(
             Gmx2IncreasePositionAction(
@@ -222,8 +229,8 @@ class GmxV2Market(Market):
         sizeDeltaUsd,
         isLong,
     ):
-        result:PositionResult = ExecuteOrderUtils.executeOrder(
-            market='',
+        result: PositionResult = ExecuteOrderUtils.executeOrder(
+            market=self.pool.market_token.address,
             initialCollateralToken=initialCollateralToken,
             swapPath=[],
             orderType=OrderType.MarketDecrease,
@@ -239,7 +246,8 @@ class GmxV2Market(Market):
             shortToken=self.pool.short_token,
             pool_status=self._market_status.data,
             pool_config=self.pool_config,
-            pool=self.pool
+            pool=self.pool,
+            positions=self.position_list
         )
 
         self._record_action(

@@ -22,10 +22,10 @@ class PoolConfig:
     positionImpactFactorNegative = 40933629729229850000000 / 10 ** 30
     maxPositiveImpactFactor = 5000000000000000000000000000  # 0.005
     maxNegativeImpactFactor = 5000000000000000000000000000  # 0.005
-    positionFeeFactorPositive = 400000000000000000000000000  # 0.0004
-    positionFeeFactorNegative = 600000000000000000000000000  # 0.0006
-    positionFeeReceiverFactor = 370000000000000000000000000000  # 0.37
-    borrowingFeeReceiverFactor = 370000000000000000000000000000  # 0.37
+    positionFeeFactorPositive = 400000000000000000000000000 / 10 ** 30  # 0.0004
+    positionFeeFactorNegative = 600000000000000000000000000 / 10 ** 30  # 0.0006
+    positionFeeReceiverFactor = 370000000000000000000000000000 / 10 ** 30  # 0.37
+    borrowingFeeReceiverFactor = 370000000000000000000000000000 / 10 ** 30  # 0.37
     maxPnlFactorForTraderLong = 900000000000000000000000000000  # 0.9
     maxPnlFactorForTraderShort = 900000000000000000000000000000  # 0.9
     minCollateralFactorForOpenInterestMultiplierLong = 60000000000000000000

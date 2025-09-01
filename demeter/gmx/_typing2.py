@@ -24,6 +24,7 @@ class GmxV2Pool(object):
     long_token: TokenInfo
     short_token: TokenInfo
     index_token: TokenInfo
+    market_token: TokenInfo = None
 
 
 @dataclass

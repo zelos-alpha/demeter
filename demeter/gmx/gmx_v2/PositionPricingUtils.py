@@ -113,6 +113,11 @@ class PositionPricingUtils:
             return PricingUtils.getPriceImpactUsdForSameSideRebalance(
                 initialDiffUsd, nextDiffUsd, impactFactor, impactExponentFactor
             )
+        # initialDiffUsd 659350605479346732745873570369275889 = 659350.6054793467
+        # nextDiffUsd 663797116269074703175203868873936389 = 663797.1162690747
+        # impactFactor 40933629729229850000000
+        # impactExponentFactor 1655417464419320500000000000000 = 1.6554174644193205
+        # 175.8519499036393
         else:
             positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(pool_status)
             return PricingUtils.getPriceImpactUsdForCrossoverRebalance(
@@ -178,11 +183,11 @@ class PositionPricingUtils:
             pool_config: PoolConfig) -> PositionFees:
         fees = PositionFees()
         fees.collateralTokenPrice = collateralTokenPrice
-        fees.positionFeeFactor = pool_config.positionFeeFactorPositive if forPositiveImpact else pool_config.positionImpactFactorPositive
-        fees.positionFeeAmount = sizeDeltaUsd * fees.positionFeeFactor / 10 ** 30 / collateralTokenPrice
+        fees.positionFeeFactor = pool_config.positionFeeFactorPositive if forPositiveImpact else pool_config.positionFeeFactorNegative
+        fees.positionFeeAmount = sizeDeltaUsd * fees.positionFeeFactor / collateralTokenPrice
         fees.protocolFeeAmount = fees.positionFeeAmount
         fees.positionFeeReceiverFactor = pool_config.positionFeeReceiverFactor
-        fees.feeReceiverAmount = fees.protocolFeeAmount * fees.positionFeeReceiverFactor / 10 ** 30
+        fees.feeReceiverAmount = fees.protocolFeeAmount * fees.positionFeeReceiverFactor
         fees.positionFeeAmountForPool = fees.protocolFeeAmount - fees.feeReceiverAmount
         return fees
 

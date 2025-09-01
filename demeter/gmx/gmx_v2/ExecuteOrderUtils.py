@@ -43,7 +43,7 @@ class ExecuteOrderUtils:
             shortToken,
             pool_status: GmxV2PoolStatus,
             pool_config: PoolConfig,
-            pool: GmxV2Pool):
+            pool: GmxV2Pool, positions):
         order = Order(
             market=market,
             initialCollateralToken=initialCollateralToken,
@@ -64,8 +64,8 @@ class ExecuteOrderUtils:
         )
         params = ExecuteOrderParams(order=order, swapPathMarkets=[], market=_market)
         if ExecuteOrderUtils.isIncreaseOrder(params.order):
-            return IncreaseOrderUtils.processOrder(params, pool_status, pool_config, pool)
+            return IncreaseOrderUtils.processOrder(params, pool_status, pool_config, pool, positions)
         elif ExecuteOrderUtils.isDecreaseOrder(params.order):
-            return DecreaseOrderUtils.processOrder(params, pool_status, pool_config, pool)
+            return DecreaseOrderUtils.processOrder(params, pool_status, pool_config, pool, positions)
         elif ExecuteOrderUtils.isSwapOrder(params.order):
             return SwapOrderUtils.processOrder(params, pool_status, pool_config)
