@@ -104,9 +104,9 @@ class MarketUtils:
 
     @staticmethod
     def getOppositeToken(inputToken: str, market: Market) -> str:
-        if inputToken == market.longToken:
+        if inputToken == market.longToken.address:
             return market.shortToken
-        if inputToken == market.shortToken:
+        if inputToken == market.shortToken.address:
             return market.longToken
 
     @staticmethod
@@ -139,23 +139,23 @@ class MarketUtils:
         return pool_status.cumulativeBorrowingFactorLong if isLong else pool_status.cumulativeBorrowingFactorShort
 
     @staticmethod
-    def getCappedPositionImpactUsd(indexTokenPrice: float, priceImpactUsd: float, sizeDeltaUsd: float, pool_status: GmxV2PoolStatus):
+    def getCappedPositionImpactUsd(indexTokenPrice: float, priceImpactUsd: float, sizeDeltaUsd: float, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
         if priceImpactUsd < 0:
             return priceImpactUsd
         impactPoolAmount = pool_status.positionImpactPoolAmount
         maxPriceImpactUsdBasedOnImpactPool = impactPoolAmount * indexTokenPrice
         if priceImpactUsd > maxPriceImpactUsdBasedOnImpactPool:
             priceImpactUsd = maxPriceImpactUsdBasedOnImpactPool
-        maxPriceImpactFactor = MarketUtils.getMaxPositionImpactFactor(True, pool_status)
+        maxPriceImpactFactor = MarketUtils.getMaxPositionImpactFactor(True, pool_status, pool_config)
         maxPriceImpactUsdBasedOnMaxPriceImpactFactor = sizeDeltaUsd * maxPriceImpactFactor
         if priceImpactUsd > maxPriceImpactUsdBasedOnMaxPriceImpactFactor:
             priceImpactUsd = maxPriceImpactUsdBasedOnMaxPriceImpactFactor
         return priceImpactUsd
 
     @staticmethod
-    def getMaxPositionImpactFactor(isPositive: bool, pool_status: GmxV2PoolStatus):
-        maxPositiveImpactFactor = pool_status.maxPositiveImpactFactor
-        maxNegativeImpactFactor = pool_status.maxNegativeImpactFactor
+    def getMaxPositionImpactFactor(isPositive: bool, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
+        maxPositiveImpactFactor = pool_config.maxPositiveImpactFactor
+        maxNegativeImpactFactor = pool_config.maxNegativeImpactFactor
         if maxPositiveImpactFactor > maxNegativeImpactFactor:
             maxPositiveImpactFactor = maxNegativeImpactFactor
         return maxPositiveImpactFactor if isPositive else maxNegativeImpactFactor
@@ -181,9 +181,9 @@ class MarketUtils:
         return pnl
 
     @staticmethod
-    def getCappedPnl(isLong: bool, pnl: float, poolUsd: float, pool_status: GmxV2PoolStatus):
-        maxPnlFactor = pool_status.maxPnlFactorForTraderLong if isLong else pool_status.maxPnlFactorForTraderShort
-        maxPnl = poolUsd * maxPnlFactor / 10 ** 30
+    def getCappedPnl(isLong: bool, pnl: float, poolUsd: float, pool_config: PoolConfig):
+        maxPnlFactor = pool_config.maxPnlFactorForTraderLong if isLong else pool_config.maxPnlFactorForTraderShort
+        maxPnl = poolUsd * maxPnlFactor
         return maxPnl if pnl > maxPnl else pnl
 
     @staticmethod
@@ -191,7 +191,7 @@ class MarketUtils:
         openInterest = pool_status.openInterestLong if isLong else pool_status.openInterestShort
         openInterest = openInterest + openInterestDelta
         multiplierFactor = pool_status.minCollateralFactorForOpenInterestMultiplierLong if isLong else pool_status.minCollateralFactorForOpenInterestMultiplierShort
-        return openInterest * multiplierFactor / 10 ** 30
+        return openInterest * multiplierFactor
 
     @staticmethod
     def getAdjustedPositionImpactFactor(isPositive: bool, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):

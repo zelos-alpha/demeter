@@ -85,7 +85,7 @@ class PositionUtils:
             pool_status,
             pool_config
         )
-        priceImpactUsd = MarketUtils.getCappedPositionImpactUsd(indexTokenPrice, priceImpactUsd, params.order.sizeDeltaUsd, pool_status)
+        priceImpactUsd = MarketUtils.getCappedPositionImpactUsd(indexTokenPrice, priceImpactUsd, params.order.sizeDeltaUsd, pool_status, pool_config)
 
         priceImpactAmount = 0
         if priceImpactUsd > 0:
@@ -126,7 +126,8 @@ class PositionUtils:
             prices: MarketPrices,
             position: Position,
             sizeDeltaUsd: float,
-            pool_status: GmxV2PoolStatus
+            pool_status: GmxV2PoolStatus,
+            pool_config: PoolConfig
     ):
         cache = GetPositionPnlUsdCache()
         executionPrice = prices.indexTokenPrice.max
@@ -141,7 +142,7 @@ class PositionUtils:
             cache.poolTokenPrice = prices.longTokenPrice.max if position.isLong else prices.shortTokenPrice.max
             cache.poolTokenUsd = cache.poolTokenAmount * cache.poolTokenPrice
             cache.poolPnl = MarketUtils.getPnl(prices.indexTokenPrice, position.isLong, pool_status)
-            cache.cappedPoolPnl = MarketUtils.getCappedPnl(position.isLong, cache.poolPnl, cache.poolTokenUsd, pool_status)
+            cache.cappedPoolPnl = MarketUtils.getCappedPnl(position.isLong, cache.poolPnl, cache.poolTokenUsd, pool_config)
             if cache.cappedPoolPnl != cache.poolPnl and cache.cappedPoolPnl > 0 and cache.poolPnl > 0:
                 cache.totalPositionPnl = cache.totalPositionPnl * cache.cappedPoolPnl / cache.poolPnl
 
@@ -185,6 +186,7 @@ class PositionUtils:
             adjustment = (positionSizeInUsd * adjustedPriceImpactUsd / positionSizeInTokens) / sizeDeltaUsd
             _executionPrice = price + adjustment
             executionPrice = _executionPrice
+        return executionPrice
         if (isLong and executionPrice >= acceptablePrice) or (not isLong and executionPrice <= acceptablePrice):
             return executionPrice
 
@@ -194,11 +196,11 @@ class PositionUtils:
         if sizeDeltaUsd == 0:
             return 0, 0, indexTokenPrice
         priceImpactUsd = PositionPricingUtils.getPriceImpactUsd(GetPriceImpactUsdParams(isLong=params.order.isLong, usdDelta=-sizeDeltaUsd), pool_status, pool_config)
-        priceImpactUsd = MarketUtils.getCappedPositionImpactUsd(indexTokenPrice.max, priceImpactUsd, sizeDeltaUsd, pool_status)
+        priceImpactUsd = MarketUtils.getCappedPositionImpactUsd(indexTokenPrice.max, priceImpactUsd, sizeDeltaUsd, pool_status, pool_config)
 
         priceImpactDiffUsd = 0
         if priceImpactUsd < 0:
-            maxPriceImpactFactor = MarketUtils.getMaxPositionImpactFactor(False, pool_status)
+            maxPriceImpactFactor = MarketUtils.getMaxPositionImpactFactor(False, pool_status, pool_config)
             minPriceImpactUsd = -sizeDeltaUsd * maxPriceImpactFactor
             if priceImpactUsd < minPriceImpactUsd:
                 priceImpactDiffUsd = minPriceImpactUsd - priceImpactUsd
