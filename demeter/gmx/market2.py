@@ -84,8 +84,8 @@ class GmxV2Market(Market):
         self._market_status = data
 
     def get_market_balance(self) -> GmxV2Balance:
+        pool_data: GmxV2PoolStatus = self._market_status.data
         if self.amount > 0:
-            pool_data: GmxV2PoolStatus = self._market_status.data
             longAmount, shortAmount = MarketUtils.getTokenAmountsFromGM(pool_data, self.amount)
             share = Decimal(self.amount / pool_data.marketTokensSupply)
             long_amount = Decimal(longAmount)
@@ -93,6 +93,9 @@ class GmxV2Market(Market):
             net_value = Decimal(pool_data.poolValue) * share
         else:
             net_value = long_amount = short_amount = Decimal(0)
+
+        for key, position in self.position_list.items():
+            net_value += Decimal(position.sizeInTokens * pool_data.indexPrice)
 
         return GmxV2Balance(
             net_value=net_value,
