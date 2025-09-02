@@ -13,10 +13,10 @@ class DecreaseOrderUtils:
         positionKey = Position.getPositionKey(params.order.market, params.order.initialCollateralToken,
                                               params.order.isLong)
         position = positions.get(positionKey)
-        decreasePositonData = DecreasePositionUtils.decreasePosition(UpdatePositionParams(
+        decreasePosition, outputToken, outputAmount, secondaryOutputToken, secondaryOutputAmount, _, _ = DecreasePositionUtils.decreasePosition(UpdatePositionParams(
             params.market,
             params.order,
             position,
             positionKey
         ), pool_status, pool_config, pool)
-        return positionKey, decreasePositonData.position
+        return positionKey, decreasePosition, outputToken, outputAmount, secondaryOutputToken, secondaryOutputAmount

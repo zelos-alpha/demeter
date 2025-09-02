@@ -20,11 +20,11 @@ class DecreasePositionUtils:
             longToken=pool.long_token.address,
             shortToken=pool.short_token.address
         )
-        if params.order.initialCollateralToken == pool.index_token.address:
+        if params.order.initialCollateralToken == pool.index_token:
             cache.collateralTokenPrice = cache.prices.indexTokenPrice
-        if params.order.initialCollateralToken == pool.short_token.address:
+        if params.order.initialCollateralToken == pool.short_token:
             cache.collateralTokenPrice = cache.prices.shortTokenPrice
-        if params.order.initialCollateralToken == pool.long_token.address:
+        if params.order.initialCollateralToken == pool.long_token:
             cache.collateralTokenPrice = cache.prices.longTokenPrice
 
         if params.order.sizeDeltaUsd < params.position.sizeInUsd:
@@ -32,27 +32,28 @@ class DecreasePositionUtils:
                 market, cache.prices,
                 params.position,
                 params.position.sizeInUsd,
-                pool_status
+                pool_status,
+                pool_config
             )
             cache.estimatedRealizedPnlUsd = cache.estimatedPositionPnlUsd * params.order.sizeDeltaUsd / params.position.sizeInUsd
             cache.estimatedRemainingPnlUsd = cache.estimatedPositionPnlUsd - cache.estimatedRealizedPnlUsd
 
-        positionValues = WillPositionCollateralBeSufficientValues(
-            positionSizeInUsd=params.position.sizeInUsd - params.order.sizeDeltaUsd,
-            positionCollateralAmount=params.position.collateralAmount - params.order.initialCollateralDeltaAmount,
-            realizedPnlUsd=cache.estimatedRealizedPnlUsd,
-            openInterestDelta=-params.order.sizeDeltaUsd
-        )
-        willBeSufficient, estimatedRemainingCollateralUsd = PositionUtils.willPositionCollateralBeSufficient(cache.collateralTokenPrice, params.position.isLong, positionValues, pool_status)
-        if not willBeSufficient:
-            estimatedRemainingCollateralUsd += params.order.initialCollateralDeltaAmount * cache.collateralTokenPrice.min
-            params.order.initialCollateralDeltaAmount = 0
+            positionValues = WillPositionCollateralBeSufficientValues(
+                positionSizeInUsd=params.position.sizeInUsd - params.order.sizeDeltaUsd,
+                positionCollateralAmount=params.position.collateralAmount - params.order.initialCollateralDeltaAmount,
+                realizedPnlUsd=cache.estimatedRealizedPnlUsd,
+                openInterestDelta=-params.order.sizeDeltaUsd
+            )
+            willBeSufficient, estimatedRemainingCollateralUsd = PositionUtils.willPositionCollateralBeSufficient(cache.collateralTokenPrice, params.position.isLong, positionValues, pool_status)
+            if not willBeSufficient:
+                estimatedRemainingCollateralUsd += params.order.initialCollateralDeltaAmount * cache.collateralTokenPrice.min
+                params.order.initialCollateralDeltaAmount = 0
 
-        if estimatedRemainingCollateralUsd + cache.estimatedRemainingPnlUsd < pool_status.minCollateralUsd:
-            params.order.setSizeDeltaUsd = params.position.sizeInUsd
+            if estimatedRemainingCollateralUsd + cache.estimatedRemainingPnlUsd < pool_status.minCollateralUsd:
+                params.order.setSizeDeltaUsd = params.position.sizeInUsd
 
-        if params.position.sizeInUsd > params.order.sizeDeltaUsd and (params.position.sizeInUsd - params.order.sizeDeltaUsd) < pool_status.minPositionSizeUsd:
-            params.order.setSizeDeltaUsd = params.position.sizeInUsd
+            if params.position.sizeInUsd > params.order.sizeDeltaUsd and (params.position.sizeInUsd - params.order.sizeDeltaUsd) < pool_status.minPositionSizeUsd:
+                params.order.setSizeDeltaUsd = params.position.sizeInUsd
 
         if params.order.sizeDeltaUsd == params.position.sizeInUsd and params.order.initialCollateralDeltaAmount > 0:
             params.order.initialCollateralDeltaAmount = 0
@@ -85,3 +86,4 @@ class DecreasePositionUtils:
             # todo set position
 
         # todo swapWithdrawnCollateralToPnlToken
+        return params.position, values.output.outputToken, values.output.outputAmount, values.output.secondaryOutputToken, values.output.secondaryOutputAmount, params.order.sizeDeltaUsd, params.order.initialCollateralDeltaAmount

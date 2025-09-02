@@ -36,8 +36,7 @@ class SwapUtils:
             return params.tokenIn, params.amountIn
         tokenOut = params.tokenIn
         outputAmount = params.amountIn
-        for i, swapPathMarket in enumerate(params.swapPathMarkets):
-            market = swapPathMarket[i]
+        for i, market in enumerate(params.swapPathMarkets):
             _params = _SwapParams(market, tokenOut, outputAmount)
             tokenOut, outputAmount = SwapUtils._swap(params, _params, pool_status, pool_config)
         return tokenOut, outputAmount
@@ -45,14 +44,14 @@ class SwapUtils:
     @staticmethod
     def _swap(params: SwapParams, _params: _SwapParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig) -> (float, float): # done
         tokenOut = MarketUtils.getOppositeToken(_params.tokenIn, _params.market)
-        tokenInPrice = pool_status.longPrice if _params.tokenIn == _params.market.longToken else pool_status.shortPrice
-        tokenOutPrice = pool_status.shortPrice if _params.tokenIn == _params.market.longToken else pool_status.longPrice
+        tokenInPrice = pool_status.longPrice if _params.tokenIn == _params.market.longToken.address else pool_status.shortPrice
+        tokenOutPrice = pool_status.shortPrice if _params.tokenIn == _params.market.longToken.address else pool_status.longPrice
         priceImpactUsd = SwapPriceUtils.getPriceImpactUsd(GetPriceImpactUsdParams(
             pool_config,
             tokenInPrice,
             tokenOutPrice,
             _params.amountIn * tokenInPrice,
-            _params.amountIn * tokenInPrice,
+            -_params.amountIn * tokenInPrice,
             True,
             True
         ), pool_status)
@@ -70,7 +69,7 @@ class SwapUtils:
                 amountIn += tokenInPriceImpactAmount
             amountOut = amountIn * tokenInPrice / tokenOutPrice
         else:
-            priceImpactAmount, _ = MarketUtils.applySwapImpactWithCap(tokenOutPrice, priceImpactUsd, pool_status.impactPoolAmount)
+            priceImpactAmount, _ = MarketUtils.applySwapImpactWithCap(tokenInPrice, priceImpactUsd, pool_status.impactPoolAmount)
             amountIn = fees.amountAfterFees - (-priceImpactAmount)
             amountOut = amountIn * tokenInPrice / tokenOutPrice
         return tokenOut, amountOut

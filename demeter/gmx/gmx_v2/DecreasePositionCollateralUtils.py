@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from .PositionUtils import UpdatePositionParams, PositionUtils, DecreasePositionCollateralValues, DecreasePositionCache
+from .PositionUtils import UpdatePositionParams, PositionUtils, DecreasePositionCollateralValues, DecreasePositionCache, DecreasePositionCollateralValuesOutput
 from .PositionPricingUtils import GetPositionFeesParams, PositionPricingUtils, PositionFees
 from .DecreasePositionSwapUtils import DecreasePositionSwapUtils
 from ._typing import GmxV2PoolStatus, PoolConfig, Market, OrderType
@@ -31,8 +31,8 @@ class DecreasePositionCollateralUtils:
     def processCollateral(params: UpdatePositionParams, cache: DecreasePositionCache, pool_status: GmxV2PoolStatus, pool_config: PoolConfig, pool: GmxV2Pool):
         collateralCache = ProcessCollateralCache()
         values = DecreasePositionCollateralValues()
-
-        values.output.outputToken = params.position.collateralToken
+        values.output = DecreasePositionCollateralValuesOutput()
+        values.output.outputToken = params.position.collateralToken.address
         values.output.secondaryOutputToken = cache.pnlToken
         values.priceImpactUsd, values.priceImpactDiffUsd, values.executionPrice = PositionUtils.getExecutionPriceForDecrease(params, cache.prices.indexTokenPrice, pool_status, pool_config)
         market = Market(
@@ -45,7 +45,8 @@ class DecreasePositionCollateralUtils:
             cache.prices,
             params.position,
             params.position.sizeInUsd,
-            pool_status
+            pool_status,
+            pool_config
         )
         getPositionFeesParams = GetPositionFeesParams(
             position=params.position,
@@ -76,7 +77,7 @@ class DecreasePositionCollateralUtils:
             values.output.secondaryOutputAmount = 0
         values.remainingCollateralAmount = params.position.collateralAmount
 
-        fees = PositionPricingUtils.getPositionFees(getPositionFeesParams, pool_status)
+        fees = PositionPricingUtils.getPositionFees(getPositionFeesParams, pool_status, pool_config, pool)
 
         # pay for funding fees
         values, collateralCache.result = DecreasePositionCollateralUtils.payForCost(

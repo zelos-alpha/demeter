@@ -229,7 +229,7 @@ class GmxV2Market(Market):
         sizeDeltaUsd,
         isLong,
     ):
-        result: PositionResult = ExecuteOrderUtils.executeOrder(
+        position_key, result, outputToken, outputAmount, secondaryOutputToken, secondaryOutputAmount = ExecuteOrderUtils.executeOrder(
             market=self.pool.market_token.address,
             initialCollateralToken=initialCollateralToken,
             swapPath=[],
@@ -239,8 +239,8 @@ class GmxV2Market(Market):
             triggerPrice=0,
             acceptablePrice=0,
             isLong=isLong,
-            decreasePositionSwapType=DecreasePositionSwapType.NoSwap,
-            marketToken='',
+            decreasePositionSwapType=DecreasePositionSwapType.SwapPnlTokenToCollateralToken,
+            marketToken=self.pool.market_token.address,
             indexToken=self.pool.index_token,
             longToken=self.pool.long_token,
             shortToken=self.pool.short_token,
@@ -249,6 +249,17 @@ class GmxV2Market(Market):
             pool=self.pool,
             positions=self.position_list
         )
+
+        self.position_list[position_key] = result
+        if outputToken == self.short_token.address:
+            self.broker.add_to_balance(self.short_token, Decimal(outputAmount))
+        if outputToken == self.long_token.address:
+            self.broker.add_to_balance(self.long_token, Decimal(outputAmount))
+
+        if secondaryOutputToken == self.short_token.address:
+            self.broker.add_to_balance(self.short_token, Decimal(secondaryOutputAmount))
+        if secondaryOutputToken == self.long_token.address:
+            self.broker.add_to_balance(self.long_token, Decimal(secondaryOutputAmount))
 
         self._record_action(
             Gmx2DecreasePositionAction(
