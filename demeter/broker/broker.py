@@ -39,9 +39,10 @@ class Broker:
         self._assets: AssetDict[Asset] = AssetDict()
         self._markets: MarketDict[Market] = MarketDict()
         self._record_action_callback: Callable[[BaseAction], None] = record_action_callback
-        self.quote_token: TokenInfo | None = None
+        self._quote_token: TokenInfo | None = None
 
     # region properties
+
 
     @property
     def markets(self) -> MarketDict[Market]:
@@ -151,6 +152,10 @@ class Broker:
                 raise DemeterError(f"{token.name} doesn't exist in assets dict")
         return asset
 
+    @property
+    def quote_token(self):
+        return self._quote_token
+
     def __add_asset(self, token: TokenInfo) -> Asset:
         self._assets[token] = Asset(token, 0)
         return self._assets[token]
@@ -197,10 +202,10 @@ class Broker:
         for market_key, market in self.markets.items():
             market_balance = market.get_market_balance()
             account_status.market_status[market_key] = market_balance
-            if market.quote_token == self.quote_token:
+            if market.quote_token == self._quote_token:
                 market_sum += market_balance.net_value
             else:
-                market_sum += market_balance.net_value * prices[market.quote_token.name] / prices[self.quote_token.name]
+                market_sum += market_balance.net_value * prices[market.quote_token.name] / prices[self._quote_token.name]
         account_status.market_status.set_default_key(self.markets.get_default_key())
 
         for asset_key, asset in self.assets.items():
@@ -230,7 +235,7 @@ class Broker:
         return str_to_print
 
     def _check_quote_token(self):
-        require(self.quote_token is not None, "Quote token of broker not set")
+        require(self._quote_token is not None, "Quote token of broker not set")
 
     def check_backtest(self):
         """

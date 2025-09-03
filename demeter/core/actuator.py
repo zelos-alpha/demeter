@@ -264,16 +264,19 @@ class Actuator(object):
             prices = pd.DataFrame(data=prices, index=prices.index)
 
         prices = prices.map(lambda y: to_decimal(y))
-        prices[USD.name] = 1
+
+        # combine old and new price
         if self._token_prices is None:
             self._token_prices = prices
         else:
             self._token_prices = pd.concat([self._token_prices, prices])
 
-        if self.broker.quote_token is None:
-            self.broker.quote_token = quote_token
-        elif self.broker.quote_token != quote_token:
-            raise DemeterError(f"Quote token is different from previous setting, new value is {quote_token}, " f"old is {self.broker.quote_token}")
+        self.broker._quote_token = quote_token
+        self.logger.info("quote token in backtest is {}".format(quote_token))
+
+        # fill usd price if usd is quote token by default.
+        if quote_token is USD:
+            self._token_prices[USD.name] = 1
 
     def notify(self, strategy: Strategy, actions: List[BaseAction]):
         """
@@ -320,7 +323,7 @@ class Actuator(object):
         # check match quote token is in price
         for market in self.broker.markets.values():
             if market.quote_token.name not in self._token_prices.columns:
-                raise DemeterError(f"Price dataframe doesn't have {market.quote_token}, it's the quote token of {market.market_info.name}")
+                raise DemeterError(f"Quote token price of market '{market.market_info.name}' is not contained in price dataframe.")
 
     def _log(self, timestamp: datetime, message: str, level: int = logging.INFO):
         self._logs.append(DemeterLog(timestamp, message, level))
@@ -340,10 +343,17 @@ class Actuator(object):
         :return:
         """
 
-        for market_key in self.broker.markets.keys():
-            if (not update) or (update and self._broker.markets[market_key].has_update):
+        for market_key, market in self.broker.markets.items():
+            if (not update) or (update and market.has_update):
                 ms = MarketStatus(timestamp, None)
-                self._broker.markets[market_key].set_market_status(ms, self._token_prices.loc[timestamp])
+                current_price = self._token_prices.loc[timestamp]
+                if self.broker.quote_token == market.quote_token:
+                    market.set_market_status(ms, current_price)
+                else:
+                    market_quote_price = current_price[market.quote_token.name]
+                    broker_quote_price = current_price[self._broker.quote_token.name]
+                    current_price = current_price * broker_quote_price / market_quote_price
+                    market.set_market_status(ms, current_price)
 
     def get_test_range(self):
         longest_data = max(map(lambda m: len(m.data.index.get_level_values(0).unique()), self._broker.markets.values()))
@@ -442,7 +452,7 @@ class Actuator(object):
                     # will use the latest snapshot
                     if snapshot.timestamp == after_snapshot.timestamp:
                         self._strategy.on_error(after_snapshot, e)
-                    else: # after_snapshot is the old loop, use snapshot which updated in this loop
+                    else:  # after_snapshot is the old loop, use snapshot which updated in this loop
                         self._strategy.on_error(snapshot, e)
 
                 account_status = self._broker.get_account_status(current_price, timestamp_index.to_pydatetime())
@@ -469,7 +479,7 @@ class Actuator(object):
         self._account_status_df: pd.DataFrame = AccountStatus.to_dataframe(self._account_status_list)
 
         tmp_price_df = (
-            self._token_prices.drop(columns=[USD.name])
+            self._token_prices
             .loc[self._account_status_df.index[0] : self._account_status_df.index[-1]]
             .reindex(self._account_status_df.index)
         )
