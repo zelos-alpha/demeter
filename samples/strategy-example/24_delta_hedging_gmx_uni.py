@@ -20,24 +20,16 @@ H = Decimal("1.2")  # upper tick range
 L = Decimal("0.8")  # lower tick range
 
 
-def optimize_delta_netural(ph, pl, delta=0.0):
-    pass  # todo
+def calc_delta_neutral(cash_amount, leverage=2):
+    gmx_usdc = cash_amount / (1 + 2 * leverage)
+    uni_usdc = uni_usdc2eth = gmx_usdc * leverage
+    return gmx_usdc, uni_usdc, uni_usdc2eth
 
 
 class DeltaHedgingStrategy(Strategy):
     def __init__(self):
         super().__init__()
-        optimize_res = optimize_delta_netural(float(H), float(L))
-        V_U_init, V_U_uni, V_E_uni, V_U_pos = optimize_res[1]
-
-        self.usdc_uni_init = Decimal(V_U_init)
-        self.eth_uni_lp = Decimal(V_E_uni)
-        self.usdc_uni_lp = Decimal(V_U_uni)
-        self.usdc_gmx_pos = Decimal(V_U_pos)
-        print("V_U_init: ", self.usdc_uni_init)
-        print("V_U_uni: ", self.usdc_uni_lp)
-        print("V_E_uni: ", self.eth_uni_lp)
-        print("V_U_pos: ", self.usdc_gmx_pos)
+        self.gmx_leverage = 2
         self.last_collect_fee0 = 0
         self.last_collect_fee1 = 0
 
@@ -47,14 +39,17 @@ class DeltaHedgingStrategy(Strategy):
 
     def reset_funds(self):
         # withdraw all positions
-
         mb = market_uni.get_market_balance()
-
         self.last_collect_fee0 += mb.base_uncollected
         self.last_collect_fee1 += mb.quote_uncollected
         market_uni.remove_all_liquidity()
-        for b_key in market_gmx.positions:
-            market_gmx.decrease_position()  # todo update
+        for key, position in market_gmx.position_list.items():
+            market_gmx.decrease_position(
+                initialCollateralToken=position.collateralToken,
+                initialCollateralDeltaAmount=position.collateralAmount,
+                sizeDeltaUsd=position.sizeInUsd,
+                isLong=position.isLong
+            )
         market_uni.sell(broker.assets[eth].balance)
 
     def change_position(self, snapshot: Snapshot):
@@ -65,14 +60,18 @@ class DeltaHedgingStrategy(Strategy):
         self.h = pos_h
         self.l = pos_l
         total_cash = self.get_cash_net_value(snapshot.prices)
-
-        # work
-        gmx_pos_value = total_cash * self.usdc_gmx_pos
-        market_gmx.increase_position(usdc, gmx_pos_value)  # todo upodate
-
         self.last_net_value = total_cash
 
-        market_uni.sell(self.usdc_gmx_pos * total_cash / snapshot.prices[eth.name])  # eth => usdc
+        gmx_usdc, uni_usdc, uni_usdc2eth = calc_delta_neutral(total_cash, self.gmx_leverage)
+        # work
+        market_gmx.increase_position(
+            initialCollateralToken=usdc,
+            initialCollateralDeltaAmount=float(gmx_usdc),
+            sizeDeltaUsd=float(gmx_usdc * snapshot.prices[usdc.name]),
+            isLong=False
+        )
+
+        market_uni.buy(uni_usdc2eth / snapshot.prices[eth.name])  # usdc => eth
         market_uni.add_liquidity(pos_l, pos_h)
 
         # result monitor
@@ -91,9 +90,9 @@ class DeltaHedgingStrategy(Strategy):
         for pos_key, pos in market_uni.positions.items():
             amount0, amount1 = V3CoreLib.get_token_amounts(market_uni.pool_info, pos_key, sqrt_price, pos.liquidity)
             lp_value += amount0 * price[usdc.name] + amount1 * price[eth.name]
-        aave_status = market_gmx.get_market_balance()
+        gmx_status = market_gmx.get_market_balance()
 
-        return cash + aave_status.net_value + lp_value
+        return cash + gmx_status.net_value + lp_value
 
     def on_bar(self, snapshot: Snapshot):
         if not self.last_net_value * Decimal("0.96") < self.get_current_net_value(snapshot.prices) < self.last_net_value * Decimal("1.04"):
@@ -103,17 +102,18 @@ class DeltaHedgingStrategy(Strategy):
 
 
 if __name__ == "__main__":
-    start_date = date(2023, 8, 14)
-    end_date = date(2023, 8, 17)
-    file_name = f"delta_hedging"
+    start_date = date(2025, 7, 1)
+    end_date = date(2025, 7, 2)
+    file_name = f"delta_hedging_gmx_uni"
 
     market_key_uni = MarketInfo("uni")
     market_key_gmx = MarketInfo("gmx", MarketTypeEnum.gmx_v2)
 
-    usdc = TokenInfo(name="usdc", decimal=6, address="0x2791bca1f2de4661ed88a30c99a7a9449aa84174")  # TokenInfo(name='usdc', decimal=6)
-    eth = TokenInfo(name="weth", decimal=18, address="0x7ceb23fd6bc0add59e62ac25578270cff1b9f619")  # TokenInfo(name='eth', decimal=18)
+    usdc = TokenInfo(name="usdc", decimal=6, address="0xaf88d065e77c8cc2239327c5edb3a432268e5831")  # TokenInfo(name='usdc', decimal=6)
+    eth = TokenInfo(name="weth", decimal=18, address="0x82af49447d8a07e3bd95bd0d56f35241523fbab1")  # TokenInfo(name='eth', decimal=18)
     uni_pool = UniV3Pool(usdc, eth, 0.05, usdc)
-    gmx_pool = GmxV2Pool(eth, usdc, eth)
+    market_token = TokenInfo(name="market_token", decimal=18, address='0x70d95587d40a2caf56bd97485ab3eec10bee6336')
+    gmx_pool = GmxV2Pool(eth, usdc, eth, market_token)
     actuator = Actuator()
     broker = actuator.broker
 
@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
     market_gmx = GmxV2Market(market_key_gmx, gmx_pool, data_path="../data")
     market_gmx.data_path = "../data/"
-    market_gmx.load_data(ChainType.polygon, [usdc, eth], start_date, end_date)
+    market_gmx.load_data(ChainType.arbitrum, '0x70d95587d40a2caf56bd97485ab3eec10bee6336', start_date, end_date)
     broker.add_market(market_gmx)  # add market
 
     broker.set_balance(usdc, 1000)  # set balance
