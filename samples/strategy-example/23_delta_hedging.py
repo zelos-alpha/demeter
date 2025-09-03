@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 
+import demeter._typing
 from demeter import ChainType, Strategy, TokenInfo, Actuator, MarketInfo, Snapshot, AtTimeTrigger, MarketTypeEnum
 from demeter.aave import AaveV3Market
 from demeter.uniswap import UniV3Pool, UniLpMarket, V3CoreLib
@@ -169,7 +170,9 @@ if __name__ == "__main__":
     broker.set_balance(eth, 0)  # set balance
 
     actuator.strategy = DeltaHedgingStrategy()
-    actuator.set_price(market_uni.get_price_from_data())
+    price = market_uni.get_price_from_data()
+    price[0]["USD"] = 1
+    actuator.set_price(price, quote_token=demeter.USD)
 
     actuator.run()
     df = actuator.account_status_df

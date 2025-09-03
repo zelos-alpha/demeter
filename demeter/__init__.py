@@ -12,6 +12,7 @@ from ._typing import (
     ChainType,
     Formats,
     STABLE_COINS,
+    USD
 )
 from .broker import (
     Broker,
