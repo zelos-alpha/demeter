@@ -1,3 +1,7 @@
+# Ver 1.1.5
+
+* [Breaking change]Fix bug: If quote token is not USD or quote token is different among markets, net value might be incorrect. 
+
 # Ver 1.1.4
 
 * fix issue in check aave repay amount
