@@ -21,7 +21,8 @@ from ._typing2 import (
     Gmx2WithdrawAction,
     Gmx2DepositAction,
     Gmx2IncreasePositionAction,
-    Gmx2DecreasePositionAction
+    Gmx2DecreasePositionAction,
+    position_dict_to_dataframe
 )
 from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE
 from .gmx_v2._typing import OrderType, DecreasePositionSwapType
@@ -93,7 +94,14 @@ class GmxV2Market(Market):
             net_value = long_amount = short_amount = Decimal(0)
 
         for key, position in self.position_list.items():
-            net_value += Decimal(position.sizeInTokens * pool_data.indexPrice)
+            if position.collateralToken == self.pool.short_token:
+                collateralPrice = pool_data.shortPrice
+            else:
+                collateralPrice = pool_data.longPrice
+            collateral_value = position.collateralAmount * collateralPrice
+            position_value = position.sizeInTokens * pool_data.indexPrice
+            pnl = position_value - position.sizeInUsd if position.isLong else position.sizeInUsd - position_value
+            net_value += Decimal(collateral_value + pnl)
 
         return GmxV2Balance(
             net_value=net_value,
@@ -114,6 +122,12 @@ class GmxV2Market(Market):
             )
             + "\n"
         )
+        value += get_formatted_predefined("positions", STYLE["key"]) + "\n"
+        df = position_dict_to_dataframe(self.position_list)
+        if len(df.index) > 0:
+            value += df.to_string()
+        else:
+            value += "Empty DataFrame\n"
         return value
 
     def load_data(self, chain: ChainType, pool_address: str, start_date: date, end_date: date):
