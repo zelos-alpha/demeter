@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Union
+from typing import Dict
 
 import pandas as pd
 
@@ -16,7 +17,6 @@ class GmxV2Balance(MarketBalance):
     gm_amount: Decimal
     long_amount: Decimal
     short_amount: Decimal
-
 
 
 @dataclass
@@ -64,6 +64,23 @@ class Gmx2WithdrawAction(BaseAction):
                 "fee_usd": self.fee_usd.to_str(),
             },
         )
+
+
+def position_dict_to_dataframe(positions: Dict) -> pd.DataFrame:
+    pos_dict = {
+        "key": [],
+        "collateral_token": [],
+        "collateral_amount": [],
+        "size_in_usd": [],
+        "size_in_tokens": []
+    }
+    for k, v in positions.items():
+        pos_dict["key"].append(k)
+        pos_dict["collateral_token"].append(v.collateralToken)
+        pos_dict["collateral_amount"].append(v.collateralAmount)
+        pos_dict["size_in_usd"].append(v.sizeInUsd)
+        pos_dict["size_in_tokens"].append(v.sizeInTokens)
+    return pd.DataFrame(pos_dict)
 
 
 @dataclass

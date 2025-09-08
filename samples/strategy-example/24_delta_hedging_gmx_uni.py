@@ -5,7 +5,7 @@ from math import sqrt
 
 import numpy as np
 import pandas as pd
-from scipy.optimize import minimize
+from scipy import linalg
 
 from demeter import ChainType, Strategy, TokenInfo, Actuator, MarketInfo, Snapshot, AtTimeTrigger, MarketTypeEnum
 from demeter.gmx import GmxV2Market
@@ -20,10 +20,20 @@ H = Decimal("1.2")  # upper tick range
 L = Decimal("0.8")  # lower tick range
 
 
-def calc_delta_neutral(cash_amount, leverage=2):
-    gmx_usdc = cash_amount / (1 + 2 * leverage)
-    uni_usdc = uni_usdc2eth = gmx_usdc * leverage
-    return gmx_usdc, uni_usdc, uni_usdc2eth
+def calc_delta_neutral_v2(ph, pl, delta=0.0):
+    # -1 * V_u_gmx + (V_e_uni + V_u_uni) * liq * V_e_uni_percent = 0
+    # 0 * V_u_gmx + V_e_uni - V_u_uni * uni_amount_constraint = 0
+    # V_u_gmx + V_e_uni + V_u_uni = 1
+
+    V_e_uni_percent = (1 - 1 / ph ** 0.5)
+    V_u_uni_percent = (1 - pl ** 0.5)
+    uni_amount_cons = V_e_uni_percent / V_u_uni_percent  # V_e_uni / V_u_uni
+    liq = 1 / (2 - 1 / sqrt(ph) - sqrt(pl))
+
+    params = np.array([[-1, liq * V_e_uni_percent, liq * V_e_uni_percent], [0, 1, -uni_amount_cons], [1, 1, 1]])
+    results = np.array([delta, 0, 1])
+    V_u_gmx, V_e_uni, V_u_uni = linalg.solve(params, results)
+    return V_u_gmx, V_e_uni, V_u_uni
 
 
 class DeltaHedgingStrategy(Strategy):
@@ -32,6 +42,10 @@ class DeltaHedgingStrategy(Strategy):
         self.gmx_leverage = 2
         self.last_collect_fee0 = 0
         self.last_collect_fee1 = 0
+        V_u_gmx, V_e_uni, V_u_uni = calc_delta_neutral_v2(float(H), float(L))
+        self.usdc_gmx_pos = Decimal(V_u_gmx)
+        self.eth_uni_lp = Decimal(V_e_uni)
+        self.usdc_uni_lp = Decimal(V_u_uni)
 
     def initialize(self):
         new_trigger = AtTimeTrigger(time=datetime.combine(start_date, datetime.min.time()), do=self.change_position)
@@ -62,7 +76,7 @@ class DeltaHedgingStrategy(Strategy):
         total_cash = self.get_cash_net_value(snapshot.prices)
         self.last_net_value = total_cash
 
-        gmx_usdc, uni_usdc, uni_usdc2eth = calc_delta_neutral(total_cash, self.gmx_leverage)
+        gmx_usdc, uni_usdc, uni_usdc2eth = total_cash * self.usdc_gmx_pos, total_cash * self.usdc_uni_lp, total_cash * self.eth_uni_lp
         # work
         market_gmx.increase_position(
             initialCollateralToken=usdc,
