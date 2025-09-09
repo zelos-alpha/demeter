@@ -39,7 +39,7 @@ def _start(config: StrategyConfig, data: BacktestData, strategy: Strategy, bk_co
         actuator.broker.set_balance(asset, amount)
     # Set strategy to actuator
     actuator.strategy = strategy
-    actuator.set_price(data.prices)
+    actuator.set_price(data.prices, quote_token=bk_config.quote_token)
     actuator.print_action = bk_config.print_actions
     actuator.interval = bk_config.interval
     actuator.run(bk_config.print_result)

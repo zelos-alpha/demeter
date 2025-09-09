@@ -55,3 +55,4 @@ class BacktestConfig:
     print_actions:bool = False
     print_result: bool = False
     interval: str = "1min"
+    quote_token:TokenInfo = None

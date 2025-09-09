@@ -1,3 +1,7 @@
+# Ver 1.1.6
+
+* Add quote token to BacktestConfig class
+
 # Ver 1.1.5
 
 * [Breaking change]Fix bug: If quote token is not USD or quote token is different among markets, net value might be incorrect. 
