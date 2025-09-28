@@ -34,6 +34,23 @@ class PoolConfig:
     minCollateralUsd = 1000000000000000000000000000000 / 10 ** 30  # 1
     minPositionSizeUsd = 1000000000000000000000000000000 / 10 ** 30  # 1
 
+    # SKIP_BORROWING_FEE_FOR_SMALLER_SIDE
+    skip_borrowing_fee_for_smaller_side = True
+    ignore_open_interest_for_usage_factor = True
+    openInterestReserveFactorLong = 2.7
+    openInterestReserveFactorShort = 2.7  # todo check
+    baseBorrowingFactorLong = 14269406392694063926940 / 10 ** 30
+    baseBorrowingFactorShort = 14269406392694063926940 / 10 ** 30
+    fundingIncreaseFactorPerSecond = 1988547595363155833 / 10 ** 30
+    fundingExponentFactor = 1
+    fundingFactor = 0  # todo
+    maxFundingFactorPerSecond = 0  # todo
+    thresholdForStableFunding = 0.04
+    thresholdForDecreaseFunding = 0  # todo
+    fundingDecreaseFactorPerSecond = 0  # todo
+    minFundingFactorPerSecond = 317097919837645865043 / 10 ** 30
+    maxFundingFactorPerSecond = 21476314029922083333333 / 10 ** 30
+
 
 """
     function swapImpactExponentFactorKey(address market) external pure returns (bytes32) {
@@ -145,6 +162,10 @@ class GmxV2PoolStatus:
     realizedProfit:float  # pnl + fee + priceImpact
     openInterestLong: float
     openInterestShort: float
+    openInterestLongIsLong: float
+    openInterestLongNotLong: float
+    openInterestShortIsLong: float
+    openInterestShortNotLong: float
     openInterestInTokensLong: float
     openInterestInTokensShort: float
     longPrice: float
@@ -236,16 +257,16 @@ class DecreasePositionSwapType(Enum):
 
 @dataclass
 class Order:
-    market: str
-    initialCollateralToken: str
-    swapPath: List
-    orderType: OrderType
-    sizeDeltaUsd: float
-    initialCollateralDeltaAmount: float
-    triggerPrice: float
-    acceptablePrice: float
-    isLong: bool
-    decreasePositionSwapType: DecreasePositionSwapType
+    market: str = ''
+    initialCollateralToken: str = ''
+    swapPath: List = None
+    orderType: OrderType = OrderType.LimitIncrease
+    sizeDeltaUsd: float = 0
+    initialCollateralDeltaAmount: float = 0
+    triggerPrice: float = 0
+    acceptablePrice: float = 0
+    isLong: bool = False
+    decreasePositionSwapType: DecreasePositionSwapType = DecreasePositionSwapType.NoSwap
 
 
 @dataclass
@@ -253,3 +274,64 @@ class ExecuteOrderParams:
     order: Order = None
     swapPathMarkets: List = None
     market: Market = None
+
+
+@dataclass
+class CollateralType:
+    longToken: float = 0
+    shortToken: float = 0
+
+
+class PositionType:
+    long: CollateralType
+    short: CollateralType
+
+
+@dataclass
+class GetNextFundingAmountPerSizeResult:
+    fundingFeeAmountPerSizeDelta: PositionType = PositionType()
+    claimableFundingAmountPerSizeDelta: PositionType = PositionType()
+    longsPayShorts: bool = False
+    fundingFactorPerSecond: float = 0
+
+
+@dataclass
+class GetNextFundingAmountPerSizeCache:
+    openInterest: PositionType = PositionType()
+    longOpenInterest: float = 0
+    shortOpenInterest: float = 0
+    durationInSeconds: float = 0
+    sizeOfLargerSide: float = 0
+    fundingUsd: float = 0
+    fundingUsdForLongCollateral: float = 0
+    fundingUsdForShortCollateral: float = 0
+
+
+@dataclass
+class GetNextFundingFactorPerSecondCache:
+    diffUsd: float = 0
+    totalOpenInterest: float = 0
+    fundingFactor: float = 0
+    fundingExponentFactor: float = 0
+    diffUsdAfterExponent: float = 0
+    diffUsdToOpenInterestFactor: float = 0
+    savedFundingFactorPerSecond: float = 0
+    savedFundingFactorPerSecondMagnitude: float = 0
+    nextSavedFundingFactorPerSecond: float = 0
+    nextSavedFundingFactorPerSecondWithMinBound: float = 0
+
+
+@dataclass
+class FundingConfigCache:
+    thresholdForStableFunding: float = 0
+    thresholdForDecreaseFunding: float = 0
+    fundingIncreaseFactorPerSecond: float = 0
+    fundingDecreaseFactorPerSecond: float = 0
+    minFundingFactorPerSecond: float = 0
+    maxFundingFactorPerSecond: float = 0
+
+
+class FundingRateChangeType(Enum):
+    NoChange = 0
+    Increase = 1
+    Decrease = 2

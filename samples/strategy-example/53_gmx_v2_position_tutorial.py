@@ -14,7 +14,7 @@ pd.set_option("display.width", 5000)
 class GmxV2PositionStrategy(Strategy):
     def initialize(self):
         increase_trigger = AtTimeTrigger(time=datetime(2025, 7, 1, 4, 55, 0), do=self.increase)
-        decrease_trigger = AtTimeTrigger(time=datetime(2025, 7, 2, 16, 5, 0), do=self.decrease)
+        decrease_trigger = AtTimeTrigger(time=datetime(2025, 7, 2, 16, 4, 0), do=self.decrease)
         self.triggers.append(increase_trigger)
         self.triggers.append(decrease_trigger)
         pass
@@ -54,8 +54,8 @@ if __name__ == "__main__":
 
     actuator = Actuator()
     actuator.broker.add_market(market)
-    actuator.broker.set_balance(usdc, 2486)
-    actuator.broker.set_balance(weth, 1)
+    actuator.broker.set_balance(usdc, 948.752617)
+    actuator.broker.set_balance(weth, 0)
     actuator.strategy = GmxV2PositionStrategy()  # set strategy to actuator
     actuator.set_price(market.get_price_from_data())  # set actuator price
     actuator.run()

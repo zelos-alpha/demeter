@@ -172,14 +172,14 @@ class PositionUtils:
 
     @staticmethod
     def _getExecutionPriceForDecrease(
-            indexTokenPrice: Price,
+            indexTokenPrice: float,
             sizeDeltaUsd: float,
             positionSizeInTokens: float,
             isLong: bool,
             priceImpactUsd: float,
             positionSizeInUsd: float,
             acceptablePrice: float):
-        price = indexTokenPrice.max
+        price = indexTokenPrice
         executionPrice = price
         if sizeDeltaUsd > 0 and positionSizeInTokens > 0:
             adjustedPriceImpactUsd = priceImpactUsd if isLong else -priceImpactUsd
@@ -206,7 +206,7 @@ class PositionUtils:
                 priceImpactDiffUsd = minPriceImpactUsd - priceImpactUsd
                 priceImpactUsd = minPriceImpactUsd
         executionPrice = PositionUtils._getExecutionPriceForDecrease(
-            indexTokenPrice=indexTokenPrice,
+            indexTokenPrice=indexTokenPrice.max,
             sizeDeltaUsd=sizeDeltaUsd,
             positionSizeInTokens=params.position.sizeInTokens,
             isLong=params.position.isLong,
