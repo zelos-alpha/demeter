@@ -16,6 +16,7 @@ class DecreasePositionUtils:
             shortTokenPrice=Price(min=pool_status.shortPrice, max=pool_status.shortPrice),
         )
         market = Market(
+            marketToken=pool.market_token.address,
             indexToken=pool.index_token.address,
             longToken=pool.long_token.address,
             shortToken=pool.short_token.address
@@ -77,13 +78,11 @@ class DecreasePositionUtils:
             params.position.sizeInUsd = 0
             params.position.sizeInTokens = 0
             params.position.collateralAmount = 0
-            # todo remove position
         else:
             params.position.borrowingFactor = cache.nextPositionBorrowingFactor
             params.position.fundingFeeAmountPerSize = fees.funding.latestFundingFeeAmountPerSize
             params.position.longTokenClaimableFundingAmountPerSize = fees.funding.latestLongTokenClaimableFundingAmountPerSize
             params.position.shortTokenClaimableFundingAmountPerSize = fees.funding.latestShortTokenClaimableFundingAmountPerSize
-            # todo set position
 
         # todo swapWithdrawnCollateralToPnlToken
         return params.position, values.output.outputToken, values.output.outputAmount, values.output.secondaryOutputToken, values.output.secondaryOutputAmount, params.order.sizeDeltaUsd, params.order.initialCollateralDeltaAmount

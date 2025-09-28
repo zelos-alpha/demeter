@@ -115,11 +115,11 @@ class PositionPricingUtils:
             )
         # initialDiffUsd 659350605479346732745873570369275889 = 659350.6054793467
         # nextDiffUsd 663797116269074703175203868873936389 = 663797.1162690747
-        # impactFactor 40933629729229850000000
+        # impactFactor 40933629729229850000000 = 4.093362972922985e-08
         # impactExponentFactor 1655417464419320500000000000000 = 1.6554174644193205
         # 175.8519499036393
         else:
-            positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(pool_status)
+            positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(pool_status, pool_config)
             return PricingUtils.getPriceImpactUsdForCrossoverRebalance(
                 initialDiffUsd,
                 nextDiffUsd,

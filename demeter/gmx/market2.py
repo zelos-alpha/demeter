@@ -10,6 +10,7 @@ from .gmx_v2 import PoolConfig, LPResult, PositionResult
 from .gmx_v2.ExecuteDepositUtils import ExecuteDepositUtils
 from .gmx_v2.ExecuteWithdrawUtils import ExecuteWithdrawUtils
 from .gmx_v2.ExecuteOrderUtils import ExecuteOrderUtils
+from .gmx_v2.ReaderPositionUtils import ReaderPositionUtils
 from .. import MarketStatus, TokenInfo, DECIMAL_0, ChainType, DemeterWarning, DemeterError, UnitDecimal
 from ..broker import Market, MarketInfo, MarketBalance
 from ._typing2 import (
@@ -34,6 +35,10 @@ class GmxV2Market(Market):
         self.pool = pool
         self.amount: float = 0.0
         self.position_list = {}
+        self.cumulative_borrowing = {
+            'cumulativeBorrowingFactorLong': {'value': 0, 'time': None},
+            'cumulativeBorrowingFactorShort': {'value': 0, 'time': None},
+        }
         self.pool_config = PoolConfig(pool.long_token.decimal, pool.short_token.decimal)
 
     # region prop
@@ -93,15 +98,29 @@ class GmxV2Market(Market):
         else:
             net_value = long_amount = short_amount = Decimal(0)
 
+        if ((self.cumulative_borrowing['cumulativeBorrowingFactorLong']['value'] != self._market_status.data.cumulativeBorrowingFactorLong)
+                or (self.cumulative_borrowing['cumulativeBorrowingFactorShort']['value'] != self._market_status.data.cumulativeBorrowingFactorShort)):
+            self.cumulative_borrowing['cumulativeBorrowingFactorLong']['value'] = self._market_status.data.cumulativeBorrowingFactorLong
+            self.cumulative_borrowing['cumulativeBorrowingFactorLong']['time'] = self._market_status.timestamp
+            self.cumulative_borrowing['cumulativeBorrowingFactorShort']['value'] = self._market_status.data.cumulativeBorrowingFactorShort
+            self.cumulative_borrowing['cumulativeBorrowingFactorShort']['time'] = self._market_status.timestamp
+        # print(self._market_status.timestamp, self.cumulative_borrowing['cumulativeBorrowingFactorShort']['time'])
+        pending_borrowing_time = (pd.to_datetime(self._market_status.timestamp) - pd.to_datetime(self.cumulative_borrowing['cumulativeBorrowingFactorShort']['time'])).seconds
+
         for key, position in self.position_list.items():
             if position.collateralToken == self.pool.short_token:
                 collateralPrice = pool_data.shortPrice
             else:
                 collateralPrice = pool_data.longPrice
             collateral_value = position.collateralAmount * collateralPrice
-            position_value = position.sizeInTokens * pool_data.indexPrice
-            pnl = position_value - position.sizeInUsd if position.isLong else position.sizeInUsd - position_value
-            net_value += Decimal(collateral_value + pnl)
+            # position_value = position.sizeInTokens * pool_data.indexPrice
+            # pnl = position_value - position.sizeInUsd if position.isLong else position.sizeInUsd - position_value
+            # net_value += Decimal(collateral_value + pnl)
+            # print('net_value', net_value)
+
+            positionInfo = ReaderPositionUtils.getPositionInfo(pending_borrowing_time, position, collateralPrice, self._market_status.data, self.pool_config, self.pool)
+            print('executionPrice', positionInfo.executionPriceResult.executionPrice, 'longPrice', pool_data.longPrice, 'shortPrice', pool_data.shortPrice, 'pnlAfterPriceImpactUsd', positionInfo.pnlAfterPriceImpactUsd, 'totalCostAmount', positionInfo.fees.totalCostAmount)
+            net_value += Decimal(collateral_value + positionInfo.pnlAfterPriceImpactUsd - positionInfo.fees.totalCostAmount)
 
         return GmxV2Balance(
             net_value=net_value,
@@ -268,6 +287,8 @@ class GmxV2Market(Market):
         )
 
         self.position_list[position_key] = result
+        if result.sizeInUsd <= 0:
+            self.position_list.pop(position_key, None)
         if outputToken == self.short_token.address:
             self.broker.add_to_balance(self.short_token, Decimal(outputAmount))
         if outputToken == self.long_token.address:
