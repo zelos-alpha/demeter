@@ -15,6 +15,8 @@ class GmxV2PositionStrategy(Strategy):
     def initialize(self):
         increase_trigger = AtTimeTrigger(time=datetime(2025, 7, 1, 4, 55, 0), do=self.increase)
         decrease_trigger = AtTimeTrigger(time=datetime(2025, 7, 2, 16, 4, 0), do=self.decrease)
+        # increase_trigger = AtTimeTrigger(time=datetime(2025, 7, 9, 0, 43, 0), do=self.increase)
+        # decrease_trigger = AtTimeTrigger(time=datetime(2025, 7, 21, 15, 57, 0), do=self.decrease)
         self.triggers.append(increase_trigger)
         self.triggers.append(decrease_trigger)
         pass
@@ -38,6 +40,26 @@ class GmxV2PositionStrategy(Strategy):
             isLong=True
         )
         pass
+
+    # def increase(self, snapshot: Snapshot):
+    #     gmx_market: GmxV2Market = self.markets[market_key]
+    #     result = gmx_market.increase_position(
+    #         initialCollateralToken=pool.short_token,
+    #         initialCollateralDeltaAmount=22.108676,
+    #         sizeDeltaUsd=479.94141989558835,
+    #         isLong=True
+    #     )
+    #     pass
+    #
+    # def decrease(self, snapshot: Snapshot):
+    #     gmx_market: GmxV2Market = self.markets[market_key]
+    #     result = gmx_market.decrease_position(
+    #         initialCollateralToken=pool.short_token,
+    #         initialCollateralDeltaAmount=21.820694,
+    #         sizeDeltaUsd=479.94141989558835,
+    #         isLong=True
+    #     )
+    #     pass
 
 
 if __name__ == "__main__":
