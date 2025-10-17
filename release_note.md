@@ -1,6 +1,8 @@
 # Ver 1.1.6
 
 * Add quote token to BacktestConfig class
+* Add gmx v2 perpetual position operation;
+* Add uni && gmx delta neutral return analysis.
 
 # Ver 1.1.5
 
