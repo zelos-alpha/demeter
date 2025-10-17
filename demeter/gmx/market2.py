@@ -129,7 +129,7 @@ class GmxV2Market(Market):
             # print('net_value', net_value)
 
             positionInfo = ReaderPositionUtils.getPositionInfo(pending_borrowing_time, position, collateralPrice, self._market_status.data, self.pool_config, self.pool)
-            print('executionPrice', positionInfo.executionPriceResult.executionPrice, 'longPrice', pool_data.longPrice, 'shortPrice', pool_data.shortPrice, 'pnlAfterPriceImpactUsd', positionInfo.pnlAfterPriceImpactUsd, 'totalCostAmount', positionInfo.fees.totalCostAmount)
+            # print('executionPrice', positionInfo.executionPriceResult.executionPrice, 'longPrice', pool_data.longPrice, 'shortPrice', pool_data.shortPrice, 'pnlAfterPriceImpactUsd', positionInfo.pnlAfterPriceImpactUsd, 'totalCostAmount', positionInfo.fees.totalCostAmount)
             net_value += Decimal(collateral_value + positionInfo.pnlAfterPriceImpactUsd - positionInfo.fees.totalCostAmount)
 
         return GmxV2Balance(

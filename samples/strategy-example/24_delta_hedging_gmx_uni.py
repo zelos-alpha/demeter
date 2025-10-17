@@ -57,7 +57,9 @@ class DeltaHedgingStrategy(Strategy):
         self.last_collect_fee0 += mb.base_uncollected
         self.last_collect_fee1 += mb.quote_uncollected
         market_uni.remove_all_liquidity()
-        for key, position in market_gmx.position_list.items():
+        import copy
+        position_list = copy.deepcopy(market_gmx.position_list)
+        for key, position in position_list.items():
             market_gmx.decrease_position(
                 initialCollateralToken=position.collateralToken,
                 initialCollateralDeltaAmount=position.collateralAmount,
@@ -116,8 +118,8 @@ class DeltaHedgingStrategy(Strategy):
 
 
 if __name__ == "__main__":
-    start_date = date(2025, 7, 1)
-    end_date = date(2025, 7, 2)
+    start_date = date(2025, 6, 1)
+    end_date = date(2025, 7, 31)
     file_name = f"delta_hedging_gmx_uni"
 
     market_key_uni = MarketInfo("uni")
