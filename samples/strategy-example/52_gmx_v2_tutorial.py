@@ -3,7 +3,7 @@ from datetime import date, datetime
 import pandas as pd
 
 from demeter import TokenInfo, Actuator, Strategy, Snapshot, ChainType, MarketInfo, AtTimeTrigger, MarketTypeEnum
-from demeter.gmx import GmxV2Market
+from demeter.gmx import GmxV2LpMarket
 from demeter.gmx._typing2 import GmxV2Pool
 
 # To print all the columns of dataframe, we should set up display option.
@@ -18,7 +18,7 @@ class GmxV2LpStrategy(Strategy):
         pass
 
     def work(self, snapshot: Snapshot):
-        gmx_market: GmxV2Market = self.markets[market_key]
+        gmx_market: GmxV2LpMarket = self.markets[market_key]
         result = gmx_market.deposit(1, 3384)
         pass
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     pool = GmxV2Pool(weth, usdc, weth)
 
     market_key = MarketInfo("GMX_ETH", MarketTypeEnum.gmx_v2)
-    market = GmxV2Market(market_key, pool, data_path="../data")
+    market = GmxV2LpMarket(market_key, pool, data_path="../data")
     market.load_data(
         ChainType.arbitrum, "0x70d95587d40a2caf56bd97485ab3eec10bee6336", date(2025, 1, 8), date(2025, 1, 8)
     )

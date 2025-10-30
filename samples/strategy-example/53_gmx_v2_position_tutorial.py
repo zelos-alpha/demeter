@@ -3,7 +3,7 @@ from datetime import date, datetime
 import pandas as pd
 
 from demeter import TokenInfo, Actuator, Strategy, Snapshot, ChainType, MarketInfo, AtTimeTrigger, MarketTypeEnum
-from demeter.gmx import GmxV2Market
+from demeter.gmx import GmxV2PerpMarket
 from demeter.gmx._typing2 import GmxV2Pool
 
 # To print all the columns of dataframe, we should set up display option.
@@ -22,7 +22,7 @@ class GmxV2PositionStrategy(Strategy):
         pass
 
     def increase(self, snapshot: Snapshot):
-        gmx_market: GmxV2Market = self.markets[market_key]
+        gmx_market: GmxV2PerpMarket = self.markets[market_key]
         result = gmx_market.increase_position(
             initialCollateralToken=pool.short_token,
             initialCollateralDeltaAmount=948.752617,
@@ -32,7 +32,7 @@ class GmxV2PositionStrategy(Strategy):
         pass
 
     def decrease(self, snapshot: Snapshot):
-        gmx_market: GmxV2Market = self.markets[market_key]
+        gmx_market: GmxV2PerpMarket = self.markets[market_key]
         result = gmx_market.decrease_position(
             initialCollateralToken=pool.short_token,
             initialCollateralDeltaAmount=946.0846649317016,
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     pool = GmxV2Pool(weth, usdc, weth, market_token)
 
     market_key = MarketInfo("GMX_ETH", MarketTypeEnum.gmx_v2)
-    market = GmxV2Market(market_key, pool, data_path="../data")
+    market = GmxV2PerpMarket(market_key, pool, data_path="../data")
     market.load_data(
         ChainType.arbitrum, "0x70d95587d40a2caf56bd97485ab3eec10bee6336", date(2025, 7, 1), date(2025, 7, 2)
     )

@@ -30,7 +30,7 @@ from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE, re
 from .gmx_v2._typing import OrderType, DecreasePositionSwapType
 
 
-class GmxV2Market(Market):
+class GmxV2PerpMarket(Market):
     def __init__(self, market_info: MarketInfo, pool: GmxV2Pool, data: pd.DataFrame | None = None, data_path: str = "./data"):
         super().__init__(market_info=market_info, data=data, data_path=data_path)
         self.pool = pool
