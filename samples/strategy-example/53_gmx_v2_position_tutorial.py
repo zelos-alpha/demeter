@@ -18,7 +18,7 @@ class GmxV2PositionStrategy(Strategy):
         # increase_trigger = AtTimeTrigger(time=datetime(2025, 7, 9, 0, 43, 0), do=self.increase)
         # decrease_trigger = AtTimeTrigger(time=datetime(2025, 7, 21, 15, 57, 0), do=self.decrease)
         self.triggers.append(increase_trigger)
-        self.triggers.append(decrease_trigger)
+        # self.triggers.append(decrease_trigger)
         pass
 
     def increase(self, snapshot: Snapshot):

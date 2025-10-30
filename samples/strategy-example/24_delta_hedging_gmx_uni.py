@@ -8,7 +8,7 @@ import pandas as pd
 from scipy import linalg
 
 from demeter import ChainType, Strategy, TokenInfo, Actuator, MarketInfo, Snapshot, AtTimeTrigger, MarketTypeEnum
-from demeter.gmx import GmxV2Market
+from demeter.gmx import GmxV2LpMarket
 from demeter.gmx._typing2 import GmxV2Pool
 from demeter.uniswap import UniV3Pool, UniLpMarket, V3CoreLib
 from demeter.uniswap.helper import base_unit_price_to_sqrt_price_x96
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     market_uni.load_data(ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", start_date, end_date)
     broker.add_market(market_uni)  # add market
 
-    market_gmx = GmxV2Market(market_key_gmx, gmx_pool, data_path="../data")
+    market_gmx = GmxV2LpMarket(market_key_gmx, gmx_pool, data_path="../data")
     market_gmx.data_path = "../data/"
     market_gmx.load_data(ChainType.arbitrum, '0x70d95587d40a2caf56bd97485ab3eec10bee6336', start_date, end_date)
     broker.add_market(market_gmx)  # add market
