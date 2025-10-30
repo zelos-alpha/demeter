@@ -12,7 +12,6 @@ References
    demeter.uniswap
    demeter.aave
    demeter.deribit
-   demeter.squeeth
    demeter.gmx
    demeter.indicator
    demeter.result

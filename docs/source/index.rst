@@ -9,7 +9,6 @@ Demeter is a backtesting framework for Defi of ethereum-like chain. It allows in
 - Uniswap v3
 - Aave v3
 - Deribit option
-- Squeeth
 - Gmx V1
 
 Demeter's style is borrowed from backtrader, allowing developers of traditional financial engineering to get started quickly.
@@ -26,7 +25,6 @@ Features
 - **Uniswap market:** As a popular automated market maker, uniswap is famous for its complexity. To raise fund utilization rate, uniswap add tick range to position, which makes it difficult to estimate the return on investment. Demeter provides comprehensive calculation and evaluation tools to help users test the returns of various positions.
 - **Aave market:** Aave is a popular liquidity protocol which allow user to deposit and borrow assets. Through supply asset to aave, user can earn interest, and borrowing allow user to earn extra profit or to hedging price changes. Demeter support supply/repay/borrow/repay/liquidation transactions on aave.
 - **Deribit option market:** A market to trade option or hedge greeks.
-- **Squeeth market:** Allow user to trade delta and gamma with ethereum price^2
 - **GMX market:** Allow user to trade buy GLP and get profit from staked GLP.
 - **Accuracy:** In the design of demeter, accuracy is an important consideration. In order to provide higher accuracy, the core calculations of uniswap and aave do not follow theoretical formulas, but draw on the code of the contract. This allows demeter to have higher calculations accuracy.
 - **Rich output:** In order to allow users to evaluate strategies intuitively, demeter provides a wealth of output, including asset changes in accounts and position adjustment records. With the indicator calculation module, users can choose the best investment strategy.
@@ -55,7 +53,6 @@ links
 * Uniswap: https://uniswap.org
 * aave: https://aave.com
 * Deribit: https://www.deribit.com/
-* Squeeth: https://squeeth.opyn.co/
 * gmx: https://gmx.io
 
 

@@ -99,8 +99,6 @@ def get_positions(action_list: List[BaseAction], markets: List[MarketDescription
                     market_active_pos[action.market][action_key].amount = left_amount
         if action.market.type == MarketTypeEnum.aave_v3:
             pass
-        if action.market.type == MarketTypeEnum.squeeth:
-            pass
     for mkey, mpos in market_active_pos.items():
         if len(mpos) > 0:
             market_pos[mkey].extend(list(mpos.values()))
