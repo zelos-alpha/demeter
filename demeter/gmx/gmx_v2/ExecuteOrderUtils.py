@@ -1,7 +1,7 @@
 from .IncreaseOrderUtils import IncreaseOrderUtils
 from .DecreaseOrderUtils import DecreaseOrderUtils
 from .SwapOrderUtils import SwapOrderUtils
-from ._typing import PoolConfig, GmxV2PoolStatus, Order, OrderType, ExecuteOrderParams, Market
+from ._typing import PoolConfig, GmxV2PoolStatus, Order, OrderType, ExecuteOrderParams, Market, PoolStatus
 from .._typing2 import GmxV2Pool
 
 
@@ -9,58 +9,37 @@ class ExecuteOrderUtils:
 
     @staticmethod
     def isIncreaseOrder(order: Order) -> bool:
-        return (order.orderType == OrderType.MarketIncrease or
-                order.orderType == OrderType.LimitIncrease or
-                order.orderType == OrderType.StopIncrease)
+        return (
+            order.orderType == OrderType.MarketIncrease
+            or order.orderType == OrderType.LimitIncrease
+            or order.orderType == OrderType.StopIncrease
+        )
 
     @staticmethod
     def isDecreaseOrder(order: Order) -> bool:
-        return (order.orderType == OrderType.MarketDecrease or
-                order.orderType == OrderType.LimitDecrease or
-                order.orderType == OrderType.StopLossDecrease or
-                order.orderType == OrderType.Liquidation)
+        return (
+            order.orderType == OrderType.MarketDecrease
+            or order.orderType == OrderType.LimitDecrease
+            or order.orderType == OrderType.StopLossDecrease
+            or order.orderType == OrderType.Liquidation
+        )
 
     @staticmethod
     def isSwapOrder(order: Order) -> bool:
-        return (order.orderType == OrderType.MarketSwap or
-                order.orderType == OrderType.LimitSwap)
+        return order.orderType == OrderType.MarketSwap or order.orderType == OrderType.LimitSwap
 
     @staticmethod
     def executeOrder(
-            market: str,
-            initialCollateralToken: str,
-            swapPath,
-            orderType,
-            sizeDeltaUsd,
-            initialCollateralDeltaAmount,
-            triggerPrice,
-            acceptablePrice,
-            isLong,
-            decreasePositionSwapType,
-            marketToken,
-            indexToken,
-            longToken,
-            shortToken,
-            pool_status: GmxV2PoolStatus,
-            pool_config: PoolConfig,
-            pool: GmxV2Pool, positions):
-        order = Order(
-            market=market,
-            initialCollateralToken=initialCollateralToken,
-            swapPath=swapPath,
-            orderType=orderType,
-            sizeDeltaUsd=sizeDeltaUsd,
-            initialCollateralDeltaAmount=initialCollateralDeltaAmount,
-            triggerPrice=triggerPrice,
-            acceptablePrice=acceptablePrice,
-            isLong=isLong,
-            decreasePositionSwapType=decreasePositionSwapType
-        )
+        order: Order,
+        status: dict[str, PoolStatus],
+        positions,
+    ):
+
         _market = Market(
-            marketToken=marketToken,
-            indexToken=indexToken,
-            longToken=longToken,
-            shortToken=shortToken
+            marketToken=status[order.market].pool.market_token.address,
+            indexToken=status[order.market].pool.index_token.address,
+            longToken=status[order.market].pool.long_token.address,
+            shortToken=status[order.market].pool.short_token.address,
         )
         params = ExecuteOrderParams(order=order, swapPathMarkets=[], market=_market)
         if ExecuteOrderUtils.isIncreaseOrder(params.order):

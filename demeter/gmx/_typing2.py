@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Union
-from typing import Dict
+from typing import Union, NamedTuple
 
 import pandas as pd
 
@@ -12,8 +11,15 @@ from .gmx_v2 import GmxV2PoolStatus
 from ..utils.console_text import get_action_str, ForColorEnum
 
 
+
+
+class PrepKeys(NamedTuple):
+    collateral: TokenInfo
+    is_long: bool
+
+
 @dataclass
-class GmxV2Balance(MarketBalance):
+class GmxV2LpBalance(MarketBalance):
     gm_amount: Decimal
     long_amount: Decimal
     short_amount: Decimal
@@ -28,12 +34,17 @@ class GmxV2Pool(object):
 
 
 @dataclass
-class GmxV2Description(MarketDescription):
+class GmxV2LpDescription(MarketDescription):
     amount: float
 
 
 @dataclass
-class GmxV2MarketStatus(MarketStatus):
+class GmxV2PrepDescription(MarketDescription):
+    Positions: dict[PrepKeys, None]
+
+
+@dataclass
+class GmxV2LpMarketStatus(MarketStatus):
     data: Union[pd.Series, GmxV2PoolStatus]
 
 
@@ -66,14 +77,8 @@ class Gmx2WithdrawAction(BaseAction):
         )
 
 
-def position_dict_to_dataframe(positions: Dict) -> pd.DataFrame:
-    pos_dict = {
-        "key": [],
-        "collateral_token": [],
-        "collateral_amount": [],
-        "size_in_usd": [],
-        "size_in_tokens": []
-    }
+def position_dict_to_dataframe(positions: dict) -> pd.DataFrame:
+    pos_dict = {"key": [], "collateral_token": [], "collateral_amount": [], "size_in_usd": [], "size_in_tokens": []}
     for k, v in positions.items():
         pos_dict["key"].append(k)
         pos_dict["collateral_token"].append(v.collateralToken)
@@ -135,16 +140,16 @@ class Gmx2IncreasePositionAction(BaseAction):
             self,
             ForColorEnum.light_green,
             {
-                'collateralToken': self.collateralToken,
-                'collateralAmount': self.collateralAmount.to_str(),
-                'sizeInUsd': self.sizeInUsd.to_str(),
-                'sizeInTokens': self.sizeInTokens.to_str(),
-                'borrowingFactor': self.borrowingFactor.to_str(),
-                'fundingFeeAmountPerSize': self.fundingFeeAmountPerSize.to_str(),
-                'longTokenClaimableFundingAmountPerSize': self.longTokenClaimableFundingAmountPerSize.to_str(),
-                'shortTokenClaimableFundingAmountPerSize': self.shortTokenClaimableFundingAmountPerSize.to_str(),
-                'isLong': self.isLong
-            }
+                "collateralToken": self.collateralToken,
+                "collateralAmount": self.collateralAmount.to_str(),
+                "sizeInUsd": self.sizeInUsd.to_str(),
+                "sizeInTokens": self.sizeInTokens.to_str(),
+                "borrowingFactor": self.borrowingFactor.to_str(),
+                "fundingFeeAmountPerSize": self.fundingFeeAmountPerSize.to_str(),
+                "longTokenClaimableFundingAmountPerSize": self.longTokenClaimableFundingAmountPerSize.to_str(),
+                "shortTokenClaimableFundingAmountPerSize": self.shortTokenClaimableFundingAmountPerSize.to_str(),
+                "isLong": self.isLong,
+            },
         )
 
 
@@ -168,14 +173,14 @@ class Gmx2DecreasePositionAction(BaseAction):
             self,
             ForColorEnum.light_green,
             {
-                'collateralToken': self.collateralToken,
-                'collateralAmount': self.collateralAmount.to_str(),
-                'sizeInUsd': self.sizeInUsd.to_str(),
-                'sizeInTokens': self.sizeInTokens.to_str(),
-                'borrowingFactor': self.borrowingFactor.to_str(),
-                'fundingFeeAmountPerSize': self.fundingFeeAmountPerSize.to_str(),
-                'longTokenClaimableFundingAmountPerSize': self.longTokenClaimableFundingAmountPerSize.to_str(),
-                'shortTokenClaimableFundingAmountPerSize': self.shortTokenClaimableFundingAmountPerSize.to_str(),
-                'isLong': self.isLong
-            }
+                "collateralToken": self.collateralToken,
+                "collateralAmount": self.collateralAmount.to_str(),
+                "sizeInUsd": self.sizeInUsd.to_str(),
+                "sizeInTokens": self.sizeInTokens.to_str(),
+                "borrowingFactor": self.borrowingFactor.to_str(),
+                "fundingFeeAmountPerSize": self.fundingFeeAmountPerSize.to_str(),
+                "longTokenClaimableFundingAmountPerSize": self.longTokenClaimableFundingAmountPerSize.to_str(),
+                "shortTokenClaimableFundingAmountPerSize": self.shortTokenClaimableFundingAmountPerSize.to_str(),
+                "isLong": self.isLong,
+            },
         )

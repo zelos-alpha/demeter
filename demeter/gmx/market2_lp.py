@@ -6,9 +6,9 @@ from orjson import orjson
 
 from ._typing2 import (
     GmxV2Pool,
-    GmxV2Description,
-    GmxV2MarketStatus,
-    GmxV2Balance,
+    GmxV2LpDescription,
+    GmxV2LpMarketStatus,
+    GmxV2LpBalance,
     GmxV2PoolStatus,
     Gmx2WithdrawAction,
     Gmx2DepositAction,
@@ -42,8 +42,8 @@ class GmxV2LpMarket(Market):
         return orjson.dumps(self.description, default=orjson_default).decode()
 
     @property
-    def description(self) -> GmxV2Description:
-        return GmxV2Description(
+    def description(self) -> GmxV2LpDescription:
+        return GmxV2LpDescription(
             type=type(self).__name__,
             name=self._market_info.name,
             amount=self.amount,
@@ -58,7 +58,7 @@ class GmxV2LpMarket(Market):
         return self.pool.short_token
 
     @property
-    def market_status(self) -> GmxV2MarketStatus:
+    def market_status(self) -> GmxV2LpMarketStatus:
         return self._market_status
 
     # endregion
@@ -75,12 +75,12 @@ class GmxV2LpMarket(Market):
     def update(self):
         pass
 
-    def set_market_status(self, data: GmxV2MarketStatus | pd.Series, price: pd.Series):
+    def set_market_status(self, data: GmxV2LpMarketStatus | pd.Series, price: pd.Series):
         super().set_market_status(data, price)
         data.data = self.data.loc[data.timestamp]
         self._market_status = data
 
-    def get_market_balance(self) -> GmxV2Balance:
+    def get_market_balance(self) -> GmxV2LpBalance:
         pool_data: GmxV2PoolStatus = self._market_status.data
         if self.amount > 0:
             longAmount, shortAmount = MarketUtils.getTokenAmountsFromGM(pool_data, self.amount)
@@ -91,7 +91,7 @@ class GmxV2LpMarket(Market):
         else:
             net_value = long_amount = short_amount = Decimal(0)
 
-        return GmxV2Balance(
+        return GmxV2LpBalance(
             net_value=net_value,
             gm_amount=Decimal(self.amount),
             long_amount=long_amount,

@@ -3,6 +3,10 @@ from decimal import Decimal
 from enum import Enum
 from typing import List
 
+import pandas as pd
+
+from demeter.gmx import GmxV2Pool
+
 
 @dataclass
 class PoolConfig:
@@ -17,39 +21,46 @@ class PoolConfig:
     withdrawFeeFactorForNegativeImpact: float = 0.0007
     maxPnlFactorDeposit: float = 0.9
     maxPnlFactorWithdraw: float = 0.7
-    positionImpactExponentFactor = 1655417464419320500000000000000 / 10 ** 30
-    positionImpactFactorPositive = 34111358107691540000000 / 10 ** 30
-    positionImpactFactorNegative = 40933629729229850000000 / 10 ** 30
-    maxPositiveImpactFactor = 5000000000000000000000000000 / 10 ** 30  # 0.005
-    maxNegativeImpactFactor = 5000000000000000000000000000 / 10 ** 30  # 0.005
-    positionFeeFactorPositive = 400000000000000000000000000 / 10 ** 30  # 0.0004
-    positionFeeFactorNegative = 600000000000000000000000000 / 10 ** 30  # 0.0006
-    positionFeeReceiverFactor = 370000000000000000000000000000 / 10 ** 30  # 0.37
-    borrowingFeeReceiverFactor = 370000000000000000000000000000 / 10 ** 30  # 0.37
-    maxPnlFactorForTraderLong = 900000000000000000000000000000 / 10 ** 30  # 0.9
-    maxPnlFactorForTraderShort = 900000000000000000000000000000 / 10 ** 30  # 0.9
-    minCollateralFactorForOpenInterestMultiplierLong = 60000000000000000000 / 10 ** 30
-    minCollateralFactorForOpenInterestMultiplierShort = 60000000000000000000 / 10 ** 30
-    minCollateralFactor = 5000000000000000000000000000 / 10 ** 30  # 0.005
-    minCollateralUsd = 1000000000000000000000000000000 / 10 ** 30  # 1
-    minPositionSizeUsd = 1000000000000000000000000000000 / 10 ** 30  # 1
+    positionImpactExponentFactor = 1655417464419320500000000000000 / 10**30
+    positionImpactFactorPositive = 34111358107691540000000 / 10**30
+    positionImpactFactorNegative = 40933629729229850000000 / 10**30
+    maxPositiveImpactFactor = 5000000000000000000000000000 / 10**30  # 0.005
+    maxNegativeImpactFactor = 5000000000000000000000000000 / 10**30  # 0.005
+    positionFeeFactorPositive = 400000000000000000000000000 / 10**30  # 0.0004
+    positionFeeFactorNegative = 600000000000000000000000000 / 10**30  # 0.0006
+    positionFeeReceiverFactor = 370000000000000000000000000000 / 10**30  # 0.37
+    borrowingFeeReceiverFactor = 370000000000000000000000000000 / 10**30  # 0.37
+    maxPnlFactorForTraderLong = 900000000000000000000000000000 / 10**30  # 0.9
+    maxPnlFactorForTraderShort = 900000000000000000000000000000 / 10**30  # 0.9
+    minCollateralFactorForOpenInterestMultiplierLong = 60000000000000000000 / 10**30
+    minCollateralFactorForOpenInterestMultiplierShort = 60000000000000000000 / 10**30
+    minCollateralFactor = 5000000000000000000000000000 / 10**30  # 0.005
+    minCollateralUsd = 1000000000000000000000000000000 / 10**30  # 1
+    minPositionSizeUsd = 1000000000000000000000000000000 / 10**30  # 1
 
     # SKIP_BORROWING_FEE_FOR_SMALLER_SIDE
     skip_borrowing_fee_for_smaller_side = True
     ignore_open_interest_for_usage_factor = True
     openInterestReserveFactorLong = 2.7
     openInterestReserveFactorShort = 2.7  # todo check
-    baseBorrowingFactorLong = 14269406392694063926940 / 10 ** 30
-    baseBorrowingFactorShort = 14269406392694063926940 / 10 ** 30
-    fundingIncreaseFactorPerSecond = 1988547595363155833 / 10 ** 30
+    baseBorrowingFactorLong = 14269406392694063926940 / 10**30
+    baseBorrowingFactorShort = 14269406392694063926940 / 10**30
+    fundingIncreaseFactorPerSecond = 1988547595363155833 / 10**30
     fundingExponentFactor = 1
     fundingFactor = 0  # todo
     maxFundingFactorPerSecond = 0  # todo
     thresholdForStableFunding = 0.04
     thresholdForDecreaseFunding = 0  # todo
     fundingDecreaseFactorPerSecond = 0  # todo
-    minFundingFactorPerSecond = 317097919837645865043 / 10 ** 30
-    maxFundingFactorPerSecond = 21476314029922083333333 / 10 ** 30
+    minFundingFactorPerSecond = 317097919837645865043 / 10**30
+    maxFundingFactorPerSecond = 21476314029922083333333 / 10**30
+
+
+@dataclass
+class PoolStatus:
+    pool: GmxV2Pool
+    status: pd.Series
+    config: PoolConfig
 
 
 """
@@ -157,9 +168,9 @@ class GmxV2PoolStatus:
     poolValue: float
     marketTokensSupply: float
     impactPoolAmount: float
-    pendingPnl:float  # pnl caused by open interest
-    realizedPnl:float  # pnl for decreased position
-    realizedProfit:float  # pnl + fee + priceImpact
+    pendingPnl: float  # pnl caused by open interest
+    realizedPnl: float  # pnl for decreased position
+    realizedProfit: float  # pnl + fee + priceImpact
     openInterestLong: float
     openInterestShort: float
     openInterestLongIsLong: float
@@ -231,10 +242,10 @@ class PositionResult:
 
 @dataclass
 class Market:
-    marketToken: str = ''
-    indexToken: str = ''
-    longToken: str = ''
-    shortToken: str = ''
+    marketToken: str = ""
+    indexToken: str = ""
+    longToken: str = ""
+    shortToken: str = ""
 
 
 class OrderType(Enum):
@@ -257,8 +268,8 @@ class DecreasePositionSwapType(Enum):
 
 @dataclass
 class Order:
-    market: str = ''
-    initialCollateralToken: str = ''
+    market: str = ""
+    initialCollateralToken: str = ""
     swapPath: List = None
     orderType: OrderType = OrderType.LimitIncrease
     sizeDeltaUsd: float = 0

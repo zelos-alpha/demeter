@@ -6,39 +6,37 @@ from orjson import orjson
 
 from ._typing2 import (
     GmxV2Pool,
-    GmxV2Description,
-    GmxV2MarketStatus,
-    GmxV2Balance,
+    GmxV2LpMarketStatus,
+    GmxV2LpBalance,
     GmxV2PoolStatus,
-    Gmx2WithdrawAction,
-    Gmx2DepositAction,
     Gmx2IncreasePositionAction,
     Gmx2DecreasePositionAction,
-    position_dict_to_dataframe
+    position_dict_to_dataframe,
+    GmxV2PrepDescription,
 )
-from .gmx_v2 import PoolConfig, LPResult
-from .gmx_v2.ExecuteDepositUtils import ExecuteDepositUtils
-from .gmx_v2.ExecuteWithdrawUtils import ExecuteWithdrawUtils
-from .gmx_v2.MarketUtils import MarketUtils
+from .gmx_v2 import PoolConfig
 from .gmx_v2.ExecuteOrderUtils import ExecuteOrderUtils
+from .gmx_v2.MarketUtils import MarketUtils
 from .gmx_v2.ReaderPositionUtils import ReaderPositionUtils
+from .gmx_v2._typing import OrderType, DecreasePositionSwapType, PoolStatus, Order
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
-from .. import TokenInfo, DECIMAL_0, ChainType, DemeterError, UnitDecimal
+from .. import TokenInfo, DECIMAL_0, ChainType, UnitDecimal
 from .._typing import USD
-from ..broker import Market, MarketInfo
+from ..broker import MarketInfo
+from ..broker.prep_market import PrepMarket
 from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE, require
-from .gmx_v2._typing import OrderType, DecreasePositionSwapType
 
 
-class GmxV2PerpMarket(Market):
-    def __init__(self, market_info: MarketInfo, pool: GmxV2Pool, data: pd.DataFrame | None = None, data_path: str = "./data"):
+class GmxV2PerpMarket(PrepMarket):
+    def __init__(
+        self, market_info: MarketInfo, pool: GmxV2Pool, data: pd.DataFrame | None = None, data_path: str = "./data"
+    ):
         super().__init__(market_info=market_info, data=data, data_path=data_path)
         self.pool = pool
-        self.amount: float = 0.0
-        self.position_list = {}
+
         self.cumulative_borrowing = {
-            'cumulativeBorrowingFactorLong': {'value': 0, 'time': None},
-            'cumulativeBorrowingFactorShort': {'value': 0, 'time': None},
+            "cumulativeBorrowingFactorLong": {"value": 0, "time": None},
+            "cumulativeBorrowingFactorShort": {"value": 0, "time": None},
         }
         self.pool_config = PoolConfig(pool.long_token.decimal, pool.short_token.decimal)
 
@@ -51,11 +49,11 @@ class GmxV2PerpMarket(Market):
         return orjson.dumps(self.description, default=orjson_default).decode()
 
     @property
-    def description(self) -> GmxV2Description:
-        return GmxV2Description(
+    def description(self) -> GmxV2PrepDescription:
+        return GmxV2PrepDescription(
             type=type(self).__name__,
             name=self._market_info.name,
-            amount=self.amount,
+            Positions=self.positions,
         )
 
     @property
@@ -67,7 +65,7 @@ class GmxV2PerpMarket(Market):
         return self.pool.short_token
 
     @property
-    def market_status(self) -> GmxV2MarketStatus:
+    def market_status(self) -> GmxV2LpMarketStatus:
         return self._market_status
 
     # endregion
@@ -84,12 +82,14 @@ class GmxV2PerpMarket(Market):
     def update(self):
         pass
 
-    def set_market_status(self, data: GmxV2MarketStatus | pd.Series, price: pd.Series):
+    def set_market_status(self, data: GmxV2LpMarketStatus | pd.Series, price: pd.Series):
         super().set_market_status(data, price)
         data.data = self.data.loc[data.timestamp]
         self._market_status = data
 
-    def get_market_balance(self) -> GmxV2Balance:
+    def get_market_balance(self) -> GmxV2LpBalance:
+        # 仓位	规模	净值	抵押品	入场价格	标记价格	清算价格
+
         pool_data: GmxV2PoolStatus = self._market_status.data
         if self.amount > 0:
             longAmount, shortAmount = MarketUtils.getTokenAmountsFromGM(pool_data, self.amount)
@@ -100,14 +100,26 @@ class GmxV2PerpMarket(Market):
         else:
             net_value = long_amount = short_amount = Decimal(0)
 
-        if ((self.cumulative_borrowing['cumulativeBorrowingFactorLong']['value'] != self._market_status.data.cumulativeBorrowingFactorLong)
-                or (self.cumulative_borrowing['cumulativeBorrowingFactorShort']['value'] != self._market_status.data.cumulativeBorrowingFactorShort)):
-            self.cumulative_borrowing['cumulativeBorrowingFactorLong']['value'] = self._market_status.data.cumulativeBorrowingFactorLong
-            self.cumulative_borrowing['cumulativeBorrowingFactorLong']['time'] = self._market_status.timestamp
-            self.cumulative_borrowing['cumulativeBorrowingFactorShort']['value'] = self._market_status.data.cumulativeBorrowingFactorShort
-            self.cumulative_borrowing['cumulativeBorrowingFactorShort']['time'] = self._market_status.timestamp
+        if (
+            self.cumulative_borrowing["cumulativeBorrowingFactorLong"]["value"]
+            != self._market_status.data.cumulativeBorrowingFactorLong
+        ) or (
+            self.cumulative_borrowing["cumulativeBorrowingFactorShort"]["value"]
+            != self._market_status.data.cumulativeBorrowingFactorShort
+        ):
+            self.cumulative_borrowing["cumulativeBorrowingFactorLong"][
+                "value"
+            ] = self._market_status.data.cumulativeBorrowingFactorLong
+            self.cumulative_borrowing["cumulativeBorrowingFactorLong"]["time"] = self._market_status.timestamp
+            self.cumulative_borrowing["cumulativeBorrowingFactorShort"][
+                "value"
+            ] = self._market_status.data.cumulativeBorrowingFactorShort
+            self.cumulative_borrowing["cumulativeBorrowingFactorShort"]["time"] = self._market_status.timestamp
         # print(self._market_status.timestamp, self.cumulative_borrowing['cumulativeBorrowingFactorShort']['time'])
-        pending_borrowing_time = (pd.to_datetime(self._market_status.timestamp) - pd.to_datetime(self.cumulative_borrowing['cumulativeBorrowingFactorShort']['time'])).seconds
+        pending_borrowing_time = (
+            pd.to_datetime(self._market_status.timestamp)
+            - pd.to_datetime(self.cumulative_borrowing["cumulativeBorrowingFactorShort"]["time"])
+        ).seconds
 
         for key, position in self.position_list.items():
             if position.collateralToken == self.pool.short_token:
@@ -120,11 +132,15 @@ class GmxV2PerpMarket(Market):
             # net_value += Decimal(collateral_value + pnl)
             # print('net_value', net_value)
 
-            positionInfo = ReaderPositionUtils.getPositionInfo(pending_borrowing_time, position, collateralPrice, self._market_status.data, self.pool_config, self.pool)
+            positionInfo = ReaderPositionUtils.getPositionInfo(
+                pending_borrowing_time, position, collateralPrice, self._market_status.data, self.pool_config, self.pool
+            )
             # print('executionPrice', positionInfo.executionPriceResult.executionPrice, 'longPrice', pool_data.longPrice, 'shortPrice', pool_data.shortPrice, 'pnlAfterPriceImpactUsd', positionInfo.pnlAfterPriceImpactUsd, 'totalCostAmount', positionInfo.fees.totalCostAmount)
-            net_value += Decimal(collateral_value + positionInfo.pnlAfterPriceImpactUsd - positionInfo.fees.totalCostAmount)
+            net_value += Decimal(
+                collateral_value + positionInfo.pnlAfterPriceImpactUsd - positionInfo.fees.totalCostAmount
+            )
 
-        return GmxV2Balance(
+        return GmxV2LpBalance(
             net_value=net_value,
             gm_amount=Decimal(self.amount),
             long_amount=long_amount,
@@ -162,57 +178,6 @@ class GmxV2PerpMarket(Market):
     def _resample(self, freq: str):
         self._data.resample(freq=freq, inplace=True)
 
-    def deposit(self, long_amount: Decimal | float, short_amount: Decimal | float) -> LPResult:
-        assert long_amount >= 0 and short_amount >= 0
-        long_amount = float(long_amount)
-        short_amount = float(short_amount)
-        result = ExecuteDepositUtils.get_mint_amount(self.pool_config, self._market_status.data, long_amount, short_amount)
-        self.amount += result.gm_amount
-        self.broker.subtract_from_balance(self.long_token, Decimal(result.long_amount))
-        self.broker.subtract_from_balance(self.short_token, Decimal(result.short_amount))
-        self._record_action(
-            Gmx2DepositAction(
-                market=self.market_info,
-                gm_amount=UnitDecimal(result.gm_amount, "GM"),
-                gm_usd=UnitDecimal(result.gm_usd, "USD"),
-                long_amount=UnitDecimal(result.long_amount, self.long_token.name),
-                short_amount=UnitDecimal(result.short_amount, self.short_token.name),
-                deposit_usd=UnitDecimal(result.total_usd, "USD"),
-                long_fee=UnitDecimal(result.long_fee, self.long_token.name),
-                short_fee=UnitDecimal(result.short_fee, self.short_token.name),
-                fee_usd=UnitDecimal(result.fee_usd, "USD"),
-                price_impact_usd=UnitDecimal(result.price_impact_usd, "USD"),
-            )
-        )
-        return result
-
-    def withdraw(self, amount: float | None = None) -> LPResult:
-        if amount is None:
-            amount = self.amount
-        assert amount >= 0
-        amount = float(amount)
-        result: LPResult = ExecuteWithdrawUtils.getOutputAmount(self.pool_config, self._market_status.data, amount)
-        self.amount -= result.gm_amount
-        self.broker.add_to_balance(self.long_token, Decimal(result.long_amount))
-        self.broker.add_to_balance(self.short_token, Decimal(result.short_amount))
-        if amount < 0:
-            raise DemeterError("amount cannot be negative, value is {}".format(amount))
-
-        self._record_action(
-            Gmx2WithdrawAction(
-                market=self.market_info,
-                gm_amount=UnitDecimal(result.gm_amount, "GM"),
-                gm_usd=UnitDecimal(result.gm_usd, "USD"),
-                long_amount=UnitDecimal(result.long_amount, self.long_token.name),
-                short_amount=UnitDecimal(result.short_amount, self.short_token.name),
-                withdraw_usd=UnitDecimal(result.total_usd, "USD"),
-                long_fee=UnitDecimal(result.long_fee, self.long_token.name),
-                short_fee=UnitDecimal(result.short_fee, self.short_token.name),
-                fee_usd=UnitDecimal(result.fee_usd, "USD"),
-            )
-        )
-        return result
-
     def increase_position(
         self,
         initialCollateralToken,
@@ -220,7 +185,12 @@ class GmxV2PerpMarket(Market):
         sizeDeltaUsd,
         isLong,
     ):
-        position_key, result = ExecuteOrderUtils.executeOrder(
+
+        pool_status = {
+            self.pool.market_token.address: PoolStatus(self.pool, self._market_status.data, self.pool_config)
+        }
+
+        order = Order(
             market=self.pool.market_token.address,
             initialCollateralToken=initialCollateralToken,
             swapPath=[],
@@ -231,14 +201,12 @@ class GmxV2PerpMarket(Market):
             acceptablePrice=0,
             isLong=isLong,
             decreasePositionSwapType=DecreasePositionSwapType.NoSwap,
-            marketToken='',
-            indexToken=self.pool.index_token,
-            longToken=self.pool.long_token,
-            shortToken=self.pool.short_token,
-            pool_status=self._market_status.data,
-            pool_config=self.pool_config,
-            pool=self.pool,
-            positions=self.position_list
+        )
+
+        position_key, result = ExecuteOrderUtils.executeOrder(
+            order=order,
+            status=pool_status,
+            positions=self.position_list,
         )
         self.position_list[position_key] = result
         if initialCollateralToken == self.short_token:
@@ -269,7 +237,12 @@ class GmxV2PerpMarket(Market):
         sizeDeltaUsd,
         isLong,
     ):
-        position_key, result, outputToken, outputAmount, secondaryOutputToken, secondaryOutputAmount = ExecuteOrderUtils.executeOrder(
+
+        pool_status = {
+            self.pool.market_token.address: PoolStatus(self.pool, self._market_status.data, self.pool_config)
+        }
+
+        order = Order(
             market=self.pool.market_token.address,
             initialCollateralToken=initialCollateralToken,
             swapPath=[],
@@ -280,14 +253,14 @@ class GmxV2PerpMarket(Market):
             acceptablePrice=0,
             isLong=isLong,
             decreasePositionSwapType=DecreasePositionSwapType.SwapPnlTokenToCollateralToken,
-            marketToken=self.pool.market_token.address,
-            indexToken=self.pool.index_token,
-            longToken=self.pool.long_token,
-            shortToken=self.pool.short_token,
-            pool_status=self._market_status.data,
-            pool_config=self.pool_config,
-            pool=self.pool,
-            positions=self.position_list
+        )
+
+        position_key, result, outputToken, outputAmount, secondaryOutputToken, secondaryOutputAmount = (
+            ExecuteOrderUtils.executeOrder(
+                order=order,
+                status=pool_status,
+                positions=self.position_list,
+            )
         )
 
         self.position_list[position_key] = result
@@ -318,3 +291,12 @@ class GmxV2PerpMarket(Market):
             )
         )
         return result
+
+    def swap(self, from_token, to_token, amount):
+
+        pool_status = {
+            self.pool.market_token.address: PoolStatus(self.pool, self._market_status.data, self.pool_config)
+        }
+
+
+
