@@ -1,9 +1,9 @@
-from .Position import Position
-from .SwapUtils import SwapUtils, SwapParams, SwapPricingType
-from .IncreasePositionUtils import IncreasePositionUtils
-from .PositionUtils import UpdatePositionParams
-from ._typing import PoolConfig, GmxV2PoolStatus, ExecuteOrderParams
-from .._typing2 import GmxV2Pool
+from demeter.gmx.gmx_v2.position.Position import Position
+from demeter.gmx.gmx_v2.swap.SwapUtils import SwapUtils, SwapParams, SwapPricingType
+from demeter.gmx.gmx_v2.position.IncreasePositionUtils import IncreasePositionUtils
+from demeter.gmx.gmx_v2.position.PositionUtils import UpdatePositionParams
+from demeter.gmx.gmx_v2._typing import PoolConfig, GmxV2PoolStatus, ExecuteOrderParams
+from demeter.gmx._typing2 import GmxV2Pool
 
 
 class IncreaseOrderUtils:

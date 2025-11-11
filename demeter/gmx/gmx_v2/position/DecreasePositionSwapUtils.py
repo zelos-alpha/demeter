@@ -1,6 +1,6 @@
-from .PositionUtils import UpdatePositionParams
-from .SwapUtils import SwapUtils, SwapParams, SwapPricingType
-from ._typing import GmxV2PoolStatus, PoolConfig, DecreasePositionSwapType
+from demeter.gmx.gmx_v2.position.PositionUtils import UpdatePositionParams
+from demeter.gmx.gmx_v2.swap.SwapUtils import SwapUtils, SwapParams, SwapPricingType
+from demeter.gmx.gmx_v2._typing import GmxV2PoolStatus, PoolConfig, DecreasePositionSwapType
 
 
 class DecreasePositionSwapUtils:

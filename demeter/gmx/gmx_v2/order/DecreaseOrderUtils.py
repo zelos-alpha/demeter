@@ -1,8 +1,8 @@
-from .Position import Position
-from .DecreasePositionUtils import DecreasePositionUtils
-from .PositionUtils import UpdatePositionParams
-from ._typing import GmxV2PoolStatus, PoolConfig, ExecuteOrderParams
-from .._typing2 import GmxV2Pool
+from demeter.gmx.gmx_v2.position.Position import Position
+from demeter.gmx.gmx_v2.position.DecreasePositionUtils import DecreasePositionUtils
+from demeter.gmx.gmx_v2.position.PositionUtils import UpdatePositionParams
+from demeter.gmx.gmx_v2._typing import GmxV2PoolStatus, PoolConfig, ExecuteOrderParams
+from demeter.gmx._typing2 import GmxV2Pool
 
 
 class DecreaseOrderUtils:

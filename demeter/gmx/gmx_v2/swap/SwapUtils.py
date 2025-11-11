@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import List
-from .MarketUtils import MarketUtils
-from .SwapPricingUtils import SwapPriceUtils, GetPriceImpactUsdParams, SwapPricingType
-from ._typing import PoolConfig, GmxV2PoolStatus
+from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils
+from demeter.gmx.gmx_v2.pricing.SwapPricingUtils import SwapPriceUtils, GetPriceImpactUsdParams, SwapPricingType
+from demeter.gmx.gmx_v2._typing import PoolConfig, GmxV2PoolStatus
 
 
 @dataclass

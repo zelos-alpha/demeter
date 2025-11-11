@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from .Position import Position
-from .PositionPricingUtils import PositionFees, GetPositionFeesParams, PositionPricingUtils
-from .PositionUtils import UpdatePositionParams, PositionUtils
-from ._typing import Market, Prices, Order, GmxV2PoolStatus, PoolConfig, GetNextFundingAmountPerSizeResult, GetNextFundingAmountPerSizeCache, GetNextFundingFactorPerSecondCache, FundingConfigCache, FundingRateChangeType
-from .._typing2 import GmxV2Pool
-from .MarketUtils import Price, MarketUtils, MarketPrices
+from demeter.gmx.gmx_v2.position.Position import Position
+from demeter.gmx.gmx_v2.pricing.PositionPricingUtils import PositionFees, GetPositionFeesParams, PositionPricingUtils
+from demeter.gmx.gmx_v2.position.PositionUtils import UpdatePositionParams, PositionUtils
+from demeter.gmx.gmx_v2._typing import Market, Prices, Order, GmxV2PoolStatus, PoolConfig, GetNextFundingAmountPerSizeResult, GetNextFundingAmountPerSizeCache, GetNextFundingFactorPerSecondCache, FundingConfigCache, FundingRateChangeType
+from demeter.gmx._typing2 import GmxV2Pool
+from demeter.gmx.gmx_v2.market.MarketUtils import Price, MarketUtils, MarketPrices
 
 
 

@@ -1,7 +1,7 @@
-from . import PoolConfig
-from ._typing import ExecuteOrderParams
-from .SwapUtils import SwapUtils, SwapParams, SwapPricingType
-from .._typing2 import GmxV2PoolStatus
+from demeter.gmx.gmx_v2 import PoolConfig
+from demeter.gmx.gmx_v2._typing import ExecuteOrderParams
+from demeter.gmx.gmx_v2.swap.SwapUtils import SwapUtils, SwapParams, SwapPricingType
+from demeter.gmx._typing2 import GmxV2PoolStatus
 
 
 class SwapOrderUtils:

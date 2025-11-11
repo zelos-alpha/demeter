@@ -1,8 +1,7 @@
 from .IncreaseOrderUtils import IncreaseOrderUtils
-from .DecreaseOrderUtils import DecreaseOrderUtils
-from .SwapOrderUtils import SwapOrderUtils
-from ._typing import PoolConfig, GmxV2PoolStatus, Order, OrderType, ExecuteOrderParams, Market, PoolStatus
-from .._typing2 import GmxV2Pool
+from demeter.gmx.gmx_v2.order.DecreaseOrderUtils import DecreaseOrderUtils
+from demeter.gmx.gmx_v2.order.SwapOrderUtils import SwapOrderUtils
+from demeter.gmx.gmx_v2._typing import Order, OrderType, ExecuteOrderParams, Market, PoolStatus
 
 
 class ExecuteOrderUtils:

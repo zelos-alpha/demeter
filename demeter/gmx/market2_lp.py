@@ -14,9 +14,9 @@ from ._typing2 import (
     Gmx2DepositAction,
 )
 from .gmx_v2 import PoolConfig, LPResult
-from .gmx_v2.ExecuteDepositUtils import ExecuteDepositUtils
-from .gmx_v2.ExecuteWithdrawUtils import ExecuteWithdrawUtils
-from .gmx_v2.MarketUtils import MarketUtils
+from demeter.gmx.gmx_v2.deposit.ExecuteDepositUtils import ExecuteDepositUtils
+from demeter.gmx.gmx_v2.withdrawal.ExecuteWithdrawUtils import ExecuteWithdrawUtils
+from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
 from .. import TokenInfo, DECIMAL_0, ChainType, DemeterError, UnitDecimal
 from .._typing import USD

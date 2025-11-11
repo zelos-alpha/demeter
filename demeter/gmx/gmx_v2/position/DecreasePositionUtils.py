@@ -1,9 +1,9 @@
-from .PositionUtils import UpdatePositionParams, DecreasePositionCache
-from .PositionUtils import PositionUtils, WillPositionCollateralBeSufficientValues
+from demeter.gmx.gmx_v2.position.PositionUtils import UpdatePositionParams, DecreasePositionCache
+from demeter.gmx.gmx_v2.position.PositionUtils import PositionUtils, WillPositionCollateralBeSufficientValues
 from .DecreasePositionCollateralUtils import DecreasePositionCollateralUtils
-from ._typing import GmxV2PoolStatus, PoolConfig, Market
-from .._typing2 import GmxV2Pool
-from .MarketUtils import MarketPrices, Price, MarketUtils
+from demeter.gmx.gmx_v2._typing import GmxV2PoolStatus, PoolConfig, Market
+from demeter.gmx._typing2 import GmxV2Pool
+from demeter.gmx.gmx_v2.market.MarketUtils import MarketPrices, Price, MarketUtils
 
 
 class DecreasePositionUtils:

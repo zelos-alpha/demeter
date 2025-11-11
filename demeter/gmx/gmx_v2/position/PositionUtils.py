@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from .PositionPricingUtils import PositionPricingUtils, GetPriceImpactUsdParams
-from .MarketUtils import MarketUtils, MarketPrices, Price
+from demeter.gmx.gmx_v2.pricing.PositionPricingUtils import PositionPricingUtils, GetPriceImpactUsdParams
+from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils, MarketPrices, Price
 from .Position import Position
-from ._typing import GmxV2PoolStatus, PoolConfig, Market, Order
-from .._typing2 import GmxV2Pool
+from demeter.gmx.gmx_v2._typing import GmxV2PoolStatus, PoolConfig, Market, Order
 
 
 @dataclass

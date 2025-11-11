@@ -1,9 +1,9 @@
 import dataclasses
 from typing import Tuple
 
-from ._typing import PoolConfig, GmxV2PoolStatus, Market
-from .Position import Position
-from .._typing2 import GmxV2Pool
+from demeter.gmx.gmx_v2._typing import PoolConfig, GmxV2PoolStatus, Market
+from demeter.gmx.gmx_v2.position.Position import Position
+from demeter.gmx._typing2 import GmxV2Pool
 
 
 @dataclasses.dataclass

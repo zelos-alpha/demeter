@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 
-from .PositionUtils import UpdatePositionParams, PositionUtils, DecreasePositionCollateralValues, DecreasePositionCache, DecreasePositionCollateralValuesOutput
-from .PositionPricingUtils import GetPositionFeesParams, PositionPricingUtils, PositionFees
+from demeter.gmx.gmx_v2.position.PositionUtils import UpdatePositionParams, PositionUtils, DecreasePositionCollateralValues, DecreasePositionCache, DecreasePositionCollateralValuesOutput
+from demeter.gmx.gmx_v2.pricing.PositionPricingUtils import GetPositionFeesParams, PositionPricingUtils, PositionFees
 from .DecreasePositionSwapUtils import DecreasePositionSwapUtils
-from ._typing import GmxV2PoolStatus, PoolConfig, Market, OrderType
-from .._typing2 import GmxV2Pool
-from .MarketUtils import MarketPrices
+from demeter.gmx.gmx_v2._typing import GmxV2PoolStatus, PoolConfig, Market, OrderType
+from demeter.gmx._typing2 import GmxV2Pool
+from demeter.gmx.gmx_v2.market.MarketUtils import MarketPrices
 
 
 def isLiquidationOrder(orderType: OrderType) -> bool:

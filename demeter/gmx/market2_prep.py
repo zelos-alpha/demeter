@@ -15,9 +15,9 @@ from ._typing2 import (
     GmxV2PrepDescription,
 )
 from .gmx_v2 import PoolConfig
-from .gmx_v2.ExecuteOrderUtils import ExecuteOrderUtils
-from .gmx_v2.MarketUtils import MarketUtils
-from .gmx_v2.ReaderPositionUtils import ReaderPositionUtils
+from demeter.gmx.gmx_v2.order.ExecuteOrderUtils import ExecuteOrderUtils
+from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils
+from demeter.gmx.gmx_v2.reader.ReaderPositionUtils import ReaderPositionUtils
 from .gmx_v2._typing import OrderType, DecreasePositionSwapType, PoolStatus, Order
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
 from .. import TokenInfo, DECIMAL_0, ChainType, UnitDecimal
