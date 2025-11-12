@@ -3,7 +3,6 @@ from ..position.Position import Position
 from ..pricing.PositionPricingUtils import PositionFees, GetPositionFeesParams, PositionPricingUtils
 from ..position.PositionUtils import UpdatePositionParams, PositionUtils
 from .._typing import (
-    Market,
     Prices,
     Order,
     GmxV2PoolStatus,
@@ -20,7 +19,7 @@ from ..market.MarketUtils import Price, MarketUtils, MarketPrices
 
 @dataclass
 class GetPositionInfoCache:
-    market: Market = None
+    market: GmxV2Pool = None
     collateralTokenPrice: Prices = None
     pendingBorrowingFeeUsd: float = 0
 
@@ -52,9 +51,7 @@ class ReaderPositionUtils:
         pool_config: PoolConfig,
         pool: GmxV2Pool,
     ):
-        market = Market(
-            indexToken=pool.index_token.address, longToken=pool.long_token.address, shortToken=pool.short_token.address
-        )
+
         prices = MarketPrices(
             indexTokenPrice=Price(min=pool_status.indexPrice, max=pool_status.indexPrice),
             longTokenPrice=Price(min=pool_status.longPrice, max=pool_status.longPrice),
@@ -64,7 +61,7 @@ class ReaderPositionUtils:
         positionInfo = PositionInfo()
         cache = GetPositionInfoCache()
         positionInfo.position = position
-        cache.market = market
+        cache.market = pool
         cache.collateralTokenPrice = collateralTokenPrice
         sizeDeltaUsd = positionInfo.position.sizeInUsd
 
@@ -286,7 +283,7 @@ class ReaderPositionUtils:
 
     @staticmethod
     def getExecutionPrice(
-        market: Market,
+        market: GmxV2Pool,
         indexTokenPrice: float,
         positionSizeInUsd: float,
         positionSizeInTokens: float,

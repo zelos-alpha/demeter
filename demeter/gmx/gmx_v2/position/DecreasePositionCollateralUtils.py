@@ -9,7 +9,7 @@ from demeter.gmx.gmx_v2.position.PositionUtils import (
 )
 from demeter.gmx.gmx_v2.pricing.PositionPricingUtils import GetPositionFeesParams, PositionPricingUtils, PositionFees
 from .DecreasePositionSwapUtils import DecreasePositionSwapUtils
-from .._typing import GmxV2PoolStatus, PoolConfig, Market, OrderType, GmxV2Pool
+from .._typing import GmxV2PoolStatus, PoolConfig, OrderType, GmxV2Pool
 from demeter.gmx.gmx_v2.market.MarketUtils import MarketPrices
 
 
@@ -49,11 +49,9 @@ class DecreasePositionCollateralUtils:
         values.priceImpactUsd, values.priceImpactDiffUsd, values.executionPrice = (
             PositionUtils.getExecutionPriceForDecrease(params, cache.prices.indexTokenPrice, pool_status, pool_config)
         )
-        market = Market(
-            indexToken=pool.index_token.address, longToken=pool.long_token.address, shortToken=pool.short_token.address
-        )
+
         values.basePnlUsd, values.uncappedBasePnlUsd, values.sizeDeltaInTokens = PositionUtils.getPositionPnlUsd(
-            market, cache.prices, params.position, params.position.sizeInUsd, pool_status, pool_config
+            pool, cache.prices, params.position, params.position.sizeInUsd, pool_status, pool_config
         )
         getPositionFeesParams = GetPositionFeesParams(
             position=params.position,

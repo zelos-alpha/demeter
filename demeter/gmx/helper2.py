@@ -23,12 +23,12 @@ def get_price_from_v2_data(data: pd.DataFrame, pool: GmxV2Pool) -> pd.DataFrame:
 def load_gmx_v2_data(chain: ChainType, gm_token_address: str, start_date: date, end_date: date, data_path: str) -> pd.DataFrame:
     logger = logging.getLogger("Gmx v2 data")
 
-    cache_key = CacheManager.get_cache_key(MarketTypeEnum.gmx_v2.name, start_date, end_date, chain.name, gm_token_address)
+    cache_key = CacheManager.get_cache_key(MarketTypeEnum.gmx_v2_lp.name, start_date, end_date, chain.name, gm_token_address)
     cache_df = CacheManager.load(cache_key)
     if cache_df is not None:
         return cache_df
 
-    logger.info(f"{MarketTypeEnum.gmx_v2.name} start load files from {start_date} to {end_date}...")
+    logger.info(f"{MarketTypeEnum.gmx_v2_lp.name} start load files from {start_date} to {end_date}...")
     assert start_date <= end_date, f"start date {start_date} should earlier than end date {end_date}"
     df = pd.DataFrame()
     day = start_date

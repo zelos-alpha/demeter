@@ -1,75 +1,78 @@
 from dataclasses import dataclass
 from typing import List
-from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils
-from demeter.gmx.gmx_v2.pricing.SwapPricingUtils import SwapPriceUtils, GetPriceImpactUsdParams, SwapPricingType
-from demeter.gmx.gmx_v2._typing import PoolConfig, GmxV2PoolStatus
 
-
-@dataclass
-class Market:
-    marketToken: str
-    indexToken: str
-    longToken: str
-    shortToken: str
+from demeter import TokenInfo
+from ..market.MarketUtils import MarketUtils
+from ..pricing.SwapPricingUtils import SwapPriceUtils, GetPriceImpactUsdParams, SwapPricingType
+from .._typing import PoolConfig, GmxV2PoolStatus, PoolStatus, GmxV2Pool
 
 
 @dataclass
 class SwapParams:
     amountIn: float
-    tokenIn: str
-    swapPathMarkets: List
+    tokenIn: TokenInfo
+    swapPathMarkets: list[GmxV2Pool]
     swapPricingType: SwapPricingType
 
 
 @dataclass
 class _SwapParams:
-    market: Market
-    tokenIn: str
+    market: GmxV2Pool
+    tokenIn: TokenInfo
     amountIn: float
 
 
 class SwapUtils:
 
     @staticmethod
-    def swap(params: SwapParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig) -> (str, float):  # done
+    def swap(params: SwapParams, status: dict[GmxV2Pool, PoolStatus]) -> tuple[TokenInfo, float]:
         if params.amountIn == 0:
             return params.tokenIn, params.amountIn
         tokenOut = params.tokenIn
         outputAmount = params.amountIn
-        for i, market in enumerate(params.swapPathMarkets):
+        for market in params.swapPathMarkets:
             _params = _SwapParams(market, tokenOut, outputAmount)
-            tokenOut, outputAmount = SwapUtils._swap(params, _params, pool_status, pool_config)
+            tokenOut, outputAmount = SwapUtils._swap(params, _params, status[market])
         return tokenOut, outputAmount
 
     @staticmethod
-    def _swap(params: SwapParams, _params: _SwapParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig) -> (float, float): # done
-        tokenOut = MarketUtils.getOppositeToken(_params.tokenIn, _params.market)
-        tokenInPrice = pool_status.longPrice if _params.tokenIn == _params.market.longToken.address else pool_status.shortPrice
-        tokenOutPrice = pool_status.shortPrice if _params.tokenIn == _params.market.longToken.address else pool_status.longPrice
-        priceImpactUsd = SwapPriceUtils.getPriceImpactUsd(GetPriceImpactUsdParams(
-            pool_config,
-            tokenInPrice,
-            tokenOutPrice,
-            _params.amountIn * tokenInPrice,
-            -_params.amountIn * tokenInPrice,
-            True,
-            True
-        ), pool_status)
-        fees = SwapPriceUtils.getSwapFees(
-            pool_config,
-            _params.amountIn,
-            priceImpactUsd > 0,
-            params.swapPricingType
+    def _swap(params: SwapParams, _params: _SwapParams, status: PoolStatus) -> tuple[TokenInfo, float]:
+        tokenOut: TokenInfo = MarketUtils.getOppositeToken(_params.tokenIn, _params.market)
+        tokenInPrice = (
+            status.status.longPrice if _params.tokenIn == _params.market.long_token else status.status.shortPrice
         )
+        tokenOutPrice = (
+            status.status.shortPrice if _params.tokenIn == _params.market.long_token else status.status.longPrice
+        )
+        priceImpactUsd = SwapPriceUtils.getPriceImpactUsd(
+            GetPriceImpactUsdParams(
+                status.config,
+                tokenInPrice,
+                tokenOutPrice,
+                _params.amountIn * tokenInPrice,
+                -_params.amountIn * tokenInPrice,
+                True,
+                True,
+            ),
+            status.status,
+        )
+        fees = SwapPriceUtils.getSwapFees(status.config, _params.amountIn, priceImpactUsd > 0, params.swapPricingType)
         if priceImpactUsd > 0:
             amountIn = fees.amountAfterFees
-            priceImpactAmount, cappedDiffUsd = MarketUtils.applySwapImpactWithCap(tokenOutPrice, priceImpactUsd, pool_status.impactPoolAmount)
+            priceImpactAmount, cappedDiffUsd = MarketUtils.applySwapImpactWithCap(
+                tokenOutPrice, priceImpactUsd, status.status.impactPoolAmount
+            )
             if cappedDiffUsd != 0:
-                tokenInPriceImpactAmount, _ = MarketUtils.applySwapImpactWithCap(tokenOutPrice, cappedDiffUsd, pool_status.impactPoolAmount)
+                tokenInPriceImpactAmount, _ = MarketUtils.applySwapImpactWithCap(
+                    tokenOutPrice, cappedDiffUsd, status.status.impactPoolAmount
+                )
                 amountIn += tokenInPriceImpactAmount
             amountOut = amountIn * tokenInPrice / tokenOutPrice
         else:
-            priceImpactAmount, _ = MarketUtils.applySwapImpactWithCap(tokenInPrice, priceImpactUsd, pool_status.impactPoolAmount)
+            priceImpactAmount, _ = MarketUtils.applySwapImpactWithCap(
+                tokenInPrice, priceImpactUsd, status.status.impactPoolAmount
+            )
             amountIn = fees.amountAfterFees - (-priceImpactAmount)
             amountOut = amountIn * tokenInPrice / tokenOutPrice
         return tokenOut, amountOut
+        # TODO: return fee/price impact

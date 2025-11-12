@@ -1,7 +1,7 @@
 from .IncreaseOrderUtils import IncreaseOrderUtils
 from demeter.gmx.gmx_v2.order.DecreaseOrderUtils import DecreaseOrderUtils
 from demeter.gmx.gmx_v2.order.SwapOrderUtils import SwapOrderUtils
-from demeter.gmx.gmx_v2._typing import Order, OrderType, ExecuteOrderParams, Market, PoolStatus
+from demeter.gmx.gmx_v2._typing import Order, OrderType, ExecuteOrderParams, PoolStatus, GmxV2Pool
 
 
 class ExecuteOrderUtils:
@@ -30,20 +30,17 @@ class ExecuteOrderUtils:
     @staticmethod
     def executeOrder(
         order: Order,
-        status: dict[str, PoolStatus],
+        status: dict[GmxV2Pool, PoolStatus],
         positions,
     ):
-
-        _market = Market(
-            marketToken=status[order.market].pool.market_token.address,
-            indexToken=status[order.market].pool.index_token.address,
-            longToken=status[order.market].pool.long_token.address,
-            shortToken=status[order.market].pool.short_token.address,
-        )
-        params = ExecuteOrderParams(order=order, swapPathMarkets=[], market=_market)
+        params = ExecuteOrderParams(order=order, swapPathMarkets=order.swapPath, market=order.market)
         if ExecuteOrderUtils.isIncreaseOrder(params.order):
-            return IncreaseOrderUtils.processOrder(params, pool_status, pool_config, pool, positions)
+            return IncreaseOrderUtils.processOrder(
+                params, status[order.market].status, status[order.market].config, order.market, positions
+            )
         elif ExecuteOrderUtils.isDecreaseOrder(params.order):
-            return DecreaseOrderUtils.processOrder(params, pool_status, pool_config, pool, positions)
+            return DecreaseOrderUtils.processOrder(
+                params, status[order.market].status, status[order.market].config, order.market, positions
+            )
         elif ExecuteOrderUtils.isSwapOrder(params.order):
-            return SwapOrderUtils.processOrder(params, pool_status, pool_config)
+            return SwapOrderUtils.processOrder(params, status)

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from demeter.gmx.gmx_v2._typing import Market
 
 
 @dataclass

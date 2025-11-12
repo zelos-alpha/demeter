@@ -1,17 +1,19 @@
-from demeter.gmx.gmx_v2 import PoolConfig
-from demeter.gmx.gmx_v2._typing import ExecuteOrderParams
+from demeter import TokenInfo
+from demeter.gmx.gmx_v2._typing import ExecuteOrderParams, PoolStatus, GmxV2Pool
 from demeter.gmx.gmx_v2.swap.SwapUtils import SwapUtils, SwapParams, SwapPricingType
-from demeter.gmx._typing2 import GmxV2PoolStatus
 
 
 class SwapOrderUtils:
 
     @staticmethod
-    def processOrder(params: ExecuteOrderParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
-        outputToken, outputAmount = SwapUtils.swap(SwapParams(
-            amountIn=params.order.initialCollateralDeltaAmount,
-            tokenIn=params.order.initialCollateralToken,
-            swapPathMarkets=params.swapPathMarkets,
-            swapPricingType=SwapPricingType.Swap
-        ), pool_status, pool_config)
+    def processOrder(params: ExecuteOrderParams, status: dict[GmxV2Pool, PoolStatus]) -> tuple[TokenInfo, float]:
+        outputToken, outputAmount = SwapUtils.swap(
+            SwapParams(
+                amountIn=params.order.initialCollateralDeltaAmount,
+                tokenIn=params.order.initialCollateralToken,
+                swapPathMarkets=params.swapPathMarkets,
+                swapPricingType=SwapPricingType.Swap,
+            ),
+            status,
+        )
         return outputToken, outputAmount

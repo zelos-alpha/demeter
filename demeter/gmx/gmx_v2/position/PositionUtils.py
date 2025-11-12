@@ -2,12 +2,12 @@ from dataclasses import dataclass
 from demeter.gmx.gmx_v2.pricing.PositionPricingUtils import PositionPricingUtils, GetPriceImpactUsdParams
 from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils, MarketPrices, Price
 from .Position import Position
-from demeter.gmx.gmx_v2._typing import GmxV2PoolStatus, PoolConfig, Market, Order
+from demeter.gmx.gmx_v2._typing import GmxV2PoolStatus, PoolConfig, Order, GmxV2Pool
 
 
 @dataclass
 class UpdatePositionParams:
-    market: Market
+    market: GmxV2Pool
     order: Order
     position: Position
     positionKey: str
@@ -23,7 +23,7 @@ class WillPositionCollateralBeSufficientValues:
 
 @dataclass
 class DecreasePositionCollateralValuesOutput:
-    outputToken: str = ''
+    outputToken: str = ""
     outputAmount: float = 0
     secondaryOutputToken: str = 0
     secondaryOutputAmount: float = 0
@@ -63,7 +63,7 @@ class DecreasePositionCache:
     estimatedPositionPnlUsd: float = 0
     estimatedRealizedPnlUsd: float = 0
     estimatedRemainingPnlUsd: float = 0
-    pnlToken: str = ''
+    pnlToken: str = ""
     pnlTokenPrice: Price = None
     collateralTokenPrice: Price = None
     initialCollateralAmount: float = 0
@@ -73,18 +73,19 @@ class DecreasePositionCache:
 
 class PositionUtils:
     @staticmethod
-    def getExecutionPriceForIncrease(params: UpdatePositionParams, indexTokenPrice: float, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
+    def getExecutionPriceForIncrease(
+        params: UpdatePositionParams, indexTokenPrice: float, pool_status: GmxV2PoolStatus, pool_config: PoolConfig
+    ):
         if params.order.sizeDeltaUsd == 0:
             return 0, 0, 0, indexTokenPrice
         priceImpactUsd = PositionPricingUtils.getPriceImpactUsd(
-            GetPriceImpactUsdParams(
-                isLong=params.order.isLong,
-                usdDelta=params.order.sizeDeltaUsd
-            ),
+            GetPriceImpactUsdParams(isLong=params.order.isLong, usdDelta=params.order.sizeDeltaUsd),
             pool_status,
-            pool_config
+            pool_config,
         )
-        priceImpactUsd = MarketUtils.getCappedPositionImpactUsd(indexTokenPrice, priceImpactUsd, params.order.sizeDeltaUsd, pool_status, pool_config)
+        priceImpactUsd = MarketUtils.getCappedPositionImpactUsd(
+            indexTokenPrice, priceImpactUsd, params.order.sizeDeltaUsd, pool_status, pool_config
+        )
 
         priceImpactAmount = 0
         if priceImpactUsd > 0:
@@ -105,10 +106,7 @@ class PositionUtils:
             sizeDeltaInTokens = baseSizeDeltaInTokens - priceImpactAmount
 
         executionPrice = PositionUtils._getExecutionPriceForIncrease(
-            params.order.sizeDeltaUsd,
-            sizeDeltaInTokens,
-            params.order.acceptablePrice,
-            params.position.isLong
+            params.order.sizeDeltaUsd, sizeDeltaInTokens, params.order.acceptablePrice, params.position.isLong
         )
         return priceImpactUsd, priceImpactAmount, sizeDeltaInTokens, executionPrice
 
@@ -121,27 +119,33 @@ class PositionUtils:
 
     @staticmethod
     def getPositionPnlUsd(
-            market: Market,
-            prices: MarketPrices,
-            position: Position,
-            sizeDeltaUsd: float,
-            pool_status: GmxV2PoolStatus,
-            pool_config: PoolConfig
+        market: GmxV2Pool,
+        prices: MarketPrices,
+        position: Position,
+        sizeDeltaUsd: float,
+        pool_status: GmxV2PoolStatus,
+        pool_config: PoolConfig,
     ):
         cache = GetPositionPnlUsdCache()
         executionPrice = prices.indexTokenPrice.max
         cache.positionValue = position.sizeInTokens * executionPrice
-        cache.totalPositionPnl = (cache.positionValue - position.sizeInUsd) if position.isLong else (position.sizeInUsd - cache.positionValue)
+        cache.totalPositionPnl = (
+            (cache.positionValue - position.sizeInUsd)
+            if position.isLong
+            else (position.sizeInUsd - cache.positionValue)
+        )
         cache.uncappedTotalPositionPnl = cache.totalPositionPnl
 
         if cache.totalPositionPnl > 0:
-            cache.pnlToken = market.longToken if position.isLong else market.shortToken
-            poolAmount = pool_status.longAmount if cache.pnlToken == market.longToken else pool_status.shortAmount
+            cache.pnlToken = market.long_token if position.isLong else market.short_token
+            poolAmount = pool_status.longAmount if cache.pnlToken == market.long_token else pool_status.shortAmount
             cache.poolTokenAmount = MarketUtils.getPoolAmount(market, poolAmount)
             cache.poolTokenPrice = prices.longTokenPrice.max if position.isLong else prices.shortTokenPrice.max
             cache.poolTokenUsd = cache.poolTokenAmount * cache.poolTokenPrice
             cache.poolPnl = MarketUtils.getPnl(prices.indexTokenPrice, position.isLong, pool_status)
-            cache.cappedPoolPnl = MarketUtils.getCappedPnl(position.isLong, cache.poolPnl, cache.poolTokenUsd, pool_config)
+            cache.cappedPoolPnl = MarketUtils.getCappedPnl(
+                position.isLong, cache.poolPnl, cache.poolTokenUsd, pool_config
+            )
             if cache.cappedPoolPnl != cache.poolPnl and cache.cappedPoolPnl > 0 and cache.poolPnl > 0:
                 cache.totalPositionPnl = cache.totalPositionPnl * cache.cappedPoolPnl / cache.poolPnl
 
@@ -155,29 +159,37 @@ class PositionUtils:
         return cache.positionPnlUsd, cache.uncappedPositionPnlUsd, cache.sizeDeltaInTokens
 
     @staticmethod
-    def willPositionCollateralBeSufficient(collateralTokenPrice: Price, isLong: bool, values: WillPositionCollateralBeSufficientValues, pool_status: GmxV2PoolStatus):
+    def willPositionCollateralBeSufficient(
+        collateralTokenPrice: Price,
+        isLong: bool,
+        values: WillPositionCollateralBeSufficientValues,
+        pool_status: GmxV2PoolStatus,
+    ):
         remainingCollateralUsd = values.positionCollateralAmount * collateralTokenPrice.min
         if values.realizedPnlUsd < 0:
             remainingCollateralUsd = remainingCollateralUsd + values.realizedPnlUsd
         if remainingCollateralUsd < 0:
             return False, remainingCollateralUsd
-        minCollateralFactor = MarketUtils.getMinCollateralFactorForOpenInterest(isLong, values.openInterestDelta, pool_status)
+        minCollateralFactor = MarketUtils.getMinCollateralFactorForOpenInterest(
+            isLong, values.openInterestDelta, pool_status
+        )
         minCollateralFactorForMarket = pool_status.minCollateralFactor
         if minCollateralFactorForMarket > minCollateralFactor:
             minCollateralFactor = minCollateralFactorForMarket
-        minCollateralUsdForLeverage = values.positionSizeInUsd * minCollateralFactor / 10 ** 30
+        minCollateralUsdForLeverage = values.positionSizeInUsd * minCollateralFactor / 10**30
         willBeSufficient = remainingCollateralUsd >= minCollateralUsdForLeverage
         return willBeSufficient, remainingCollateralUsd
 
     @staticmethod
     def _getExecutionPriceForDecrease(
-            indexTokenPrice: float,
-            sizeDeltaUsd: float,
-            positionSizeInTokens: float,
-            isLong: bool,
-            priceImpactUsd: float,
-            positionSizeInUsd: float,
-            acceptablePrice: float):
+        indexTokenPrice: float,
+        sizeDeltaUsd: float,
+        positionSizeInTokens: float,
+        isLong: bool,
+        priceImpactUsd: float,
+        positionSizeInUsd: float,
+        acceptablePrice: float,
+    ):
         price = indexTokenPrice
         executionPrice = price
         if sizeDeltaUsd > 0 and positionSizeInTokens > 0:
@@ -190,12 +202,18 @@ class PositionUtils:
             return executionPrice
 
     @staticmethod
-    def getExecutionPriceForDecrease(params: UpdatePositionParams, indexTokenPrice: Price, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
+    def getExecutionPriceForDecrease(
+        params: UpdatePositionParams, indexTokenPrice: Price, pool_status: GmxV2PoolStatus, pool_config: PoolConfig
+    ):
         sizeDeltaUsd = params.order.sizeDeltaUsd
         if sizeDeltaUsd == 0:
             return 0, 0, indexTokenPrice
-        priceImpactUsd = PositionPricingUtils.getPriceImpactUsd(GetPriceImpactUsdParams(isLong=params.order.isLong, usdDelta=-sizeDeltaUsd), pool_status, pool_config)
-        priceImpactUsd = MarketUtils.getCappedPositionImpactUsd(indexTokenPrice.max, priceImpactUsd, sizeDeltaUsd, pool_status, pool_config)
+        priceImpactUsd = PositionPricingUtils.getPriceImpactUsd(
+            GetPriceImpactUsdParams(isLong=params.order.isLong, usdDelta=-sizeDeltaUsd), pool_status, pool_config
+        )
+        priceImpactUsd = MarketUtils.getCappedPositionImpactUsd(
+            indexTokenPrice.max, priceImpactUsd, sizeDeltaUsd, pool_status, pool_config
+        )
 
         priceImpactDiffUsd = 0
         if priceImpactUsd < 0:
@@ -211,6 +229,6 @@ class PositionUtils:
             isLong=params.position.isLong,
             priceImpactUsd=priceImpactUsd,
             positionSizeInUsd=params.position.sizeInUsd,
-            acceptablePrice=params.order.acceptablePrice
+            acceptablePrice=params.order.acceptablePrice,
         )
         return priceImpactUsd, priceImpactDiffUsd, executionPrice

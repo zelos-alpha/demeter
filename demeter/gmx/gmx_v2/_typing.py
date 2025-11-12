@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import List
+from typing import List, NamedTuple
 
 import pandas as pd
 
@@ -55,18 +55,25 @@ class PoolConfig:
     maxFundingFactorPerSecond = 21476314029922083333333 / 10**30
 
 
-@dataclass
-class GmxV2Pool(object):
+class GmxV2Pool(NamedTuple):
     long_token: TokenInfo
     short_token: TokenInfo
     index_token: TokenInfo
-    market_token: TokenInfo = None
 
-@dataclass
-class PoolStatus:
-    pool: GmxV2Pool
-    status: pd.Series
-    config: PoolConfig
+    def __eq__(self, other):
+        if not isinstance(other, GmxV2Pool):
+            return False
+        return (
+            self.long_token == other.long_token
+            and self.short_token == other.short_token
+            and self.index_token == other.index_token
+        )
+
+    def __str__(self):
+        return f"{self.index_token.name}/USD[{self.long_token.name}-{self.short_token.name}]"
+
+    def __repr__(self):
+        return self.__str__()
 
 
 """
@@ -218,6 +225,12 @@ class GmxV2PoolStatus:
 
 
 @dataclass
+class PoolStatus:
+    status: pd.Series | GmxV2PoolStatus
+    config: PoolConfig
+
+
+@dataclass
 class LPResult:
     long_amount: float
     short_amount: float
@@ -246,14 +259,6 @@ class PositionResult:
     isLong: bool
 
 
-@dataclass
-class Market:
-    marketToken: str = ""
-    indexToken: str = ""
-    longToken: str = ""
-    shortToken: str = ""
-
-
 class OrderType(Enum):
     MarketSwap = 0
     LimitSwap = 1
@@ -274,23 +279,23 @@ class DecreasePositionSwapType(Enum):
 
 @dataclass
 class Order:
-    market: str = ""
-    initialCollateralToken: str = ""
-    swapPath: List = None
+    market: GmxV2Pool
+    initialCollateralToken: TokenInfo
+    swapPath: List[GmxV2Pool] = None
     orderType: OrderType = OrderType.LimitIncrease
     sizeDeltaUsd: float = 0
     initialCollateralDeltaAmount: float = 0
     triggerPrice: float = 0
     acceptablePrice: float = 0
-    isLong: bool = False
-    decreasePositionSwapType: DecreasePositionSwapType = DecreasePositionSwapType.NoSwap
+    isLong: bool | None = None
+    decreasePositionSwapType: DecreasePositionSwapType | None = None
 
 
 @dataclass
 class ExecuteOrderParams:
-    order: Order = None
-    swapPathMarkets: List = None
-    market: Market = None
+    order: Order
+    swapPathMarkets: List[GmxV2Pool]
+    market: GmxV2Pool
 
 
 @dataclass

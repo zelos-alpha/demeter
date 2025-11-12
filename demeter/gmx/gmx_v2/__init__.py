@@ -10,7 +10,6 @@ from ._typing import (
     Order,
     DecreasePositionSwapType,
     OrderType,
-    Market,
     PositionResult,
     LPResult,
     GmxV2PoolStatus,

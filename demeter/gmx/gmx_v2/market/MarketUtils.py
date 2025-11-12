@@ -1,7 +1,8 @@
 import dataclasses
 from typing import Tuple
 
-from demeter.gmx.gmx_v2._typing import PoolConfig, GmxV2PoolStatus, Market
+from demeter import TokenInfo, DemeterError
+from demeter.gmx.gmx_v2._typing import PoolConfig, GmxV2PoolStatus
 from demeter.gmx.gmx_v2.position.Position import Position
 from .._typing import GmxV2Pool
 
@@ -21,12 +22,12 @@ class MarketPrices:
 
 class MarketUtils:
     @staticmethod
-    def getAdjustedSwapImpactFactor(pool_config: PoolConfig, isPositive: bool) -> int:
+    def getAdjustedSwapImpactFactor(pool_config: PoolConfig, isPositive: bool) -> float:
         positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedSwapImpactFactors(pool_config)
         return positiveImpactFactor if isPositive else negativeImpactFactor
 
     @staticmethod
-    def getAdjustedSwapImpactFactors(pool_config: PoolConfig) -> (int, int):
+    def getAdjustedSwapImpactFactors(pool_config: PoolConfig) -> tuple[float, float]:
         positiveImpactFactor = pool_config.swapImpactFactorPositive
         negativeImpactFactor = pool_config.swapImpactFactorNegative
 
@@ -103,11 +104,13 @@ class MarketUtils:
         return amount, amount * price
 
     @staticmethod
-    def getOppositeToken(inputToken: str, market: Market) -> str:
-        if inputToken == market.longToken.address:
-            return market.shortToken
-        if inputToken == market.shortToken.address:
-            return market.longToken
+    def getOppositeToken(inputToken: TokenInfo, market: GmxV2Pool) -> TokenInfo:
+        if inputToken == market.long_token:
+            return market.short_token
+        elif inputToken == market.short_token:
+            return market.long_token
+        else:
+            raise DemeterError("input token should be long or short")
 
     @staticmethod
     def applySwapImpactWithCap(
@@ -120,9 +123,7 @@ class MarketUtils:
 
     @staticmethod
     def getFundingAmount(
-            latestFundingAmountPerSize: float,
-            positionFundingAmountPerSize: float,
-            positionSizeInUsd: float
+        latestFundingAmountPerSize: float, positionFundingAmountPerSize: float, positionSizeInUsd: float
     ) -> float:
         fundingDiffFactor = latestFundingAmountPerSize - positionFundingAmountPerSize
         fundingAmount = positionSizeInUsd * fundingDiffFactor  # todo denominator
@@ -139,7 +140,13 @@ class MarketUtils:
         return pool_status.cumulativeBorrowingFactorLong if isLong else pool_status.cumulativeBorrowingFactorShort
 
     @staticmethod
-    def getCappedPositionImpactUsd(indexTokenPrice: float, priceImpactUsd: float, sizeDeltaUsd: float, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
+    def getCappedPositionImpactUsd(
+        indexTokenPrice: float,
+        priceImpactUsd: float,
+        sizeDeltaUsd: float,
+        pool_status: GmxV2PoolStatus,
+        pool_config: PoolConfig,
+    ):
         if priceImpactUsd < 0:
             return priceImpactUsd
         impactPoolAmount = pool_status.positionImpactPoolAmount
@@ -161,12 +168,12 @@ class MarketUtils:
         return maxPositiveImpactFactor if isPositive else maxNegativeImpactFactor
 
     @staticmethod
-    def getPoolAmount(market: Market, poolAmount: float):
-        divisor = MarketUtils.getPoolDivisor(market.longToken, market.shortToken)
+    def getPoolAmount(market: GmxV2Pool, poolAmount: float):
+        divisor = MarketUtils.getPoolDivisor(market.long_token, market.short_token)
         return poolAmount / divisor
 
     @staticmethod
-    def getPoolDivisor(longToken: str, shortToken: str) -> int:
+    def getPoolDivisor(longToken: TokenInfo, shortToken: TokenInfo) -> int:
         return 2 if longToken == shortToken else 1
 
     @staticmethod
@@ -190,12 +197,18 @@ class MarketUtils:
     def getMinCollateralFactorForOpenInterest(isLong: bool, openInterestDelta: float, pool_status: GmxV2PoolStatus):
         openInterest = pool_status.openInterestLong if isLong else pool_status.openInterestShort
         openInterest = openInterest + openInterestDelta
-        multiplierFactor = pool_status.minCollateralFactorForOpenInterestMultiplierLong if isLong else pool_status.minCollateralFactorForOpenInterestMultiplierShort
+        multiplierFactor = (
+            pool_status.minCollateralFactorForOpenInterestMultiplierLong
+            if isLong
+            else pool_status.minCollateralFactorForOpenInterestMultiplierShort
+        )
         return openInterest * multiplierFactor
 
     @staticmethod
     def getAdjustedPositionImpactFactor(isPositive: bool, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
-        positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(pool_status, pool_config)
+        positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(
+            pool_status, pool_config
+        )
         return positiveImpactFactor if isPositive else negativeImpactFactor
 
     @staticmethod
@@ -233,15 +246,33 @@ class MarketUtils:
                 return pool_status.shortTokenClaimableFundingAmountPerSizeShort
 
     @staticmethod
-    def getNextBorrowingFees(pending_borrowing_time, position: Position, market: Market, prices: MarketPrices, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
-        nextCumulativeBorrowingFactor, _ = MarketUtils.getNextCumulativeBorrowingFactor(pending_borrowing_time, market, prices, position.isLong, pool_status, pool_config)
+    def getNextBorrowingFees(
+        pending_borrowing_time,
+        position: Position,
+        market: GmxV2Pool,
+        prices: MarketPrices,
+        pool_status: GmxV2PoolStatus,
+        pool_config: PoolConfig,
+    ):
+        nextCumulativeBorrowingFactor, _ = MarketUtils.getNextCumulativeBorrowingFactor(
+            pending_borrowing_time, market, prices, position.isLong, pool_status, pool_config
+        )
         diffFactor = nextCumulativeBorrowingFactor - position.borrowingFactor
         return position.sizeInUsd * diffFactor
 
     @staticmethod
-    def getNextCumulativeBorrowingFactor(pending_borrowing_time, market: Market, prices: MarketPrices, isLong: bool, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
+    def getNextCumulativeBorrowingFactor(
+        pending_borrowing_time,
+        market: GmxV2Pool,
+        prices: MarketPrices,
+        isLong: bool,
+        pool_status: GmxV2PoolStatus,
+        pool_config: PoolConfig,
+    ):
         durationInSeconds = pending_borrowing_time  # MarketUtils.getSecondsSinceCumulativeBorrowingFactorUpdated(isLong, pool_status)  # todo 传入数据
-        borrowingFactorPerSecond = MarketUtils.getBorrowingFactorPerSecond(isLong, prices, market, pool_status, pool_config)
+        borrowingFactorPerSecond = MarketUtils.getBorrowingFactorPerSecond(
+            isLong, prices, market, pool_status, pool_config
+        )
         cumulativeBorrowingFactor = MarketUtils.getCumulativeBorrowingFactor(isLong, pool_status)
         delta = durationInSeconds * borrowingFactorPerSecond
         nextCumulativeBorrowingFactor = cumulativeBorrowingFactor + delta
@@ -260,11 +291,15 @@ class MarketUtils:
         return 0  # todo
 
     @staticmethod
-    def getBorrowingFactorPerSecond(isLong: bool, prices: MarketPrices, market: Market, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
+    def getBorrowingFactorPerSecond(
+        isLong: bool, prices: MarketPrices, market: GmxV2Pool, pool_status: GmxV2PoolStatus, pool_config: PoolConfig
+    ):
         reservedUsd = MarketUtils.getReservedUsd(isLong, prices, market, pool_status)
         if reservedUsd == 0:
             return 0
-        skipBorrowingFeeForSmallerSide = pool_config.skip_borrowing_fee_for_smaller_side  # todo SKIP_BORROWING_FEE_FOR_SMALLER_SIDE
+        skipBorrowingFeeForSmallerSide = (
+            pool_config.skip_borrowing_fee_for_smaller_side
+        )  # todo SKIP_BORROWING_FEE_FOR_SMALLER_SIDE
         if skipBorrowingFeeForSmallerSide:
             longOpenInterest = MarketUtils.getOpenInterest(market, True, pool_status)
             shortOpenInterest = MarketUtils.getOpenInterest(market, False, pool_status)
@@ -275,7 +310,9 @@ class MarketUtils:
         poolUsd = MarketUtils.getPoolUsdWithoutPnl(market, prices, isLong, pool_status)  # done
         optimalUsageFactor = 0.75  # todo 最佳利用率 config
         if optimalUsageFactor != 0:
-            return MarketUtils.getKinkBorrowingFactor(market, isLong, reservedUsd, poolUsd, pool_config, pool_status, optimalUsageFactor)  # todo
+            return MarketUtils.getKinkBorrowingFactor(
+                market, isLong, reservedUsd, poolUsd, pool_config, pool_status, optimalUsageFactor
+            )  # todo
         borrowingExponentFactor = 0  # getBorrowingExponentFactor
         reservedUsdToPoolFactor = reservedUsd * borrowingExponentFactor
         borrowingFactor = 0  # todo
@@ -283,16 +320,26 @@ class MarketUtils:
 
     @staticmethod
     def getPoolUsdWithoutPnl(market, prices, isLong, pool_status):
-        token = market.longToken if isLong else market.shortToken
-        _poolAmount = pool_status.longAmount if token == market.longToken else pool_status.shortAmount
+        token = market.long_token if isLong else market.short_token
+        _poolAmount = pool_status.longAmount if token == market.long_token else pool_status.shortAmount
         poolAmount = MarketUtils.getPoolAmount(market, _poolAmount)
         tokenPrice = prices.longTokenPrice.max if isLong else prices.shortTokenPrice.max
         return poolAmount * tokenPrice
 
     @staticmethod
-    def getKinkBorrowingFactor(market, isLong, reservedUsd, poolUsd, pool_config: PoolConfig, pool_status: GmxV2PoolStatus, optimalUsageFactor=0.75):
+    def getKinkBorrowingFactor(
+        market,
+        isLong,
+        reservedUsd,
+        poolUsd,
+        pool_config: PoolConfig,
+        pool_status: GmxV2PoolStatus,
+        optimalUsageFactor=0.75,
+    ):
         usageFactor = MarketUtils.getUsageFactor(market, isLong, reservedUsd, poolUsd, pool_config, pool_status)  # todo
-        baseBorrowingFactor = pool_config.baseBorrowingFactorLong if isLong else pool_config.baseBorrowingFactorShort  # todo config
+        baseBorrowingFactor = (
+            pool_config.baseBorrowingFactorLong if isLong else pool_config.baseBorrowingFactorShort
+        )  # todo config
         borrowingFactorPerSecond = usageFactor * baseBorrowingFactor
         if usageFactor > optimalUsageFactor and 1 > optimalUsageFactor:  # 1 > 0.75
             diff = usageFactor - optimalUsageFactor
@@ -327,7 +374,7 @@ class MarketUtils:
         return 45769000000000000000000000000000000000
 
     @staticmethod
-    def getReservedUsd(isLong: bool, prices: MarketPrices, market: Market, pool_status: GmxV2PoolStatus):
+    def getReservedUsd(isLong: bool, prices: MarketPrices, market: GmxV2Pool, pool_status: GmxV2PoolStatus):
         if isLong:
             openInterestInTokens = MarketUtils.getOpenInterestInTokens(market, isLong, pool_status)
             reservedUsd = openInterestInTokens * prices.indexTokenPrice.max
@@ -336,16 +383,16 @@ class MarketUtils:
         return reservedUsd
 
     @staticmethod
-    def getOpenInterestInTokens(market: Market, isLong: bool, pool_status: GmxV2PoolStatus):
-        divisor = 2 if market.longToken == market.shortToken else 1
+    def getOpenInterestInTokens(market: GmxV2Pool, isLong: bool, pool_status: GmxV2PoolStatus):
+        divisor = 2 if market.long_token == market.short_token else 1
         if isLong:
             return pool_status.openInterestInTokensLong / divisor
         else:
             return pool_status.openInterestInTokensShort / divisor
 
     @staticmethod
-    def getOpenInterest(market: Market, isLong: bool, pool_status: GmxV2PoolStatus):
-        divisor = 2 if market.longToken == market.shortToken else 1
+    def getOpenInterest(market: GmxV2Pool, isLong: bool, pool_status: GmxV2PoolStatus):
+        divisor = 2 if market.long_token == market.short_token else 1
         if isLong:
             return pool_status.openInterestLong / divisor
         else:

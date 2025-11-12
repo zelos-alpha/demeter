@@ -1,7 +1,7 @@
 from ..position.PositionUtils import UpdatePositionParams, DecreasePositionCache
 from ..position.PositionUtils import PositionUtils, WillPositionCollateralBeSufficientValues
 from .DecreasePositionCollateralUtils import DecreasePositionCollateralUtils
-from .._typing import GmxV2PoolStatus, PoolConfig, Market, GmxV2Pool
+from .._typing import GmxV2PoolStatus, PoolConfig, GmxV2Pool
 from ..market.MarketUtils import MarketPrices, Price, MarketUtils
 
 
@@ -16,12 +16,7 @@ class DecreasePositionUtils:
             longTokenPrice=Price(min=pool_status.longPrice, max=pool_status.longPrice),
             shortTokenPrice=Price(min=pool_status.shortPrice, max=pool_status.shortPrice),
         )
-        market = Market(
-            marketToken=pool.market_token.address,
-            indexToken=pool.index_token.address,
-            longToken=pool.long_token.address,
-            shortToken=pool.short_token.address,
-        )
+
         if params.order.initialCollateralToken == pool.index_token:
             cache.collateralTokenPrice = cache.prices.indexTokenPrice
         if params.order.initialCollateralToken == pool.short_token:
@@ -31,7 +26,7 @@ class DecreasePositionUtils:
 
         if params.order.sizeDeltaUsd < params.position.sizeInUsd:
             cache.estimatedPositionPnlUsd, _, _ = PositionUtils.getPositionPnlUsd(
-                market, cache.prices, params.position, params.position.sizeInUsd, pool_status, pool_config
+                pool, cache.prices, params.position, params.position.sizeInUsd, pool_status, pool_config
             )
             cache.estimatedRealizedPnlUsd = (
                 cache.estimatedPositionPnlUsd * params.order.sizeDeltaUsd / params.position.sizeInUsd
@@ -65,7 +60,7 @@ class DecreasePositionUtils:
         if params.order.sizeDeltaUsd == params.position.sizeInUsd and params.order.initialCollateralDeltaAmount > 0:
             params.order.initialCollateralDeltaAmount = 0
 
-        cache.pnlToken = market.longToken if params.position.isLong else market.shortToken
+        cache.pnlToken = pool.long_token if params.position.isLong else pool.short_token
         cache.pnlTokenPrice = cache.prices.longTokenPrice if params.position.isLong else cache.prices.shortTokenPrice
 
         cache.initialCollateralAmount = params.position.collateralAmount

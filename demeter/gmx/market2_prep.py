@@ -19,7 +19,7 @@ from .gmx_v2.market.MarketUtils import MarketUtils
 from .gmx_v2.reader.ReaderPositionUtils import ReaderPositionUtils
 from .gmx_v2._typing import OrderType, DecreasePositionSwapType, PoolStatus, Order
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
-from .. import TokenInfo, DECIMAL_0, ChainType, UnitDecimal
+from .. import TokenInfo, DECIMAL_0, ChainType, UnitDecimal, DemeterError
 from .._typing import USD
 from ..broker import MarketInfo
 from ..broker.prep_market import PrepMarket
@@ -31,7 +31,7 @@ class GmxV2PerpMarket(PrepMarket):
         self, market_info: MarketInfo, pool: GmxV2Pool, data: pd.DataFrame | None = None, data_path: str = "./data"
     ):
         super().__init__(market_info=market_info, data=data, data_path=data_path)
-        self.pool = pool
+        self.pool: GmxV2Pool = pool
 
         self.cumulative_borrowing = {
             "cumulativeBorrowingFactorLong": {"value": 0, "time": None},
@@ -185,12 +185,9 @@ class GmxV2PerpMarket(PrepMarket):
         isLong,
     ):
 
-        pool_status = {
-            self.pool.market_token.address: PoolStatus(self.pool, self._market_status.data, self.pool_config)
-        }
-
+        pool_status = {self.pool: PoolStatus(self._market_status.data, self.pool_config)}
         order = Order(
-            market=self.pool.market_token.address,
+            market=self.pool,
             initialCollateralToken=initialCollateralToken,
             swapPath=[],
             orderType=OrderType.MarketIncrease,
@@ -237,12 +234,10 @@ class GmxV2PerpMarket(PrepMarket):
         isLong,
     ):
 
-        pool_status = {
-            self.pool.market_token.address: PoolStatus(self.pool, self._market_status.data, self.pool_config)
-        }
+        pool_status = {self.pool: PoolStatus(self._market_status.data, self.pool_config)}
 
         order = Order(
-            market=self.pool.market_token.address,
+            market=self.pool,
             initialCollateralToken=initialCollateralToken,
             swapPath=[],
             orderType=OrderType.MarketDecrease,
@@ -291,8 +286,25 @@ class GmxV2PerpMarket(PrepMarket):
         )
         return result
 
-    def swap(self, from_token, to_token, amount):
+    def swap(self, from_token, amount: float | Decimal):
+        if from_token not in [self.pool.long_token, self.pool.short_token]:
+            raise DemeterError("Swap token must be long or short")
 
-        pool_status = {
-            self.pool.market_token.address: PoolStatus(self.pool, self._market_status.data, self.pool_config)
-        }
+        pool_status = {self.pool: PoolStatus(self._market_status.data, self.pool_config)}
+
+        order = Order(
+            market=self.pool,
+            initialCollateralToken=from_token,
+            swapPath=[self.pool],
+            orderType=OrderType.MarketSwap,
+            sizeDeltaUsd=0,
+            initialCollateralDeltaAmount=amount,
+        )
+
+        ret_Values = ExecuteOrderUtils.executeOrder(
+            order=order,
+            status=pool_status,
+            positions=None,
+        )
+
+        print(ret_Values)
