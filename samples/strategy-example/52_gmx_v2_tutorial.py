@@ -3,8 +3,7 @@ from datetime import date, datetime
 import pandas as pd
 
 from demeter import TokenInfo, Actuator, Strategy, Snapshot, ChainType, MarketInfo, AtTimeTrigger, MarketTypeEnum
-from demeter.gmx import GmxV2LpMarket
-from demeter.gmx._typing2 import GmxV2Pool
+from demeter.gmx import GmxV2LpMarket, GmxV2Pool
 
 # To print all the columns of dataframe, we should set up display option.
 pd.options.display.max_columns = None

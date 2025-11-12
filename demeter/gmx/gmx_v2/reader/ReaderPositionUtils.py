@@ -1,11 +1,21 @@
 from dataclasses import dataclass
-from demeter.gmx.gmx_v2.position.Position import Position
-from demeter.gmx.gmx_v2.pricing.PositionPricingUtils import PositionFees, GetPositionFeesParams, PositionPricingUtils
-from demeter.gmx.gmx_v2.position.PositionUtils import UpdatePositionParams, PositionUtils
-from demeter.gmx.gmx_v2._typing import Market, Prices, Order, GmxV2PoolStatus, PoolConfig, GetNextFundingAmountPerSizeResult, GetNextFundingAmountPerSizeCache, GetNextFundingFactorPerSecondCache, FundingConfigCache, FundingRateChangeType
-from demeter.gmx._typing2 import GmxV2Pool
-from demeter.gmx.gmx_v2.market.MarketUtils import Price, MarketUtils, MarketPrices
-
+from ..position.Position import Position
+from ..pricing.PositionPricingUtils import PositionFees, GetPositionFeesParams, PositionPricingUtils
+from ..position.PositionUtils import UpdatePositionParams, PositionUtils
+from .._typing import (
+    Market,
+    Prices,
+    Order,
+    GmxV2PoolStatus,
+    PoolConfig,
+    GetNextFundingAmountPerSizeResult,
+    GetNextFundingAmountPerSizeCache,
+    GetNextFundingFactorPerSecondCache,
+    FundingConfigCache,
+    FundingRateChangeType,
+    GmxV2Pool,
+)
+from ..market.MarketUtils import Price, MarketUtils, MarketPrices
 
 
 @dataclass
@@ -34,11 +44,16 @@ class PositionInfo:
 class ReaderPositionUtils:
 
     @staticmethod
-    def getPositionInfo(pending_borrowing_time, position, collateralTokenPrice, pool_status: GmxV2PoolStatus, pool_config: PoolConfig, pool: GmxV2Pool):
+    def getPositionInfo(
+        pending_borrowing_time,
+        position,
+        collateralTokenPrice,
+        pool_status: GmxV2PoolStatus,
+        pool_config: PoolConfig,
+        pool: GmxV2Pool,
+    ):
         market = Market(
-            indexToken=pool.index_token.address,
-            longToken=pool.long_token.address,
-            shortToken=pool.short_token.address
+            indexToken=pool.index_token.address, longToken=pool.long_token.address, shortToken=pool.short_token.address
         )
         prices = MarketPrices(
             indexTokenPrice=Price(min=pool_status.indexPrice, max=pool_status.indexPrice),
@@ -61,7 +76,7 @@ class ReaderPositionUtils:
             -sizeDeltaUsd,
             positionInfo.position.isLong,
             pool_status,
-            pool_config
+            pool_config,
         )
 
         getPositionFeesParams = GetPositionFeesParams(
@@ -69,12 +84,16 @@ class ReaderPositionUtils:
             collateralTokenPrice=collateralTokenPrice,
             forPositiveImpact=positionInfo.executionPriceResult.priceImpactUsd > 0,
             sizeDeltaUsd=sizeDeltaUsd,
-            isLiquidation=False
+            isLiquidation=False,
         )
 
         positionInfo.fees = PositionPricingUtils.getPositionFees(getPositionFeesParams, pool_status, pool_config, pool)
-        cache.pendingBorrowingFeeUsd = MarketUtils.getNextBorrowingFees(pending_borrowing_time, positionInfo.position, cache.market, prices, pool_status, pool_config)
-        positionInfo.fees.borrowing = PositionPricingUtils.getBorrowingFees(cache.collateralTokenPrice, cache.pendingBorrowingFeeUsd, pool_status, pool_config)
+        cache.pendingBorrowingFeeUsd = MarketUtils.getNextBorrowingFees(
+            pending_borrowing_time, positionInfo.position, cache.market, prices, pool_status, pool_config
+        )
+        positionInfo.fees.borrowing = PositionPricingUtils.getBorrowingFees(
+            cache.collateralTokenPrice, cache.pendingBorrowingFeeUsd, pool_status, pool_config
+        )
 
         # nextFundingAmountResult = ReaderPositionUtils.getNextFundingAmountPerSize(market, prices, pool_status)  # todo
         # positionInfo.fees.funding.latestFundingFeeAmountPerSize = MarketUtils.getFundingFeeAmountPerSize(positionInfo.position.collateralToken, positionInfo.position.isLong, pool, pool_status)
@@ -100,11 +119,19 @@ class ReaderPositionUtils:
         #
         # positionInfo.fees.funding = PositionPricingUtils.getFundingFees(positionInfo.fees.funding, positionInfo.position)
 
-        positionInfo.basePnlUsd, positionInfo.uncappedBasePnlUsd, _ = PositionUtils.getPositionPnlUsd(cache.market, prices, positionInfo.position, sizeDeltaUsd, pool_status, pool_config)
+        positionInfo.basePnlUsd, positionInfo.uncappedBasePnlUsd, _ = PositionUtils.getPositionPnlUsd(
+            cache.market, prices, positionInfo.position, sizeDeltaUsd, pool_status, pool_config
+        )
         positionInfo.pnlAfterPriceImpactUsd = positionInfo.executionPriceResult.priceImpactUsd + positionInfo.basePnlUsd
 
-        positionInfo.fees.totalCostAmountExcludingFunding = positionInfo.fees.positionFeeAmount + positionInfo.fees.borrowing.borrowingFeeAmount - positionInfo.fees.totalDiscountAmount
-        positionInfo.fees.totalCostAmount = positionInfo.fees.totalCostAmountExcludingFunding + positionInfo.fees.funding.fundingFeeAmount
+        positionInfo.fees.totalCostAmountExcludingFunding = (
+            positionInfo.fees.positionFeeAmount
+            + positionInfo.fees.borrowing.borrowingFeeAmount
+            - positionInfo.fees.totalDiscountAmount
+        )
+        positionInfo.fees.totalCostAmount = (
+            positionInfo.fees.totalCostAmountExcludingFunding + positionInfo.fees.funding.fundingFeeAmount
+        )
         return positionInfo
 
     @staticmethod
@@ -117,40 +144,72 @@ class ReaderPositionUtils:
         if cache.longOpenInterest == 0 or cache.shortOpenInterest == 0:
             return result
         cache.durationInSeconds = 0  # getSecondsSinceFundingUpdated()  # todo 传进来
-        cache.sizeOfLargerSide = cache.longOpenInterest if cache.longOpenInterest > cache.shortOpenInterest else cache.shortOpenInterest
-        result.fundingFactorPerSecond, result.longsPayShorts, result.nextSavedFundingFactorPerSecond = ReaderPositionUtils.getNextFundingFactorPerSecond()
+        cache.sizeOfLargerSide = (
+            cache.longOpenInterest if cache.longOpenInterest > cache.shortOpenInterest else cache.shortOpenInterest
+        )
+        result.fundingFactorPerSecond, result.longsPayShorts, result.nextSavedFundingFactorPerSecond = (
+            ReaderPositionUtils.getNextFundingFactorPerSecond()
+        )
         cache.fundingUsd = cache.sizeOfLargerSide * cache.durationInSeconds * result.fundingFactorPerSecond  # todo
         cache.fundingUsd = cache.fundingUsd / divisor
         if result.longsPayShorts:
-            cache.fundingUsdForLongCollateral = cache.fundingUsd * cache.openInterest.long.longToken / cache.longOpenInterest
-            cache.fundingUsdForShortCollateral = cache.fundingUsd * cache.openInterest.long.shortToken / cache.longOpenInterest
+            cache.fundingUsdForLongCollateral = (
+                cache.fundingUsd * cache.openInterest.long.longToken / cache.longOpenInterest
+            )
+            cache.fundingUsdForShortCollateral = (
+                cache.fundingUsd * cache.openInterest.long.shortToken / cache.longOpenInterest
+            )
         else:
-            cache.fundingUsdForLongCollateral = cache.fundingUsd * cache.openInterest.short.longToken / cache.shortOpenInterest
-            cache.fundingUsdForShortCollateral = cache.fundingUsd * cache.openInterest.short.shortToken / cache.shortOpenInterest
+            cache.fundingUsdForLongCollateral = (
+                cache.fundingUsd * cache.openInterest.short.longToken / cache.shortOpenInterest
+            )
+            cache.fundingUsdForShortCollateral = (
+                cache.fundingUsd * cache.openInterest.short.shortToken / cache.shortOpenInterest
+            )
 
         if result.longsPayShorts:
-            result.fundingFeeAmountPerSizeDelta.long.longToken = MarketUtils.getFundingAmountPerSizeDelta(cache.fundingUsdForLongCollateral, cache.openInterest.long.longToken, prices.longTokenPrice.max)
-            result.fundingFeeAmountPerSizeDelta.long.shortToken = MarketUtils.getFundingAmountPerSizeDelta(cache.fundingUsdForShortCollateral, cache.openInterest.long.shortToken, prices.shortTokenPrice.max)
-            result.claimableFundingAmountPerSizeDelta.short.longToken = MarketUtils.getFundingAmountPerSizeDelta(cache.fundingUsdForLongCollateral,cache.shortOpenInterest, prices.longTokenPrice.max)
-            result.claimableFundingAmountPerSizeDelta.short.shortToken = MarketUtils.getFundingAmountPerSizeDelta(cache.fundingUsdForShortCollateral, cache.shortOpenInterest, prices.shortTokenPrice.max)
+            result.fundingFeeAmountPerSizeDelta.long.longToken = MarketUtils.getFundingAmountPerSizeDelta(
+                cache.fundingUsdForLongCollateral, cache.openInterest.long.longToken, prices.longTokenPrice.max
+            )
+            result.fundingFeeAmountPerSizeDelta.long.shortToken = MarketUtils.getFundingAmountPerSizeDelta(
+                cache.fundingUsdForShortCollateral, cache.openInterest.long.shortToken, prices.shortTokenPrice.max
+            )
+            result.claimableFundingAmountPerSizeDelta.short.longToken = MarketUtils.getFundingAmountPerSizeDelta(
+                cache.fundingUsdForLongCollateral, cache.shortOpenInterest, prices.longTokenPrice.max
+            )
+            result.claimableFundingAmountPerSizeDelta.short.shortToken = MarketUtils.getFundingAmountPerSizeDelta(
+                cache.fundingUsdForShortCollateral, cache.shortOpenInterest, prices.shortTokenPrice.max
+            )
         else:
-            result.fundingFeeAmountPerSizeDelta.short.longToken = MarketUtils.getFundingAmountPerSizeDelta(cache.fundingUsdForLongCollateral, cache.openInterest.short.longToken, prices.longTokenPrice.max)
-            result.fundingFeeAmountPerSizeDelta.short.shortToken = MarketUtils.getFundingAmountPerSizeDelta(cache.fundingUsdForShortCollateral, cache.openInterest.short.shortToken, prices.shortTokenPrice.max)
-            result.claimableFundingAmountPerSizeDelta.long.longToken = MarketUtils.getFundingAmountPerSizeDelta(cache.fundingUsdForLongCollateral, cache.longOpenInterest, prices.longTokenPrice.max)
-            result.claimableFundingAmountPerSizeDelta.long.shortToken = MarketUtils.getFundingAmountPerSizeDelta(cache.fundingUsdForShortCollateral, cache.longOpenInterest, prices.shortTokenPrice.max)
+            result.fundingFeeAmountPerSizeDelta.short.longToken = MarketUtils.getFundingAmountPerSizeDelta(
+                cache.fundingUsdForLongCollateral, cache.openInterest.short.longToken, prices.longTokenPrice.max
+            )
+            result.fundingFeeAmountPerSizeDelta.short.shortToken = MarketUtils.getFundingAmountPerSizeDelta(
+                cache.fundingUsdForShortCollateral, cache.openInterest.short.shortToken, prices.shortTokenPrice.max
+            )
+            result.claimableFundingAmountPerSizeDelta.long.longToken = MarketUtils.getFundingAmountPerSizeDelta(
+                cache.fundingUsdForLongCollateral, cache.longOpenInterest, prices.longTokenPrice.max
+            )
+            result.claimableFundingAmountPerSizeDelta.long.shortToken = MarketUtils.getFundingAmountPerSizeDelta(
+                cache.fundingUsdForShortCollateral, cache.longOpenInterest, prices.shortTokenPrice.max
+            )
         return result
 
     @staticmethod
     def getNextFundingFactorPerSecond(longOpenInterest, shortOpenInterest, durationInSeconds, pool_config: PoolConfig):
         cache = GetNextFundingFactorPerSecondCache()
-        cache.diffUsd = longOpenInterest - shortOpenInterest if longOpenInterest > shortOpenInterest else shortOpenInterest - longOpenInterest
+        cache.diffUsd = (
+            longOpenInterest - shortOpenInterest
+            if longOpenInterest > shortOpenInterest
+            else shortOpenInterest - longOpenInterest
+        )
         cache.totalOpenInterest = longOpenInterest + shortOpenInterest
         configCache = FundingConfigCache()
         configCache.fundingIncreaseFactorPerSecond = pool_config.fundingIncreaseFactorPerSecond  # todo from config
         if cache.diffUsd == 0 and configCache.fundingIncreaseFactorPerSecond == 0:
             return 0, True, 0
         cache.fundingExponentFactor = pool_config.fundingExponentFactor
-        cache.diffUsdAfterExponent = cache.diffUsd ** cache.fundingExponentFactor
+        cache.diffUsdAfterExponent = cache.diffUsd**cache.fundingExponentFactor
         cache.diffUsdToOpenInterestFactor = cache.diffUsdAfterExponent / cache.totalOpenInterest
         if configCache.fundingIncreaseFactorPerSecond == 0:
             cache.fundingFactor = pool_config.fundingFactor
@@ -165,7 +224,9 @@ class ReaderPositionUtils:
         configCache.thresholdForDecreaseFunding = pool_config.thresholdForDecreaseFunding
         cache.nextSavedFundingFactorPerSecond = cache.savedFundingFactorPerSecond
         fundingRateChangeType = FundingRateChangeType.NoChange
-        isSkewTheSameDirectionAsFunding = (cache.savedFundingFactorPerSecond > 0 and longOpenInterest > shortOpenInterest) or (cache.savedFundingFactorPerSecond < 0 and shortOpenInterest > longOpenInterest)
+        isSkewTheSameDirectionAsFunding = (
+            cache.savedFundingFactorPerSecond > 0 and longOpenInterest > shortOpenInterest
+        ) or (cache.savedFundingFactorPerSecond < 0 and shortOpenInterest > longOpenInterest)
         if isSkewTheSameDirectionAsFunding:
             if cache.diffUsdToOpenInterestFactor > configCache.thresholdForStableFunding:
                 fundingRateChangeType = FundingRateChangeType.Increase
@@ -175,8 +236,10 @@ class ReaderPositionUtils:
             fundingRateChangeType = FundingRateChangeType.Increase
 
         if fundingRateChangeType == FundingRateChangeType.Increase:
-            increaseValue = cache.diffUsdToOpenInterestFactor * configCache.fundingIncreaseFactorPerSecond * durationInSeconds
-            if  longOpenInterest < shortOpenInterest:
+            increaseValue = (
+                cache.diffUsdToOpenInterestFactor * configCache.fundingIncreaseFactorPerSecond * durationInSeconds
+            )
+            if longOpenInterest < shortOpenInterest:
                 increaseValue = -increaseValue
             cache.nextSavedFundingFactorPerSecond = cache.savedFundingFactorPerSecond + increaseValue
 
@@ -184,18 +247,32 @@ class ReaderPositionUtils:
             configCache.fundingDecreaseFactorPerSecond = pool_config.fundingDecreaseFactorPerSecond
             decreaseValue = configCache.fundingDecreaseFactorPerSecond * durationInSeconds
             if cache.savedFundingFactorPerSecondMagnitude <= decreaseValue:
-                cache.nextSavedFundingFactorPerSecond = cache.savedFundingFactorPerSecond / cache.savedFundingFactorPerSecondMagnitude
+                cache.nextSavedFundingFactorPerSecond = (
+                    cache.savedFundingFactorPerSecond / cache.savedFundingFactorPerSecondMagnitude
+                )
             else:
                 sign = cache.savedFundingFactorPerSecond / cache.savedFundingFactorPerSecondMagnitude
-                cache.nextSavedFundingFactorPerSecond = (cache.savedFundingFactorPerSecondMagnitude - decreaseValue) * sign
+                cache.nextSavedFundingFactorPerSecond = (
+                    cache.savedFundingFactorPerSecondMagnitude - decreaseValue
+                ) * sign
 
         configCache.minFundingFactorPerSecond = pool_config.minFundingFactorPerSecond
         configCache.maxFundingFactorPerSecond = pool_config.maxFundingFactorPerSecond
 
-        cache.nextSavedFundingFactorPerSecond = ReaderPositionUtils.boundMagnitude(cache.nextSavedFundingFactorPerSecond, 0, configCache.maxFundingFactorPerSecond)
-        cache.nextSavedFundingFactorPerSecondWithMinBound = ReaderPositionUtils.boundMagnitude(cache.nextSavedFundingFactorPerSecond, configCache.minFundingFactorPerSecond, configCache.maxFundingFactorPerSecond)
+        cache.nextSavedFundingFactorPerSecond = ReaderPositionUtils.boundMagnitude(
+            cache.nextSavedFundingFactorPerSecond, 0, configCache.maxFundingFactorPerSecond
+        )
+        cache.nextSavedFundingFactorPerSecondWithMinBound = ReaderPositionUtils.boundMagnitude(
+            cache.nextSavedFundingFactorPerSecond,
+            configCache.minFundingFactorPerSecond,
+            configCache.maxFundingFactorPerSecond,
+        )
 
-        return abs(cache.nextSavedFundingFactorPerSecondWithMinBound), cache.nextSavedFundingFactorPerSecondWithMinBound > 0, cache.nextSavedFundingFactorPerSecond
+        return (
+            abs(cache.nextSavedFundingFactorPerSecondWithMinBound),
+            cache.nextSavedFundingFactorPerSecondWithMinBound > 0,
+            cache.nextSavedFundingFactorPerSecond,
+        )
 
     @staticmethod
     def boundMagnitude(_value, min, max):
@@ -216,7 +293,7 @@ class ReaderPositionUtils:
         sizeDeltaUsd: float,
         isLong: bool,
         pool_status: GmxV2PoolStatus,
-        pool_config: PoolConfig
+        pool_config: PoolConfig,
     ):
         position = Position()
         position.sizeInUsd = positionSizeInUsd
@@ -229,17 +306,16 @@ class ReaderPositionUtils:
 
         result = ExecutionPriceResult()
 
-        params = UpdatePositionParams(
-            market,
-            order,
-            position,
-            ''
-        )
+        params = UpdatePositionParams(market, order, position, "")
 
         if sizeDeltaUsd > 0:
-            result.priceImpactUsd, _, _, result.executionPrice = PositionUtils.getExecutionPriceForIncrease(params, indexTokenPrice, pool_status, pool_config)
+            result.priceImpactUsd, _, _, result.executionPrice = PositionUtils.getExecutionPriceForIncrease(
+                params, indexTokenPrice, pool_status, pool_config
+            )
         else:
             indexTokenPrice = Price(min=indexTokenPrice, max=indexTokenPrice)
-            result.priceImpactUsd, result.priceImpactDiffUsd, result.executionPrice = PositionUtils.getExecutionPriceForDecrease(params, indexTokenPrice, pool_status, pool_config)
+            result.priceImpactUsd, result.priceImpactDiffUsd, result.executionPrice = (
+                PositionUtils.getExecutionPriceForDecrease(params, indexTokenPrice, pool_status, pool_config)
+            )
 
         return result

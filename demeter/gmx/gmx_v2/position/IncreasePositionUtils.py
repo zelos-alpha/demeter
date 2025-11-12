@@ -1,8 +1,7 @@
-from demeter.gmx.gmx_v2.position.PositionUtils import UpdatePositionParams, PositionUtils
-from demeter.gmx.gmx_v2.pricing.PositionPricingUtils import GetPositionFeesParams, PositionPricingUtils
-from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils
-from demeter.gmx.gmx_v2._typing import PoolConfig, GmxV2PoolStatus
-from demeter.gmx._typing2 import GmxV2Pool
+from ..position.PositionUtils import UpdatePositionParams, PositionUtils
+from ..pricing.PositionPricingUtils import GetPositionFeesParams, PositionPricingUtils
+from ..market.MarketUtils import MarketUtils
+from .._typing import PoolConfig, GmxV2PoolStatus,GmxV2Pool
 
 
 class IncreasePositionUtils:

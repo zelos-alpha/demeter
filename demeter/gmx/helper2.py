@@ -6,9 +6,7 @@ import pandas as pd
 
 from demeter import ChainType, MarketTypeEnum
 from demeter.data import CacheManager
-from demeter.utils import to_decimal
-from ._typing import PRICE_PRECISION
-from ._typing2 import GmxV2Pool
+from .gmx_v2 import GmxV2Pool
 
 
 def get_price_from_v2_data(data: pd.DataFrame, pool: GmxV2Pool) -> pd.DataFrame:

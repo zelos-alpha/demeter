@@ -1,11 +1,10 @@
 from dataclasses import dataclass
-from decimal import Decimal
 from enum import Enum
 from typing import List
 
 import pandas as pd
 
-from demeter.gmx import GmxV2Pool
+from demeter import TokenInfo
 
 
 @dataclass
@@ -55,6 +54,13 @@ class PoolConfig:
     minFundingFactorPerSecond = 317097919837645865043 / 10**30
     maxFundingFactorPerSecond = 21476314029922083333333 / 10**30
 
+
+@dataclass
+class GmxV2Pool(object):
+    long_token: TokenInfo
+    short_token: TokenInfo
+    index_token: TokenInfo
+    market_token: TokenInfo = None
 
 @dataclass
 class PoolStatus:

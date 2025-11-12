@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils
-from demeter.gmx.gmx_v2.position.Position import Position
-from demeter.gmx.gmx_v2._typing import GmxV2PoolStatus, PoolConfig
-from demeter.gmx.gmx_v2.utils import PricingUtils
-from demeter.gmx._typing2 import GmxV2Pool
+from ..market.MarketUtils import MarketUtils
+from ..position.Position import Position
+from .._typing import GmxV2PoolStatus, PoolConfig, GmxV2Pool
+from ..utils import PricingUtils
 
 
 @dataclass
@@ -83,9 +82,15 @@ class PositionPricingUtils:
         virtualInventory = pool_status.virtualInventoryForPositions
         if virtualInventory is None:
             return priceImpactUsd
-        openInterestParamsForVirtualInventory = PositionPricingUtils.getNextOpenInterestForVirtualInventory(virtualInventory, params)
-        priceImpactUsdForVirtualInventory = PositionPricingUtils._getPriceImpactUsd(openInterestParamsForVirtualInventory, pool_status, pool_config)
-        return priceImpactUsdForVirtualInventory if priceImpactUsdForVirtualInventory < priceImpactUsd else priceImpactUsd
+        openInterestParamsForVirtualInventory = PositionPricingUtils.getNextOpenInterestForVirtualInventory(
+            virtualInventory, params
+        )
+        priceImpactUsdForVirtualInventory = PositionPricingUtils._getPriceImpactUsd(
+            openInterestParamsForVirtualInventory, pool_status, pool_config
+        )
+        return (
+            priceImpactUsdForVirtualInventory if priceImpactUsdForVirtualInventory < priceImpactUsd else priceImpactUsd
+        )
 
     @staticmethod
     def getNextOpenInterestForVirtualInventory(virtualInventory: int, params: GetPriceImpactUsdParams):
@@ -93,22 +98,26 @@ class PositionPricingUtils:
         if virtualInventory > 0:
             shortOpenInterest = virtualInventory
         else:
-            longOpenInterest = (-virtualInventory)
+            longOpenInterest = -virtualInventory
         if params.usdDelta < 0:
-            offset = (-params.usdDelta)
+            offset = -params.usdDelta
             longOpenInterest += offset
             shortOpenInterest += offset
         return PositionPricingUtils.getNextOpenInterestParams(params, longOpenInterest, shortOpenInterest)
 
     @staticmethod
-    def _getPriceImpactUsd(openInterestParams: OpenInterestParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
+    def _getPriceImpactUsd(
+        openInterestParams: OpenInterestParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig
+    ):
         initialDiffUsd = abs(openInterestParams.longOpenInterest - openInterestParams.shortOpenInterest)
         nextDiffUsd = abs(openInterestParams.nextLongOpenInterest - openInterestParams.nextShortOpenInterest)
 
-        isSameSideRebalance = (openInterestParams.longOpenInterest <= openInterestParams.shortOpenInterest) == (openInterestParams.nextLongOpenInterest <= openInterestParams.nextShortOpenInterest)
+        isSameSideRebalance = (openInterestParams.longOpenInterest <= openInterestParams.shortOpenInterest) == (
+            openInterestParams.nextLongOpenInterest <= openInterestParams.nextShortOpenInterest
+        )
         impactExponentFactor = pool_config.positionImpactExponentFactor
         if isSameSideRebalance:
-            hasPositiveImpact = (nextDiffUsd < initialDiffUsd)
+            hasPositiveImpact = nextDiffUsd < initialDiffUsd
             impactFactor = MarketUtils.getAdjustedPositionImpactFactor(hasPositiveImpact, pool_status, pool_config)
             return PricingUtils.getPriceImpactUsdForSameSideRebalance(
                 initialDiffUsd, nextDiffUsd, impactFactor, impactExponentFactor
@@ -119,7 +128,9 @@ class PositionPricingUtils:
         # impactExponentFactor 1655417464419320500000000000000 = 1.6554174644193205
         # 175.8519499036393
         else:
-            positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(pool_status, pool_config)
+            positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(
+                pool_status, pool_config
+            )
             return PricingUtils.getPriceImpactUsdForCrossoverRebalance(
                 initialDiffUsd,
                 nextDiffUsd,
@@ -143,32 +154,43 @@ class PositionPricingUtils:
         else:
             nextShortOpenInterest = shortOpenInterest + params.usdDelta
         openInterestParams = OpenInterestParams(
-            longOpenInterest,
-            shortOpenInterest,
-            nextLongOpenInterest,
-            nextShortOpenInterest
+            longOpenInterest, shortOpenInterest, nextLongOpenInterest, nextShortOpenInterest
         )
         return openInterestParams
 
     @staticmethod
-    def getPositionFees(params: GetPositionFeesParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig, pool: GmxV2Pool) -> PositionFees:
+    def getPositionFees(
+        params: GetPositionFeesParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig, pool: GmxV2Pool
+    ) -> PositionFees:
         fees = PositionPricingUtils.getPositionFeesAfterReferral(
             forPositiveImpact=params.forPositiveImpact,
             collateralTokenPrice=params.collateralTokenPrice,
             sizeDeltaUsd=params.sizeDeltaUsd,
             pool_status=pool_status,
-            pool_config=pool_config
+            pool_config=pool_config,
         )
 
         borrowingFeeUsd = MarketUtils.getBorrowingFees(params.position, pool_status)
-        fees.borrowing = PositionPricingUtils.getBorrowingFees(params.collateralTokenPrice, borrowingFeeUsd, pool_status, pool_config)
+        fees.borrowing = PositionPricingUtils.getBorrowingFees(
+            params.collateralTokenPrice, borrowingFeeUsd, pool_status, pool_config
+        )
 
-        fees.feeAmountForPool = fees.positionFeeAmountForPool + fees.borrowing.borrowingFeeAmount - fees.borrowing.borrowingFeeAmountForFeeReceiver
+        fees.feeAmountForPool = (
+            fees.positionFeeAmountForPool
+            + fees.borrowing.borrowingFeeAmount
+            - fees.borrowing.borrowingFeeAmountForFeeReceiver
+        )
         fees.feeReceiverAmount += fees.borrowing.borrowingFeeAmountForFeeReceiver
         fees.funding = PositionFundingFees()
-        fees.funding.latestFundingFeeAmountPerSize = MarketUtils.getFundingFeeAmountPerSize(params.position.collateralToken, params.position.isLong, pool, pool_status)
-        fees.funding.latestLongTokenClaimableFundingAmountPerSize = MarketUtils.getClaimableFundingAmountPerSize(pool.long_token, params.position.isLong, pool, pool_status)
-        fees.funding.latestShortTokenClaimableFundingAmountPerSize = MarketUtils.getClaimableFundingAmountPerSize(pool.short_token, params.position.isLong, pool, pool_status)
+        fees.funding.latestFundingFeeAmountPerSize = MarketUtils.getFundingFeeAmountPerSize(
+            params.position.collateralToken, params.position.isLong, pool, pool_status
+        )
+        fees.funding.latestLongTokenClaimableFundingAmountPerSize = MarketUtils.getClaimableFundingAmountPerSize(
+            pool.long_token, params.position.isLong, pool, pool_status
+        )
+        fees.funding.latestShortTokenClaimableFundingAmountPerSize = MarketUtils.getClaimableFundingAmountPerSize(
+            pool.short_token, params.position.isLong, pool, pool_status
+        )
         fees.funding = PositionPricingUtils.getFundingFees(fees.funding, params.position)
         fees.totalCostAmountExcludingFunding = fees.positionFeeAmount + fees.borrowing.borrowingFeeAmount
         fees.totalCostAmount = fees.totalCostAmountExcludingFunding + fees.funding.fundingFeeAmount
@@ -176,14 +198,17 @@ class PositionPricingUtils:
 
     @staticmethod
     def getPositionFeesAfterReferral(
-            forPositiveImpact: bool,
-            collateralTokenPrice: float,
-            sizeDeltaUsd: float,
-            pool_status: GmxV2PoolStatus,
-            pool_config: PoolConfig) -> PositionFees:
+        forPositiveImpact: bool,
+        collateralTokenPrice: float,
+        sizeDeltaUsd: float,
+        pool_status: GmxV2PoolStatus,
+        pool_config: PoolConfig,
+    ) -> PositionFees:
         fees = PositionFees()
         fees.collateralTokenPrice = collateralTokenPrice
-        fees.positionFeeFactor = pool_config.positionFeeFactorPositive if forPositiveImpact else pool_config.positionFeeFactorNegative
+        fees.positionFeeFactor = (
+            pool_config.positionFeeFactorPositive if forPositiveImpact else pool_config.positionFeeFactorNegative
+        )
         fees.positionFeeAmount = sizeDeltaUsd * fees.positionFeeFactor / collateralTokenPrice
         fees.protocolFeeAmount = fees.positionFeeAmount
         fees.positionFeeReceiverFactor = pool_config.positionFeeReceiverFactor
@@ -195,12 +220,14 @@ class PositionPricingUtils:
     def getBorrowingFees(collateralTokenPrice, borrowingFeeUsd, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
         # read from csv
         borrowingFeeAmount = borrowingFeeUsd / collateralTokenPrice
-        borrowingFeeReceiverFactor = pool_config.borrowingFeeReceiverFactor  # todo from csv data BORROWING_FEE_RECEIVER_FACTOR
+        borrowingFeeReceiverFactor = (
+            pool_config.borrowingFeeReceiverFactor
+        )  # todo from csv data BORROWING_FEE_RECEIVER_FACTOR
         borrowingFees = PositionBorrowingFees(
             borrowingFeeUsd=borrowingFeeUsd,
             borrowingFeeAmount=borrowingFeeAmount,
             borrowingFeeReceiverFactor=borrowingFeeReceiverFactor,
-            borrowingFeeAmountForFeeReceiver=borrowingFeeAmount * borrowingFeeReceiverFactor
+            borrowingFeeAmountForFeeReceiver=borrowingFeeAmount * borrowingFeeReceiverFactor,
         )
         return borrowingFees
 
@@ -208,9 +235,7 @@ class PositionPricingUtils:
     def getFundingFees(fundingFees: PositionFundingFees, position: Position):
         # read from csv
         fundingFees.fundingFeeAmount = MarketUtils.getFundingAmount(
-            fundingFees.latestFundingFeeAmountPerSize,
-            position.fundingFeeAmountPerSize,
-            position.sizeInUsd
+            fundingFees.latestFundingFeeAmountPerSize, position.fundingFeeAmountPerSize, position.sizeInUsd
         )
         fundingFees.claimableLongTokenAmount = MarketUtils.getFundingAmount(
             fundingFees.latestLongTokenClaimableFundingAmountPerSize,

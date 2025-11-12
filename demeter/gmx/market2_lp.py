@@ -5,7 +5,6 @@ import pandas as pd
 from orjson import orjson
 
 from ._typing2 import (
-    GmxV2Pool,
     GmxV2LpDescription,
     GmxV2LpMarketStatus,
     GmxV2LpBalance,
@@ -13,10 +12,10 @@ from ._typing2 import (
     Gmx2WithdrawAction,
     Gmx2DepositAction,
 )
-from .gmx_v2 import PoolConfig, LPResult
-from demeter.gmx.gmx_v2.deposit.ExecuteDepositUtils import ExecuteDepositUtils
-from demeter.gmx.gmx_v2.withdrawal.ExecuteWithdrawUtils import ExecuteWithdrawUtils
-from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils
+from .gmx_v2 import PoolConfig, LPResult, GmxV2Pool
+from .gmx_v2.deposit import ExecuteDepositUtils
+from .gmx_v2.withdrawal import ExecuteWithdrawUtils
+from .gmx_v2.market import MarketUtils
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
 from .. import TokenInfo, DECIMAL_0, ChainType, DemeterError, UnitDecimal
 from .._typing import USD
