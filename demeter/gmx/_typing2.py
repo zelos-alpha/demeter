@@ -11,8 +11,6 @@ from .gmx_v2 import GmxV2PoolStatus
 from ..utils.console_text import get_action_str, ForColorEnum
 
 
-
-
 class PrepKeys(NamedTuple):
     collateral: TokenInfo
     is_long: bool
@@ -23,9 +21,6 @@ class GmxV2LpBalance(MarketBalance):
     gm_amount: Decimal
     long_amount: Decimal
     short_amount: Decimal
-
-
-
 
 
 @dataclass
@@ -177,5 +172,38 @@ class Gmx2DecreasePositionAction(BaseAction):
                 "longTokenClaimableFundingAmountPerSize": self.longTokenClaimableFundingAmountPerSize.to_str(),
                 "shortTokenClaimableFundingAmountPerSize": self.shortTokenClaimableFundingAmountPerSize.to_str(),
                 "isLong": self.isLong,
+            },
+        )
+
+
+@dataclass
+class Gmx2SwapAction(BaseAction):
+    inToken: TokenInfo
+    inAmount: UnitDecimal
+    outToken: TokenInfo
+    outAmount: UnitDecimal
+    feeToken: TokenInfo
+    fee: UnitDecimal
+    priceImpactToken: TokenInfo
+    priceImpact: UnitDecimal
+    priceImpactUsd: UnitDecimal
+
+    def set_type(self):
+        self.action_type = ActionTypeEnum.gmx2_swap
+
+    def get_output_str(self):
+        return get_action_str(
+            self,
+            ForColorEnum.light_green,
+            {
+                "inToken": self.inToken.name,
+                "inAmount": self.inAmount.to_str(),
+                "outToken": self.outToken.name,
+                "outAmount": self.outAmount.to_str(),
+                "feeToken": self.feeToken.name,
+                "fee": self.fee.to_str(),
+                "priceImpactToken": self.priceImpactToken.name,
+                "priceImpact": self.priceImpact.to_str(),
+                "priceImpactUsd": self.priceImpactUsd.to_str(),
             },
         )

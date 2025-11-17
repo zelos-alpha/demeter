@@ -11,7 +11,7 @@ class IncreaseOrderUtils:
     def processOrder(
         params: ExecuteOrderParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig, pool: GmxV2Pool, positions
     ):
-        collateralToken, collateralIncrementAmount = SwapUtils.swap(
+        collateralToken, collateralIncrementAmount, _ = SwapUtils.swap(
             SwapParams(
                 params.order.initialCollateralDeltaAmount,
                 params.order.initialCollateralToken,

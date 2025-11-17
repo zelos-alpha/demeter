@@ -5,6 +5,7 @@ from demeter.gmx.gmx_v2._typing import PoolConfig, GmxV2PoolStatus
 from demeter.gmx.gmx_v2.utils import Calc, PricingUtils, Precision
 from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils
 
+
 class SwapPricingType(enum.Enum):
     Swap = 1
     Shift = 2
@@ -69,7 +70,7 @@ class Amounts:
 
 class SwapPriceUtils:
     @staticmethod
-    def getPriceImpactUsd(params: GetPriceImpactUsdParams, pool_status: GmxV2PoolStatus) -> float:
+    def getPriceImpactUsd(params: GetPriceImpactUsdParams, pool_status: GmxV2PoolStatus) -> tuple[float, bool]:
         """
         @dev get the price impact in USD
 
@@ -89,7 +90,7 @@ class SwapPriceUtils:
             params, Amounts(pool_status.longAmount, pool_status.shortAmount)
         )
 
-        priceImpactUsd: float = SwapPriceUtils._getPriceImpactUsd(params.pool_config, pool_params)
+        priceImpactUsd, balanceWasImproved = SwapPriceUtils._getPriceImpactUsd(params.pool_config, pool_params)
 
         # the virtual price impact calculation is skipped if the price impact
         # is positive since the action is helping to balance the pool
@@ -101,10 +102,10 @@ class SwapPriceUtils:
         # a negative price impact for any trade on either pools and would
         # disincentivise the balancing of pools
         if priceImpactUsd >= 0:
-            return priceImpactUsd
+            return priceImpactUsd, balanceWasImproved
 
         if not params.includeVirtualInventoryImpact:
-            return priceImpactUsd
+            return priceImpactUsd, balanceWasImproved
 
         # note that the virtual pool for the long token / short token may be different across pools
         # e.g. ETH/USDC, ETH/USDT would have USDC and USDT as the short tokens
@@ -120,7 +121,7 @@ class SwapPriceUtils:
         )
 
         if virtualPoolAmountForLongToken is None or virtualPoolAmountForShortToken is None:
-            return priceImpactUsd
+            return priceImpactUsd, balanceWasImproved
 
         if params.tokenA_is_long_token:
             virtualPoolAmountForTokenA = virtualPoolAmountForLongToken
@@ -133,16 +134,16 @@ class SwapPriceUtils:
             params, virtualPoolAmountForTokenA, virtualPoolAmountForTokenB
         )
 
-        priceImpactUsdForVirtualInventory: float = SwapPriceUtils._getPriceImpactUsd(
+        priceImpactUsdForVirtualInventory, balanceWasImprovedForVirtualInventory = SwapPriceUtils._getPriceImpactUsd(
             params.pool_config, poolParamsForVirtualInventory
         )
-
-        return (
-            priceImpactUsdForVirtualInventory if priceImpactUsdForVirtualInventory < priceImpactUsd else priceImpactUsd
-        )
+        if priceImpactUsdForVirtualInventory < priceImpactUsd:
+            return priceImpactUsdForVirtualInventory, balanceWasImprovedForVirtualInventory
+        else:
+            return priceImpactUsd, balanceWasImproved
 
     @staticmethod
-    def _getPriceImpactUsd(pool_config: PoolConfig, pool_params: PoolParams) -> float:
+    def _getPriceImpactUsd(pool_config: PoolConfig, pool_params: PoolParams) -> tuple[float, bool]:
         """
         get the price impact in USD
         :param pool_config: pool config
@@ -160,23 +161,30 @@ class SwapPriceUtils:
             pool_params.nextPoolUsdForTokenA <= pool_params.nextPoolUsdForTokenB
         )
         impactExponentFactor: float = pool_config.swapImpactExponentFactor
+        balanceWasImproved = nextDiffUsd < initialDiffUsd
 
         if isSameSideRebalance:
             hasPositiveImpact: bool = nextDiffUsd < initialDiffUsd
             impactFactor: int = MarketUtils.getAdjustedSwapImpactFactor(pool_config, hasPositiveImpact)
 
-            return PricingUtils.getPriceImpactUsdForSameSideRebalance(
-                initialDiffUsd, nextDiffUsd, impactFactor, impactExponentFactor
+            return (
+                PricingUtils.getPriceImpactUsdForSameSideRebalance(
+                    initialDiffUsd, nextDiffUsd, impactFactor, impactExponentFactor
+                ),
+                balanceWasImproved,
             )
         else:
             positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedSwapImpactFactors(pool_config)
 
-            return PricingUtils.getPriceImpactUsdForCrossoverRebalance(
-                initialDiffUsd,
-                nextDiffUsd,
-                positiveImpactFactor,
-                negativeImpactFactor,
-                impactExponentFactor,
+            return (
+                PricingUtils.getPriceImpactUsdForCrossoverRebalance(
+                    initialDiffUsd,
+                    nextDiffUsd,
+                    positiveImpactFactor,
+                    negativeImpactFactor,
+                    impactExponentFactor,
+                ),
+                balanceWasImproved,
             )
 
     @staticmethod
@@ -235,6 +243,7 @@ class SwapPriceUtils:
         pool_config: PoolConfig,
         amount: float,
         forPositiveImpact: bool,
+        balanceWasImproved: bool,
         swapPricingType: SwapPricingType,
     ) -> SwapFees:
         fees = SwapFees(0, 0)
@@ -246,7 +255,11 @@ class SwapPriceUtils:
         # a user could split the order into two, to incur a smaller fee, reducing the fee through this should not be a large issue
         feeFactor = 0
         if swapPricingType == SwapPricingType.Swap:
-            feeFactor = 0
+            feeFactor = (
+                pool_config.swapFeeFactorBalanceWasImproved
+                if balanceWasImproved
+                else pool_config.swapFeeFactorBalanceNotImproved
+            )
         elif swapPricingType == SwapPricingType.Shift:
             # empty branch as feeFactor is already zero
             feeFactor = 0

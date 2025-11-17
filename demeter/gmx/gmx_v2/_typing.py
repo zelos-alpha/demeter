@@ -11,13 +11,15 @@ from demeter import TokenInfo
 class PoolConfig:
     longDecimal: int
     shortDecimal: int
-    swapImpactExponentFactor: float = 2
-    swapImpactFactorPositive: float = 200000000000000000000 / 10**30
-    swapImpactFactorNegative: float = 400000000000000000000 / 10**30
-    depositFeeFactorForPositiveImpact: float = 0.0005
-    depositFeeFactorForNegativeImpact: float = 0.0007
-    withdrawFeeFactorForPositiveImpact: float = 0.0005
-    withdrawFeeFactorForNegativeImpact: float = 0.0007
+    swapImpactExponentFactor: float = 2# 👒
+    swapImpactFactorPositive: float = 200000000000000000000 / 10**30# 👒
+    swapImpactFactorNegative: float = 300000000000000000000 / 10**30# 👒
+    depositFeeFactorForPositiveImpact: float = 0.0005# 👒
+    depositFeeFactorForNegativeImpact: float = 0.0007# 👒
+    withdrawFeeFactorForPositiveImpact: float = 0.0005# 👒
+    withdrawFeeFactorForNegativeImpact: float = 0.0007 # 👒
+    swapFeeFactorBalanceNotImproved: float = 0.0007 # 👒
+    swapFeeFactorBalanceWasImproved: float = 0.0005 # 👒
     maxPnlFactorDeposit: float = 0.9
     maxPnlFactorWithdraw: float = 0.7
     positionImpactExponentFactor = 1655417464419320500000000000000 / 10**30

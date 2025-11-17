@@ -12,12 +12,15 @@ from ._typing2 import (
     Gmx2DecreasePositionAction,
     position_dict_to_dataframe,
     GmxV2PrepDescription,
+    Gmx2SwapAction,
 )
 from .gmx_v2 import PoolConfig, GmxV2Pool
+from .gmx_v2.order import SwapOrderUtils
 from .gmx_v2.order.ExecuteOrderUtils import ExecuteOrderUtils
 from .gmx_v2.market.MarketUtils import MarketUtils
 from .gmx_v2.reader.ReaderPositionUtils import ReaderPositionUtils
-from .gmx_v2._typing import OrderType, DecreasePositionSwapType, PoolStatus, Order
+from .gmx_v2._typing import OrderType, DecreasePositionSwapType, PoolStatus, Order, ExecuteOrderParams
+from .gmx_v2.swap.SwapUtils import SwapResult
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
 from .. import TokenInfo, DECIMAL_0, ChainType, UnitDecimal, DemeterError
 from .._typing import USD
@@ -286,10 +289,10 @@ class GmxV2PerpMarket(PrepMarket):
         )
         return result
 
-    def swap(self, from_token, amount: float | Decimal):
+    def _do_swap(self, from_token: TokenInfo, amount: float | Decimal) -> tuple[TokenInfo, Decimal, SwapResult]:
         if from_token not in [self.pool.long_token, self.pool.short_token]:
             raise DemeterError("Swap token must be long or short")
-
+        amount = float(amount)
         pool_status = {self.pool: PoolStatus(self._market_status.data, self.pool_config)}
 
         order = Order(
@@ -300,11 +303,33 @@ class GmxV2PerpMarket(PrepMarket):
             sizeDeltaUsd=0,
             initialCollateralDeltaAmount=amount,
         )
+        params = ExecuteOrderParams(order=order, swapPathMarkets=order.swapPath, market=order.market)
+        out_token, out_amount, swap_result = SwapOrderUtils.processOrder(params, pool_status)
+        if len(swap_result) != 1:
+            raise DemeterError("Swap result should only contain 1 swap")
+        swap_result0: SwapResult = swap_result[0]
 
-        ret_Values = ExecuteOrderUtils.executeOrder(
-            order=order,
-            status=pool_status,
-            positions=None,
+        return out_token, Decimal(out_amount), swap_result0
+
+    def swap(self, from_token: TokenInfo, amount: float | Decimal) -> tuple[TokenInfo, Decimal, SwapResult]:
+        out_token, out_amount, swap_result = self._do_swap(from_token, amount)
+
+        self.broker.subtract_from_balance(from_token, Decimal(amount))
+        self.broker.add_to_balance(out_token, Decimal(out_amount))
+
+        self._record_action(
+            Gmx2SwapAction(
+                market=self.market_info,
+                inToken=from_token,
+                inAmount=UnitDecimal(amount, from_token.name),
+                outToken=out_token,
+                outAmount=UnitDecimal(out_amount, out_token.name),
+                feeToken=swap_result.feeToken,
+                fee=UnitDecimal(swap_result.fee, swap_result.feeToken.name),
+                priceImpactToken=swap_result.priceImpactToken,
+                priceImpact=UnitDecimal(swap_result.priceImpact, swap_result.priceImpactToken.name),
+                priceImpactUsd=UnitDecimal(swap_result.priceImpactUsd, "USD"),
+            )
         )
 
-        print(ret_Values)
+        return out_token, Decimal(out_amount), swap_result
