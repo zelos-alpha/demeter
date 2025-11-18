@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from ..market.MarketUtils import MarketUtils
 from ..position.Position import Position
-from .._typing import GmxV2PoolStatus, PoolConfig, GmxV2Pool
-from ..utils import PricingUtils
+from .._typing import GmxV2PoolStatus, PoolConfig, GmxV2Pool, PoolData
+from ..utils import PricingUtils, Calc
 
 
 @dataclass
@@ -74,26 +74,40 @@ class OpenInterestParams:
 
 class PositionPricingUtils:
     @staticmethod
-    def getPriceImpactUsd(params: GetPriceImpactUsdParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
-        openInterestParams = PositionPricingUtils.getNextOpenInterest(params, pool_status)
-        priceImpactUsd = PositionPricingUtils._getPriceImpactUsd(openInterestParams, pool_status, pool_config)
+    def getPriceImpactUsd(params: GetPriceImpactUsdParams, pool_data: PoolData) -> tuple[float, bool]:
+        openInterestParams: OpenInterestParams = PositionPricingUtils.getNextOpenInterest(params, pool_data)
+        priceImpactUsd, balanceWasImproved = PositionPricingUtils._getPriceImpactUsd(openInterestParams, pool_data)
+        # the virtual price impact calculation is skipped if the price impact
+        # is positive since the action is helping to balance the pool
+        #
+        # in case two virtual pools are unbalanced in a different direction
+        # e.g. pool0 has more longs than shorts while pool1 has less longs
+        # than shorts
+        # not skipping the virtual price impact calculation would lead to
+        # a negative price impact for any trade on either pools and would
+        # disincentivise the balancing of pools
         if priceImpactUsd >= 0:
-            return priceImpactUsd
-        virtualInventory = pool_status.virtualInventoryForPositions
-        if virtualInventory is None:
-            return priceImpactUsd
-        openInterestParamsForVirtualInventory = PositionPricingUtils.getNextOpenInterestForVirtualInventory(
-            virtualInventory, params
+            return priceImpactUsd, balanceWasImproved
+        hasVirtualInventory, virtualInventory = MarketUtils.getVirtualInventoryForPositions(
+            pool_data.market.index_token, pool_data
         )
-        priceImpactUsdForVirtualInventory = PositionPricingUtils._getPriceImpactUsd(
-            openInterestParamsForVirtualInventory, pool_status, pool_config
+        if not hasVirtualInventory:
+            return priceImpactUsd, balanceWasImproved
+        openInterestParamsForVirtualInventory: OpenInterestParams = (
+            PositionPricingUtils.getNextOpenInterestForVirtualInventory(params, virtualInventory)
         )
-        return (
-            priceImpactUsdForVirtualInventory if priceImpactUsdForVirtualInventory < priceImpactUsd else priceImpactUsd
+        priceImpactUsdForVirtualInventory, balanceWasImprovedForVirtualInventory = (
+            PositionPricingUtils._getPriceImpactUsd(openInterestParamsForVirtualInventory, pool_data)
         )
+        if priceImpactUsdForVirtualInventory < priceImpactUsd:
+            return priceImpactUsdForVirtualInventory, balanceWasImprovedForVirtualInventory
+        else:
+            return priceImpactUsd, balanceWasImproved
 
     @staticmethod
-    def getNextOpenInterestForVirtualInventory(virtualInventory: int, params: GetPriceImpactUsdParams):
+    def getNextOpenInterestForVirtualInventory(
+        params: GetPriceImpactUsdParams, virtualInventory: float
+    ) -> OpenInterestParams:
         longOpenInterest, shortOpenInterest = 0, 0
         if virtualInventory > 0:
             shortOpenInterest = virtualInventory
@@ -106,21 +120,24 @@ class PositionPricingUtils:
         return PositionPricingUtils.getNextOpenInterestParams(params, longOpenInterest, shortOpenInterest)
 
     @staticmethod
-    def _getPriceImpactUsd(
-        openInterestParams: OpenInterestParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig
-    ):
-        initialDiffUsd = abs(openInterestParams.longOpenInterest - openInterestParams.shortOpenInterest)
-        nextDiffUsd = abs(openInterestParams.nextLongOpenInterest - openInterestParams.nextShortOpenInterest)
+    def _getPriceImpactUsd(openInterestParams: OpenInterestParams, pool_data: PoolData) -> tuple[float, bool]:
+        initialDiffUsd = Calc.diff(openInterestParams.longOpenInterest, openInterestParams.shortOpenInterest)
+        nextDiffUsd = Calc.diff(openInterestParams.nextLongOpenInterest, openInterestParams.nextShortOpenInterest)
 
         isSameSideRebalance = (openInterestParams.longOpenInterest <= openInterestParams.shortOpenInterest) == (
             openInterestParams.nextLongOpenInterest <= openInterestParams.nextShortOpenInterest
         )
-        impactExponentFactor = pool_config.positionImpactExponentFactor
+        impactExponentFactor = pool_data.config.positionImpactExponentFactor
+
+        balanceWasImproved = nextDiffUsd < initialDiffUsd
+
         if isSameSideRebalance:
-            hasPositiveImpact = nextDiffUsd < initialDiffUsd
-            impactFactor = MarketUtils.getAdjustedPositionImpactFactor(hasPositiveImpact, pool_status, pool_config)
-            return PricingUtils.getPriceImpactUsdForSameSideRebalance(
-                initialDiffUsd, nextDiffUsd, impactFactor, impactExponentFactor
+            impactFactor = MarketUtils.getAdjustedPositionImpactFactor(balanceWasImproved, pool_data)
+            return (
+                PricingUtils.getPriceImpactUsdForSameSideRebalance(
+                    initialDiffUsd, nextDiffUsd, impactFactor, impactExponentFactor
+                ),
+                balanceWasImproved,
             )
         # initialDiffUsd 659350605479346732745873570369275889 = 659350.6054793467
         # nextDiffUsd 663797116269074703175203868873936389 = 663797.1162690747
@@ -128,25 +145,30 @@ class PositionPricingUtils:
         # impactExponentFactor 1655417464419320500000000000000 = 1.6554174644193205
         # 175.8519499036393
         else:
-            positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(
-                pool_status, pool_config
-            )
-            return PricingUtils.getPriceImpactUsdForCrossoverRebalance(
-                initialDiffUsd,
-                nextDiffUsd,
-                positiveImpactFactor,
-                negativeImpactFactor,
-                impactExponentFactor,
+            positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(pool_data)
+            return (
+                PricingUtils.getPriceImpactUsdForCrossoverRebalance(
+                    initialDiffUsd,
+                    nextDiffUsd,
+                    positiveImpactFactor,
+                    negativeImpactFactor,
+                    impactExponentFactor,
+                ),
+                balanceWasImproved,
             )
 
     @staticmethod
-    def getNextOpenInterest(params: GetPriceImpactUsdParams, pool_status: GmxV2PoolStatus):
-        longOpenInterest = pool_status.openInterestLong
-        shortOpenInterest = pool_status.openInterestShort
+    def getNextOpenInterest(params: GetPriceImpactUsdParams, pool_data: PoolData) -> OpenInterestParams:
+        longOpenInterest = (
+            pool_data.status.openInterestLong
+        )  # openInterestLong = openInterestLongIsLong+openInterestShortIsLong
+        shortOpenInterest = pool_data.status.openInterestShort
         return PositionPricingUtils.getNextOpenInterestParams(params, longOpenInterest, shortOpenInterest)
 
     @staticmethod
-    def getNextOpenInterestParams(params: GetPriceImpactUsdParams, longOpenInterest: float, shortOpenInterest: float):
+    def getNextOpenInterestParams(
+        params: GetPriceImpactUsdParams, longOpenInterest: float, shortOpenInterest: float
+    ) -> OpenInterestParams:
         nextLongOpenInterest = longOpenInterest
         nextShortOpenInterest = shortOpenInterest
         if params.isLong:

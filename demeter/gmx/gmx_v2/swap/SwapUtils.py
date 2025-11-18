@@ -4,7 +4,7 @@ from typing import List
 from demeter import TokenInfo
 from ..market.MarketUtils import MarketUtils
 from ..pricing.SwapPricingUtils import SwapPriceUtils, GetPriceImpactUsdParams, SwapPricingType
-from .._typing import PoolConfig, GmxV2PoolStatus, PoolStatus, GmxV2Pool
+from .._typing import PoolConfig, GmxV2PoolStatus, PoolData, GmxV2Pool
 
 
 @dataclass
@@ -36,7 +36,7 @@ class SwapResult:
 class SwapUtils:
 
     @staticmethod
-    def swap(params: SwapParams, status: dict[GmxV2Pool, PoolStatus]) -> tuple[TokenInfo, float, list[SwapResult]]:
+    def swap(params: SwapParams, status: dict[GmxV2Pool, PoolData]) -> tuple[TokenInfo, float, list[SwapResult]]:
         if params.amountIn == 0 or len(params.swapPathMarkets) == 0:
             return params.tokenIn, params.amountIn, []
         tokenOut = params.tokenIn
@@ -48,7 +48,7 @@ class SwapUtils:
         return swapResult[-1].outToken, swapResult[-1].outAmount, swapResult
 
     @staticmethod
-    def _swap(params: SwapParams, _params: _SwapParams, status: PoolStatus) -> SwapResult:
+    def _swap(params: SwapParams, _params: _SwapParams, status: PoolData) -> SwapResult:
         tokenOut: TokenInfo = MarketUtils.getOppositeToken(_params.tokenIn, _params.market)
         tokenInPrice = (
             status.status.longPrice if _params.tokenIn == _params.market.long_token else status.status.shortPrice

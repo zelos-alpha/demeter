@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Union
 
 import pandas as pd
 
@@ -11,20 +11,20 @@ from demeter import TokenInfo
 class PoolConfig:
     longDecimal: int
     shortDecimal: int
-    swapImpactExponentFactor: float = 2# 👒
-    swapImpactFactorPositive: float = 200000000000000000000 / 10**30# 👒
-    swapImpactFactorNegative: float = 300000000000000000000 / 10**30# 👒
-    depositFeeFactorForPositiveImpact: float = 0.0005# 👒
-    depositFeeFactorForNegativeImpact: float = 0.0007# 👒
-    withdrawFeeFactorForPositiveImpact: float = 0.0005# 👒
-    withdrawFeeFactorForNegativeImpact: float = 0.0007 # 👒
-    swapFeeFactorBalanceNotImproved: float = 0.0007 # 👒
-    swapFeeFactorBalanceWasImproved: float = 0.0005 # 👒
+    swapImpactExponentFactor: float = 2  # 👒
+    swapImpactFactorPositive: float = 200000000000000000000 / 10**30  # 👒
+    swapImpactFactorNegative: float = 300000000000000000000 / 10**30  # 👒
+    depositFeeFactorForPositiveImpact: float = 0.0005  # 👒
+    depositFeeFactorForNegativeImpact: float = 0.0007  # 👒
+    withdrawFeeFactorForPositiveImpact: float = 0.0005  # 👒
+    withdrawFeeFactorForNegativeImpact: float = 0.0007  # 👒
+    swapFeeFactorBalanceNotImproved: float = 0.0007  # 👒
+    swapFeeFactorBalanceWasImproved: float = 0.0005  # 👒
     maxPnlFactorDeposit: float = 0.9
     maxPnlFactorWithdraw: float = 0.7
-    positionImpactExponentFactor = 1655417464419320500000000000000 / 10**30
-    positionImpactFactorPositive = 34111358107691540000000 / 10**30
-    positionImpactFactorNegative = 40933629729229850000000 / 10**30
+    positionImpactExponentFactor = 1655417464419320500000000000000 / 10**30  # 👒
+    positionImpactFactorPositive = 34111358107691540000000 / 10**30  # 👒
+    positionImpactFactorNegative = 40933629729229850000000 / 10**30  # 👒
     maxPositiveImpactFactor = 5000000000000000000000000000 / 10**30  # 0.005
     maxNegativeImpactFactor = 5000000000000000000000000000 / 10**30  # 0.005
     positionFeeFactorPositive = 400000000000000000000000000 / 10**30  # 0.0004
@@ -186,8 +186,8 @@ class GmxV2PoolStatus:
     pendingPnl: float  # pnl caused by open interest
     realizedPnl: float  # pnl for decreased position
     realizedProfit: float  # pnl + fee + priceImpact
-    openInterestLong: float
-    openInterestShort: float
+    openInterestLong: float  # 👒
+    openInterestShort: float  # 👒
     openInterestLongIsLong: float
     openInterestLongNotLong: float
     openInterestShortIsLong: float
@@ -200,23 +200,22 @@ class GmxV2PoolStatus:
     # positionImpactExponentFactor: float
     # positionImpactFactorPositive: float
     # positionImpactFactorNegative: float
-    virtualInventoryForPositions: float  # VirtualPositionInventoryUpdated
+    virtualPositionInventoryLong: float  # 👒
+    virtualPositionInventoryShort: float  # 👒
     positionImpactPoolAmount: float  # PositionImpactPoolAmountUpdated
-    maxPositiveImpactFactor: float
-    maxNegativeImpactFactor: float
     positionFeeFactor: float  # -> positive & negative
     positionFeeReceiverFactor: float
     borrowingFeeReceiverFactor: float
     cumulativeBorrowingFactorLong: float  # CumulativeBorrowingFactorUpdated
     cumulativeBorrowingFactorShort: float  # CumulativeBorrowingFactorUpdated
-    longTokenFundingFeeAmountPerSizeLong: float  # FundingFeeAmountPerSizeUpdated
-    longTokenFundingFeeAmountPerSizeShort: float  # FundingFeeAmountPerSizeUpdated
-    shortTokenFundingFeeAmountPerSizeLong: float  # FundingFeeAmountPerSizeUpdated
-    shortTokenFundingFeeAmountPerSizeShort: float  # FundingFeeAmountPerSizeUpdated
-    longTokenClaimableFundingAmountPerSizeLong: float  # ClaimableFundingAmountPerSizeUpdated
-    longTokenClaimableFundingAmountPerSizeShort: float  # ClaimableFundingAmountPerSizeUpdated
-    shortTokenClaimableFundingAmountPerSizeLong: float  # ClaimableFundingAmountPerSizeUpdated
-    shortTokenClaimableFundingAmountPerSizeShort: float  # ClaimableFundingAmountPerSizeUpdated
+    longTokenFundingFeeAmountPerSizeLong: float  # FundingFeeAmountPerSizeUpdated  👒
+    longTokenFundingFeeAmountPerSizeShort: float  # FundingFeeAmountPerSizeUpdated  👒
+    shortTokenFundingFeeAmountPerSizeLong: float  # FundingFeeAmountPerSizeUpdated  👒
+    shortTokenFundingFeeAmountPerSizeShort: float  # FundingFeeAmountPerSizeUpdated  👒
+    longTokenClaimableFundingAmountPerSizeLong: float  # ClaimableFundingAmountPerSizeUpdated   👒
+    longTokenClaimableFundingAmountPerSizeShort: float  # ClaimableFundingAmountPerSizeUpdated  👒
+    shortTokenClaimableFundingAmountPerSizeLong: float  # ClaimableFundingAmountPerSizeUpdated  👒
+    shortTokenClaimableFundingAmountPerSizeShort: float  # ClaimableFundingAmountPerSizeUpdated  👒
     maxPnlFactorForTraderLong: float
     maxPnlFactorForTraderShort: float
     minCollateralFactorForOpenInterestMultiplierLong: float
@@ -227,8 +226,9 @@ class GmxV2PoolStatus:
 
 
 @dataclass
-class PoolStatus:
-    status: pd.Series | GmxV2PoolStatus
+class PoolData:
+    market: GmxV2Pool
+    status: Union[GmxV2PoolStatus, pd.Series]
     config: PoolConfig
 
 

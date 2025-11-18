@@ -1,8 +1,10 @@
 from dataclasses import dataclass
+
+from demeter import DemeterError
 from demeter.gmx.gmx_v2.pricing.PositionPricingUtils import PositionPricingUtils, GetPriceImpactUsdParams
-from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils, MarketPrices, Price
+from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils, MarketPrices
 from .Position import Position
-from demeter.gmx.gmx_v2._typing import GmxV2PoolStatus, PoolConfig, Order, GmxV2Pool
+from demeter.gmx.gmx_v2._typing import GmxV2PoolStatus, PoolConfig, Order, GmxV2Pool, PoolData
 
 
 @dataclass
@@ -10,7 +12,6 @@ class UpdatePositionParams:
     market: GmxV2Pool
     order: Order
     position: Position
-    positionKey: str
 
 
 @dataclass
@@ -74,44 +75,80 @@ class DecreasePositionCache:
 class PositionUtils:
     @staticmethod
     def getExecutionPriceForIncrease(
-        params: UpdatePositionParams, indexTokenPrice: float, pool_status: GmxV2PoolStatus, pool_config: PoolConfig
-    ):
+        params: UpdatePositionParams, prices: MarketPrices, pool_data: PoolData
+    ) -> tuple[float, float, float, float, bool]:
         if params.order.sizeDeltaUsd == 0:
-            return 0, 0, 0, indexTokenPrice
-        priceImpactUsd = PositionPricingUtils.getPriceImpactUsd(
-            GetPriceImpactUsdParams(isLong=params.order.isLong, usdDelta=params.order.sizeDeltaUsd),
-            pool_status,
-            pool_config,
+            return 0, 0, 0, prices.indexTokenPrice, False
+        priceImpactUsd, balanceWasImproved = PositionPricingUtils.getPriceImpactUsd(
+            GetPriceImpactUsdParams(isLong=params.order.isLong, usdDelta=params.order.sizeDeltaUsd), pool_data
         )
-        priceImpactUsd = MarketUtils.getCappedPositionImpactUsd(
-            indexTokenPrice, priceImpactUsd, params.order.sizeDeltaUsd, pool_status, pool_config
+        # cap positive priceImpactUsd based on the max positive position impact factor
+        # note that the positive priceImpactUsd is not capped by the position impact pool here
+        # this is to prevent cases where for new markets, user A opens a position with negative
+        # price impact and user B does not have any incentive to open a position to balance the pool
+        # because the price impact pool is empty until user A closes
+        # the positive price impact will still be capped during position decrease when the positive
+        # price impact is actually paid out
+        #
+        # we do not call capPositiveImpactUsdByPositionImpactPool for increase as we are
+        # uncertain when the impact pool state would be when the position is actually
+        # closed and the impact is to be realized
+        priceImpactUsd = MarketUtils.capPositiveImpactUsdByMaxPositionImpact(
+            priceImpactUsd, params.order.sizeDeltaUsd, pool_data
         )
 
-        priceImpactAmount = 0
+        # for long positions
+        #
+        # if price impact is positive, the sizeDeltaInTokens would be increased by the priceImpactAmount
+        # the priceImpactAmount should be minimized
+        #
+        # if price impact is negative, the sizeDeltaInTokens would be decreased by the priceImpactAmount
+        # the priceImpactAmount should be maximized
+
+        # for short positions
+        #
+        # if price impact is positive, the sizeDeltaInTokens would be decreased by the priceImpactAmount
+        # the priceImpactAmount should be minimized
+        #
+        # if price impact is negative, the sizeDeltaInTokens would be increased by the priceImpactAmount
+        # the priceImpactAmount should be maximized
+        #
+        # Demeter doesn't have max and min price, and type is float instead of int
         if priceImpactUsd > 0:
-            priceImpactAmount = priceImpactUsd / indexTokenPrice
+            priceImpactAmount = priceImpactUsd / prices.indexTokenPrice
         else:
-            priceImpactAmount = priceImpactUsd / indexTokenPrice
+            priceImpactAmount = priceImpactUsd / prices.indexTokenPrice
 
-        baseSizeDeltaInTokens = 0
         if params.position.isLong:
-            baseSizeDeltaInTokens = params.order.sizeDeltaUsd / indexTokenPrice
+            baseSizeDeltaInTokens = params.order.sizeDeltaUsd / prices.indexTokenPrice
         else:
-            baseSizeDeltaInTokens = params.order.sizeDeltaUsd / indexTokenPrice
+            baseSizeDeltaInTokens = params.order.sizeDeltaUsd / prices.indexTokenPrice
 
-        sizeDeltaInTokens = 0
         if params.position.isLong:
             sizeDeltaInTokens = baseSizeDeltaInTokens + priceImpactAmount
         else:
             sizeDeltaInTokens = baseSizeDeltaInTokens - priceImpactAmount
 
+        if sizeDeltaInTokens < 0:
+            raise DemeterError(
+                f"PriceImpactLargerThanOrderSize, priceImpactUsd: {priceImpactUsd}, sizeDeltaUsd: {params.order.sizeDeltaUsd}"
+            )
+
+        # using increase of long positions as an example
+        # if price is $2000, sizeDeltaUsd is $5000, priceImpactUsd is -$1000
+        # priceImpactAmount = -1000 / 2000 = -0.5
+        # baseSizeDeltaInTokens = 5000 / 2000 = 2.5
+        # sizeDeltaInTokens = 2.5 - 0.5 = 2
+        # executionPrice = 5000 / 2 = $2500
         executionPrice = PositionUtils._getExecutionPriceForIncrease(
             params.order.sizeDeltaUsd, sizeDeltaInTokens, params.order.acceptablePrice, params.position.isLong
         )
-        return priceImpactUsd, priceImpactAmount, sizeDeltaInTokens, executionPrice
+        return priceImpactUsd, priceImpactAmount, sizeDeltaInTokens, executionPrice, balanceWasImproved
 
     @staticmethod
     def _getExecutionPriceForIncrease(sizeDeltaUsd, sizeDeltaInTokens, acceptablePrice, isLong):
+        if sizeDeltaInTokens == 0:
+            raise DemeterError("EmptySizeDeltaInTokens")
         executionPrice = sizeDeltaUsd / sizeDeltaInTokens
         return executionPrice
         if (isLong and executionPrice <= acceptablePrice) or (not isLong and executionPrice >= acceptablePrice):

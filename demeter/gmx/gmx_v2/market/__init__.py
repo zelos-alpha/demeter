@@ -1,1 +1,1 @@
-from .MarketUtils import Price, MarketPrices, MarketUtils
+from .MarketUtils import MarketPrices, MarketUtils

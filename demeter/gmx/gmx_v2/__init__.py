@@ -14,7 +14,7 @@ from ._typing import (
     LPResult,
     GmxV2PoolStatus,
     Prices,
-    PoolStatus,
+    PoolData,
     PoolConfig,
     GmxV2Pool,
 )

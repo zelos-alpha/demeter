@@ -4,20 +4,15 @@ from typing import Tuple
 from demeter import TokenInfo, DemeterError
 from demeter.gmx.gmx_v2._typing import PoolConfig, GmxV2PoolStatus
 from demeter.gmx.gmx_v2.position.Position import Position
+from .. import PoolData
 from .._typing import GmxV2Pool
 
 
 @dataclasses.dataclass
-class Price:
-    min: float
-    max: float
-
-
-@dataclasses.dataclass
 class MarketPrices:
-    indexTokenPrice: Price
-    longTokenPrice: Price
-    shortTokenPrice: Price
+    indexTokenPrice: float
+    longTokenPrice: float
+    shortTokenPrice: float
 
 
 class MarketUtils:
@@ -140,6 +135,23 @@ class MarketUtils:
         return pool_status.cumulativeBorrowingFactorLong if isLong else pool_status.cumulativeBorrowingFactorShort
 
     @staticmethod
+    def capPositiveImpactUsdByMaxPositionImpact(
+        priceImpactUsd: float,
+        sizeDeltaUsd: float,
+        pool_data: PoolData,
+    ) -> float:
+        if priceImpactUsd < 0:
+            return priceImpactUsd
+
+        maxPriceImpactFactor = MarketUtils.getMaxPositionImpactFactor(True, pool_data)
+        maxPriceImpactUsdBasedOnMaxPriceImpactFactor = sizeDeltaUsd * maxPriceImpactFactor
+
+        if priceImpactUsd > maxPriceImpactUsdBasedOnMaxPriceImpactFactor:
+            priceImpactUsd = maxPriceImpactUsdBasedOnMaxPriceImpactFactor
+
+        return priceImpactUsd
+
+    @staticmethod
     def getCappedPositionImpactUsd(
         indexTokenPrice: float,
         priceImpactUsd: float,
@@ -160,9 +172,9 @@ class MarketUtils:
         return priceImpactUsd
 
     @staticmethod
-    def getMaxPositionImpactFactor(isPositive: bool, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
-        maxPositiveImpactFactor = pool_config.maxPositiveImpactFactor
-        maxNegativeImpactFactor = pool_config.maxNegativeImpactFactor
+    def getMaxPositionImpactFactor(isPositive: bool, pool_data: PoolData) -> float:
+        maxPositiveImpactFactor = pool_data.config.maxPositiveImpactFactor
+        maxNegativeImpactFactor = pool_data.config.maxNegativeImpactFactor
         if maxPositiveImpactFactor > maxNegativeImpactFactor:
             maxPositiveImpactFactor = maxNegativeImpactFactor
         return maxPositiveImpactFactor if isPositive else maxNegativeImpactFactor
@@ -205,22 +217,22 @@ class MarketUtils:
         return openInterest * multiplierFactor
 
     @staticmethod
-    def getAdjustedPositionImpactFactor(isPositive: bool, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
-        positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(
-            pool_status, pool_config
-        )
+    def getAdjustedPositionImpactFactor(isPositive: bool, pool_data: PoolData):
+        positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(pool_data)
         return positiveImpactFactor if isPositive else negativeImpactFactor
 
     @staticmethod
-    def getAdjustedPositionImpactFactors(pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
-        positiveImpactFactor = pool_config.positionImpactFactorPositive
-        negativeImpactFactor = pool_config.positionImpactFactorNegative
+    def getAdjustedPositionImpactFactors(pool_data: PoolData):
+        positiveImpactFactor = pool_data.config.positionImpactFactorPositive
+        negativeImpactFactor = pool_data.config.positionImpactFactorNegative
         if positiveImpactFactor > negativeImpactFactor:
             positiveImpactFactor = negativeImpactFactor
         return positiveImpactFactor, negativeImpactFactor
 
     @staticmethod
-    def getFundingFeeAmountPerSize(collateralToken: str, isLong: bool, pool: GmxV2Pool, pool_status: GmxV2PoolStatus):
+    def getFundingFeeAmountPerSize(
+        collateralToken: TokenInfo, isLong: bool, pool: GmxV2Pool, pool_status: GmxV2PoolStatus
+    ):
         if collateralToken == pool.long_token:
             if isLong:
                 return pool_status.longTokenFundingFeeAmountPerSizeLong
@@ -233,7 +245,9 @@ class MarketUtils:
                 return pool_status.shortTokenFundingFeeAmountPerSizeShort
 
     @staticmethod
-    def getClaimableFundingAmountPerSize(collateralToken, isLong: bool, pool: GmxV2Pool, pool_status: GmxV2PoolStatus):
+    def getClaimableFundingAmountPerSize(
+        collateralToken: TokenInfo, isLong: bool, pool: GmxV2Pool, pool_status: GmxV2PoolStatus
+    ):
         if collateralToken == pool.long_token:
             if isLong:
                 return pool_status.longTokenClaimableFundingAmountPerSizeLong
@@ -404,3 +418,18 @@ class MarketUtils:
             return 0
         fundingUsdPerSize = fundingUsd / openInterest
         return fundingUsdPerSize / tokenPrice
+
+    @staticmethod
+    def getVirtualInventoryForPositions(token: TokenInfo, pool_data: PoolData) -> tuple[bool, float]:
+        """
+        @dev get the virtual inventory for positions
+        @param token the token to check
+        """
+        value = (
+            pool_data.status.virtualPositionInventoryLong
+            if pool_data.market.long_token == token
+            else pool_data.status.virtualPositionInventoryShort
+        )
+        has_virtual_inventory = True if value > 0 else False
+
+        return has_virtual_inventory, value

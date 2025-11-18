@@ -15,11 +15,12 @@ from ._typing2 import (
     Gmx2SwapAction,
 )
 from .gmx_v2 import PoolConfig, GmxV2Pool
-from .gmx_v2.order import SwapOrderUtils
+from .gmx_v2.order import SwapOrderUtils, IncreaseOrderUtils
 from .gmx_v2.order.ExecuteOrderUtils import ExecuteOrderUtils
 from .gmx_v2.market.MarketUtils import MarketUtils
+from .gmx_v2.position import Position, PositionKey
 from .gmx_v2.reader.ReaderPositionUtils import ReaderPositionUtils
-from .gmx_v2._typing import OrderType, DecreasePositionSwapType, PoolStatus, Order, ExecuteOrderParams
+from .gmx_v2._typing import OrderType, DecreasePositionSwapType, PoolData, Order, ExecuteOrderParams
 from .gmx_v2.swap.SwapUtils import SwapResult
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
 from .. import TokenInfo, DECIMAL_0, ChainType, UnitDecimal, DemeterError
@@ -41,6 +42,7 @@ class GmxV2PerpMarket(PrepMarket):
             "cumulativeBorrowingFactorShort": {"value": 0, "time": None},
         }
         self.pool_config = PoolConfig(pool.long_token.decimal, pool.short_token.decimal)
+        self.positions: dict[PositionKey, Position] = {}
 
     # region prop
 
@@ -82,6 +84,7 @@ class GmxV2PerpMarket(PrepMarket):
             self.broker.set_balance(self.short_token, DECIMAL_0)
 
     def update(self):
+        # TODO 清算逻辑
         pass
 
     def set_market_status(self, data: GmxV2LpMarketStatus | pd.Series, price: pd.Series):
@@ -182,36 +185,34 @@ class GmxV2PerpMarket(PrepMarket):
 
     def increase_position(
         self,
-        initialCollateralToken,
-        initialCollateralDeltaAmount,
-        sizeDeltaUsd,
-        isLong,
+        collateral_token: TokenInfo,
+        collateral_amount: float | Decimal,
+        size_usd: float | Decimal,
+        is_long: bool,
     ):
 
-        pool_status = {self.pool: PoolStatus(self._market_status.data, self.pool_config)}
+        pool_status = {self.pool: PoolData(self.pool,self._market_status.data, self.pool_config)}
         order = Order(
             market=self.pool,
-            initialCollateralToken=initialCollateralToken,
-            swapPath=[],
+            initialCollateralToken=collateral_token,
+            swapPath=[],  # do not allow collateral with other token, you can swap manually if needed.
             orderType=OrderType.MarketIncrease,
-            sizeDeltaUsd=sizeDeltaUsd,
-            initialCollateralDeltaAmount=initialCollateralDeltaAmount,
+            sizeDeltaUsd=size_usd,
+            initialCollateralDeltaAmount=collateral_amount,
             triggerPrice=0,
             acceptablePrice=0,
-            isLong=isLong,
+            isLong=is_long,
             decreasePositionSwapType=DecreasePositionSwapType.NoSwap,
         )
+        params = ExecuteOrderParams(order=order, swapPathMarkets=order.swapPath, market=order.market)
+        pool_status = {self.pool: PoolData(self.pool,self._market_status.data, self.pool_config)}
 
-        position_key, result = ExecuteOrderUtils.executeOrder(
-            order=order,
-            status=pool_status,
-            positions=self.position_list,
-        )
+        position_key: PositionKey = Position.getPositionKey(self.pool, collateral_token, is_long)
+
+        result = IncreaseOrderUtils.processOrder(params, pool_status, self.positions.get(position_key))
+
         self.position_list[position_key] = result
-        if initialCollateralToken == self.short_token:
-            self.broker.subtract_from_balance(self.short_token, Decimal(initialCollateralDeltaAmount))
-        if initialCollateralToken == self.long_token:
-            self.broker.subtract_from_balance(self.long_token, Decimal(initialCollateralDeltaAmount))
+        self.broker.subtract_from_balance(collateral_token, Decimal(collateral_amount))
 
         self._record_action(
             Gmx2IncreasePositionAction(
@@ -237,7 +238,7 @@ class GmxV2PerpMarket(PrepMarket):
         isLong,
     ):
 
-        pool_status = {self.pool: PoolStatus(self._market_status.data, self.pool_config)}
+        pool_status = {self.pool: PoolData(self.pool,self._market_status.data, self.pool_config)}
 
         order = Order(
             market=self.pool,
@@ -293,7 +294,7 @@ class GmxV2PerpMarket(PrepMarket):
         if from_token not in [self.pool.long_token, self.pool.short_token]:
             raise DemeterError("Swap token must be long or short")
         amount = float(amount)
-        pool_status = {self.pool: PoolStatus(self._market_status.data, self.pool_config)}
+        pool_status = {self.pool: PoolData(self.pool,self._market_status.data, self.pool_config)}
 
         order = Order(
             market=self.pool,
