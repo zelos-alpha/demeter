@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+
+from demeter import TokenInfo
 from ..market.MarketUtils import MarketUtils
 from ..position.Position import Position
 from .._typing import GmxV2PoolStatus, PoolConfig, GmxV2Pool, PoolData
@@ -9,7 +11,9 @@ from ..utils import PricingUtils, Calc
 class GetPositionFeesParams:
     position: Position
     collateralTokenPrice: float
-    forPositiveImpact: bool
+    balanceWasImproved: bool
+    longToken: TokenInfo
+    shortToken: TokenInfo
     sizeDeltaUsd: float
     isLiquidation: bool
 
@@ -28,16 +32,16 @@ class PositionFundingFees:
 class PositionBorrowingFees:
     borrowingFeeUsd: float = 0
     borrowingFeeAmount: float = 0
-    borrowingFeeReceiverFactor: float = 0
-    borrowingFeeAmountForFeeReceiver: float = 0
+    # borrowingFeeReceiverFactor: float = 0
+    # borrowingFeeAmountForFeeReceiver: float = 0
 
 
 @dataclass
 class PositionLiquidationFees:
     liquidationFeeUsd: float = 0
     liquidationFeeAmount: float = 0
-    liquidationFeeReceiverFactor: float = 0
-    liquidationFeeAmountForFeeReceiver: float = 0
+    # liquidationFeeReceiverFactor: float = 0
+    # liquidationFeeAmountForFeeReceiver: float = 0
 
 
 @dataclass
@@ -46,16 +50,12 @@ class PositionFees:
     borrowing: PositionBorrowingFees = None
     liquidation: PositionLiquidationFees = None
     collateralTokenPrice: float = 0
-    positionFeeAmount: float = 0
-    protocolFeeAmount: float = 0
-    feeReceiverAmount: float = 0
-    feeAmountForPool: float = 0
-    positionFeeAmountForPool: float = 0
+    positionFeeFactor: float = 0
+    positionFeeAmount: float = 0  # just sizeDeltaUsd * positionFeeFactor
+    protocolFeeAmount: float = 0  # positionFeeAmount - discountAmount
     totalCostAmountExcludingFunding: float = 0
     totalCostAmount: float = 0
     totalDiscountAmount: float = 0
-    positionFeeFactor: float = 0.0004  # todo no
-    positionFeeReceiverFactor: float = 0.37  # todo no
 
 
 @dataclass
@@ -181,81 +181,85 @@ class PositionPricingUtils:
         return openInterestParams
 
     @staticmethod
-    def getPositionFees(
-        params: GetPositionFeesParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig, pool: GmxV2Pool
-    ) -> PositionFees:
-        fees = PositionPricingUtils.getPositionFeesAfterReferral(
-            forPositiveImpact=params.forPositiveImpact,
+    def getPositionFees(params: GetPositionFeesParams, pool_data: PoolData) -> PositionFees:
+        fees: PositionFees = PositionPricingUtils.getPositionFeesAfterReferral(
             collateralTokenPrice=params.collateralTokenPrice,
+            balanceWasImproved=params.balanceWasImproved,
             sizeDeltaUsd=params.sizeDeltaUsd,
-            pool_status=pool_status,
-            pool_config=pool_config,
+            pool_data=pool_data,
         )
+        borrowingFeeUsd = MarketUtils.getBorrowingFees(params.position, pool_data.status)
+        fees.borrowing = PositionPricingUtils.getBorrowingFees(params.collateralTokenPrice, borrowingFeeUsd, pool_data)
 
-        borrowingFeeUsd = MarketUtils.getBorrowingFees(params.position, pool_status)
-        fees.borrowing = PositionPricingUtils.getBorrowingFees(
-            params.collateralTokenPrice, borrowingFeeUsd, pool_status, pool_config
-        )
+        if params.isLiquidation:
+            fees.liquidation = PositionPricingUtils.getLiquidationFees(
+                params.sizeDeltaUsd, params.collateralTokenPrice, pool_data
+            )
 
-        fees.feeAmountForPool = (
-            fees.positionFeeAmountForPool
-            + fees.borrowing.borrowingFeeAmount
-            - fees.borrowing.borrowingFeeAmountForFeeReceiver
-        )
-        fees.feeReceiverAmount += fees.borrowing.borrowingFeeAmountForFeeReceiver
         fees.funding = PositionFundingFees()
+        # TODO: check fundingAmountPerSize values are stored based on FLOAT_PRECISION_SQRT values
         fees.funding.latestFundingFeeAmountPerSize = MarketUtils.getFundingFeeAmountPerSize(
-            params.position.collateralToken, params.position.isLong, pool, pool_status
+            params.position.collateralToken, params.position.isLong, pool_data
         )
         fees.funding.latestLongTokenClaimableFundingAmountPerSize = MarketUtils.getClaimableFundingAmountPerSize(
-            pool.long_token, params.position.isLong, pool, pool_status
+            pool_data.market.long_token, params.position.isLong, pool_data
         )
         fees.funding.latestShortTokenClaimableFundingAmountPerSize = MarketUtils.getClaimableFundingAmountPerSize(
-            pool.short_token, params.position.isLong, pool, pool_status
+            pool_data.market.short_token, params.position.isLong, pool_data
         )
         fees.funding = PositionPricingUtils.getFundingFees(fees.funding, params.position)
-        fees.totalCostAmountExcludingFunding = fees.positionFeeAmount + fees.borrowing.borrowingFeeAmount
+        fees.totalCostAmountExcludingFunding = (
+            fees.positionFeeAmount
+            + fees.borrowing.borrowingFeeAmount
+            + fees.liquidation.liquidationFeeAmount
+            - fees.totalDiscountAmount
+        )
         fees.totalCostAmount = fees.totalCostAmountExcludingFunding + fees.funding.fundingFeeAmount
         return fees
 
     @staticmethod
     def getPositionFeesAfterReferral(
-        forPositiveImpact: bool,
-        collateralTokenPrice: float,
-        sizeDeltaUsd: float,
-        pool_status: GmxV2PoolStatus,
-        pool_config: PoolConfig,
+        collateralTokenPrice: float, balanceWasImproved: bool, sizeDeltaUsd: float, pool_data: PoolData
     ) -> PositionFees:
         fees = PositionFees()
         fees.collateralTokenPrice = collateralTokenPrice
+        # skip referral
+
+        # note that since it is possible to incur both positive and negative price impact values
+        # and the negative price impact factor may be larger than the positive impact factor
+        # it is possible for the balance to be improved overall but for the price impact to still be negative
+        # in this case the fee factor for the **positive** price impact would be charged for the case when priceImpactUsd is negative and balanceWasImproved
+        # a user could split the order into two, to incur a smaller fee, reducing the fee through this should not be a large issue
+
         fees.positionFeeFactor = (
-            pool_config.positionFeeFactorPositive if forPositiveImpact else pool_config.positionFeeFactorNegative
+            pool_data.config.positionFeeFactorPositive
+            if balanceWasImproved
+            else pool_data.config.positionFeeFactorNegative
         )
         fees.positionFeeAmount = sizeDeltaUsd * fees.positionFeeFactor / collateralTokenPrice
-        fees.protocolFeeAmount = fees.positionFeeAmount
-        fees.positionFeeReceiverFactor = pool_config.positionFeeReceiverFactor
-        fees.feeReceiverAmount = fees.protocolFeeAmount * fees.positionFeeReceiverFactor
-        fees.positionFeeAmountForPool = fees.protocolFeeAmount - fees.feeReceiverAmount
+
+        # skip pro tiers
+
+        # skip referralCode
+
+        fees.totalDiscountAmount = 0
+        fees.protocolFeeAmount = fees.positionFeeAmount - fees.totalDiscountAmount
+
         return fees
 
     @staticmethod
-    def getBorrowingFees(collateralTokenPrice, borrowingFeeUsd, pool_status: GmxV2PoolStatus, pool_config: PoolConfig):
-        # read from csv
-        borrowingFeeAmount = borrowingFeeUsd / collateralTokenPrice
-        borrowingFeeReceiverFactor = (
-            pool_config.borrowingFeeReceiverFactor
-        )  # todo from csv data BORROWING_FEE_RECEIVER_FACTOR
+    def getBorrowingFees(collateralTokenPrice, borrowingFeeUsd, pool_data: PoolData) -> PositionBorrowingFees:
+
         borrowingFees = PositionBorrowingFees(
             borrowingFeeUsd=borrowingFeeUsd,
-            borrowingFeeAmount=borrowingFeeAmount,
-            borrowingFeeReceiverFactor=borrowingFeeReceiverFactor,
-            borrowingFeeAmountForFeeReceiver=borrowingFeeAmount * borrowingFeeReceiverFactor,
+            borrowingFeeAmount=borrowingFeeUsd / collateralTokenPrice,
+            # borrowingFeeReceiverFactor=borrowingFeeReceiverFactor,
+            # borrowingFeeAmountForFeeReceiver=borrowingFeeAmount * borrowingFeeReceiverFactor,
         )
         return borrowingFees
 
     @staticmethod
     def getFundingFees(fundingFees: PositionFundingFees, position: Position):
-        # read from csv
         fundingFees.fundingFeeAmount = MarketUtils.getFundingAmount(
             fundingFees.latestFundingFeeAmountPerSize, position.fundingFeeAmountPerSize, position.sizeInUsd
         )
@@ -270,3 +274,16 @@ class PositionPricingUtils:
             position.sizeInUsd,
         )
         return fundingFees
+
+    @staticmethod
+    def getLiquidationFees(
+        sizeInUsd: float, collateralTokenPrice: float, pool_data: PoolData
+    ) -> PositionLiquidationFees:
+        liquidationFees = PositionLiquidationFees()
+        liquidationFeeFactor = pool_data.config.liquidationFeeFactor
+        if liquidationFeeFactor == 0:
+            return liquidationFees
+
+        liquidationFees.liquidationFeeUsd = sizeInUsd * liquidationFeeFactor
+        liquidationFees.liquidationFeeAmount = liquidationFees.liquidationFeeUsd / collateralTokenPrice
+        return liquidationFees

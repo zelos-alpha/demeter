@@ -43,6 +43,10 @@ class GmxV2PerpMarket(PrepMarket):
         }
         self.pool_config = PoolConfig(pool.long_token.decimal, pool.short_token.decimal)
         self.positions: dict[PositionKey, Position] = {}
+        self.claimableFundingAmount: dict[TokenInfo, float] = {
+            self.pool.long_token: 0,
+            self.pool.short_token: 0,
+        }
 
     # region prop
 
@@ -191,7 +195,6 @@ class GmxV2PerpMarket(PrepMarket):
         is_long: bool,
     ):
 
-        pool_status = {self.pool: PoolData(self.pool,self._market_status.data, self.pool_config)}
         order = Order(
             market=self.pool,
             initialCollateralToken=collateral_token,
@@ -205,30 +208,47 @@ class GmxV2PerpMarket(PrepMarket):
             decreasePositionSwapType=DecreasePositionSwapType.NoSwap,
         )
         params = ExecuteOrderParams(order=order, swapPathMarkets=order.swapPath, market=order.market)
-        pool_status = {self.pool: PoolData(self.pool,self._market_status.data, self.pool_config)}
+        pool_status = {self.pool: PoolData(self.pool, self._market_status.data, self.pool_config)}
 
         position_key: PositionKey = Position.getPositionKey(self.pool, collateral_token, is_long)
 
-        result = IncreaseOrderUtils.processOrder(params, pool_status, self.positions.get(position_key))
+        updated_position, fees = IncreaseOrderUtils.processOrder(
+            params, pool_status, self.positions.get(position_key), self.claimableFundingAmount
+        )
 
-        self.position_list[position_key] = result
+        self.positions[position_key] = updated_position
+
         self.broker.subtract_from_balance(collateral_token, Decimal(collateral_amount))
 
         self._record_action(
             Gmx2IncreasePositionAction(
                 market=self.market_info,
-                collateralToken=result.collateralToken,
-                collateralAmount=UnitDecimal(result.collateralAmount),
-                sizeInUsd=UnitDecimal(result.sizeInUsd),
-                sizeInTokens=UnitDecimal(result.sizeInTokens),
-                borrowingFactor=UnitDecimal(result.borrowingFactor),
-                fundingFeeAmountPerSize=UnitDecimal(result.fundingFeeAmountPerSize),
-                longTokenClaimableFundingAmountPerSize=UnitDecimal(result.longTokenClaimableFundingAmountPerSize),
-                shortTokenClaimableFundingAmountPerSize=UnitDecimal(result.shortTokenClaimableFundingAmountPerSize),
-                isLong=result.isLong,
+                collateralToken=collateral_token.name,
+                collateralAmount=UnitDecimal(collateral_amount, collateral_token.name),
+                sizeInUsd=UnitDecimal(size_usd, "USD"),
+                borrowingFactor=UnitDecimal(updated_position.borrowingFactor),
+                fundingFeeAmountPerSize=UnitDecimal(updated_position.fundingFeeAmountPerSize),
+                longTokenClaimableFundingAmountPerSize=UnitDecimal(
+                    updated_position.longTokenClaimableFundingAmountPerSize
+                ),
+                shortTokenClaimableFundingAmountPerSize=UnitDecimal(
+                    updated_position.shortTokenClaimableFundingAmountPerSize
+                ),
+                isLong=updated_position.isLong,
+                funding=UnitDecimal(fees.funding.fundingFeeAmount, collateral_token.name),
+                borrowing=UnitDecimal(fees.borrowing.borrowingFeeAmount, collateral_token.name),
+                liquidation=UnitDecimal(fees.liquidation.liquidationFeeAmount, collateral_token.name),
+                collateralTokenPrice=UnitDecimal(fees.collateralTokenPrice, collateral_token.name),
+                positionFeeAmount=UnitDecimal(fees.positionFeeAmount, collateral_token.name),
+                protocolFeeAmount=UnitDecimal(fees.positionFeeAmount, collateral_token.name),
+                totalCostAmountExcludingFunding=UnitDecimal(
+                    fees.totalCostAmountExcludingFunding, collateral_token.name
+                ),
+                totalCostAmount=UnitDecimal(fees.totalCostAmount, collateral_token.name),
+                totalDiscountAmount=UnitDecimal(fees.totalDiscountAmount, collateral_token.name),
             )
         )
-        return result
+        return updated_position
 
     def decrease_position(
         self,
@@ -238,7 +258,7 @@ class GmxV2PerpMarket(PrepMarket):
         isLong,
     ):
 
-        pool_status = {self.pool: PoolData(self.pool,self._market_status.data, self.pool_config)}
+        pool_status = {self.pool: PoolData(self.pool, self._market_status.data, self.pool_config)}
 
         order = Order(
             market=self.pool,
@@ -294,7 +314,7 @@ class GmxV2PerpMarket(PrepMarket):
         if from_token not in [self.pool.long_token, self.pool.short_token]:
             raise DemeterError("Swap token must be long or short")
         amount = float(amount)
-        pool_status = {self.pool: PoolData(self.pool,self._market_status.data, self.pool_config)}
+        pool_status = {self.pool: PoolData(self.pool, self._market_status.data, self.pool_config)}
 
         order = Order(
             market=self.pool,

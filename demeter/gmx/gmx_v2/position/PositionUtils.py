@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from demeter import DemeterError
-from demeter.gmx.gmx_v2.pricing.PositionPricingUtils import PositionPricingUtils, GetPriceImpactUsdParams
+from demeter import DemeterError, TokenInfo
+from demeter.gmx.gmx_v2.pricing.PositionPricingUtils import PositionPricingUtils, GetPriceImpactUsdParams, PositionFees
 from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils, MarketPrices
 from .Position import Position
 from demeter.gmx.gmx_v2._typing import GmxV2PoolStatus, PoolConfig, Order, GmxV2Pool, PoolData
@@ -12,6 +12,7 @@ class UpdatePositionParams:
     market: GmxV2Pool
     order: Order
     position: Position
+    claimableFundingAmount: dict[TokenInfo, float]
 
 
 @dataclass
@@ -197,7 +198,7 @@ class PositionUtils:
 
     @staticmethod
     def willPositionCollateralBeSufficient(
-        collateralTokenPrice: Price,
+        collateralTokenPrice: float,
         isLong: bool,
         values: WillPositionCollateralBeSufficientValues,
         pool_status: GmxV2PoolStatus,
@@ -240,7 +241,7 @@ class PositionUtils:
 
     @staticmethod
     def getExecutionPriceForDecrease(
-        params: UpdatePositionParams, indexTokenPrice: Price, pool_status: GmxV2PoolStatus, pool_config: PoolConfig
+        params: UpdatePositionParams, indexTokenPrice: float, pool_status: GmxV2PoolStatus, pool_config: PoolConfig
     ):
         sizeDeltaUsd = params.order.sizeDeltaUsd
         if sizeDeltaUsd == 0:
@@ -269,3 +270,12 @@ class PositionUtils:
             acceptablePrice=params.order.acceptablePrice,
         )
         return priceImpactUsd, priceImpactDiffUsd, executionPrice
+
+    @staticmethod
+    def incrementClaimableFundingAmount(params: UpdatePositionParams, fees: PositionFees):
+        # if the position has negative funding fees, distribute it to allow it to be claimable
+        if fees.funding.claimableLongTokenAmount > 0:
+            params.claimableFundingAmount[params.market.long_token] += fees.funding.claimableLongTokenAmount
+
+        if fees.funding.claimableShortTokenAmount > 0:
+            params.claimableFundingAmount[params.market.short_token] += fees.funding.claimableShortTokenAmount

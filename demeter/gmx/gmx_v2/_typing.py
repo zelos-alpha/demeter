@@ -27,10 +27,11 @@ class PoolConfig:
     positionImpactFactorNegative = 40933629729229850000000 / 10**30  # 👒
     maxPositiveImpactFactor = 5000000000000000000000000000 / 10**30  # 0.005
     maxNegativeImpactFactor = 5000000000000000000000000000 / 10**30  # 0.005
-    positionFeeFactorPositive = 400000000000000000000000000 / 10**30  # 0.0004
-    positionFeeFactorNegative = 600000000000000000000000000 / 10**30  # 0.0006
+    positionFeeFactorPositive = 400000000000000000000000000 / 10**30  # 0.0004# 👒
+    positionFeeFactorNegative = 600000000000000000000000000 / 10**30  # 0.0006# 👒
     positionFeeReceiverFactor = 370000000000000000000000000000 / 10**30  # 0.37
     borrowingFeeReceiverFactor = 370000000000000000000000000000 / 10**30  # 0.37
+    liquidationFeeFactor = 400000000000000000000000000 / 10**30 # 👒
     maxPnlFactorForTraderLong = 900000000000000000000000000000 / 10**30  # 0.9
     maxPnlFactorForTraderShort = 900000000000000000000000000000 / 10**30  # 0.9
     minCollateralFactorForOpenInterestMultiplierLong = 60000000000000000000 / 10**30
@@ -206,8 +207,8 @@ class GmxV2PoolStatus:
     positionFeeFactor: float  # -> positive & negative
     positionFeeReceiverFactor: float
     borrowingFeeReceiverFactor: float
-    cumulativeBorrowingFactorLong: float  # CumulativeBorrowingFactorUpdated
-    cumulativeBorrowingFactorShort: float  # CumulativeBorrowingFactorUpdated
+    cumulativeBorrowingFactorLong: float  # CumulativeBorrowingFactorUpdated  👒
+    cumulativeBorrowingFactorShort: float  # CumulativeBorrowingFactorUpdated  👒
     longTokenFundingFeeAmountPerSizeLong: float  # FundingFeeAmountPerSizeUpdated  👒
     longTokenFundingFeeAmountPerSizeShort: float  # FundingFeeAmountPerSizeUpdated  👒
     shortTokenFundingFeeAmountPerSizeLong: float  # FundingFeeAmountPerSizeUpdated  👒

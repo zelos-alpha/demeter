@@ -19,6 +19,7 @@ class Position:
     sizeInUsd: float = 0.0
     sizeInTokens: float = 0.0
     collateralAmount: float = 0.0
+    pendingImpactAmount: float = 0.0
     borrowingFactor: float = 0.0
     fundingFeeAmountPerSize: float = 0.0
     longTokenClaimableFundingAmountPerSize: float = 0.0

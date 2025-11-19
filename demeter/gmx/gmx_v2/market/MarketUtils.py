@@ -121,7 +121,18 @@ class MarketUtils:
         latestFundingAmountPerSize: float, positionFundingAmountPerSize: float, positionSizeInUsd: float
     ) -> float:
         fundingDiffFactor = latestFundingAmountPerSize - positionFundingAmountPerSize
-        fundingAmount = positionSizeInUsd * fundingDiffFactor  # todo denominator
+        # a user could avoid paying funding fees by continually updating the position
+        # before the funding fee becomes large enough to be chargeable
+        # to avoid this, funding fee amounts should be rounded up
+        #
+        # this could lead to large additional charges if the token has a low number of decimals
+        # or if the token's value is very high, so care should be taken to inform users of this
+        #
+        # if the calculation is for the claimable amount, the amount should be rounded down instead
+
+        # divide the result by Precision.FLOAT_PRECISION * Precision.FLOAT_PRECISION_SQRT as the fundingAmountPerSize values
+        # are stored based on FLOAT_PRECISION_SQRT values
+        fundingAmount = positionSizeInUsd * fundingDiffFactor
         return fundingAmount
 
     @staticmethod
@@ -230,34 +241,30 @@ class MarketUtils:
         return positiveImpactFactor, negativeImpactFactor
 
     @staticmethod
-    def getFundingFeeAmountPerSize(
-        collateralToken: TokenInfo, isLong: bool, pool: GmxV2Pool, pool_status: GmxV2PoolStatus
-    ):
-        if collateralToken == pool.long_token:
+    def getFundingFeeAmountPerSize(collateralToken: TokenInfo, isLong: bool, pool_data: PoolData):
+        if collateralToken == pool_data.market.long_token:
             if isLong:
-                return pool_status.longTokenFundingFeeAmountPerSizeLong
+                return pool_data.status.longTokenFundingFeeAmountPerSizeLong
             else:
-                return pool_status.longTokenFundingFeeAmountPerSizeShort
+                return pool_data.status.longTokenFundingFeeAmountPerSizeShort
         else:
             if isLong:
-                return pool_status.shortTokenFundingFeeAmountPerSizeLong
+                return pool_data.status.shortTokenFundingFeeAmountPerSizeLong
             else:
-                return pool_status.shortTokenFundingFeeAmountPerSizeShort
+                return pool_data.status.shortTokenFundingFeeAmountPerSizeShort
 
     @staticmethod
-    def getClaimableFundingAmountPerSize(
-        collateralToken: TokenInfo, isLong: bool, pool: GmxV2Pool, pool_status: GmxV2PoolStatus
-    ):
-        if collateralToken == pool.long_token:
+    def getClaimableFundingAmountPerSize(collateralToken: TokenInfo, isLong: bool, pool_data: PoolData):
+        if collateralToken == pool_data.market.long_token:
             if isLong:
-                return pool_status.longTokenClaimableFundingAmountPerSizeLong
+                return pool_data.status.longTokenClaimableFundingAmountPerSizeLong
             else:
-                return pool_status.longTokenClaimableFundingAmountPerSizeShort
+                return pool_data.status.longTokenClaimableFundingAmountPerSizeShort
         else:
             if isLong:
-                return pool_status.shortTokenClaimableFundingAmountPerSizeLong
+                return pool_data.status.shortTokenClaimableFundingAmountPerSizeLong
             else:
-                return pool_status.shortTokenClaimableFundingAmountPerSizeShort
+                return pool_data.status.shortTokenClaimableFundingAmountPerSizeShort
 
     @staticmethod
     def getNextBorrowingFees(
@@ -433,3 +440,14 @@ class MarketUtils:
         has_virtual_inventory = True if value > 0 else False
 
         return has_virtual_inventory, value
+
+    @staticmethod
+    def getCachedTokenPrice(token: TokenInfo, pool: GmxV2Pool, prices: MarketPrices) -> float:
+        if token == pool.long_token:
+            return prices.longTokenPrice
+        if token == pool.short_token:
+            return prices.shortTokenPrice
+        if token == pool.index_token:
+            return prices.indexTokenPrice
+
+        raise DemeterError(f"UnableToGetCachedTokenPrice, {token})")

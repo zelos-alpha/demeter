@@ -1,14 +1,21 @@
-from ..position.Position import Position
-from ..swap.SwapUtils import SwapUtils, SwapParams, SwapPricingType
+from demeter import TokenInfo
+from .._typing import ExecuteOrderParams, GmxV2Pool, PoolData
 from ..position.IncreasePositionUtils import IncreasePositionUtils
+from ..position.Position import Position
 from ..position.PositionUtils import UpdatePositionParams
-from .._typing import PoolConfig, GmxV2PoolStatus, ExecuteOrderParams, GmxV2Pool, PoolData
+from ..pricing import PositionFees
+from ..swap.SwapUtils import SwapUtils, SwapParams, SwapPricingType
 
 
 class IncreaseOrderUtils:
 
     @staticmethod
-    def processOrder(params: ExecuteOrderParams, status: dict[GmxV2Pool, PoolData], position: Position | None):
+    def processOrder(
+        params: ExecuteOrderParams,
+        status: dict[GmxV2Pool, PoolData],
+        position: Position | None,
+        claimableFundingAmount: dict[TokenInfo, float],
+    ) -> tuple[Position, PositionFees]:
         pool_status: PoolData = status[params.market]
         collateralToken, collateralIncrementAmount, _ = SwapUtils.swap(
             SwapParams(
@@ -23,9 +30,9 @@ class IncreaseOrderUtils:
         if position is None:
             position = Position(params.market, params.order.initialCollateralToken, params.order.isLong)
 
-        increasePositonData = IncreasePositionUtils.increasePosition(
-            UpdatePositionParams(params.market, params.order, position),
+        increasePositonData, fees = IncreasePositionUtils.increasePosition(
+            UpdatePositionParams(params.market, params.order, position, claimableFundingAmount),
             collateralIncrementAmount,
-            pool_status
+            pool_status,
         )
-        return increasePositonData.position
+        return increasePositonData.position, fees

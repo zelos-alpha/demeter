@@ -113,14 +113,22 @@ class Gmx2DepositAction(BaseAction):
 @dataclass
 class Gmx2IncreasePositionAction(BaseAction):
     collateralToken: str
+    isLong: bool
     collateralAmount: UnitDecimal
     sizeInUsd: UnitDecimal
-    sizeInTokens: UnitDecimal
     borrowingFactor: UnitDecimal
     fundingFeeAmountPerSize: UnitDecimal
     longTokenClaimableFundingAmountPerSize: UnitDecimal
     shortTokenClaimableFundingAmountPerSize: UnitDecimal
-    isLong: bool
+    funding : UnitDecimal
+    borrowing : UnitDecimal
+    liquidation : UnitDecimal
+    collateralTokenPrice : UnitDecimal
+    positionFeeAmount : UnitDecimal
+    protocolFeeAmount : UnitDecimal
+    totalCostAmountExcludingFunding : UnitDecimal
+    totalCostAmount : UnitDecimal
+    totalDiscountAmount : UnitDecimal
 
     def set_type(self):
         self.action_type = ActionTypeEnum.gmx2_increase_position
@@ -131,14 +139,22 @@ class Gmx2IncreasePositionAction(BaseAction):
             ForColorEnum.light_green,
             {
                 "collateralToken": self.collateralToken,
+                "isLong": self.isLong,
                 "collateralAmount": self.collateralAmount.to_str(),
                 "sizeInUsd": self.sizeInUsd.to_str(),
-                "sizeInTokens": self.sizeInTokens.to_str(),
                 "borrowingFactor": self.borrowingFactor.to_str(),
                 "fundingFeeAmountPerSize": self.fundingFeeAmountPerSize.to_str(),
                 "longTokenClaimableFundingAmountPerSize": self.longTokenClaimableFundingAmountPerSize.to_str(),
                 "shortTokenClaimableFundingAmountPerSize": self.shortTokenClaimableFundingAmountPerSize.to_str(),
-                "isLong": self.isLong,
+                "funding": self.funding.to_str(),
+                "borrowing": self.borrowing.to_str(),
+                "liquidation": self.liquidation.to_str(),
+                "collateralTokenPrice": self.collateralTokenPrice.to_str(),
+                "positionFeeAmount": self.positionFeeAmount.to_str(),
+                "protocolFeeAmount": self.protocolFeeAmount.to_str(),
+                "totalCostAmountExcludingFunding": self.totalCostAmountExcludingFunding.to_str(),
+                "totalCostAmount": self.totalCostAmount.to_str(),
+                "totalDiscountAmount": self.totalDiscountAmount.to_str(),
             },
         )
 
