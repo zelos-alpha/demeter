@@ -1,4 +1,4 @@
-from demeter.gmx.gmx_v2 import OrderType
+from .. import OrderType
 
 
 class Order:

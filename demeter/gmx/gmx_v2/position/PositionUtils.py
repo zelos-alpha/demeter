@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
 from demeter import DemeterError, TokenInfo
-from demeter.gmx.gmx_v2._typing import Order, GmxV2Pool, PoolData
-from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils, MarketPrices
-from demeter.gmx.gmx_v2.pricing.PositionPricingUtils import (
+from .._typing import Order, GmxV2Pool, PoolData
+from ..market.MarketUtils import MarketUtils, MarketPrices
+from ..pricing.PositionPricingUtils import (
     PositionPricingUtils,
     GetPriceImpactUsdParams,
     PositionFees,

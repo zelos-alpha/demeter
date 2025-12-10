@@ -9,19 +9,16 @@ from ._typing2 import (
     GmxV2LpBalance,
     GmxV2PoolStatus,
     Gmx2IncreasePositionAction,
-    Gmx2DecreasePositionAction,
     position_dict_to_dataframe,
     GmxV2PrepDescription,
     Gmx2SwapAction,
 )
 from .gmx_v2 import PoolConfig, GmxV2Pool
-from .gmx_v2.order import SwapOrderUtils, IncreaseOrderUtils, DecreaseOrderUtils
-from .gmx_v2.order.ExecuteOrderUtils import ExecuteOrderUtils
-from .gmx_v2.market.MarketUtils import MarketUtils
-from .gmx_v2.position import Position, PositionKey
-from .gmx_v2.position.DecreasePositionUtils import DecreasePositionResult
-from .gmx_v2.reader.ReaderPositionUtils import ReaderPositionUtils
 from .gmx_v2._typing import OrderType, DecreasePositionSwapType, PoolData, Order, ExecuteOrderParams
+from .gmx_v2.market.MarketUtils import MarketUtils
+from .gmx_v2.order import SwapOrderUtils, IncreaseOrderUtils, DecreaseOrderUtils
+from .gmx_v2.position import Position, PositionKey
+from .gmx_v2.reader.ReaderPositionUtils import ReaderPositionUtils
 from .gmx_v2.swap.SwapUtils import SwapResult
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
 from .. import TokenInfo, DECIMAL_0, ChainType, UnitDecimal, DemeterError

@@ -20,8 +20,6 @@ class PoolConfig:
     withdrawFeeFactorForNegativeImpact: float = 0.0007  # 👒
     swapFeeFactorBalanceNotImproved: float = 0.0007  # 👒
     swapFeeFactorBalanceWasImproved: float = 0.0005  # 👒
-    maxPnlFactorDeposit: float = 0.9
-    maxPnlFactorWithdraw: float = 0.7
     positionImpactExponentFactor = 1655417464419320500000000000000 / 10**30  # 👒
     positionImpactFactorPositive = 34111358107691540000000 / 10**30  # 👒
     positionImpactFactorNegative = 40933629729229850000000 / 10**30  # 👒
@@ -29,8 +27,6 @@ class PoolConfig:
     maxNegativeImpactFactor = 5000000000000000000000000000 / 10**30  # 0.005
     positionFeeFactorPositive = 400000000000000000000000000 / 10**30  # 0.0004# 👒
     positionFeeFactorNegative = 600000000000000000000000000 / 10**30  # 0.0006# 👒
-    positionFeeReceiverFactor = 370000000000000000000000000000 / 10**30  # 0.37
-    borrowingFeeReceiverFactor = 370000000000000000000000000000 / 10**30  # 0.37
     liquidationFeeFactor = 400000000000000000000000000 / 10**30  # 👒
     maxPnlFactorForTraderLong = 900000000000000000000000000000 / 10**30  # 0.9 👒
     maxPnlFactorForTraderShort = 900000000000000000000000000000 / 10**30  # 0.9  👒
@@ -38,7 +34,7 @@ class PoolConfig:
     minCollateralFactorForOpenInterestMultiplierShort = 60000000000000000000 / 10**30  # 👒
     minCollateralFactor = 5000000000000000000000000000 / 10**30  # 0.005👒
     minCollateralUsd = 1000000000000000000000000000000 / 10**30  # 1 👒
-    minPositionSizeUsd = 1000000000000000000000000000000 / 10**30  # 1
+    minPositionSizeUsd = 1000000000000000000000000000000 / 10**30  # 1 👒
 
     # SKIP_BORROWING_FEE_FOR_SMALLER_SIDE
     skip_borrowing_fee_for_smaller_side = True

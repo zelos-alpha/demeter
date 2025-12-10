@@ -8,4 +8,4 @@ from .PositionPricingUtils import (
     PositionFundingFees,
     GetPositionFeesParams,
 )
-from .SwapPricingUtils import SwapPriceUtils,SwapPricingType,GetPriceImpactUsdParams,PoolParams,SwapFees,Amounts
+from .SwapPricingUtils import SwapPriceUtils, SwapPricingType, GetPriceImpactUsdParams, PoolParams, SwapFees, Amounts

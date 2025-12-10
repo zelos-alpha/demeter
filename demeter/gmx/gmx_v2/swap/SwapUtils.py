@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from typing import List
 
 from demeter import TokenInfo
+from .._typing import PoolData, GmxV2Pool
 from ..market.MarketUtils import MarketUtils
 from ..pricing.SwapPricingUtils import SwapPriceUtils, GetPriceImpactUsdParams, SwapPricingType
-from .._typing import PoolConfig, GmxV2PoolStatus, PoolData, GmxV2Pool
 
 
 @dataclass

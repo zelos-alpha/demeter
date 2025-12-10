@@ -1,18 +1,17 @@
 from dataclasses import dataclass
 
-from demeter.gmx.gmx_v2.position.PositionUtils import (
+from .DecreasePositionSwapUtils import DecreasePositionSwapUtils
+from .._typing import PoolData
+from ..market.MarketUtils import MarketPrices, MarketUtils
+from ..order.Order import Order
+from ..position.PositionUtils import (
     UpdatePositionParams,
     PositionUtils,
     DecreasePositionCollateralValues,
     DecreasePositionCache,
     DecreasePositionCollateralValuesOutput,
 )
-from demeter.gmx.gmx_v2.pricing.PositionPricingUtils import GetPositionFeesParams, PositionPricingUtils, PositionFees
-from .DecreasePositionSwapUtils import DecreasePositionSwapUtils
-from .._typing import GmxV2PoolStatus, PoolConfig, OrderType, GmxV2Pool, PoolData
-from demeter.gmx.gmx_v2.market.MarketUtils import MarketPrices, MarketUtils
-from ..order.Order import Order
-from ..utils import Precision
+from ..pricing.PositionPricingUtils import GetPositionFeesParams, PositionPricingUtils, PositionFees
 
 
 @dataclass

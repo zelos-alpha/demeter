@@ -1,9 +1,9 @@
 from typing import Tuple
 
-from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils
-from demeter.gmx.gmx_v2.pricing.SwapPricingUtils import SwapPriceUtils, SwapPricingType, GetPriceImpactUsdParams, SwapFees
-from demeter.gmx.gmx_v2._typing import PoolConfig, GmxV2PoolStatus, LPResult
-from demeter.gmx.gmx_v2.utils import PricingUtils
+from ..market.MarketUtils import MarketUtils
+from ..pricing.SwapPricingUtils import SwapPriceUtils, SwapPricingType, GetPriceImpactUsdParams, SwapFees
+from .._typing import PoolConfig, GmxV2PoolStatus, LPResult
+from ..utils import PricingUtils
 
 
 class ExecuteDepositUtils:

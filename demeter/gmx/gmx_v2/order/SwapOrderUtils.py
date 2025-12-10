@@ -1,6 +1,6 @@
 from demeter import TokenInfo
-from demeter.gmx.gmx_v2._typing import ExecuteOrderParams, PoolData, GmxV2Pool
-from demeter.gmx.gmx_v2.swap.SwapUtils import SwapUtils, SwapParams, SwapPricingType, SwapResult
+from .._typing import ExecuteOrderParams, PoolData, GmxV2Pool
+from ..swap.SwapUtils import SwapUtils, SwapParams, SwapPricingType, SwapResult
 
 
 class SwapOrderUtils:

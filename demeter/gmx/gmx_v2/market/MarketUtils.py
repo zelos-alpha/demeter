@@ -2,8 +2,8 @@ import dataclasses
 from typing import Tuple
 
 from demeter import TokenInfo, DemeterError
-from demeter.gmx.gmx_v2._typing import PoolConfig, GmxV2PoolStatus
-from demeter.gmx.gmx_v2.position.Position import Position
+from .._typing import PoolConfig, GmxV2PoolStatus
+from ..position.Position import Position
 from .. import PoolData
 from .._typing import GmxV2Pool
 

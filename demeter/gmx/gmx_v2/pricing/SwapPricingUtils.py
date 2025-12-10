@@ -1,9 +1,9 @@
 import enum
 from dataclasses import dataclass
 
-from demeter.gmx.gmx_v2._typing import PoolConfig, GmxV2PoolStatus
-from demeter.gmx.gmx_v2.utils import Calc, PricingUtils, Precision
-from demeter.gmx.gmx_v2.market.MarketUtils import MarketUtils
+from .._typing import PoolConfig, GmxV2PoolStatus
+from ..utils import Calc, PricingUtils, Precision
+from ..market.MarketUtils import MarketUtils
 
 
 class SwapPricingType(enum.Enum):

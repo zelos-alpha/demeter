@@ -1,7 +1,7 @@
 from demeter import TokenInfo, DemeterError
-from demeter.gmx.gmx_v2.position.PositionUtils import UpdatePositionParams, DecreasePositionCollateralValues
-from demeter.gmx.gmx_v2.swap.SwapUtils import SwapUtils, SwapParams, SwapPricingType
-from demeter.gmx.gmx_v2._typing import GmxV2PoolStatus, PoolConfig, DecreasePositionSwapType, PoolData
+from .._typing import DecreasePositionSwapType, PoolData
+from ..position.PositionUtils import UpdatePositionParams, DecreasePositionCollateralValues
+from ..swap.SwapUtils import SwapUtils, SwapParams, SwapPricingType
 
 
 class DecreasePositionSwapUtils:

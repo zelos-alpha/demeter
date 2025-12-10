@@ -2,12 +2,12 @@ from dataclasses import dataclass
 
 from demeter import DemeterError, TokenInfo
 from . import DecreasePositionSwapUtils, Position
-from ..order.Order import Order
-from ..position.PositionUtils import UpdatePositionParams, DecreasePositionCache
-from ..position.PositionUtils import PositionUtils, WillPositionCollateralBeSufficientValues
 from .DecreasePositionCollateralUtils import DecreasePositionCollateralUtils
-from .._typing import GmxV2PoolStatus, PoolConfig, GmxV2Pool, PoolData, OrderType, DecreasePositionSwapType
+from .._typing import PoolData, OrderType, DecreasePositionSwapType
 from ..market.MarketUtils import MarketPrices, MarketUtils
+from ..order.Order import Order
+from ..position.PositionUtils import PositionUtils, WillPositionCollateralBeSufficientValues
+from ..position.PositionUtils import UpdatePositionParams, DecreasePositionCache
 from ..pricing import PositionFees
 
 
