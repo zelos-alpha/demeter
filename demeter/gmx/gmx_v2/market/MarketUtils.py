@@ -162,6 +162,21 @@ class MarketUtils:
 
         return priceImpactUsd
 
+
+    @staticmethod
+    def capPositiveImpactUsdByPositionImpactPool(
+        prices:MarketPrices,
+        priceImpactUsd:float,
+        pool_data:PoolData,
+    )->float:
+        """
+        Not implemented, because we don't have lentPositionImpactPoolAmount, and this function rarely used.
+        """
+        return priceImpactUsd
+
+
+
+
     @staticmethod
     def getCappedPositionImpactUsd(
         indexTokenPrice: float,
@@ -200,11 +215,11 @@ class MarketUtils:
         return 2 if longToken == shortToken else 1
 
     @staticmethod
-    def getPnl(indexTokenPrice: Price, isLong: bool, pool_status: GmxV2PoolStatus):
+    def getPnl(indexTokenPrice: float, isLong: bool, pool_status: GmxV2PoolStatus):
         openInterest = pool_status.openInterestLong if isLong else pool_status.openInterestShort
         openInterestInTokens = pool_status.openInterestInTokensLong if isLong else pool_status.openInterestInTokensShort
 
-        price = indexTokenPrice.max
+        price = indexTokenPrice
 
         openInterestValue = openInterestInTokens * price
         pnl = openInterestValue - openInterest if isLong else openInterest - openInterestValue
@@ -212,18 +227,20 @@ class MarketUtils:
 
     @staticmethod
     def getCappedPnl(isLong: bool, pnl: float, poolUsd: float, pool_config: PoolConfig):
+        if pnl < 0:
+            return pnl
         maxPnlFactor = pool_config.maxPnlFactorForTraderLong if isLong else pool_config.maxPnlFactorForTraderShort
         maxPnl = poolUsd * maxPnlFactor
         return maxPnl if pnl > maxPnl else pnl
 
     @staticmethod
-    def getMinCollateralFactorForOpenInterest(isLong: bool, openInterestDelta: float, pool_status: GmxV2PoolStatus):
-        openInterest = pool_status.openInterestLong if isLong else pool_status.openInterestShort
+    def getMinCollateralFactorForOpenInterest(isLong: bool, openInterestDelta: float, pool_data:PoolData) -> float:
+        openInterest = pool_data.status.openInterestLong if isLong else pool_data.status.openInterestShort
         openInterest = openInterest + openInterestDelta
         multiplierFactor = (
-            pool_status.minCollateralFactorForOpenInterestMultiplierLong
+            pool_data.config.minCollateralFactorForOpenInterestMultiplierLong
             if isLong
-            else pool_status.minCollateralFactorForOpenInterestMultiplierShort
+            else pool_data.config.minCollateralFactorForOpenInterestMultiplierShort
         )
         return openInterest * multiplierFactor
 

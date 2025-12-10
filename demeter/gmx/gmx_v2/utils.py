@@ -147,3 +147,4 @@ class Precision:
     @staticmethod
     def applyFactor(value: float, factor: float) -> float:
         return factor * value
+

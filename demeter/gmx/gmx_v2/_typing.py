@@ -31,13 +31,13 @@ class PoolConfig:
     positionFeeFactorNegative = 600000000000000000000000000 / 10**30  # 0.0006# 👒
     positionFeeReceiverFactor = 370000000000000000000000000000 / 10**30  # 0.37
     borrowingFeeReceiverFactor = 370000000000000000000000000000 / 10**30  # 0.37
-    liquidationFeeFactor = 400000000000000000000000000 / 10**30 # 👒
-    maxPnlFactorForTraderLong = 900000000000000000000000000000 / 10**30  # 0.9
-    maxPnlFactorForTraderShort = 900000000000000000000000000000 / 10**30  # 0.9
-    minCollateralFactorForOpenInterestMultiplierLong = 60000000000000000000 / 10**30
-    minCollateralFactorForOpenInterestMultiplierShort = 60000000000000000000 / 10**30
-    minCollateralFactor = 5000000000000000000000000000 / 10**30  # 0.005
-    minCollateralUsd = 1000000000000000000000000000000 / 10**30  # 1
+    liquidationFeeFactor = 400000000000000000000000000 / 10**30  # 👒
+    maxPnlFactorForTraderLong = 900000000000000000000000000000 / 10**30  # 0.9 👒
+    maxPnlFactorForTraderShort = 900000000000000000000000000000 / 10**30  # 0.9  👒
+    minCollateralFactorForOpenInterestMultiplierLong = 60000000000000000000 / 10**30  # 👒
+    minCollateralFactorForOpenInterestMultiplierShort = 60000000000000000000 / 10**30  # 👒
+    minCollateralFactor = 5000000000000000000000000000 / 10**30  # 0.005👒
+    minCollateralUsd = 1000000000000000000000000000000 / 10**30  # 1 👒
     minPositionSizeUsd = 1000000000000000000000000000000 / 10**30  # 1
 
     # SKIP_BORROWING_FEE_FOR_SMALLER_SIDE
@@ -50,13 +50,14 @@ class PoolConfig:
     fundingIncreaseFactorPerSecond = 1988547595363155833 / 10**30
     fundingExponentFactor = 1
     fundingFactor = 0  # todo
-    maxFundingFactorPerSecond = 0  # todo
     thresholdForStableFunding = 0.04
     thresholdForDecreaseFunding = 0  # todo
     fundingDecreaseFactorPerSecond = 0  # todo
     minFundingFactorPerSecond = 317097919837645865043 / 10**30
     maxFundingFactorPerSecond = 21476314029922083333333 / 10**30
 
+    maxPositionImpactFactorForLiquidation = 0  # MAX_POSITION_IMPACT_FACTOR_FOR_LIQUIDATIONS
+    minCollateralFactorForLiquidation=0
 
 class GmxV2Pool(NamedTuple):
     long_token: TokenInfo
@@ -219,11 +220,6 @@ class GmxV2PoolStatus:
     shortTokenClaimableFundingAmountPerSizeShort: float  # ClaimableFundingAmountPerSizeUpdated  👒
     maxPnlFactorForTraderLong: float
     maxPnlFactorForTraderShort: float
-    minCollateralFactorForOpenInterestMultiplierLong: float
-    minCollateralFactorForOpenInterestMultiplierShort: float
-    minCollateralFactor: float
-    minCollateralUsd: float
-    minPositionSizeUsd: float
 
 
 @dataclass

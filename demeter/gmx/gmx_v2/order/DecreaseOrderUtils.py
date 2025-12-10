@@ -1,22 +1,30 @@
+from demeter import TokenInfo
+from .._typing import ExecuteOrderParams, GmxV2Pool, PoolData
+from ..position.DecreasePositionUtils import DecreasePositionUtils, DecreasePositionResult
 from ..position.Position import Position
-from ..position.DecreasePositionUtils import DecreasePositionUtils
 from ..position.PositionUtils import UpdatePositionParams
-from .._typing import GmxV2PoolStatus, PoolConfig, ExecuteOrderParams, GmxV2Pool
+from ..pricing import PositionFees
 
 
 class DecreaseOrderUtils:
 
     @staticmethod
     def processOrder(
-        params: ExecuteOrderParams, pool_status: GmxV2PoolStatus, pool_config: PoolConfig, pool: GmxV2Pool, positions
-    ):
-        positionKey = Position.getPositionKey(
-            params.order.market, params.order.initialCollateralToken, params.order.isLong
+        params: ExecuteOrderParams,
+        status: dict[GmxV2Pool, PoolData],
+        position: Position,
+        claimableFundingAmount: dict[TokenInfo, float],
+    ) -> tuple[DecreasePositionResult, PositionFees]:
+
+        result, fees = DecreasePositionUtils.decreasePosition(
+            UpdatePositionParams(
+                params.market,
+                params.order,
+                position,
+                claimableFundingAmount,
+            ),
+            status[params.market],
         )
-        position = positions.get(positionKey)
-        decreasePosition, outputToken, outputAmount, secondaryOutputToken, secondaryOutputAmount, _, _ = (
-            DecreasePositionUtils.decreasePosition(
-                UpdatePositionParams(params.market, params.order, position, positionKey), pool_status, pool_config, pool
-            )
-        )
-        return positionKey, decreasePosition, outputToken, outputAmount, secondaryOutputToken, secondaryOutputAmount
+
+        # skip transfer out tokens
+        return result, fees
