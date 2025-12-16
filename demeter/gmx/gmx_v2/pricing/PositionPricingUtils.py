@@ -75,6 +75,8 @@ class OpenInterestParams:
 class PositionPricingUtils:
     @staticmethod
     def getPriceImpactUsd(params: GetPriceImpactUsdParams, pool_data: PoolData) -> tuple[float, bool]:
+        # Note: latest version have USE_OPEN_INTEREST_IN_TOKENS_FOR_BALANCE, and will require index price and sizeInTokens
+        # I'm not gonna add this until they are online.
         openInterestParams: OpenInterestParams = PositionPricingUtils.getNextOpenInterest(params, pool_data)
         priceImpactUsd, balanceWasImproved = PositionPricingUtils._getPriceImpactUsd(openInterestParams, pool_data)
         # the virtual price impact calculation is skipped if the price impact

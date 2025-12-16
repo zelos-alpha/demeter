@@ -13,22 +13,19 @@ from .._typing import (
     FundingConfigCache,
     FundingRateChangeType,
     GmxV2Pool,
+    PoolData,
 )
-from ..market.MarketUtils import Price, MarketUtils, MarketPrices
-
-
-@dataclass
-class GetPositionInfoCache:
-    market: GmxV2Pool = None
-    collateralTokenPrice: Prices = None
-    pendingBorrowingFeeUsd: float = 0
+from ..market.MarketUtils import MarketUtils, MarketPrices
 
 
 @dataclass
 class ExecutionPriceResult:
     priceImpactUsd: float = 0
-    priceImpactDiffUsd: float = 0
     executionPrice: float = 0
+    balanceWasImproved: bool = False
+    proportionalPendingImpactUsd: float = 0
+    totalImpactUsd: float = 0
+    priceImpactDiffUsd: float = 0
 
 
 @dataclass
@@ -44,55 +41,55 @@ class ReaderPositionUtils:
 
     @staticmethod
     def getPositionInfo(
-        pending_borrowing_time,
-        position,
-        collateralTokenPrice,
-        pool_status: GmxV2PoolStatus,
-        pool_config: PoolConfig,
-        pool: GmxV2Pool,
+        position: Position,
+        sizeDeltaUsd: float,
+        usePositionSizeAsSizeDeltaUsd: bool,
+        pool_data: PoolData,
     ):
 
         prices = MarketPrices(
-            indexTokenPrice=Price(min=pool_status.indexPrice, max=pool_status.indexPrice),
-            longTokenPrice=Price(min=pool_status.longPrice, max=pool_status.longPrice),
-            shortTokenPrice=Price(min=pool_status.shortPrice, max=pool_status.shortPrice),
+            indexTokenPrice=pool_data.status.indexPrice,
+            longTokenPrice=pool_data.status.longPrice,
+            shortTokenPrice=pool_data.status.shortPrice,
         )
 
         positionInfo = PositionInfo()
-        cache = GetPositionInfoCache()
         positionInfo.position = position
-        cache.market = pool
-        cache.collateralTokenPrice = collateralTokenPrice
-        sizeDeltaUsd = positionInfo.position.sizeInUsd
+        market = pool_data.market
+        collateralTokenPrice = MarketUtils.getCachedTokenPrice(positionInfo.position.collateralToken, market, prices)
+        if usePositionSizeAsSizeDeltaUsd:
+            sizeDeltaUsd = positionInfo.position.sizeInUsd
 
         positionInfo.executionPriceResult = ReaderPositionUtils.getExecutionPrice(
-            cache.market,
-            pool_status.indexPrice,
+            prices,
             positionInfo.position.sizeInUsd,
             positionInfo.position.sizeInTokens,
             -sizeDeltaUsd,
+            positionInfo.position.pendingImpactAmount,
             positionInfo.position.isLong,
-            pool_status,
-            pool_config,
+            pool_data,
         )
 
         getPositionFeesParams = GetPositionFeesParams(
             position=positionInfo.position,
             collateralTokenPrice=collateralTokenPrice,
-            forPositiveImpact=positionInfo.executionPriceResult.priceImpactUsd > 0,
+            balanceWasImproved=positionInfo.executionPriceResult.priceImpactUsd > 0,
+            longToken=market.long_token,
+            shortToken=market.short_token,
             sizeDeltaUsd=sizeDeltaUsd,
             isLiquidation=False,
         )
 
-        positionInfo.fees = PositionPricingUtils.getPositionFees(getPositionFeesParams, pool_status, pool_config, pool)
-        cache.pendingBorrowingFeeUsd = MarketUtils.getNextBorrowingFees(
-            pending_borrowing_time, positionInfo.position, cache.market, prices, pool_status, pool_config
-        )
-        positionInfo.fees.borrowing = PositionPricingUtils.getBorrowingFees(
-            cache.collateralTokenPrice, cache.pendingBorrowingFeeUsd, pool_status, pool_config
-        )
-
-        # nextFundingAmountResult = ReaderPositionUtils.getNextFundingAmountPerSize(market, prices, pool_status)  # todo
+        positionInfo.fees = PositionPricingUtils.getPositionFees(getPositionFeesParams, pool_data)
+        # TODO borrow fees
+        # pendingBorrowingFeeUsd = MarketUtils.getNextBorrowingFees(
+        #     pending_borrowing_time, positionInfo.position, cache.market, prices, pool_status, pool_config
+        # )
+        # positionInfo.fees.borrowing = PositionPricingUtils.getBorrowingFees(
+        #     cache.collateralTokenPrice, pendingBorrowingFeeUsd, pool_status, pool_config
+        # )
+        # TODO funding fees
+        # nextFundingAmountResult = ReaderPositionUtils.getNextFundingAmountPerSize(market, prices, pool_status)
         # positionInfo.fees.funding.latestFundingFeeAmountPerSize = MarketUtils.getFundingFeeAmountPerSize(positionInfo.position.collateralToken, positionInfo.position.isLong, pool, pool_status)
         # positionInfo.fees.funding.latestLongTokenClaimableFundingAmountPerSize = MarketUtils.getClaimableFundingAmountPerSize(cache.market.longToken, positionInfo.position.isLong, pool, pool_status)
         # positionInfo.fees.funding.latestShortTokenClaimableFundingAmountPerSize = MarketUtils.getClaimableFundingAmountPerSize(cache.market.shortToken, positionInfo.position.isLong, pool, pool_status)
@@ -117,7 +114,7 @@ class ReaderPositionUtils:
         # positionInfo.fees.funding = PositionPricingUtils.getFundingFees(positionInfo.fees.funding, positionInfo.position)
 
         positionInfo.basePnlUsd, positionInfo.uncappedBasePnlUsd, _ = PositionUtils.getPositionPnlUsd(
-            cache.market, prices, positionInfo.position, sizeDeltaUsd, pool_status, pool_config
+            prices, positionInfo.position, sizeDeltaUsd, pool_data
         )
         positionInfo.pnlAfterPriceImpactUsd = positionInfo.executionPriceResult.priceImpactUsd + positionInfo.basePnlUsd
 
@@ -283,36 +280,93 @@ class ReaderPositionUtils:
 
     @staticmethod
     def getExecutionPrice(
-        market: GmxV2Pool,
-        indexTokenPrice: float,
+        prices: MarketPrices,
         positionSizeInUsd: float,
         positionSizeInTokens: float,
         sizeDeltaUsd: float,
+        pendingImpactAmount: float,
         isLong: bool,
-        pool_status: GmxV2PoolStatus,
-        pool_config: PoolConfig,
+        pool_data: PoolData,
     ):
-        position = Position()
-        position.sizeInUsd = positionSizeInUsd
-        position.sizeInTokens = positionSizeInTokens
-        position.isLong = isLong
-
-        order = Order()
-        order.sizeDeltaUsd = abs(sizeDeltaUsd)
-        order.isLong = isLong
+        isIncrease = sizeDeltaUsd > 0
+        shouldExecutionPriceBeSmaller = isLong if isIncrease else not isLong
+        params = UpdatePositionParams(
+            pool_data.market,
+            Order(
+                market=None,
+                initialCollateralToken=None,
+                sizeDeltaUsd=abs(sizeDeltaUsd),
+                isLong=isLong,
+                acceptablePrice=99999999999999999999 if shouldExecutionPriceBeSmaller else 0,
+            ),
+            position=Position(
+                market=None,
+                collateralToken=None,
+                sizeInUsd=positionSizeInUsd,
+                sizeInTokens=positionSizeInTokens,
+                isLong=isLong,
+                pendingImpactAmount=pendingImpactAmount,
+            ),
+            claimableFundingAmount=None,
+        )
 
         result = ExecutionPriceResult()
 
-        params = UpdatePositionParams(market, order, position, "")
-
         if sizeDeltaUsd > 0:
-            result.priceImpactUsd, _, _, result.executionPrice = PositionUtils.getExecutionPriceForIncrease(
-                params, indexTokenPrice, pool_status, pool_config
+            result.priceImpactUsd, _, _, result.executionPrice, result.balanceWasImproved = (
+                PositionUtils.getExecutionPriceForIncrease(params, prices, pool_data)
             )
         else:
-            indexTokenPrice = Price(min=indexTokenPrice, max=indexTokenPrice)
-            result.priceImpactUsd, result.priceImpactDiffUsd, result.executionPrice = (
-                PositionUtils.getExecutionPriceForDecrease(params, indexTokenPrice, pool_status, pool_config)
+            # _, _, sizeDeltaInTokens = PositionUtils.getPositionPnlUsd(
+            #     prices, params.position, params.order.sizeDeltaUsd, pool_data
+            # )
+            result.priceImpactUsd, result.executionPricem, result.balanceWasImproved = (
+                # PositionUtils.getExecutionPriceForDecrease(params, prices.indexTokenPrice, sizeDeltaInTokens, pool_data)
+                # not released yet.
+                PositionUtils.getExecutionPriceForDecrease(params, prices.indexTokenPrice, pool_data)
             )
+            result.proportionalPendingImpactUsd = ReaderPositionUtils._getProportionalPendingImpactValues(
+                params.position.sizeInUsd,
+                params.position.pendingImpactAmount,
+                params.order.sizeDeltaUsd,
+                prices.indexTokenPrice,
+            )
+            result.totalImpactUsd = result.proportionalPendingImpactUsd + result.priceImpactUsd
+
+            if result.totalImpactUsd < 0:
+                maxPriceImpactFactor = MarketUtils.getMaxPositionImpactFactor(False, pool_data)
+                # convert the max price impact to the min negative value
+                # e.g. if sizeDeltaUsd is 10,000 and maxPriceImpactFactor is 2%
+                # then minPriceImpactUsd = -200
+                minPriceImpactUsd = -params.order.sizeDeltaUsd * maxPriceImpactFactor
+
+                # cap totalImpactUsd to the min negative value and store the difference in priceImpactDiffUsd
+                # e.g. if totalImpactUsd is -500 and minPriceImpactUsd is -200
+                # then set priceImpactDiffUsd to -200 - -500 = 300
+                # set totalImpactUsd to -200
+                if result.totalImpactUsd < minPriceImpactUsd:
+                    result.priceImpactDiffUsd = minPriceImpactUsd - result.totalImpactUsd
+                    result.totalImpactUsd = minPriceImpactUsd
+
+                result.totalImpactUsd = MarketUtils.capPositiveImpactUsdByMaxPositionImpact(
+                    result.totalImpactUsd, -sizeDeltaUsd, pool_data
+                )
+                result.totalImpactUsd = MarketUtils.capPositiveImpactUsdByPositionImpactPool(
+                    prices, result.totalImpactUsd, pool_data
+                )
 
         return result
+
+    @staticmethod
+    def _getProportionalPendingImpactValues(
+        sizeInUsd: float,
+        positionPendingImpactAmount: float,
+        sizeDeltaUsd: float,
+        indexTokenPrice: float,
+    ) -> float:
+        proportionalPendingImpactAmount = positionPendingImpactAmount * sizeDeltaUsd / sizeInUsd
+
+        # minimize the positive impact, maximize the negative impact
+        proportionalPendingImpactUsd = proportionalPendingImpactAmount * indexTokenPrice
+
+        return proportionalPendingImpactUsd

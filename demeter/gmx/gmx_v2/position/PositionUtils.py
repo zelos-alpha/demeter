@@ -18,7 +18,7 @@ class UpdatePositionParams:
     market: GmxV2Pool
     order: Order
     position: Position
-    claimableFundingAmount: dict[TokenInfo, float]
+    claimableFundingAmount: dict[TokenInfo, float] | None
 
 
 @dataclass

@@ -214,8 +214,7 @@ class GmxV2PoolStatus:
     longTokenClaimableFundingAmountPerSizeShort: float  # ClaimableFundingAmountPerSizeUpdated  👒
     shortTokenClaimableFundingAmountPerSizeLong: float  # ClaimableFundingAmountPerSizeUpdated  👒
     shortTokenClaimableFundingAmountPerSizeShort: float  # ClaimableFundingAmountPerSizeUpdated  👒
-    maxPnlFactorForTraderLong: float
-    maxPnlFactorForTraderShort: float
+
 
 
 @dataclass
@@ -274,8 +273,8 @@ class DecreasePositionSwapType(Enum):
 
 @dataclass
 class Order:
-    market: GmxV2Pool
-    initialCollateralToken: TokenInfo
+    market: GmxV2Pool|None
+    initialCollateralToken: TokenInfo|None
     swapPath: List[GmxV2Pool] = None
     orderType: OrderType = OrderType.LimitIncrease
     sizeDeltaUsd: float = 0

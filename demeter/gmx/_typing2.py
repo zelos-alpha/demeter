@@ -4,10 +4,10 @@ from typing import Union, NamedTuple
 
 import pandas as pd
 
+from .gmx_v2 import GmxV2PoolStatus, PositionKey, Position
 from .. import TokenInfo, MarketStatus, BaseAction, ActionTypeEnum
 from .._typing import MarketDescription, UnitDecimal
 from ..broker import MarketBalance
-from .gmx_v2 import GmxV2PoolStatus
 from ..utils.console_text import get_action_str, ForColorEnum
 
 
@@ -24,13 +24,36 @@ class GmxV2LpBalance(MarketBalance):
 
 
 @dataclass
+class PositionBalance:
+    leverage: Decimal = Decimal(0)
+    size: Decimal = Decimal(0)
+    net_value: Decimal = Decimal(0)
+    collateral_usd: Decimal = Decimal(0)
+    collateral: Decimal = Decimal(0)
+    borrow_fee_usd: Decimal = Decimal(0)
+    negative_funding_fee_usd = Decimal(0)
+    positive_funding_fee_usd = Decimal(0)
+    net_price_impact_usd = Decimal(0)
+    close_fee_usd = Decimal(0)
+    pnl_after_fee_usd = Decimal(0)
+    entry_price: Decimal = Decimal(0)
+    market_price: Decimal = Decimal(0)
+    liq_price: Decimal = Decimal(0)
+
+
+@dataclass
+class GmxV2PrepBalance(MarketBalance):
+    positions: list[PositionBalance]
+
+
+@dataclass
 class GmxV2LpDescription(MarketDescription):
     amount: float
 
 
 @dataclass
 class GmxV2PrepDescription(MarketDescription):
-    Positions: dict[PrepKeys, None]
+    Positions: dict[PositionKey, Position]
 
 
 @dataclass
@@ -120,15 +143,15 @@ class Gmx2IncreasePositionAction(BaseAction):
     fundingFeeAmountPerSize: UnitDecimal
     longTokenClaimableFundingAmountPerSize: UnitDecimal
     shortTokenClaimableFundingAmountPerSize: UnitDecimal
-    funding : UnitDecimal
-    borrowing : UnitDecimal
-    liquidation : UnitDecimal
-    collateralTokenPrice : UnitDecimal
-    positionFeeAmount : UnitDecimal
-    protocolFeeAmount : UnitDecimal
-    totalCostAmountExcludingFunding : UnitDecimal
-    totalCostAmount : UnitDecimal
-    totalDiscountAmount : UnitDecimal
+    funding: UnitDecimal
+    borrowing: UnitDecimal
+    liquidation: UnitDecimal
+    collateralTokenPrice: UnitDecimal
+    positionFeeAmount: UnitDecimal
+    protocolFeeAmount: UnitDecimal
+    totalCostAmountExcludingFunding: UnitDecimal
+    totalCostAmount: UnitDecimal
+    totalDiscountAmount: UnitDecimal
 
     def set_type(self):
         self.action_type = ActionTypeEnum.gmx2_increase_position

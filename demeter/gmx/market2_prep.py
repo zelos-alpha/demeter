@@ -6,16 +6,16 @@ from orjson import orjson
 
 from ._typing2 import (
     GmxV2LpMarketStatus,
-    GmxV2LpBalance,
     GmxV2PoolStatus,
     Gmx2IncreasePositionAction,
     position_dict_to_dataframe,
     GmxV2PrepDescription,
     Gmx2SwapAction,
+    GmxV2PrepBalance,
+    PositionBalance,
 )
 from .gmx_v2 import PoolConfig, GmxV2Pool
 from .gmx_v2._typing import OrderType, DecreasePositionSwapType, PoolData, Order, ExecuteOrderParams
-from .gmx_v2.market.MarketUtils import MarketUtils
 from .gmx_v2.order import SwapOrderUtils, IncreaseOrderUtils, DecreaseOrderUtils
 from .gmx_v2.position import Position, PositionKey
 from .gmx_v2.reader.ReaderPositionUtils import ReaderPositionUtils
@@ -94,41 +94,34 @@ class GmxV2PerpMarket(PrepMarket):
         data.data = self.data.loc[data.timestamp]
         self._market_status = data
 
-    def get_market_balance(self) -> GmxV2LpBalance:
-        # 仓位	规模	净值	抵押品	入场价格	标记价格	清算价格
-
+    def get_market_balance(self) -> GmxV2PrepBalance:
         pool_data: GmxV2PoolStatus = self._market_status.data
-        if self.amount > 0:
-            longAmount, shortAmount = MarketUtils.getTokenAmountsFromGM(pool_data, self.amount)
-            share = Decimal(self.amount / pool_data.marketTokensSupply)
-            long_amount = Decimal(longAmount)
-            short_amount = Decimal(shortAmount)
-            net_value = Decimal(pool_data.poolValue) * share
-        else:
-            net_value = long_amount = short_amount = Decimal(0)
 
-        if (
-            self.cumulative_borrowing["cumulativeBorrowingFactorLong"]["value"]
-            != self._market_status.data.cumulativeBorrowingFactorLong
-        ) or (
-            self.cumulative_borrowing["cumulativeBorrowingFactorShort"]["value"]
-            != self._market_status.data.cumulativeBorrowingFactorShort
-        ):
-            self.cumulative_borrowing["cumulativeBorrowingFactorLong"][
-                "value"
-            ] = self._market_status.data.cumulativeBorrowingFactorLong
-            self.cumulative_borrowing["cumulativeBorrowingFactorLong"]["time"] = self._market_status.timestamp
-            self.cumulative_borrowing["cumulativeBorrowingFactorShort"][
-                "value"
-            ] = self._market_status.data.cumulativeBorrowingFactorShort
-            self.cumulative_borrowing["cumulativeBorrowingFactorShort"]["time"] = self._market_status.timestamp
-        # print(self._market_status.timestamp, self.cumulative_borrowing['cumulativeBorrowingFactorShort']['time'])
-        pending_borrowing_time = (
-            pd.to_datetime(self._market_status.timestamp)
-            - pd.to_datetime(self.cumulative_borrowing["cumulativeBorrowingFactorShort"]["time"])
-        ).seconds
+        # if (
+        #     self.cumulative_borrowing["cumulativeBorrowingFactorLong"]["value"]
+        #     != self._market_status.data.cumulativeBorrowingFactorLong
+        # ) or (
+        #     self.cumulative_borrowing["cumulativeBorrowingFactorShort"]["value"]
+        #     != self._market_status.data.cumulativeBorrowingFactorShort
+        # ):
+        #     self.cumulative_borrowing["cumulativeBorrowingFactorLong"][
+        #         "value"
+        #     ] = self._market_status.data.cumulativeBorrowingFactorLong
+        #     self.cumulative_borrowing["cumulativeBorrowingFactorLong"]["time"] = self._market_status.timestamp
+        #     self.cumulative_borrowing["cumulativeBorrowingFactorShort"][
+        #         "value"
+        #     ] = self._market_status.data.cumulativeBorrowingFactorShort
+        #     self.cumulative_borrowing["cumulativeBorrowingFactorShort"]["time"] = self._market_status.timestamp
+        # # print(self._market_status.timestamp, self.cumulative_borrowing['cumulativeBorrowingFactorShort']['time'])
+        # pending_borrowing_time = (
+        #     pd.to_datetime(self._market_status.timestamp)
+        #     - pd.to_datetime(self.cumulative_borrowing["cumulativeBorrowingFactorShort"]["time"])
+        # ).seconds
+        position_balances: list[PositionBalance] = []
+        net_value = 0
+        for key, position in self.positions.items():
+            position_balance = PositionBalance()
 
-        for key, position in self.position_list.items():
             if position.collateralToken == self.pool.short_token:
                 collateralPrice = pool_data.shortPrice
             else:
@@ -147,11 +140,13 @@ class GmxV2PerpMarket(PrepMarket):
                 collateral_value + positionInfo.pnlAfterPriceImpactUsd - positionInfo.fees.totalCostAmount
             )
 
-        return GmxV2LpBalance(
+
+            net_value += position_balance.net_value
+            position_balances.append(position_balance)
+
+        return GmxV2PrepBalance(
             net_value=net_value,
-            gm_amount=Decimal(self.amount),
-            long_amount=long_amount,
-            short_amount=short_amount,
+            positions=position_balances,
         )
 
     def formatted_str(self):

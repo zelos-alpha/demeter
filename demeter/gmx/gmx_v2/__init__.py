@@ -18,3 +18,4 @@ from ._typing import (
     PoolConfig,
     GmxV2Pool,
 )
+from .position import Position, PositionKey

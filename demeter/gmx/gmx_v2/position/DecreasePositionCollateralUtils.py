@@ -132,9 +132,7 @@ class DecreasePositionCollateralUtils:
         )
 
         if values.priceImpactUsd > 0:
-            deductionAmountForImpactPool = (
-                values.priceImpactUsd + cache.prices.indexTokenPrice + 1
-            ) / cache.prices.indexTokenPrice
+            deductionAmountForImpactPool = values.priceImpactUsd / cache.prices.indexTokenPrice
             # applyDeltaToPositionImpactPool
             deductionAmountForPool = values.priceImpactUsd / cache.pnlTokenPrice
             # applyDeltaToPoolAmount
@@ -246,7 +244,7 @@ class DecreasePositionCollateralUtils:
         result = PayForCostResult()
         if costUsd == 0:
             return values, result
-        remainingCostInOutputToken = (costUsd + collateralTokenPrice + 1) / collateralTokenPrice
+        remainingCostInOutputToken = costUsd / collateralTokenPrice
         if values.output.outputAmount > 0:
             if values.output.outputAmount > remainingCostInOutputToken:
                 result.amountPaidInCollateralToken += remainingCostInOutputToken
