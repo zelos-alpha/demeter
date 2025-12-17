@@ -4,7 +4,8 @@ from typing import Union, NamedTuple
 
 import pandas as pd
 
-from .gmx_v2 import GmxV2PoolStatus, PositionKey, Position
+from .gmx_v2._typing import GmxV2PoolStatus
+from .gmx_v2.position.Position import PositionKey, Position
 from .. import TokenInfo, MarketStatus, BaseAction, ActionTypeEnum
 from .._typing import MarketDescription, UnitDecimal
 from ..broker import MarketBalance

@@ -12,43 +12,44 @@ class PoolConfig:
     longDecimal: int
     shortDecimal: int
     swapImpactExponentFactor: float = 2  # 👒
-    swapImpactFactorPositive: float = 200000000000000000000 / 10**30  # 👒
-    swapImpactFactorNegative: float = 300000000000000000000 / 10**30  # 👒
-    depositFeeFactorForPositiveImpact: float = 0.0005  # 👒
-    depositFeeFactorForNegativeImpact: float = 0.0007  # 👒
-    withdrawFeeFactorForPositiveImpact: float = 0.0005  # 👒
-    withdrawFeeFactorForNegativeImpact: float = 0.0007  # 👒
-    swapFeeFactorBalanceNotImproved: float = 0.0007  # 👒
-    swapFeeFactorBalanceWasImproved: float = 0.0005  # 👒
-    positionImpactExponentFactor = 1655417464419320500000000000000 / 10**30  # 👒
-    positionImpactFactorPositive = 34111358107691540000000 / 10**30  # 👒
-    positionImpactFactorNegative = 40933629729229850000000 / 10**30  # 👒
-    maxPositiveImpactFactor = 5000000000000000000000000000 / 10**30  # 0.005
-    maxNegativeImpactFactor = 5000000000000000000000000000 / 10**30  # 0.005
-    positionFeeFactorPositive = 400000000000000000000000000 / 10**30  # 0.0004# 👒
-    positionFeeFactorNegative = 600000000000000000000000000 / 10**30  # 0.0006# 👒
+    swapImpactFactor_Positive: float = 200000000000000000000 / 10 ** 30  # 👒
+    swapImpactFactor_Negative: float = 300000000000000000000 / 10 ** 30  # 👒
+    depositFeeFactor_Positive: float = 0.0005  # 👒
+    depositFeeFactor_Negative: float = 0.0007  # 👒
+    withdrawFeeFactor_Positive: float = 0.0005  # 👒
+    withdrawFeeFactor_Negative: float = 0.0007  # 👒
+    swapFeeFactor_BalanceNotImproved: float = 0.0007  # 👒
+    swapFeeFactor_BalanceWasImproved: float = 0.0005  # 👒
+    positionImpactExponentFactor = 1655417464419320500000000000000 / 10**30  # 👒 #TODO
+    positionImpactFactor_Positive = 34111358107691540000000 / 10 ** 30  # 👒
+    positionImpactFactor_Negative = 40933629729229850000000 / 10 ** 30  # 👒
+    maxPositionImpactFactor_Positive = 5000000000000000000000000000 / 10 ** 30  # 0.005
+    maxPositiveImpactFactor_Negative = 5000000000000000000000000000 / 10 ** 30  # 0.005
+    positionFeeFactor_Positive = 400000000000000000000000000 / 10 ** 30  # 0.0004# 👒
+    positionFeeFactor_Negative = 600000000000000000000000000 / 10 ** 30  # 0.0006# 👒
     liquidationFeeFactor = 400000000000000000000000000 / 10**30  # 👒
-    maxPnlFactorForTraderLong = 900000000000000000000000000000 / 10**30  # 0.9 👒
-    maxPnlFactorForTraderShort = 900000000000000000000000000000 / 10**30  # 0.9  👒
-    minCollateralFactorForOpenInterestMultiplierLong = 60000000000000000000 / 10**30  # 👒
-    minCollateralFactorForOpenInterestMultiplierShort = 60000000000000000000 / 10**30  # 👒
+    maxPnlFactor_ForTrader_Long = 900000000000000000000000000000 / 10 ** 30  # 0.9 👒
+    maxPnlFactor_ForTrader_Short = 900000000000000000000000000000 / 10 ** 30  # 0.9  👒
+    minCollateralFactorForOpenInterestMultiplier_Long = 60000000000000000000 / 10 ** 30  # 👒
+    minCollateralFactorForOpenInterestMultiplier_Short = 60000000000000000000 / 10 ** 30  # 👒
     minCollateralFactor = 5000000000000000000000000000 / 10**30  # 0.005👒
     minCollateralUsd = 1000000000000000000000000000000 / 10**30  # 1 👒
     minPositionSizeUsd = 1000000000000000000000000000000 / 10**30  # 1 👒
 
     # SKIP_BORROWING_FEE_FOR_SMALLER_SIDE
     skip_borrowing_fee_for_smaller_side = True
-    ignore_open_interest_for_usage_factor = True
-    openInterestReserveFactorLong = 2.7
-    openInterestReserveFactorShort = 2.7  # todo check
-    baseBorrowingFactorLong = 14269406392694063926940 / 10**30
-    baseBorrowingFactorShort = 14269406392694063926940 / 10**30
+    ignore_open_interest_for_usage_factor = True # REMOVE this !!!! doesn't support kink
+    openInterestReserveFactor_Long = 2.7
+    openInterestReserveFactor_Short = 2.7  # todo check
+    baseBorrowingFactor_Long = 14269406392694063926940 / 10 ** 30
+    baseBorrowingFactor_Short = 14269406392694063926940 / 10 ** 30
     fundingIncreaseFactorPerSecond = 1988547595363155833 / 10**30
+    fundingDecreaseFactorPerSecond = 0  # todo
+
     fundingExponentFactor = 1
     fundingFactor = 0  # todo
     thresholdForStableFunding = 0.04
     thresholdForDecreaseFunding = 0  # todo
-    fundingDecreaseFactorPerSecond = 0  # todo
     minFundingFactorPerSecond = 317097919837645865043 / 10**30
     maxFundingFactorPerSecond = 21476314029922083333333 / 10**30
 
@@ -74,93 +75,6 @@ class GmxV2Pool(NamedTuple):
 
     def __repr__(self):
         return self.__str__()
-
-
-"""
-    function swapImpactExponentFactorKey(address market) external pure returns (bytes32) {
-        bytes32 SWAP_IMPACT_EXPONENT_FACTOR = keccak256(abi.encode("SWAP_IMPACT_EXPONENT_FACTOR"));
-        return keccak256(abi.encode(SWAP_IMPACT_EXPONENT_FACTOR,market));
-    }
-    function swapImpactFactorKey(address market, bool isPositive) external pure returns (bytes32) {
-        bytes32 SWAP_IMPACT_FACTOR = keccak256(abi.encode("SWAP_IMPACT_FACTOR"));
-        return keccak256(abi.encode(SWAP_IMPACT_FACTOR,market,isPositive));
-    }
-    function depositFeeFactorKey(address market, bool forPositiveImpact) external pure returns (bytes32) {
-        return keccak256(abi.encode(keccak256(abi.encode("DEPOSIT_FEE_FACTOR")),market,forPositiveImpact));
-    }
-    function positionImpactExponentFactorKey(address market) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            POSITION_IMPACT_EXPONENT_FACTOR,
-            market
-        ));
-    }
-    function positionImpactFactorKey(address market, bool isPositive) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            POSITION_IMPACT_FACTOR,
-            market,
-            isPositive
-        ));
-    }
-    function maxPositionImpactFactorKey(address market, bool isPositive) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            MAX_POSITION_IMPACT_FACTOR,
-            market,
-            isPositive
-        ));
-    }
-    function positionFeeFactorKey(address market, bool forPositiveImpact) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            POSITION_FEE_FACTOR,
-            market,
-            forPositiveImpact
-        ));
-    }
-    function cumulativeBorrowingFactorKey(address market, bool isLong) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            CUMULATIVE_BORROWING_FACTOR,
-            market,
-            isLong
-        ));
-    }
-    function fundingFeeAmountPerSizeKey(address market, address collateralToken, bool isLong) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            FUNDING_FEE_AMOUNT_PER_SIZE,
-            market,
-            collateralToken,
-            isLong
-        ));
-    }
-    function claimableFundingAmountPerSizeKey(address market, address collateralToken, bool isLong) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            CLAIMABLE_FUNDING_AMOUNT_PER_SIZE,
-            market,
-            collateralToken,
-            isLong
-        ));
-    }
-    function maxPnlFactorKey(bytes32 pnlFactorType, address market, bool isLong) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            MAX_PNL_FACTOR,
-            pnlFactorType,
-            market,
-            isLong
-        ));
-    }
-    function minCollateralFactorForOpenInterestMultiplierKey(address market, bool isLong) internal pure returns (bytes32) {
-       return keccak256(abi.encode(
-           MIN_COLLATERAL_FACTOR_FOR_OPEN_INTEREST_MULTIPLIER,
-           market,
-           isLong
-       ));
-   }
-   function minCollateralFactorKey(address market) internal pure returns (bytes32) {
-       return keccak256(abi.encode(
-           MIN_COLLATERAL_FACTOR,
-           market
-       ));
-   }
-"""
-
 
 @dataclass
 class Prices:

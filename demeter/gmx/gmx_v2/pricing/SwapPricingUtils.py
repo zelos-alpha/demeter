@@ -165,7 +165,7 @@ class SwapPriceUtils:
 
         if isSameSideRebalance:
             hasPositiveImpact: bool = nextDiffUsd < initialDiffUsd
-            impactFactor: int = MarketUtils.getAdjustedSwapImpactFactor(pool_config, hasPositiveImpact)
+            impactFactor: float = MarketUtils.getAdjustedSwapImpactFactor(pool_config, hasPositiveImpact)
 
             return (
                 PricingUtils.getPriceImpactUsdForSameSideRebalance(
@@ -256,9 +256,9 @@ class SwapPriceUtils:
         feeFactor = 0
         if swapPricingType == SwapPricingType.Swap:
             feeFactor = (
-                pool_config.swapFeeFactorBalanceWasImproved
+                pool_config.swapFeeFactor_BalanceWasImproved
                 if balanceWasImproved
-                else pool_config.swapFeeFactorBalanceNotImproved
+                else pool_config.swapFeeFactor_BalanceNotImproved
             )
         elif swapPricingType == SwapPricingType.Shift:
             # empty branch as feeFactor is already zero
@@ -267,15 +267,15 @@ class SwapPriceUtils:
             feeFactor = 0
         elif swapPricingType == SwapPricingType.Deposit:
             feeFactor = (
-                pool_config.depositFeeFactorForPositiveImpact
+                pool_config.depositFeeFactor_Positive
                 if forPositiveImpact
-                else pool_config.depositFeeFactorForNegativeImpact
+                else pool_config.depositFeeFactor_Negative
             )
         elif swapPricingType == SwapPricingType.Withdrawal:
             feeFactor = (
-                pool_config.withdrawFeeFactorForPositiveImpact
+                pool_config.withdrawFeeFactor_Positive
                 if forPositiveImpact
-                else pool_config.withdrawFeeFactorForNegativeImpact
+                else pool_config.withdrawFeeFactor_Negative
             )
 
         # swapFeeReceiverFactor = 370000000000000000000000000000

@@ -1,6 +1,6 @@
 from demeter import TokenInfo, DemeterError
 from .._typing import DecreasePositionSwapType, PoolData
-from ..position.PositionUtils import UpdatePositionParams, DecreasePositionCollateralValues
+from .PositionUtils import UpdatePositionParams, DecreasePositionCollateralValues
 from ..swap.SwapUtils import SwapUtils, SwapParams, SwapPricingType
 
 
@@ -29,14 +29,17 @@ class DecreasePositionSwapUtils:
         params: UpdatePositionParams,
         values: DecreasePositionCollateralValues,
         pool_data: PoolData,
-    )->DecreasePositionCollateralValues:
+    ) -> DecreasePositionCollateralValues:
         if (
             values.output.outputAmount > 0
             and params.order.decreasePositionSwapType == DecreasePositionSwapType.SwapCollateralTokenToPnlToken
         ):
             swapPathMarkets = [params.market]
             tokenOut, swapOutputAmount, _ = SwapUtils.swap(
-                SwapParams(values.output.outputAmount, params.position.collateralToken, swapPathMarkets, SwapPricingType.Swap), {pool_data.market: pool_data}
+                SwapParams(
+                    values.output.outputAmount, params.position.collateralToken, swapPathMarkets, SwapPricingType.Swap
+                ),
+                {pool_data.market: pool_data},
             )
             if tokenOut != values.output.secondaryOutputToken:
                 raise DemeterError("InvalidOutputToken")

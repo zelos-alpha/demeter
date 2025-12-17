@@ -10,7 +10,7 @@ from ..pricing.PositionPricingUtils import (
     GetPositionFeesParams,
 )
 from .Position import Position
-from ..order.BaseOrderUtils import BaseOrderUtils
+from .BaseOrderUtils import BaseOrderUtils
 
 
 @dataclass

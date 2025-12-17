@@ -21,6 +21,7 @@ from .gmx_v2.position import Position, PositionKey
 from .gmx_v2.reader.ReaderPositionUtils import ReaderPositionUtils
 from .gmx_v2.swap.SwapUtils import SwapResult
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
+from .utils import load_pool_config
 from .. import TokenInfo, DECIMAL_0, ChainType, UnitDecimal, DemeterError
 from .._typing import USD
 from ..broker import MarketInfo
@@ -75,6 +76,8 @@ class GmxV2PerpMarket(PrepMarket):
         return self._market_status
 
     # endregion
+    def load_config(self, path):
+        self.pool_config = load_pool_config(path)
 
     def check_market(self):
         super().check_market()
@@ -139,7 +142,6 @@ class GmxV2PerpMarket(PrepMarket):
             net_value += Decimal(
                 collateral_value + positionInfo.pnlAfterPriceImpactUsd - positionInfo.fees.totalCostAmount
             )
-
 
             net_value += position_balance.net_value
             position_balances.append(position_balance)

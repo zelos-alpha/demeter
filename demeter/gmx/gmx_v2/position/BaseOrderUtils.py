@@ -1,7 +1,11 @@
 from demeter import DemeterError
+from demeter.gmx.gmx_v2 import OrderType
 
-
+# move from order to here due to circular import
 class BaseOrderUtils:
+    @staticmethod
+    def isLiquidationOrder(_orderType: "OrderType") -> bool:
+        return _orderType == OrderType.Liquidation
 
     @staticmethod
     def getExecutionPriceForIncrease(sizeDeltaUsd, sizeDeltaInTokens, acceptablePrice, isLong) -> float:

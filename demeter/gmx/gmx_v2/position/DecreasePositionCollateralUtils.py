@@ -1,16 +1,16 @@
 from dataclasses import dataclass
 
+from .BaseOrderUtils import BaseOrderUtils
 from .DecreasePositionSwapUtils import DecreasePositionSwapUtils
-from .._typing import PoolData
-from ..market.MarketUtils import MarketPrices, MarketUtils
-from ..order.Order import Order
-from ..position.PositionUtils import (
+from .PositionUtils import (
     UpdatePositionParams,
     PositionUtils,
     DecreasePositionCollateralValues,
     DecreasePositionCache,
     DecreasePositionCollateralValuesOutput,
 )
+from .._typing import PoolData
+from ..market.MarketUtils import MarketPrices, MarketUtils
 from ..pricing.PositionPricingUtils import GetPositionFeesParams, PositionPricingUtils, PositionFees
 
 
@@ -60,7 +60,7 @@ class DecreasePositionCollateralUtils:
 
         # ! Do not support ADL so ignore any code related to ADL
         collateralCache.isInsolventCloseAllowed = (
-            params.order.sizeDeltaUsd == params.position.sizeInUsd and Order.isLiquidationOrder(params.order.orderType)
+            params.order.sizeDeltaUsd == params.position.sizeInUsd and BaseOrderUtils.isLiquidationOrder(params.order.orderType)
         )
 
         values.priceImpactUsd, values.executionPrice, collateralCache.balanceWasImproved = (
@@ -82,7 +82,7 @@ class DecreasePositionCollateralUtils:
             longToken=pool_data.market.long_token,
             shortToken=pool_data.market.short_token,
             sizeDeltaUsd=params.order.sizeDeltaUsd,
-            isLiquidation=Order.isLiquidationOrder(params.order.orderType),
+            isLiquidation=BaseOrderUtils.isLiquidationOrder(params.order.orderType),
         )
 
         # if the pnl is positive, deduct the pnl amount from the pool

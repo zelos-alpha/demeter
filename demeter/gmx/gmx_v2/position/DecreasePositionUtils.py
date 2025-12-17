@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 
 from demeter import DemeterError, TokenInfo
-from . import DecreasePositionSwapUtils, Position
+from .BaseOrderUtils import BaseOrderUtils
+from .DecreasePositionSwapUtils import DecreasePositionSwapUtils
 from .DecreasePositionCollateralUtils import DecreasePositionCollateralUtils
+
+from .Position import Position
 from .._typing import PoolData, OrderType, DecreasePositionSwapType
 from ..market.MarketUtils import MarketPrices, MarketUtils
-from ..order.Order import Order
 from ..position.PositionUtils import PositionUtils, WillPositionCollateralBeSufficientValues
 from ..position.PositionUtils import UpdatePositionParams, DecreasePositionCache
 from ..pricing import PositionFees
@@ -129,7 +131,7 @@ class DecreasePositionUtils:
         ):
             params.order.decreasePositionSwapType = DecreasePositionSwapType.NoSwap
 
-        if Order.isLiquidationOrder(params.order.orderType):
+        if BaseOrderUtils.isLiquidationOrder(params.order.orderType):
             isLiquidatable, reason, info = PositionUtils.isPositionLiquidatable(
                 params.position, cache.prices, True, True, pool_data
             )

@@ -129,6 +129,7 @@ class PositionPricingUtils:
         isSameSideRebalance = (openInterestParams.longOpenInterest <= openInterestParams.shortOpenInterest) == (
             openInterestParams.nextLongOpenInterest <= openInterestParams.nextShortOpenInterest
         )
+        #TODO update
         impactExponentFactor = pool_data.config.positionImpactExponentFactor
 
         balanceWasImproved = nextDiffUsd < initialDiffUsd
@@ -234,9 +235,9 @@ class PositionPricingUtils:
         # a user could split the order into two, to incur a smaller fee, reducing the fee through this should not be a large issue
 
         fees.positionFeeFactor = (
-            pool_data.config.positionFeeFactorPositive
+            pool_data.config.positionFeeFactor_Positive
             if balanceWasImproved
-            else pool_data.config.positionFeeFactorNegative
+            else pool_data.config.positionFeeFactor_Negative
         )
         fees.positionFeeAmount = sizeDeltaUsd * fees.positionFeeFactor / collateralTokenPrice
 

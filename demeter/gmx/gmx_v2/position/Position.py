@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import NamedTuple
 
 from demeter import TokenInfo
-from demeter.gmx import GmxV2Pool
+from .._typing import GmxV2Pool
 
 
 class PositionKey(NamedTuple):

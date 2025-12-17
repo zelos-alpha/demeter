@@ -23,8 +23,8 @@ class MarketUtils:
 
     @staticmethod
     def getAdjustedSwapImpactFactors(pool_config: PoolConfig) -> tuple[float, float]:
-        positiveImpactFactor = pool_config.swapImpactFactorPositive
-        negativeImpactFactor = pool_config.swapImpactFactorNegative
+        positiveImpactFactor = pool_config.swapImpactFactor_Positive
+        negativeImpactFactor = pool_config.swapImpactFactor_Negative
 
         # if the positive impact factor is more than the negative impact factor, positions could be opened
         # and closed immediately for a profit if the difference is sufficient to cover the position fees
@@ -199,8 +199,8 @@ class MarketUtils:
 
     @staticmethod
     def getMaxPositionImpactFactor(isPositive: bool, pool_data: PoolData) -> float:
-        maxPositiveImpactFactor = pool_data.config.maxPositiveImpactFactor
-        maxNegativeImpactFactor = pool_data.config.maxNegativeImpactFactor
+        maxPositiveImpactFactor = pool_data.config.maxPositionImpactFactor_Positive
+        maxNegativeImpactFactor = pool_data.config.maxPositiveImpactFactor_Negative
         if maxPositiveImpactFactor > maxNegativeImpactFactor:
             maxPositiveImpactFactor = maxNegativeImpactFactor
         return maxPositiveImpactFactor if isPositive else maxNegativeImpactFactor
@@ -229,7 +229,7 @@ class MarketUtils:
     def getCappedPnl(isLong: bool, pnl: float, poolUsd: float, pool_config: PoolConfig):
         if pnl < 0:
             return pnl
-        maxPnlFactor = pool_config.maxPnlFactorForTraderLong if isLong else pool_config.maxPnlFactorForTraderShort
+        maxPnlFactor = pool_config.maxPnlFactor_ForTrader_Long if isLong else pool_config.maxPnlFactor_ForTrader_Short
         maxPnl = poolUsd * maxPnlFactor
         return maxPnl if pnl > maxPnl else pnl
 
@@ -238,9 +238,9 @@ class MarketUtils:
         openInterest = pool_data.status.openInterestLong if isLong else pool_data.status.openInterestShort
         openInterest = openInterest + openInterestDelta
         multiplierFactor = (
-            pool_data.config.minCollateralFactorForOpenInterestMultiplierLong
+            pool_data.config.minCollateralFactorForOpenInterestMultiplier_Long
             if isLong
-            else pool_data.config.minCollateralFactorForOpenInterestMultiplierShort
+            else pool_data.config.minCollateralFactorForOpenInterestMultiplier_Short
         )
         return openInterest * multiplierFactor
 
@@ -251,8 +251,8 @@ class MarketUtils:
 
     @staticmethod
     def getAdjustedPositionImpactFactors(pool_data: PoolData):
-        positiveImpactFactor = pool_data.config.positionImpactFactorPositive
-        negativeImpactFactor = pool_data.config.positionImpactFactorNegative
+        positiveImpactFactor = pool_data.config.positionImpactFactor_Positive
+        negativeImpactFactor = pool_data.config.positionImpactFactor_Negative
         if positiveImpactFactor > negativeImpactFactor:
             positiveImpactFactor = negativeImpactFactor
         return positiveImpactFactor, negativeImpactFactor
@@ -376,7 +376,7 @@ class MarketUtils:
     ):
         usageFactor = MarketUtils.getUsageFactor(market, isLong, reservedUsd, poolUsd, pool_config, pool_status)  # todo
         baseBorrowingFactor = (
-            pool_config.baseBorrowingFactorLong if isLong else pool_config.baseBorrowingFactorShort
+            pool_config.baseBorrowingFactor_Long if isLong else pool_config.baseBorrowingFactor_Short
         )  # todo config
         borrowingFactorPerSecond = usageFactor * baseBorrowingFactor
         if usageFactor > optimalUsageFactor and 1 > optimalUsageFactor:  # 1 > 0.75
@@ -404,7 +404,7 @@ class MarketUtils:
     @staticmethod
     def getOpenInterestReserveFactor(marketToken, isLong, pool_config: PoolConfig):
         # openInterestReserveFactorKey
-        return pool_config.openInterestReserveFactorLong if isLong else pool_config.openInterestReserveFactorShort
+        return pool_config.openInterestReserveFactor_Long if isLong else pool_config.openInterestReserveFactor_Short
 
     @staticmethod
     def getMaxOpenInterest(marketToken, isLong):

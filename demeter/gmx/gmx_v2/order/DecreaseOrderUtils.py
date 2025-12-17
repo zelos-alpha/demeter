@@ -1,8 +1,6 @@
 from demeter import TokenInfo
 from .._typing import ExecuteOrderParams, GmxV2Pool, PoolData
-from ..position.DecreasePositionUtils import DecreasePositionUtils, DecreasePositionResult
-from ..position.Position import Position
-from ..position.PositionUtils import UpdatePositionParams
+from ..position import DecreasePositionUtils, DecreasePositionResult, Position, UpdatePositionParams
 from ..pricing import PositionFees
 
 
