@@ -55,7 +55,6 @@ class PositionFees:
     protocolFeeAmount: float = 0  # positionFeeAmount - discountAmount
     totalCostAmountExcludingFunding: float = 0
     totalCostAmount: float = 0
-    totalDiscountAmount: float = 0
 
 
 @dataclass
@@ -129,7 +128,7 @@ class PositionPricingUtils:
         isSameSideRebalance = (openInterestParams.longOpenInterest <= openInterestParams.shortOpenInterest) == (
             openInterestParams.nextLongOpenInterest <= openInterestParams.nextShortOpenInterest
         )
-        #TODO update
+        # TODO update
         impactExponentFactor = pool_data.config.positionImpactExponentFactor
 
         balanceWasImproved = nextDiffUsd < initialDiffUsd
@@ -192,7 +191,7 @@ class PositionPricingUtils:
             pool_data=pool_data,
         )
         borrowingFeeUsd = MarketUtils.getBorrowingFees(params.position, pool_data.status)
-        fees.borrowing = PositionPricingUtils.getBorrowingFees(params.collateralTokenPrice, borrowingFeeUsd, pool_data)
+        fees.borrowing = PositionPricingUtils.getBorrowingFees(params.collateralTokenPrice, borrowingFeeUsd)
 
         if params.isLiquidation:
             fees.liquidation = PositionPricingUtils.getLiquidationFees(
@@ -215,7 +214,6 @@ class PositionPricingUtils:
             fees.positionFeeAmount
             + fees.borrowing.borrowingFeeAmount
             + fees.liquidation.liquidationFeeAmount
-            - fees.totalDiscountAmount
         )
         fees.totalCostAmount = fees.totalCostAmountExcludingFunding + fees.funding.fundingFeeAmount
         return fees
@@ -225,6 +223,8 @@ class PositionPricingUtils:
         collateralTokenPrice: float, balanceWasImproved: bool, sizeDeltaUsd: float, pool_data: PoolData
     ) -> PositionFees:
         fees = PositionFees()
+        fees.borrowing = PositionBorrowingFees()
+        fees.liquidation = PositionLiquidationFees()
         fees.collateralTokenPrice = collateralTokenPrice
         # skip referral
 
@@ -245,13 +245,12 @@ class PositionPricingUtils:
 
         # skip referralCode
 
-        fees.totalDiscountAmount = 0
-        fees.protocolFeeAmount = fees.positionFeeAmount - fees.totalDiscountAmount
+        fees.protocolFeeAmount = fees.positionFeeAmount #- fees.totalDiscountAmount
 
         return fees
 
     @staticmethod
-    def getBorrowingFees(collateralTokenPrice, borrowingFeeUsd, pool_data: PoolData) -> PositionBorrowingFees:
+    def getBorrowingFees(collateralTokenPrice, borrowingFeeUsd) -> PositionBorrowingFees:
 
         borrowingFees = PositionBorrowingFees(
             borrowingFeeUsd=borrowingFeeUsd,

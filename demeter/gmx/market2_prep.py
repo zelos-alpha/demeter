@@ -18,7 +18,7 @@ from .gmx_v2 import PoolConfig, GmxV2Pool
 from .gmx_v2._typing import OrderType, DecreasePositionSwapType, PoolData, Order, ExecuteOrderParams
 from .gmx_v2.order import SwapOrderUtils, IncreaseOrderUtils, DecreaseOrderUtils
 from .gmx_v2.position import Position, PositionKey
-from .gmx_v2.reader.ReaderPositionUtils import ReaderPositionUtils
+from .gmx_v2.reader.ReaderPositionUtils import ReaderPositionUtils, PositionInfo
 from .gmx_v2.swap.SwapUtils import SwapResult
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
 from .utils import load_pool_config
@@ -97,6 +97,21 @@ class GmxV2PerpMarket(PrepMarket):
         data.data = self.data.loc[data.timestamp]
         self._market_status = data
 
+    def get_position_info(self, position_key: PositionKey) -> PositionInfo:
+        position = self.positions.get(position_key)
+        return ReaderPositionUtils.getPositionInfo(
+            position,
+            0,
+            True,
+            PoolData(self.pool, self._market_status.data, self.pool_config),
+        )
+
+    def _get_position_value(self, position_key: PositionKey, position_info: PositionInfo) -> PositionBalance:
+        pass
+
+    def get_position_value(self, position_key: PositionKey) -> PositionBalance:
+        pass
+
     def get_market_balance(self) -> GmxV2PrepBalance:
         pool_data: GmxV2PoolStatus = self._market_status.data
 
@@ -135,9 +150,7 @@ class GmxV2PerpMarket(PrepMarket):
             # net_value += Decimal(collateral_value + pnl)
             # print('net_value', net_value)
 
-            positionInfo = ReaderPositionUtils.getPositionInfo(
-                pending_borrowing_time, position, collateralPrice, self._market_status.data, self.pool_config, self.pool
-            )
+            positionInfo: PositionInfo = self.get_position_info(key)
             # print('executionPrice', positionInfo.executionPriceResult.executionPrice, 'longPrice', pool_data.longPrice, 'shortPrice', pool_data.shortPrice, 'pnlAfterPriceImpactUsd', positionInfo.pnlAfterPriceImpactUsd, 'totalCostAmount', positionInfo.fees.totalCostAmount)
             net_value += Decimal(
                 collateral_value + positionInfo.pnlAfterPriceImpactUsd - positionInfo.fees.totalCostAmount
@@ -240,7 +253,6 @@ class GmxV2PerpMarket(PrepMarket):
                     fees.totalCostAmountExcludingFunding, collateral_token.name
                 ),
                 totalCostAmount=UnitDecimal(fees.totalCostAmount, collateral_token.name),
-                totalDiscountAmount=UnitDecimal(fees.totalDiscountAmount, collateral_token.name),
             )
         )
         return updated_position

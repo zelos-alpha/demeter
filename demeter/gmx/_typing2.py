@@ -152,7 +152,6 @@ class Gmx2IncreasePositionAction(BaseAction):
     protocolFeeAmount: UnitDecimal
     totalCostAmountExcludingFunding: UnitDecimal
     totalCostAmount: UnitDecimal
-    totalDiscountAmount: UnitDecimal
 
     def set_type(self):
         self.action_type = ActionTypeEnum.gmx2_increase_position
@@ -178,7 +177,6 @@ class Gmx2IncreasePositionAction(BaseAction):
                 "protocolFeeAmount": self.protocolFeeAmount.to_str(),
                 "totalCostAmountExcludingFunding": self.totalCostAmountExcludingFunding.to_str(),
                 "totalCostAmount": self.totalCostAmount.to_str(),
-                "totalDiscountAmount": self.totalDiscountAmount.to_str(),
             },
         )
 
