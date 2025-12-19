@@ -100,8 +100,7 @@ class GmxV2PoolStatus:
     # positionImpactExponentFactor: float
     # positionImpactFactorPositive: float
     # positionImpactFactorNegative: float
-    virtualPositionInventoryLong: float  # 👒
-    virtualPositionInventoryShort: float  # 👒
+    virtualPositionInventory: float  # 👒
     positionImpactPoolAmount: float  # PositionImpactPoolAmountUpdated
     positionFeeFactor: float  # -> positive & negative
     positionFeeReceiverFactor: float

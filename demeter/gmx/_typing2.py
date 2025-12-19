@@ -25,26 +25,29 @@ class GmxV2LpBalance(MarketBalance):
 
 
 @dataclass
-class PositionBalance:
-    leverage: Decimal = Decimal(0)
-    size: Decimal = Decimal(0)
-    net_value: Decimal = Decimal(0)
-    collateral_usd: Decimal = Decimal(0)
-    collateral: Decimal = Decimal(0)
-    borrow_fee_usd: Decimal = Decimal(0)
-    negative_funding_fee_usd = Decimal(0)
-    positive_funding_fee_usd = Decimal(0)
-    net_price_impact_usd = Decimal(0)
-    close_fee_usd = Decimal(0)
-    pnl_after_fee_usd = Decimal(0)
-    entry_price: Decimal = Decimal(0)
-    market_price: Decimal = Decimal(0)
-    liq_price: Decimal = Decimal(0)
+class PositionValue:
+    leverage: Decimal
+    size: Decimal
+    net_value: Decimal
+    initial_collateral:Decimal
+    initial_collateral_usd: Decimal
+    finial_collateral: Decimal
+    finial_collateral_usd: Decimal
+    borrow_fee_usd: Decimal
+    negative_funding_fee_usd : Decimal
+    positive_funding_fee_usd: Decimal
+    net_price_impact_usd: Decimal
+    close_fee_usd: Decimal
+    pnl:Decimal
+    pnl_after_fee_usd: Decimal
+    entry_price: Decimal
+    market_price: Decimal
+    liq_price: Decimal
 
 
 @dataclass
 class GmxV2PrepBalance(MarketBalance):
-    positions: list[PositionBalance]
+    positions: list[PositionValue]
 
 
 @dataclass

@@ -12,7 +12,7 @@ from ._typing2 import (
     GmxV2PrepDescription,
     Gmx2SwapAction,
     GmxV2PrepBalance,
-    PositionBalance,
+    PositionValue,
 )
 from .gmx_v2 import PoolConfig, GmxV2Pool
 from .gmx_v2._typing import OrderType, DecreasePositionSwapType, PoolData, Order, ExecuteOrderParams
@@ -98,7 +98,7 @@ class GmxV2PerpMarket(PrepMarket):
         self._market_status = data
 
     def get_position_info(self, position_key: PositionKey) -> PositionInfo:
-        position = self.positions.get(position_key)
+        position = self.positions[position_key]
         return ReaderPositionUtils.getPositionInfo(
             position,
             0,
@@ -106,63 +106,73 @@ class GmxV2PerpMarket(PrepMarket):
             PoolData(self.pool, self._market_status.data, self.pool_config),
         )
 
-    def _get_position_value(self, position_key: PositionKey, position_info: PositionInfo) -> PositionBalance:
-        pass
+    def _get_position_value(self, position_info: PositionInfo, pool_status: GmxV2PoolStatus) -> PositionValue:
+        collateral_price = (
+            pool_status.longPrice
+            if self.pool.long_token == position_info.position.collateralToken
+            else pool_status.shortPrice
+        )
+        initial_collateral_usd = position_info.position.collateralAmount * collateral_price
 
-    def get_position_value(self, position_key: PositionKey) -> PositionBalance:
-        pass
+        final_collateral_amount = (
+            position_info.position.collateralAmount
+            - position_info.fees.funding.fundingFeeAmount
+            - position_info.fees.borrowing.borrowingFeeAmount
+        )
+        final_collateral_usd = final_collateral_amount * collateral_price
+
+        funding_fee_usd = position_info.fees.funding.fundingFeeAmount * collateral_price
+        claimable_funding = (
+            position_info.fees.funding.claimableLongTokenAmount * pool_status.longPrice
+            + position_info.fees.funding.claimableShortTokenAmount * pool_status.shortPrice
+        )
+        pnl_after_fee_usd = (
+            position_info.basePnlUsd
+            - position_info.fees.borrowing.borrowingFeeUsd
+            - funding_fee_usd
+            - position_info.executionPriceResult.totalImpactUsd
+            - position_info.fees.positionFeeAmount * collateral_price
+        )
+
+        net_value = initial_collateral_usd + pnl_after_fee_usd
+
+        balance = PositionValue(
+            leverage=Decimal(position_info.position.sizeInUsd / final_collateral_usd),
+            size=Decimal(position_info.position.sizeInUsd),
+            net_value=Decimal(net_value),
+            initial_collateral_usd=Decimal(initial_collateral_usd),
+            initial_collateral=Decimal(position_info.position.collateralAmount),
+            finial_collateral_usd=Decimal(final_collateral_usd),
+            finial_collateral=Decimal(final_collateral_amount),
+            borrow_fee_usd=Decimal(position_info.fees.borrowing.borrowingFeeUsd),
+            negative_funding_fee_usd=Decimal(funding_fee_usd),
+            positive_funding_fee_usd=Decimal(claimable_funding),
+            net_price_impact_usd=Decimal(position_info.executionPriceResult.totalImpactUsd),
+            close_fee_usd=Decimal(position_info.fees.positionFeeAmount * collateral_price),
+            pnl=Decimal(position_info.basePnlUsd),
+            pnl_after_fee_usd=Decimal(pnl_after_fee_usd),
+            entry_price=Decimal(position_info.position.sizeInUsd / position_info.position.sizeInTokens),
+            market_price=Decimal(pool_status.indexPrice),
+            liq_price=Decimal(0),
+        )
+        return balance
+
+    def get_position_value(self, position_key: PositionKey) -> PositionValue:
+        pool_status: GmxV2PoolStatus = self._market_status.data
+        position_info = self.get_position_info(position_key)
+        return self._get_position_value(position_info, pool_status)
 
     def get_market_balance(self) -> GmxV2PrepBalance:
-        pool_data: GmxV2PoolStatus = self._market_status.data
-
-        # if (
-        #     self.cumulative_borrowing["cumulativeBorrowingFactorLong"]["value"]
-        #     != self._market_status.data.cumulativeBorrowingFactorLong
-        # ) or (
-        #     self.cumulative_borrowing["cumulativeBorrowingFactorShort"]["value"]
-        #     != self._market_status.data.cumulativeBorrowingFactorShort
-        # ):
-        #     self.cumulative_borrowing["cumulativeBorrowingFactorLong"][
-        #         "value"
-        #     ] = self._market_status.data.cumulativeBorrowingFactorLong
-        #     self.cumulative_borrowing["cumulativeBorrowingFactorLong"]["time"] = self._market_status.timestamp
-        #     self.cumulative_borrowing["cumulativeBorrowingFactorShort"][
-        #         "value"
-        #     ] = self._market_status.data.cumulativeBorrowingFactorShort
-        #     self.cumulative_borrowing["cumulativeBorrowingFactorShort"]["time"] = self._market_status.timestamp
-        # # print(self._market_status.timestamp, self.cumulative_borrowing['cumulativeBorrowingFactorShort']['time'])
-        # pending_borrowing_time = (
-        #     pd.to_datetime(self._market_status.timestamp)
-        #     - pd.to_datetime(self.cumulative_borrowing["cumulativeBorrowingFactorShort"]["time"])
-        # ).seconds
-        position_balances: list[PositionBalance] = []
+        position_balances: list[PositionValue] = []
         net_value = 0
+        pool_status: GmxV2PoolStatus = self._market_status.data
         for key, position in self.positions.items():
-            position_balance = PositionBalance()
+            position_info = self.get_position_info(key)
+            position_value = self._get_position_value(position_info, pool_status)
+            net_value += position_value.net_value
+            position_balances.append(position_value)
 
-            if position.collateralToken == self.pool.short_token:
-                collateralPrice = pool_data.shortPrice
-            else:
-                collateralPrice = pool_data.longPrice
-            collateral_value = position.collateralAmount * collateralPrice
-            # position_value = position.sizeInTokens * pool_data.indexPrice
-            # pnl = position_value - position.sizeInUsd if position.isLong else position.sizeInUsd - position_value
-            # net_value += Decimal(collateral_value + pnl)
-            # print('net_value', net_value)
-
-            positionInfo: PositionInfo = self.get_position_info(key)
-            # print('executionPrice', positionInfo.executionPriceResult.executionPrice, 'longPrice', pool_data.longPrice, 'shortPrice', pool_data.shortPrice, 'pnlAfterPriceImpactUsd', positionInfo.pnlAfterPriceImpactUsd, 'totalCostAmount', positionInfo.fees.totalCostAmount)
-            net_value += Decimal(
-                collateral_value + positionInfo.pnlAfterPriceImpactUsd - positionInfo.fees.totalCostAmount
-            )
-
-            net_value += position_balance.net_value
-            position_balances.append(position_balance)
-
-        return GmxV2PrepBalance(
-            net_value=net_value,
-            positions=position_balances,
-        )
+        return GmxV2PrepBalance(net_value=net_value, positions=position_balances)
 
     def formatted_str(self):
         value = get_formatted_predefined(f"{self.market_info.name}({type(self).__name__})", STYLE["header3"]) + "\n"

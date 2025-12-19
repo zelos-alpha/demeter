@@ -1,14 +1,15 @@
 import datetime
 import unittest
-from pprint import pprint
-
+import pprint
 import pandas as pd
 
 from demeter import TokenInfo, MarketInfo, MarketTypeEnum, ChainType
 from demeter.gmx import GmxV2Pool, GmxV2PerpMarket, load_gmx_v2_data, get_price_from_v2_data
 from demeter.gmx._typing2 import GmxV2LpMarketStatus
 from demeter.gmx.gmx_v2 import PositionKey, Position
-pd.options.display.float_format = '{:.10f}'.format
+from decimal import Decimal
+
+pd.options.display.float_format = "{:.10f}".format
 
 
 pd.options.display.max_columns = None
@@ -26,24 +27,7 @@ class TestActuator(unittest.TestCase):
         self.pool: GmxV2Pool = GmxV2Pool(self.weth, self.usdc, self.weth)
         self.usdc_decimal = 10**6
         self.weth_decimal = 10**18
-
-    def _get_market(self):
-        market = GmxV2PerpMarket(self.market_info, self.pool)
-        market.load_config("tests/data/gmx_config_0x70d95587d40A2caf56bd97485aB3Eec10Bee6336.json")
-        data = load_gmx_v2_data(
-            ChainType.arbitrum,
-            "0x70d95587d40a2caf56bd97485ab3eec10bee6336",
-            datetime.date(2025, 12, 15),
-            datetime.date(2025, 12, 15),
-            "/data/gmx_v2/arbitrum",
-        )
-        price = get_price_from_v2_data(data, self.pool)
-        market.data = data
-        return market, data, price
-
-    def test_position_balance(self):
-        market, data, price = self._get_market()
-        online_status = {
+        self.online_status = { # position on height 411058750
             "positionKey": "08de94d44038c84029b1f841e06fa7517bf87e0a33d082e041f14bea9a224684",
             "position": {
                 "addresses": {
@@ -57,9 +41,9 @@ class TestActuator(unittest.TestCase):
                     "collateralAmount": 1996884608983643 / self.weth_decimal,
                     "pendingImpactAmount": -1170331909584 / self.weth_decimal,
                     "borrowingFactor": 0.28235092360718117,
-                    "fundingFeeAmountPerSize": 166777321907949805520045425044 / 10**(15 + 18),
-                    "longTokenClaimableFundingAmountPerSize": 4527337741737576110700834270 / 10** (15 + 18),
-                    "shortTokenClaimableFundingAmountPerSize": 7804503553381844840 / 10**(15 + 6),
+                    "fundingFeeAmountPerSize": 166777321907949805520045425044 / 10 ** (15 + 18),
+                    "longTokenClaimableFundingAmountPerSize": 4527337741737576110700834270 / 10 ** (15 + 18),
+                    "shortTokenClaimableFundingAmountPerSize": 7804503553381844840 / 10 ** (15 + 6),
                     "increasedAtTime": 1765527627,
                     "decreasedAtTime": 0,
                 },
@@ -116,30 +100,67 @@ class TestActuator(unittest.TestCase):
             "pnlAfterPriceImpactUsd": -1.4682697882861604,
         }
 
-        market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
-        pos_key = PositionKey(self.pool, self.weth, True)
-        market.positions[pos_key] = Position(
+    def _get_market(self):
+        market = GmxV2PerpMarket(self.market_info, self.pool)
+        market.load_config("tests/data/gmx_config_0x70d95587d40A2caf56bd97485aB3Eec10Bee6336.json")
+        data = load_gmx_v2_data(
+            ChainType.arbitrum,
+            "0x70d95587d40a2caf56bd97485ab3eec10bee6336",
+            datetime.date(2025, 12, 15),
+            datetime.date(2025, 12, 15),
+            "/data/gmx_v2/arbitrum",
+        )
+        price = get_price_from_v2_data(data, self.pool)
+        market.data = data
+        return market, data, price
+
+    def get_position(self):
+        return Position(
             market=self.pool,
             collateralToken=self.weth,
             isLong=True,
-            sizeInUsd=online_status["position"]["numbers"]["sizeInUsd"],
-            sizeInTokens=online_status["position"]["numbers"]["sizeInTokens"],
-            collateralAmount=online_status["position"]["numbers"]["collateralAmount"],
-            pendingImpactAmount=online_status["position"]["numbers"]["pendingImpactAmount"],
-            borrowingFactor=online_status["position"]["numbers"]["borrowingFactor"],
-            fundingFeeAmountPerSize=online_status["position"]["numbers"]["fundingFeeAmountPerSize"],
-            longTokenClaimableFundingAmountPerSize=online_status["position"]["numbers"][
+            sizeInUsd=self.online_status["position"]["numbers"]["sizeInUsd"],
+            sizeInTokens=self.online_status["position"]["numbers"]["sizeInTokens"],
+            collateralAmount=self.online_status["position"]["numbers"]["collateralAmount"],
+            pendingImpactAmount=self.online_status["position"]["numbers"]["pendingImpactAmount"],
+            borrowingFactor=self.online_status["position"]["numbers"]["borrowingFactor"],
+            fundingFeeAmountPerSize=self.online_status["position"]["numbers"]["fundingFeeAmountPerSize"],
+            longTokenClaimableFundingAmountPerSize=self.online_status["position"]["numbers"][
                 "longTokenClaimableFundingAmountPerSize"
             ],
-            shortTokenClaimableFundingAmountPerSize=online_status["position"]["numbers"][
+            shortTokenClaimableFundingAmountPerSize=self.online_status["position"]["numbers"][
                 "shortTokenClaimableFundingAmountPerSize"
             ],
         )
+
+    def test_position_info(self):
+        market, data, price = self._get_market()
+
+        market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
+        pos_key = PositionKey(self.pool, self.weth, True)
+        market.positions[pos_key] = self.get_position()
         position_info = market.get_position_info(pos_key)
 
-        pprint(position_info)
+        pprint.pprint(position_info)
 
-        compare_position_info(position_info, online_status)
+        compare_position_info(position_info, self.online_status)
+
+    def test_position_value(self):
+        market, data, price = self._get_market()
+        market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
+        pos_key = PositionKey(self.pool, self.weth, True)
+        market.positions[pos_key] = self.get_position()
+        position_value = market.get_position_value(pos_key)
+
+        pp = DecimalPrettyPrinter(indent=2, width=120)
+        pp.pprint(position_value)
+
+
+class DecimalPrettyPrinter(pprint.PrettyPrinter):
+    def format(self, obj, context, maxlevels, level):
+        if isinstance(obj, Decimal):
+            return (f"Decimal('{obj:.6f}')", True, False)
+        return super().format(obj, context, maxlevels, level)
 
 
 def compare_position_info(info, online_val: dict):
@@ -216,13 +237,24 @@ def compare_position_info(info, online_val: dict):
     rows.append(["fees.totalCostAmount", info.fees.totalCostAmount, online_val["fees"]["totalCostAmount"]])
     rows.append(["fees.positionFeeAmount", info.fees.positionFeeAmount, online_val["fees"]["positionFeeAmount"]])
 
-
-    rows.append(["executionPriceResult.priceImpactUsd", info.executionPriceResult.priceImpactUsd, online_val["executionPriceResult"]["priceImpactUsd"]])
-    rows.append(["executionPriceResult.totalImpactUsd", info.executionPriceResult.totalImpactUsd, online_val["executionPriceResult"]["totalImpactUsd"]])
+    rows.append(
+        [
+            "executionPriceResult.priceImpactUsd",
+            info.executionPriceResult.priceImpactUsd,
+            online_val["executionPriceResult"]["priceImpactUsd"],
+        ]
+    )
+    rows.append(
+        [
+            "executionPriceResult.totalImpactUsd",
+            info.executionPriceResult.totalImpactUsd,
+            online_val["executionPriceResult"]["totalImpactUsd"],
+        ]
+    )
     rows.append(["basePnlUsd", info.basePnlUsd, online_val["basePnlUsd"]])
     rows.append(["pnlAfterPriceImpactUsd", info.pnlAfterPriceImpactUsd, online_val["pnlAfterPriceImpactUsd"]])
 
     df = pd.DataFrame(rows, columns=["name", "demeter", "actual"])
     df["diff"] = 100 * (df["demeter"] - df["actual"]) / df["actual"]
-    df["danger"] = abs(df["diff"]) >= 0.1 # error larger than 0.1%
+    df["danger"] = abs(df["diff"]) >= 0.1  # error larger than 0.1%
     print(df)

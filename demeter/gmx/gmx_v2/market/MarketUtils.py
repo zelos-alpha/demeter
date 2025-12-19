@@ -353,11 +353,7 @@ class MarketUtils:
         @dev get the virtual inventory for positions
         @param token the token to check
         """
-        value = (
-            pool_data.status.virtualPositionInventoryLong
-            if pool_data.market.long_token == token
-            else pool_data.status.virtualPositionInventoryShort
-        )
+        value = pool_data.status.virtualPositionInventory
         has_virtual_inventory = True if value > 0 else False
 
         return has_virtual_inventory, value
