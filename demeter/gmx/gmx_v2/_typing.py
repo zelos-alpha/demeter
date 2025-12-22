@@ -20,8 +20,8 @@ class PoolConfig:
     withdrawFeeFactor_Negative: float = 0.0007  # 👒
     swapFeeFactor_BalanceNotImproved: float = 0.0007  # 👒
     swapFeeFactor_BalanceWasImproved: float = 0.0005  # 👒
-    positionImpactExponentFactor_Positive: float = 1655417464419320500000000000000 / 10**30  # 👒 #TODO
-    positionImpactExponentFactor_Negative: float = 1655417464419320500000000000000 / 10**30  # 👒 #TODO
+    positionImpactExponentFactor_Positive: float = 1655417464419320500000000000000 / 10**30  # 👒
+    positionImpactExponentFactor_Negative: float = 1655417464419320500000000000000 / 10**30  # 👒
     positionImpactFactor_Positive: float = 34111358107691540000000 / 10**30  # 👒
     positionImpactFactor_Negative: float = 40933629729229850000000 / 10**30  # 👒
     maxPositionImpactFactor_Positive: float = 5000000000000000000000000000 / 10**30  # 0.005
