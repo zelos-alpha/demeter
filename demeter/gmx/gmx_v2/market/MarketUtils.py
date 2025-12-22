@@ -95,7 +95,7 @@ class MarketUtils:
         )
 
     @staticmethod
-    def get_values(amount: float, price: float, decimal: float) -> Tuple[float, float]:
+    def get_values(amount: float, price: float) -> Tuple[float, float]:
         return amount, amount * price
 
     @staticmethod

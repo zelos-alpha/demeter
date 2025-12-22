@@ -68,7 +68,7 @@ class SwapUtils:
             ),
             status.status,
         )
-        fees = SwapPriceUtils.getSwapFees(status.config, _params.amountIn, priceImpactUsd > 0,balanceWasImproved, params.swapPricingType)
+        fees = SwapPriceUtils.getSwapFees(status.config, _params.amountIn, balanceWasImproved, params.swapPricingType)
         if priceImpactUsd > 0:
             amountIn = fees.amountAfterFees
             priceImpactAmount, cappedDiffUsd = MarketUtils.applySwapImpactWithCap(

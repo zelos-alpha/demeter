@@ -12,7 +12,7 @@ from ._typing2 import (
     Gmx2WithdrawAction,
     Gmx2DepositAction,
 )
-from .gmx_v2 import PoolConfig, LPResult, GmxV2Pool
+from .gmx_v2 import PoolConfig, LPResult, GmxV2Pool, PoolData
 from .gmx_v2.deposit import ExecuteDepositUtils
 from .gmx_v2.withdrawal import ExecuteWithdrawUtils
 from .gmx_v2.market import MarketUtils
@@ -126,8 +126,10 @@ class GmxV2LpMarket(Market):
         assert long_amount >= 0 and short_amount >= 0
         long_amount = float(long_amount)
         short_amount = float(short_amount)
+        pool_data = PoolData(self.pool, self._market_status.data, self.pool_config)
+
         result = ExecuteDepositUtils.get_mint_amount(
-            self.pool_config, self._market_status.data, long_amount, short_amount
+           long_amount, short_amount,pool_data
         )
         self.amount += result.gm_amount
         self.broker.subtract_from_balance(self.long_token, Decimal(result.long_amount))
@@ -153,7 +155,9 @@ class GmxV2LpMarket(Market):
             amount = self.amount
         assert amount >= 0
         amount = float(amount)
-        result: LPResult = ExecuteWithdrawUtils.getOutputAmount(self.pool_config, self._market_status.data, amount)
+        pool_data = PoolData(self.pool, self._market_status.data, self.pool_config)
+
+        result: LPResult = ExecuteWithdrawUtils.getOutputAmount(amount, pool_data)
         self.amount -= result.gm_amount
         self.broker.add_to_balance(self.long_token, Decimal(result.long_amount))
         self.broker.add_to_balance(self.short_token, Decimal(result.short_amount))

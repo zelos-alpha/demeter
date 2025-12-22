@@ -242,7 +242,6 @@ class SwapPriceUtils:
     def getSwapFees(
         pool_config: PoolConfig,
         amount: float,
-        forPositiveImpact: bool,
         balanceWasImproved: bool,
         swapPricingType: SwapPricingType,
     ) -> SwapFees:
@@ -268,13 +267,13 @@ class SwapPriceUtils:
         elif swapPricingType == SwapPricingType.Deposit:
             feeFactor = (
                 pool_config.depositFeeFactor_Positive
-                if forPositiveImpact
+                if balanceWasImproved
                 else pool_config.depositFeeFactor_Negative
             )
         elif swapPricingType == SwapPricingType.Withdrawal:
             feeFactor = (
                 pool_config.withdrawFeeFactor_Positive
-                if forPositiveImpact
+                if balanceWasImproved
                 else pool_config.withdrawFeeFactor_Negative
             )
 

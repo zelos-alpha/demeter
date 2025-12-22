@@ -2,17 +2,15 @@ from typing import Tuple
 
 from ..market.MarketUtils import MarketUtils
 from ..pricing.SwapPricingUtils import SwapPriceUtils, SwapPricingType, GetPriceImpactUsdParams, SwapFees
-from .._typing import PoolConfig, GmxV2PoolStatus, LPResult
+from .._typing import PoolConfig, GmxV2PoolStatus, LPResult, PoolData
 from ..utils import PricingUtils
 
 
 class ExecuteDepositUtils:
     @staticmethod
-    def get_mint_amount(
-        pool_config: PoolConfig, pool_status: GmxV2PoolStatus, long_amount: float, short_amount: float
-    ) -> LPResult:
-        long_value = long_amount * pool_status.longPrice
-        short_value = short_amount * pool_status.shortPrice
+    def get_mint_amount(long_amount: float, short_amount: float, pool_data: PoolData) -> LPResult:
+        long_value = long_amount * pool_data.status.longPrice
+        short_value = short_amount * pool_data.status.shortPrice
 
         # long_value_in_base = Decimal(
         #     long_amount / 10**pool_config.longDecimal
@@ -22,44 +20,46 @@ class ExecuteDepositUtils:
         #     short_amount / 10**pool_config.shortDecimal
         # ) * PricingUtils.get_price_in_base_unit(pool_status.shortPrice, pool_config.shortDecimal)
 
-        priceImpactUsd = SwapPriceUtils.getPriceImpactUsd(
+        priceImpactUsd, balanceWasImproved = SwapPriceUtils.getPriceImpactUsd(
             GetPriceImpactUsdParams(
-                pool_config,
-                pool_status.longPrice,
-                pool_status.shortPrice,
+                pool_data.config,
+                pool_data.status.longPrice,
+                pool_data.status.shortPrice,
                 long_value,
                 short_value,
                 True,
                 True,
             ),
-            pool_status,
+            pool_data.status,
         )
         # =========================================================
         gm_amount = long_fee_amount = short_fee_amount = 0
         total_fee_value = 0
         if long_amount > 0:
             amount, long_fee = ExecuteDepositUtils.calc_token_amount(
-                pool_config,
-                pool_status,
-                pool_status.longPrice,
-                pool_status.shortPrice,
+                pool_data.config,
+                pool_data.status,
+                pool_data.status.longPrice,
+                pool_data.status.shortPrice,
                 long_amount,
                 priceImpactUsd * long_value / (long_value + short_value),
+                balanceWasImproved,
             )
             gm_amount += amount
-            total_fee_value += long_fee.totalFee * pool_status.longPrice
+            total_fee_value += long_fee.totalFee * pool_data.status.longPrice
             long_fee_amount = long_fee.totalFee
         if short_amount > 0:
             amount, short_fee = ExecuteDepositUtils.calc_token_amount(
-                pool_config,
-                pool_status,
-                pool_status.shortPrice,
-                pool_status.longPrice,
+                pool_data.config,
+                pool_data.status,
+                pool_data.status.shortPrice,
+                pool_data.status.longPrice,
                 short_amount,
                 priceImpactUsd * short_value / (long_value + short_value),
+                balanceWasImproved,
             )
             gm_amount += amount
-            total_fee_value += short_fee.totalFee * pool_status.shortPrice
+            total_fee_value += short_fee.totalFee * pool_data.status.shortPrice
             short_fee_amount = short_fee.totalFee
 
         result = LPResult(
@@ -69,7 +69,8 @@ class ExecuteDepositUtils:
             gm_amount=gm_amount,
             long_fee=long_fee_amount,
             short_fee=short_fee_amount,
-            gm_usd=gm_amount * PricingUtils.get_gm_price(pool_status.poolValue, pool_status.marketTokensSupply),
+            gm_usd=gm_amount
+            * PricingUtils.get_gm_price(pool_data.status.poolValue, pool_data.status.marketTokensSupply),
             fee_usd=total_fee_value,
             price_impact_usd=priceImpactUsd,
         )
@@ -83,11 +84,12 @@ class ExecuteDepositUtils:
         tokenOutPrice: float,
         amount: float,
         priceImpactUsd: float,
+        balanceWasImproved: bool,
     ) -> Tuple[float, SwapFees]:
         fees: SwapFees = SwapPriceUtils.getSwapFees(
             pool_config,
             amount,
-            priceImpactUsd > 0,
+            balanceWasImproved,
             SwapPricingType.Deposit,
         )
         mintAmount = 0

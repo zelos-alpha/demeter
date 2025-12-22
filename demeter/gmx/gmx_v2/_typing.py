@@ -9,8 +9,6 @@ from demeter import TokenInfo
 
 @dataclass
 class PoolConfig:
-    longDecimal: int
-    shortDecimal: int
     swapImpactExponentFactor: float = 2  # 👒
     swapImpactFactor_Positive: float = 200000000000000000000 / 10**30  # 👒
     swapImpactFactor_Negative: float = 300000000000000000000 / 10**30  # 👒
