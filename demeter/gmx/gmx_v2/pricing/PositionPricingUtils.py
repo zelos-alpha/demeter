@@ -128,13 +128,15 @@ class PositionPricingUtils:
         isSameSideRebalance = (openInterestParams.longOpenInterest <= openInterestParams.shortOpenInterest) == (
             openInterestParams.nextLongOpenInterest <= openInterestParams.nextShortOpenInterest
         )
-        # TODO update
-        impactExponentFactor = pool_data.config.positionImpactExponentFactor
-
         balanceWasImproved = nextDiffUsd < initialDiffUsd
 
         if isSameSideRebalance:
             impactFactor = MarketUtils.getAdjustedPositionImpactFactor(balanceWasImproved, pool_data)
+            impactExponentFactor = (
+                pool_data.config.positionImpactExponentFactor_Positive
+                if balanceWasImproved
+                else pool_data.config.positionImpactExponentFactor_Negative
+            )
             return (
                 PricingUtils.getPriceImpactUsdForSameSideRebalance(
                     initialDiffUsd, nextDiffUsd, impactFactor, impactExponentFactor
@@ -154,7 +156,8 @@ class PositionPricingUtils:
                     nextDiffUsd,
                     positiveImpactFactor,
                     negativeImpactFactor,
-                    impactExponentFactor,
+                    pool_data.config.positionImpactExponentFactor_Positive,
+                    pool_data.config.positionImpactExponentFactor_Negative,
                 ),
                 balanceWasImproved,
             )
@@ -211,9 +214,7 @@ class PositionPricingUtils:
         )
         fees.funding = PositionPricingUtils.getFundingFees(fees.funding, params.position)
         fees.totalCostAmountExcludingFunding = (
-            fees.positionFeeAmount
-            + fees.borrowing.borrowingFeeAmount
-            + fees.liquidation.liquidationFeeAmount
+            fees.positionFeeAmount + fees.borrowing.borrowingFeeAmount + fees.liquidation.liquidationFeeAmount
         )
         fees.totalCostAmount = fees.totalCostAmountExcludingFunding + fees.funding.fundingFeeAmount
         return fees
@@ -245,7 +246,7 @@ class PositionPricingUtils:
 
         # skip referralCode
 
-        fees.protocolFeeAmount = fees.positionFeeAmount #- fees.totalDiscountAmount
+        fees.protocolFeeAmount = fees.positionFeeAmount  # - fees.totalDiscountAmount
 
         return fees
 

@@ -76,7 +76,8 @@ class PricingUtils:
         nextDiffUsd: float,
         positiveImpactFactor: float,
         negativeImpactFactor: float,
-        impactExponentFactor: float,
+        positiveImpactExponentFactor: float,
+        negativeImpactExponentFactor: float,
     ) -> float:
         """
         @dev get the price impact USD if there is a crossover in balance
@@ -85,10 +86,10 @@ class PricingUtils:
         short open interest becomes larger than the long open interest
         """
         positiveImpactUsd: float = PricingUtils.applyImpactFactor(
-            initialDiffUsd, positiveImpactFactor, impactExponentFactor
+            initialDiffUsd, positiveImpactFactor, positiveImpactExponentFactor
         )
         negativeImpactUsd: float = PricingUtils.applyImpactFactor(
-            nextDiffUsd, negativeImpactFactor, impactExponentFactor
+            nextDiffUsd, negativeImpactFactor, negativeImpactExponentFactor
         )
         deltaDiffUsd: float = Calc.diff(positiveImpactUsd, negativeImpactUsd)
 
@@ -120,8 +121,6 @@ class PricingUtils:
         return pool_value / supply_amount
 
 
-
-
 class Precision:
     FLOAT_PRECISION: int = 10**30
     FLOAT_PRECISION_SQRT: int = 10**15
@@ -147,4 +146,3 @@ class Precision:
     @staticmethod
     def applyFactor(value: float, factor: float) -> float:
         return factor * value
-
