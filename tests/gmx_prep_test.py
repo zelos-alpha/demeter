@@ -3,7 +3,7 @@ import unittest
 import pprint
 import pandas as pd
 
-from demeter import TokenInfo, MarketInfo, MarketTypeEnum, ChainType
+from demeter import TokenInfo, MarketInfo, MarketTypeEnum, ChainType, Broker
 from demeter.gmx import GmxV2Pool, GmxV2PerpMarket, load_gmx_v2_data, get_price_from_v2_data
 from demeter.gmx._typing2 import GmxV2LpMarketStatus
 from demeter.gmx.gmx_v2 import PositionKey, Position
@@ -27,7 +27,7 @@ class TestActuator(unittest.TestCase):
         self.pool: GmxV2Pool = GmxV2Pool(self.weth, self.usdc, self.weth)
         self.usdc_decimal = 10**6
         self.weth_decimal = 10**18
-        self.online_status = { # position on height 411058750
+        self.online_status = {  # position on height 411058750
             "positionKey": "08de94d44038c84029b1f841e06fa7517bf87e0a33d082e041f14bea9a224684",
             "position": {
                 "addresses": {
@@ -112,7 +112,11 @@ class TestActuator(unittest.TestCase):
         )
         price = get_price_from_v2_data(data, self.pool)
         market.data = data
-        return market, data, price
+        broker = Broker()
+        broker.add_to_balance(self.weth, 10)
+        broker.add_to_balance(self.usdc, 30000)
+        broker.add_market(market)
+        return broker, market, data, price
 
     def get_position(self):
         return Position(
@@ -134,7 +138,7 @@ class TestActuator(unittest.TestCase):
         )
 
     def test_position_info(self):
-        market, data, price = self._get_market()
+        broker, market, data, price = self._get_market()
 
         market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
         pos_key = PositionKey(self.pool, self.weth, True)
@@ -146,7 +150,7 @@ class TestActuator(unittest.TestCase):
         compare_position_info(position_info, self.online_status)
 
     def test_position_value(self):
-        market, data, price = self._get_market()
+        broker, market, data, price = self._get_market()
         market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
         pos_key = PositionKey(self.pool, self.weth, True)
         market.positions[pos_key] = self.get_position()
@@ -154,6 +158,87 @@ class TestActuator(unittest.TestCase):
 
         pp = DecimalPrettyPrinter(indent=2, width=120)
         pp.pprint(position_value)
+
+    def test_increase(self):
+        broker, market, data, price = self._get_market()
+        market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
+        market: GmxV2PerpMarket = market
+        pos, fee = market.increase_position(self.weth, 1, True, 10)
+        print()
+        pprint.pprint(pos)
+
+    def test_increase_again(self):
+        broker, market, data, price = self._get_market()
+        market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
+        market: GmxV2PerpMarket = market
+        pos, fee = market.increase_position(self.weth, 1, True, 10)
+
+        pprint.pprint(pos)
+        pprint.pprint(fee)
+        pos1, fee1 = market.increase_position(self.weth, 1, True, 10)
+        print()
+
+        pprint.pprint(pos1)
+        pprint.pprint(fee1)
+        pos_key = PositionKey(self.pool, self.weth, True)
+        position_value = market.get_position_value(pos_key)
+        pprint.pprint(position_value)
+
+
+    def test_increase_with_real_tx(self):
+        # create: https://arbiscan.io/tx/0x9a569528aa09e51fc9ac30f17a6d360390e69302966cbfc4f288e5a5cf443a11#eventlog
+        # execute: https://arbiscan.io/tx/0x079183a17c2013ca758bd14f26fa4d5808cd770e8eb4834db07758a6d8b9bb06#eventlog
+        broker, market, data, price = self._get_market()
+        t = pd.Timestamp("2025-12-15 0:3:00")
+
+        data.loc[t, "longPrice"] = 3075.745500562432
+        data.loc[t, "indexPrice"] = 3075.745500562432
+        market.set_market_status(GmxV2LpMarketStatus(t, data.loc[t]), price.loc[t])
+        market: GmxV2PerpMarket = market
+        pos, fee = market.increase_position(self.usdc, 68.273675, True, size_in_usd=3180.8620630609335)
+
+        actual = Position(
+            market=pos.market,
+            collateralToken=pos.collateralToken,
+            isLong=pos.isLong,
+            sizeInUsd=3180862063060933415616579375000000 / 10**30,
+            sizeInTokens=1034175962373765892 / 10**18,
+            collateralAmount=67001171 / 10**6,
+            pendingImpactAmount=803489072178226 / 10**18,
+            borrowingFactor=283225263025121251393134047384 / 10**30,
+            fundingFeeAmountPerSize=478756936585289340755 / 10**15 / 10**6,
+            longTokenClaimableFundingAmountPerSize=4527337741737576110700834270 / 10**15 / 10**18,
+            shortTokenClaimableFundingAmountPerSize=7804503553381844840 / 10**15 / 10**6,
+        )
+        print()
+        print("fees", fee.totalCostAmount, 1.272504)
+        compare_position(pos, actual)
+
+
+def compare_position(val, actual):
+    rows = [
+        ["sizeInUsd", val.sizeInUsd, actual.sizeInUsd],
+        ["sizeInTokens", val.sizeInTokens, actual.sizeInTokens],
+        ["collateralAmount", val.collateralAmount, actual.collateralAmount],
+        ["pendingImpactAmount", val.pendingImpactAmount, actual.pendingImpactAmount],
+        ["borrowingFactor", val.borrowingFactor, actual.borrowingFactor],
+        ["fundingFeeAmountPerSize", val.fundingFeeAmountPerSize, actual.fundingFeeAmountPerSize],
+        [
+            "longTokenClaimableFundingAmountPerSize",
+            val.longTokenClaimableFundingAmountPerSize,
+            actual.longTokenClaimableFundingAmountPerSize,
+        ],
+        [
+            "shortTokenClaimableFundingAmountPerSize",
+            val.shortTokenClaimableFundingAmountPerSize,
+            actual.shortTokenClaimableFundingAmountPerSize,
+        ],
+    ]
+
+    df = pd.DataFrame(rows, columns=["name", "demeter", "actual"])
+    df["diff"] = 100 * (df["demeter"] - df["actual"]) / df["actual"]
+    df["danger"] = abs(df["diff"]) >= 0.1  # error larger than 0.1%
+    print(df)
 
 
 class DecimalPrettyPrinter(pprint.PrettyPrinter):

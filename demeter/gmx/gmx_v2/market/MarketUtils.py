@@ -2,10 +2,10 @@ import dataclasses
 from typing import Tuple
 
 from demeter import TokenInfo, DemeterError
-from .._typing import PoolConfig, GmxV2PoolStatus
-from ..position.Position import Position
 from .. import PoolData
 from .._typing import GmxV2Pool
+from .._typing import PoolConfig, GmxV2PoolStatus
+from ..position.Position import Position
 
 
 @dataclasses.dataclass
@@ -241,17 +241,31 @@ class MarketUtils:
         return openInterest * multiplierFactor
 
     @staticmethod
-    def getAdjustedPositionImpactFactor(isPositive: bool, pool_data: PoolData):
-        positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(pool_data)
+    def getAdjustedPositionImpactFactor(isPositive: bool, config: PoolConfig):
+        positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(config)
         return positiveImpactFactor if isPositive else negativeImpactFactor
 
     @staticmethod
-    def getAdjustedPositionImpactFactors(pool_data: PoolData):
-        positiveImpactFactor = pool_data.config.positionImpactFactor_Positive
-        negativeImpactFactor = pool_data.config.positionImpactFactor_Negative
+    def getAdjustedPositionImpactFactors(config: PoolConfig):
+        positiveImpactFactor = config.positionImpactFactor_Positive
+        negativeImpactFactor = config.positionImpactFactor_Negative
         if positiveImpactFactor > negativeImpactFactor:
             positiveImpactFactor = negativeImpactFactor
         return positiveImpactFactor, negativeImpactFactor
+
+    @staticmethod
+    def getAdjustedPositionImpactExponentFactor(isPositive: bool, config: PoolConfig):
+        positiveExponentFactor, negativeExponentFactor = MarketUtils.getAdjustedPositionImpactExponentFactors(config)
+        return positiveExponentFactor if isPositive else negativeExponentFactor
+
+    @staticmethod
+    def getAdjustedPositionImpactExponentFactors(config: PoolConfig):
+        positiveExponentFactor = config.positionImpactExponentFactor_Positive
+        negativeExponentFactor = config.positionImpactExponentFactor_Negative
+        if positiveExponentFactor > negativeExponentFactor:
+            positiveExponentFactor = negativeExponentFactor
+        return positiveExponentFactor, negativeExponentFactor
+
 
     @staticmethod
     def getFundingFeeAmountPerSize(collateralToken: TokenInfo, isLong: bool, pool_data: PoolData):

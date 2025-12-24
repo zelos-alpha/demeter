@@ -125,7 +125,6 @@ class ReaderPositionUtils:
                 initialCollateralToken=None,
                 sizeDeltaUsd=abs(sizeDeltaUsd),
                 isLong=isLong,
-                acceptablePrice=99999999999999999999 if shouldExecutionPriceBeSmaller else 0,
             ),
             position=Position(
                 market=None,

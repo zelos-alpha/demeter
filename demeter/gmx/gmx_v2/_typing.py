@@ -178,8 +178,8 @@ class Order:
     orderType: OrderType = OrderType.LimitIncrease
     sizeDeltaUsd: float = 0
     initialCollateralDeltaAmount: float = 0
-    triggerPrice: float = 0
-    acceptablePrice: float = 0
+    # triggerPrice: float = 0
+    # acceptablePrice: float = 0
     isLong: bool | None = None
     decreasePositionSwapType: DecreasePositionSwapType | None = None
 

@@ -59,14 +59,14 @@ class PricingUtils:
         :param impactFactor: the impact factor
         :param impactExponentFactor: the impact exponent factor
         """
-        hasPositiveImpact: bool = nextDiffUsd < initialDiffUsd
+        balanceWasImproved: bool = nextDiffUsd < initialDiffUsd
 
         deltaDiffUsd: float = Calc.diff(
             PricingUtils.applyImpactFactor(initialDiffUsd, impactFactor, impactExponentFactor),
             PricingUtils.applyImpactFactor(nextDiffUsd, impactFactor, impactExponentFactor),
         )
 
-        priceImpactUsd: float = Calc.toSigned(deltaDiffUsd, hasPositiveImpact)
+        priceImpactUsd: float = Calc.toSigned(deltaDiffUsd, balanceWasImproved)
 
         return priceImpactUsd
 
@@ -96,17 +96,6 @@ class PricingUtils:
         priceImpactUsd: float = Calc.toSigned(deltaDiffUsd, positiveImpactUsd > negativeImpactUsd)
 
         return priceImpactUsd
-
-    # @staticmethod
-    # def applyImpactFactor(diffUsd: int, impactFactor: int, impactExponentFactor: int) -> int:
-    #     """
-    #     @dev apply the impact factor calculation to a USD diff value
-    #     :param diffUsd: the difference in USD
-    #     :param impactFactor: the impact factor
-    #     :param impactExponentFactor: the impact exponent factor
-    #     """
-    #     exponentValue: int = Precision.applyExponentFactor(diffUsd, impactExponentFactor)
-    #     return Precision.applyFactor(exponentValue, impactFactor)
 
     @staticmethod
     def applyImpactFactor(diffUsd: float, impactFactor: float, impactExponentFactor: float) -> float:

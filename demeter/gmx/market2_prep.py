@@ -18,6 +18,7 @@ from .gmx_v2 import PoolConfig, GmxV2Pool
 from .gmx_v2._typing import OrderType, DecreasePositionSwapType, PoolData, Order, ExecuteOrderParams
 from .gmx_v2.order import SwapOrderUtils, IncreaseOrderUtils, DecreaseOrderUtils
 from .gmx_v2.position import Position, PositionKey
+from .gmx_v2.pricing import PositionFees
 from .gmx_v2.reader.ReaderPositionUtils import ReaderPositionUtils, PositionInfo
 from .gmx_v2.swap.SwapUtils import SwapResult
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
@@ -209,19 +210,23 @@ class GmxV2PerpMarket(PrepMarket):
         self,
         collateral_token: TokenInfo,
         collateral_amount: float | Decimal,
-        size_usd: float | Decimal,
         is_long: bool,
-    ) -> Position:
-
+        expect_size_in_token: float | Decimal | None = None,
+        size_in_usd: float | Decimal | None = None,
+    ) -> tuple[Position, PositionFees]:
+        if size_in_usd is None and expect_size_in_token is None:
+            raise DemeterError("size_in_usd or size_in_token is required")
+        elif size_in_usd is not None and expect_size_in_token is not None:
+            print("Warning, size_in_token and size_in_usd is filled, will use size_in_usd")
+        if size_in_usd is None:
+            size_in_usd = expect_size_in_token * self._market_status.data.longPrice
         order = Order(
             market=self.pool,
             initialCollateralToken=collateral_token,
             swapPath=[],  # do not allow collateral with other token, you can swap manually if needed.
             orderType=OrderType.MarketIncrease,
-            sizeDeltaUsd=size_usd,
+            sizeDeltaUsd=size_in_usd,
             initialCollateralDeltaAmount=collateral_amount,
-            triggerPrice=0,
-            acceptablePrice=0,
             isLong=is_long,
             decreasePositionSwapType=DecreasePositionSwapType.NoSwap,
         )
@@ -243,7 +248,7 @@ class GmxV2PerpMarket(PrepMarket):
                 market=self.market_info,
                 collateralToken=collateral_token.name,
                 collateralAmount=UnitDecimal(collateral_amount, collateral_token.name),
-                sizeInUsd=UnitDecimal(size_usd, "USD"),
+                sizeInUsd=UnitDecimal(size_in_usd, "USD"),
                 borrowingFactor=UnitDecimal(updated_position.borrowingFactor),
                 fundingFeeAmountPerSize=UnitDecimal(updated_position.fundingFeeAmountPerSize),
                 longTokenClaimableFundingAmountPerSize=UnitDecimal(
@@ -265,7 +270,7 @@ class GmxV2PerpMarket(PrepMarket):
                 totalCostAmount=UnitDecimal(fees.totalCostAmount, collateral_token.name),
             )
         )
-        return updated_position
+        return updated_position, fees
 
     def decrease_position(
         self,
@@ -281,8 +286,6 @@ class GmxV2PerpMarket(PrepMarket):
             orderType=OrderType.MarketDecrease,
             sizeDeltaUsd=size_usd,
             initialCollateralDeltaAmount=collateral_amount,
-            triggerPrice=0,
-            acceptablePrice=0,
             isLong=is_long,
             decreasePositionSwapType=DecreasePositionSwapType.SwapPnlTokenToCollateralToken,
         )

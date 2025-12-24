@@ -131,11 +131,9 @@ class PositionPricingUtils:
         balanceWasImproved = nextDiffUsd < initialDiffUsd
 
         if isSameSideRebalance:
-            impactFactor = MarketUtils.getAdjustedPositionImpactFactor(balanceWasImproved, pool_data)
-            impactExponentFactor = (
-                pool_data.config.positionImpactExponentFactor_Positive
-                if balanceWasImproved
-                else pool_data.config.positionImpactExponentFactor_Negative
+            impactFactor = MarketUtils.getAdjustedPositionImpactFactor(balanceWasImproved, pool_data.config)
+            impactExponentFactor = MarketUtils.getAdjustedPositionImpactExponentFactor(
+                balanceWasImproved, pool_data.config
             )
             return (
                 PricingUtils.getPriceImpactUsdForSameSideRebalance(
@@ -143,13 +141,8 @@ class PositionPricingUtils:
                 ),
                 balanceWasImproved,
             )
-        # initialDiffUsd 659350605479346732745873570369275889 = 659350.6054793467
-        # nextDiffUsd 663797116269074703175203868873936389 = 663797.1162690747
-        # impactFactor 40933629729229850000000 = 4.093362972922985e-08
-        # impactExponentFactor 1655417464419320500000000000000 = 1.6554174644193205
-        # 175.8519499036393
         else:
-            positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(pool_data)
+            positiveImpactFactor, negativeImpactFactor = MarketUtils.getAdjustedPositionImpactFactors(pool_data.config)
             return (
                 PricingUtils.getPriceImpactUsdForCrossoverRebalance(
                     initialDiffUsd,
@@ -164,11 +157,9 @@ class PositionPricingUtils:
 
     @staticmethod
     def getNextOpenInterest(params: GetPriceImpactUsdParams, pool_data: PoolData) -> OpenInterestParams:
-        longOpenInterest = (
-            pool_data.status.openInterestLong
-        )  # openInterestLong = openInterestLongIsLong+openInterestShortIsLong
-        shortOpenInterest = pool_data.status.openInterestShort
-        return PositionPricingUtils.getNextOpenInterestParams(params, longOpenInterest, shortOpenInterest)
+        return PositionPricingUtils.getNextOpenInterestParams(
+            params, pool_data.status.openInterestLong, pool_data.status.openInterestShort
+        )
 
     @staticmethod
     def getNextOpenInterestParams(
@@ -177,9 +168,15 @@ class PositionPricingUtils:
         nextLongOpenInterest = longOpenInterest
         nextShortOpenInterest = shortOpenInterest
         if params.isLong:
-            nextLongOpenInterest = longOpenInterest + params.usdDelta
+            if params.usdDelta < 0 and -params.usdDelta > longOpenInterest:
+                nextLongOpenInterest = 0
+            else:
+                nextLongOpenInterest = longOpenInterest + params.usdDelta
         else:
-            nextShortOpenInterest = shortOpenInterest + params.usdDelta
+            if params.usdDelta < 0 and -params.usdDelta > shortOpenInterest:
+                nextShortOpenInterest = 0
+            else:
+                nextShortOpenInterest = shortOpenInterest + params.usdDelta
         openInterestParams = OpenInterestParams(
             longOpenInterest, shortOpenInterest, nextLongOpenInterest, nextShortOpenInterest
         )

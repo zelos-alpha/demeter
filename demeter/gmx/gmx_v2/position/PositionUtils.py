@@ -156,10 +156,8 @@ class PositionUtils:
         # baseSizeDeltaInTokens = 5000 / 2000 = 2.5
         # sizeDeltaInTokens = 2.5 - 0.5 = 2
         # executionPrice = 5000 / 2 = $2500
-        executionPrice = BaseOrderUtils.getExecutionPriceForIncrease(
-            params.order.sizeDeltaUsd, sizeDeltaInTokens, params.order.acceptablePrice, params.position.isLong
-        )
-        return priceImpactUsd, priceImpactAmount, sizeDeltaInTokens, executionPrice, balanceWasImproved
+        executionPrice = BaseOrderUtils.getExecutionPriceForIncrease(params.order.sizeDeltaUsd, sizeDeltaInTokens)
+        return priceImpactUsd, priceImpactAmount, baseSizeDeltaInTokens, executionPrice, balanceWasImproved
 
     @staticmethod
     def getPositionPnlUsd(
@@ -258,7 +256,6 @@ class PositionUtils:
             params.position.sizeInTokens,
             sizeDeltaUsd,
             priceImpactUsd,
-            params.order.acceptablePrice,
             params.position.isLong,
         )
         return priceImpactUsd, executionPrice, balanceWasImproved
