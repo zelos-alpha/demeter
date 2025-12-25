@@ -8,7 +8,11 @@ from .DecreasePositionCollateralUtils import DecreasePositionCollateralUtils
 from .Position import Position
 from .._typing import PoolData, OrderType, DecreasePositionSwapType
 from ..market.MarketUtils import MarketPrices, MarketUtils
-from ..position.PositionUtils import PositionUtils, WillPositionCollateralBeSufficientValues
+from ..position.PositionUtils import (
+    PositionUtils,
+    WillPositionCollateralBeSufficientValues,
+    DecreasePositionCollateralValues,
+)
 from ..position.PositionUtils import UpdatePositionParams, DecreasePositionCache
 from ..pricing import PositionFees
 
@@ -29,7 +33,7 @@ class DecreasePositionUtils:
     def decreasePosition(
         params: UpdatePositionParams,
         pool_data: PoolData,
-    ) -> tuple[DecreasePositionResult, PositionFees]:
+    ) -> tuple[DecreasePositionResult, DecreasePositionCollateralValues, PositionFees]:
         pool = params.order.market
         cache: DecreasePositionCache = DecreasePositionCache()
         cache.prices = MarketPrices(
@@ -204,5 +208,6 @@ class DecreasePositionUtils:
                 orderInitialCollateralDeltaAmount=params.order.initialCollateralDeltaAmount,
                 position=None if position_is_empty else params.position,
             ),
+            values,
             fees,
         )

@@ -266,7 +266,6 @@ class MarketUtils:
             positiveExponentFactor = negativeExponentFactor
         return positiveExponentFactor, negativeExponentFactor
 
-
     @staticmethod
     def getFundingFeeAmountPerSize(collateralToken: TokenInfo, isLong: bool, pool_data: PoolData):
         if collateralToken == pool_data.market.long_token:
@@ -298,68 +297,6 @@ class MarketUtils:
         nextCumulativeBorrowingFactor = MarketUtils.getCumulativeBorrowingFactor(position.isLong, pool_status)
         diffFactor = nextCumulativeBorrowingFactor - position.borrowingFactor
         return position.sizeInUsd * diffFactor
-
-    @staticmethod
-    def getPoolUsdWithoutPnl(market, prices, isLong, pool_status):
-        token = market.long_token if isLong else market.short_token
-        _poolAmount = pool_status.longAmount if token == market.long_token else pool_status.shortAmount
-        poolAmount = MarketUtils.getPoolAmount(market, _poolAmount)
-        tokenPrice = prices.longTokenPrice.max if isLong else prices.shortTokenPrice.max
-        return poolAmount * tokenPrice
-
-    @staticmethod
-    def getUsageFactor(market, isLong, reservedUsd, poolUsd, pool_config: PoolConfig, pool_status: GmxV2PoolStatus):
-        reserveFactor = MarketUtils.getOpenInterestReserveFactor(market.marketToken, isLong, pool_config)
-        maxReservedUsd = poolUsd * reserveFactor
-        reserveUsageFactor = reservedUsd / maxReservedUsd
-        if pool_config.ignore_open_interest_for_usage_factor:  # todo True
-            return reserveUsageFactor
-        maxOpenInterest = MarketUtils.getMaxOpenInterest(market.marketToken, isLong)  # todo config
-        openInterest = pool_status.openInterestLong if isLong else pool_status.openInterestShort
-        openInterestUsageFactor = openInterest / maxOpenInterest
-        return reserveUsageFactor if reserveUsageFactor > openInterestUsageFactor else openInterestUsageFactor
-
-    @staticmethod
-    def getOpenInterestReserveFactor(marketToken, isLong, pool_config: PoolConfig):
-        # openInterestReserveFactorKey
-        return pool_config.openInterestReserveFactor_Long if isLong else pool_config.openInterestReserveFactor_Short
-
-    @staticmethod
-    def getMaxOpenInterest(marketToken, isLong):
-        # maxOpenInterestKey
-        return 45769000000000000000000000000000000000
-
-    @staticmethod
-    def getReservedUsd(isLong: bool, prices: MarketPrices, market: GmxV2Pool, pool_status: GmxV2PoolStatus):
-        if isLong:
-            openInterestInTokens = MarketUtils.getOpenInterestInTokens(market, isLong, pool_status)
-            reservedUsd = openInterestInTokens * prices.indexTokenPrice.max
-        else:
-            reservedUsd = MarketUtils.getOpenInterest(market, isLong, pool_status)
-        return reservedUsd
-
-    @staticmethod
-    def getOpenInterestInTokens(market: GmxV2Pool, isLong: bool, pool_status: GmxV2PoolStatus):
-        divisor = 2 if market.long_token == market.short_token else 1
-        if isLong:
-            return pool_status.openInterestInTokensLong / divisor
-        else:
-            return pool_status.openInterestInTokensShort / divisor
-
-    @staticmethod
-    def getOpenInterest(market: GmxV2Pool, isLong: bool, pool_status: GmxV2PoolStatus):
-        divisor = 2 if market.long_token == market.short_token else 1
-        if isLong:
-            return pool_status.openInterestLong / divisor
-        else:
-            return pool_status.openInterestShort / divisor
-
-    @staticmethod
-    def getFundingAmountPerSizeDelta(fundingUsd, openInterest, tokenPrice):
-        if fundingUsd == 0 or openInterest == 0:
-            return 0
-        fundingUsdPerSize = fundingUsd / openInterest
-        return fundingUsdPerSize / tokenPrice
 
     @staticmethod
     def getVirtualInventoryForPositions(token: TokenInfo, pool_data: PoolData) -> tuple[bool, float]:

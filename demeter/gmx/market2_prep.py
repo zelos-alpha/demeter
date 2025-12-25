@@ -17,7 +17,7 @@ from ._typing2 import (
 from .gmx_v2 import PoolConfig, GmxV2Pool
 from .gmx_v2._typing import OrderType, DecreasePositionSwapType, PoolData, Order, ExecuteOrderParams
 from .gmx_v2.order import SwapOrderUtils, IncreaseOrderUtils, DecreaseOrderUtils
-from .gmx_v2.position import Position, PositionKey
+from .gmx_v2.position import Position, PositionKey, DecreasePositionResult, DecreasePositionCollateralValues
 from .gmx_v2.pricing import PositionFees
 from .gmx_v2.reader.ReaderPositionUtils import ReaderPositionUtils, PositionInfo
 from .gmx_v2.swap.SwapUtils import SwapResult
@@ -275,25 +275,35 @@ class GmxV2PerpMarket(PrepMarket):
     def decrease_position(
         self,
         collateral_token: TokenInfo,
-        collateral_amount: float | Decimal,
-        size_usd: float | Decimal,
         is_long: bool,
-    ) -> Position:
+        size_in_usd: float | Decimal | None = None,
+        collateral_amount: float | Decimal | None = None,
+    ) -> tuple[DecreasePositionResult, DecreasePositionCollateralValues, PositionFees]:
+        position_key: PositionKey = Position.getPositionKey(self.pool, collateral_token, is_long)
+
+        if position_key not in self.positions:
+            raise DemeterError("Position not found")
+
+        if size_in_usd is None and collateral_amount is None:
+            size_in_usd = self.positions[position_key].sizeInUsd
+            collateral_amount = self.positions[position_key].collateralAmount
+        if collateral_amount is None or size_in_usd is None:
+            raise DemeterError("size_in_usd and collateral_amount not specified")
+
         order = Order(
             market=self.pool,
             initialCollateralToken=collateral_token,
             swapPath=[],
             orderType=OrderType.MarketDecrease,
-            sizeDeltaUsd=size_usd,
+            sizeDeltaUsd=size_in_usd,
             initialCollateralDeltaAmount=collateral_amount,
             isLong=is_long,
             decreasePositionSwapType=DecreasePositionSwapType.SwapPnlTokenToCollateralToken,
         )
         params = ExecuteOrderParams(order=order, swapPathMarkets=order.swapPath, market=order.market)
         pool_status = {self.pool: PoolData(self.pool, self._market_status.data, self.pool_config)}
-        position_key: PositionKey = Position.getPositionKey(self.pool, collateral_token, is_long)
 
-        decrease_result, fees = DecreaseOrderUtils.processOrder(
+        decrease_result, values, fees = DecreaseOrderUtils.processOrder(
             params, pool_status, self.positions[position_key], self.claimableFundingAmount
         )
 
@@ -319,7 +329,7 @@ class GmxV2PerpMarket(PrepMarket):
         #         isLong=result.isLong,
         #     )
         # )
-        return decrease_result.position
+        return decrease_result, values, fees
 
     def _do_swap(self, from_token: TokenInfo, amount: float | Decimal) -> tuple[TokenInfo, Decimal, SwapResult]:
         if from_token not in [self.pool.long_token, self.pool.short_token]:

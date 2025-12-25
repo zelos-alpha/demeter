@@ -100,14 +100,14 @@ class TestActuator(unittest.TestCase):
             "pnlAfterPriceImpactUsd": -1.4682697882861604,
         }
 
-    def _get_market(self):
+    def _get_market(self, day: datetime.date):
         market = GmxV2PerpMarket(self.market_info, self.pool)
         market.load_config("tests/data/gmx_config_0x70d95587d40A2caf56bd97485aB3Eec10Bee6336.json")
         data = load_gmx_v2_data(
             ChainType.arbitrum,
             "0x70d95587d40a2caf56bd97485ab3eec10bee6336",
-            datetime.date(2025, 12, 15),
-            datetime.date(2025, 12, 15),
+            day,
+            day,
             "/data/gmx_v2/arbitrum",
         )
         price = get_price_from_v2_data(data, self.pool)
@@ -138,7 +138,7 @@ class TestActuator(unittest.TestCase):
         )
 
     def test_position_info(self):
-        broker, market, data, price = self._get_market()
+        broker, market, data, price = self._get_market(datetime.date(2025,12,15))
 
         market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
         pos_key = PositionKey(self.pool, self.weth, True)
@@ -150,7 +150,7 @@ class TestActuator(unittest.TestCase):
         compare_position_info(position_info, self.online_status)
 
     def test_position_value(self):
-        broker, market, data, price = self._get_market()
+        broker, market, data, price = self._get_market(datetime.date(2025,12,15))
         market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
         pos_key = PositionKey(self.pool, self.weth, True)
         market.positions[pos_key] = self.get_position()
@@ -160,7 +160,7 @@ class TestActuator(unittest.TestCase):
         pp.pprint(position_value)
 
     def test_increase(self):
-        broker, market, data, price = self._get_market()
+        broker, market, data, price = self._get_market(datetime.date(2025,12,15))
         market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
         market: GmxV2PerpMarket = market
         pos, fee = market.increase_position(self.weth, 1, True, 10)
@@ -168,7 +168,7 @@ class TestActuator(unittest.TestCase):
         pprint.pprint(pos)
 
     def test_increase_again(self):
-        broker, market, data, price = self._get_market()
+        broker, market, data, price = self._get_market(datetime.date(2025,12,15))
         market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
         market: GmxV2PerpMarket = market
         pos, fee = market.increase_position(self.weth, 1, True, 10)
@@ -184,11 +184,10 @@ class TestActuator(unittest.TestCase):
         position_value = market.get_position_value(pos_key)
         pprint.pprint(position_value)
 
-
     def test_increase_with_real_tx(self):
-        # create: https://arbiscan.io/tx/0x9a569528aa09e51fc9ac30f17a6d360390e69302966cbfc4f288e5a5cf443a11#eventlog
-        # execute: https://arbiscan.io/tx/0x079183a17c2013ca758bd14f26fa4d5808cd770e8eb4834db07758a6d8b9bb06#eventlog
-        broker, market, data, price = self._get_market()
+        # create: https://arbiscan.io/tx/0xf1f6a980fd9b8ab38563922f721da8e94b05b9c7ccbca7fac6b2304d022b663a#eventlog
+        # execute: https://arbiscan.io/tx/0xc1ec383cd7d9541050f13b9d14c88369a85b7d92d962c85ece9a8e1adfede219#eventlog
+        broker, market, data, price = self._get_market(datetime.date(2025,12,15))
         t = pd.Timestamp("2025-12-15 0:3:00")
 
         data.loc[t, "longPrice"] = 3075.745500562432
@@ -213,6 +212,51 @@ class TestActuator(unittest.TestCase):
         print()
         print("fees", fee.totalCostAmount, 1.272504)
         compare_position(pos, actual)
+
+    def test_decrease(self):
+
+        broker, market, data, price = self._get_market(datetime.date(2025,12,15))
+        t = pd.Timestamp("2025-12-15 0:3:00")
+
+        data.loc[t, "longPrice"] = 3075.745500562432
+        data.loc[t, "indexPrice"] = 3075.745500562432
+        market.set_market_status(GmxV2LpMarketStatus(t, data.loc[t]), price.loc[t])
+        market: GmxV2PerpMarket = market
+        pos, fee = market.increase_position(self.usdc, 68.273675, True, size_in_usd=3180.8620630609335)
+        result, values, fee = market.decrease_position(self.usdc, True)
+        print()
+        pprint.pprint(result)
+        pprint.pprint(values)
+        pprint.pprint(fee)
+
+    def test_decrease_with_real_tx(self):
+        broker, market, data, price = self._get_market(datetime.date(2025,11,11))
+        t = pd.Timestamp("2025-11-11 8:0:00")
+        market.set_market_status(GmxV2LpMarketStatus(t, data.loc[t]), price.loc[t])
+        market: GmxV2PerpMarket = market
+        pos_key = PositionKey(self.pool, self.usdc, False)
+        # create tx: https://arbiscan.io/tx/0x02137934a839707a3f50867dbe060a8a37110f7423a7eedc9f8ce9c2c1f7aa3b#eventlog
+        market.positions[pos_key] = Position(
+            market=self.pool,
+            collateralToken=self.usdc,
+            isLong=False,
+            sizeInUsd=4997447833987034101200000000000 / 10**30,
+            sizeInTokens=1383404069853044 / 10**18,
+            collateralAmount=4998001 / 10**6,
+            pendingImpactAmount=327124583431 / 10**18,
+            borrowingFactor=105079854500834548595245759986 / 10**30,
+            fundingFeeAmountPerSize=16430523650556113223 / 10**6 / 10**15,
+            longTokenClaimableFundingAmountPerSize=53813026953928182158142398553 / 10**18 / 10**15,
+            shortTokenClaimableFundingAmountPerSize=487153067489763188841 / 10**6 / 10**15,
+        )
+        position_value = market.get_position_value(pos_key)
+        print()
+        pprint.pprint(position_value)
+        # https://arbiscan.io/tx/0xdc0b6556700a893657ff1b51b065ef83e68db316cdcf365853982caf733bb77b
+        result, values, fee = market.decrease_position(self.usdc, False)
+        pprint.pprint(result)
+        pprint.pprint(values)
+        pprint.pprint(fee)
 
 
 def compare_position(val, actual):

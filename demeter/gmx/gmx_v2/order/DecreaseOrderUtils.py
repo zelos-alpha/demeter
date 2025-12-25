@@ -1,6 +1,12 @@
 from demeter import TokenInfo
 from .._typing import ExecuteOrderParams, GmxV2Pool, PoolData
-from ..position import DecreasePositionUtils, DecreasePositionResult, Position, UpdatePositionParams
+from ..position import (
+    DecreasePositionUtils,
+    DecreasePositionResult,
+    Position,
+    UpdatePositionParams,
+    DecreasePositionCollateralValues,
+)
 from ..pricing import PositionFees
 
 
@@ -12,9 +18,9 @@ class DecreaseOrderUtils:
         status: dict[GmxV2Pool, PoolData],
         position: Position,
         claimableFundingAmount: dict[TokenInfo, float],
-    ) -> tuple[DecreasePositionResult, PositionFees]:
+    ) -> tuple[DecreasePositionResult, DecreasePositionCollateralValues, PositionFees]:
 
-        result, fees = DecreasePositionUtils.decreasePosition(
+        result, values, fees = DecreasePositionUtils.decreasePosition(
             UpdatePositionParams(
                 params.market,
                 params.order,
@@ -25,4 +31,4 @@ class DecreaseOrderUtils:
         )
 
         # skip transfer out tokens
-        return result, fees
+        return result, values, fees

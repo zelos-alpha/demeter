@@ -24,19 +24,7 @@
   "minCollateralFactor": 0.005,
   "minCollateralUsd": 1.0,
   "minPositionSizeUsd": 1.0,
-  "openInterestReserveFactor_Long": 2.7,
-  "openInterestReserveFactor_Short": 2.7,
-  "baseBorrowingFactor_Long": 1.4269406392694064e-08,
-  "baseBorrowingFactor_Short": 1.4269406392694064e-08,
-  "fundingIncreaseFactorPerSecond": 1.4399635452319317e-12,
-  "fundingDecreaseFactorPerSecond": 8.999772157699573e-14,
-  "fundingExponentFactor": 1.0,
-  "fundingFactor": 2e-08,
-  "thresholdForStableFunding": 0.04,
-  "thresholdForDecreaseFunding": 0.0,
-  "minFundingFactorPerSecond": 3.1709791983764586e-10,
-  "maxFundingFactorPerSecond": 1.5551606288504864e-08,
+
   "maxPositionImpactFactorForLiquidation": 0.0,
-  "minCollateralFactorForLiquidation": 0.005,
-  "skip_borrowing_fee_for_smaller_side": true
+  "minCollateralFactorForLiquidation": 0.005
 }

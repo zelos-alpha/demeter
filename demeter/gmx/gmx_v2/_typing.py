@@ -34,26 +34,22 @@ class PoolConfig:
     minCollateralFactor: float = 5000000000000000000000000000 / 10**30  # 0.005👒
     minCollateralUsd: float = 1000000000000000000000000000000 / 10**30  # 1 👒
     minPositionSizeUsd: float = 1000000000000000000000000000000 / 10**30  # 1 👒
-
-    # SKIP_BORROWING_FEE_FOR_SMALLER_SIDE
-    skip_borrowing_fee_for_smaller_side: bool = True
-    ignore_open_interest_for_usage_factor: bool = True  # REMOVE this !!!! doesn't support kink
-    openInterestReserveFactor_Long: float = 2.7
-    openInterestReserveFactor_Short: float = 2.7  # todo check
-    baseBorrowingFactor_Long: float = 14269406392694063926940 / 10**30
-    baseBorrowingFactor_Short: float = 14269406392694063926940 / 10**30
-    fundingIncreaseFactorPerSecond: float = 1988547595363155833 / 10**30
-    fundingDecreaseFactorPerSecond: float = 0  # todo
-
-    fundingExponentFactor: float = 1
-    fundingFactor: float = 0  # todo
-    thresholdForStableFunding: float = 0.04
-    thresholdForDecreaseFunding: float = 0  # todo
-    minFundingFactorPerSecond: float = 317097919837645865043 / 10**30
-    maxFundingFactorPerSecond: float = 21476314029922083333333 / 10**30
-
     maxPositionImpactFactorForLiquidation: float = 0  # MAX_POSITION_IMPACT_FACTOR_FOR_LIQUIDATIONS
     minCollateralFactorForLiquidation: float = 0
+
+  # "openInterestReserveFactor_Long": 2.7,
+  # "openInterestReserveFactor_Short": 2.7,
+  # "baseBorrowingFactor_Long": 1.4269406392694064e-08,
+  # "baseBorrowingFactor_Short": 1.4269406392694064e-08,
+  # "fundingIncreaseFactorPerSecond": 1.4399635452319317e-12,
+  # "fundingDecreaseFactorPerSecond": 8.999772157699573e-14,
+  # "fundingExponentFactor": 1.0,
+  # "fundingFactor": 2e-08,
+  # "thresholdForStableFunding": 0.04,
+  # "thresholdForDecreaseFunding": 0.0,
+  # "minFundingFactorPerSecond": 3.1709791983764586e-10,
+  # "maxFundingFactorPerSecond": 1.5551606288504864e-08,
+  # "skip_borrowing_fee_for_smaller_side": true
 
 
 class GmxV2Pool(NamedTuple):
@@ -96,9 +92,6 @@ class GmxV2PoolStatus:
     longPrice: float
     shortPrice: float
     indexPrice: float
-    # positionImpactExponentFactor: float
-    # positionImpactFactorPositive: float
-    # positionImpactFactorNegative: float
     virtualPositionInventory: float  # 👒
     positionImpactPoolAmount: float  # PositionImpactPoolAmountUpdated
     positionFeeFactor: float  # -> positive & negative

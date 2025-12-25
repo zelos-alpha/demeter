@@ -74,7 +74,7 @@ class OpenInterestParams:
 class PositionPricingUtils:
     @staticmethod
     def getPriceImpactUsd(params: GetPriceImpactUsdParams, pool_data: PoolData) -> tuple[float, bool]:
-        # Note: latest version have USE_OPEN_INTEREST_IN_TOKENS_FOR_BALANCE, and will require index price and sizeInTokens
+        # TODO: latest version have USE_OPEN_INTEREST_IN_TOKENS_FOR_BALANCE, and will require index price and sizeInTokens
         # I'm not gonna add this until they are online.
         openInterestParams: OpenInterestParams = PositionPricingUtils.getNextOpenInterest(params, pool_data)
         priceImpactUsd, balanceWasImproved = PositionPricingUtils._getPriceImpactUsd(openInterestParams, pool_data)
@@ -199,7 +199,7 @@ class PositionPricingUtils:
             )
 
         fees.funding = PositionFundingFees()
-        # TODO: check fundingAmountPerSize values are stored based on FLOAT_PRECISION_SQRT values
+
         fees.funding.latestFundingFeeAmountPerSize = MarketUtils.getFundingFeeAmountPerSize(
             params.position.collateralToken, params.position.isLong, pool_data
         )
