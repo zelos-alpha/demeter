@@ -47,7 +47,8 @@ class PositionValue:
 
 @dataclass
 class GmxV2PrepBalance(MarketBalance):
-    positions: list[PositionValue]
+    position_count:int
+    # TODO : expend
 
 
 @dataclass
@@ -95,14 +96,7 @@ class Gmx2WithdrawAction(BaseAction):
 
 
 def position_dict_to_dataframe(positions: dict) -> pd.DataFrame:
-    pos_dict = {"key": [], "collateral_token": [], "collateral_amount": [], "size_in_usd": [], "size_in_tokens": []}
-    for k, v in positions.items():
-        pos_dict["key"].append(k)
-        pos_dict["collateral_token"].append(v.collateralToken)
-        pos_dict["collateral_amount"].append(v.collateralAmount)
-        pos_dict["size_in_usd"].append(v.sizeInUsd)
-        pos_dict["size_in_tokens"].append(v.sizeInTokens)
-    return pd.DataFrame(pos_dict)
+    return pd.DataFrame(positions.values())
 
 
 @dataclass

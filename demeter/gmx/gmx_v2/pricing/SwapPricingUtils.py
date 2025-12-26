@@ -182,7 +182,8 @@ class SwapPriceUtils:
                     nextDiffUsd,
                     positiveImpactFactor,
                     negativeImpactFactor,
-                    impactExponentFactor,
+                    positiveImpactFactor,
+                    negativeImpactFactor,
                 ),
                 balanceWasImproved,
             )

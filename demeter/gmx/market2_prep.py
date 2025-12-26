@@ -49,7 +49,7 @@ class GmxV2PerpMarket(PrepMarket):
             "cumulativeBorrowingFactorLong": {"value": 0, "time": None},
             "cumulativeBorrowingFactorShort": {"value": 0, "time": None},
         }
-        self.pool_config = PoolConfig(pool.long_token.decimal, pool.short_token.decimal)
+        self.pool_config = PoolConfig()
         self.positions: dict[PositionKey, Position] = {}
         self.claimableFundingAmount: dict[TokenInfo, float] = {
             self.pool.long_token: 0,
@@ -214,22 +214,20 @@ class GmxV2PerpMarket(PrepMarket):
             net_value += position_value.net_value
             position_balances.append(position_value)
 
-        return GmxV2PrepBalance(net_value=net_value, positions=position_balances)
+        return GmxV2PrepBalance(net_value=net_value, position_count=len(self.positions))
 
     def formatted_str(self):
         value = get_formatted_predefined(f"{self.market_info.name}({type(self).__name__})", STYLE["header3"]) + "\n"
         value += (
             get_formatted_from_dict(
                 {
-                    "long token": self.pool.long_token.name,
-                    "short token": self.pool.short_token.name,
-                    "amount": self.amount,
+                    "market": str(self.pool),
                 }
             )
             + "\n"
         )
         value += get_formatted_predefined("positions", STYLE["key"]) + "\n"
-        df = position_dict_to_dataframe(self.position_list)
+        df = position_dict_to_dataframe(self.positions)
         if len(df.index) > 0:
             value += df.to_string()
         else:
@@ -245,7 +243,7 @@ class GmxV2PerpMarket(PrepMarket):
         return get_price_from_v2_data(self.data, self.pool)
 
     def _resample(self, freq: str):
-        self._data.resample(freq=freq, inplace=True)
+        self._data = self.data.resample(freq).first()
 
     def increase_position(
         self,

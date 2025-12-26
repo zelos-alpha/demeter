@@ -53,7 +53,7 @@ class DecreasePositionUtils:
                 params.order.sizeDeltaUsd = params.position.sizeInUsd
             else:
                 raise DemeterError(
-                    f"InvalidDecreaseOrderSize, sizeDeltaUsd: {params.order.sizeDeltaUsd}, sizeInUsd: ${ params.position.sizeInUsd}"
+                    f"InvalidDecreaseOrderSize, sizeDeltaUsd: {params.order.sizeDeltaUsd}, sizeInUsd: { params.position.sizeInUsd}"
                 )
         # cap the initialCollateralDeltaAmount to the position collateralAmount
         if params.order.initialCollateralDeltaAmount > params.position.collateralAmount:

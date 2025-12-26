@@ -18,7 +18,13 @@ class DecreasePositionSwapUtils:
         ):
             swapPathMarkets = [params.market]
             _, swapOutputAmount, _ = SwapUtils.swap(
-                SwapParams(profitAmount, pnlToken, swapPathMarkets, SwapPricingType.Swap), {pool_data.market: pool_data}
+                SwapParams(
+                    amountIn=profitAmount,
+                    tokenIn=pnlToken,
+                    swapPathMarkets=swapPathMarkets,
+                    swapPricingType=SwapPricingType.Swap,
+                ),
+                {pool_data.market: pool_data},
             )
             return True, swapOutputAmount
         else:

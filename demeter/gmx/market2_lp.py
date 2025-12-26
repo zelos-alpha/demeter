@@ -120,7 +120,7 @@ class GmxV2LpMarket(Market):
         return get_price_from_v2_data(self.data, self.pool)
 
     def _resample(self, freq: str):
-        self._data.resample(freq=freq, inplace=True)
+        self._data = self.data.resample(freq).first()
 
     def deposit(self, long_amount: Decimal | float, short_amount: Decimal | float) -> LPResult:
         assert long_amount >= 0 and short_amount >= 0
