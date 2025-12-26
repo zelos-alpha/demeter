@@ -9,47 +9,33 @@ from demeter import TokenInfo
 
 @dataclass
 class PoolConfig:
-    swapImpactExponentFactor: float = 2  # 👒
-    swapImpactFactor_Positive: float = 200000000000000000000 / 10**30  # 👒
-    swapImpactFactor_Negative: float = 300000000000000000000 / 10**30  # 👒
-    depositFeeFactor_Positive: float = 0.0005  # 👒
-    depositFeeFactor_Negative: float = 0.0007  # 👒
-    withdrawFeeFactor_Positive: float = 0.0005  # 👒
-    withdrawFeeFactor_Negative: float = 0.0007  # 👒
-    swapFeeFactor_BalanceNotImproved: float = 0.0007  # 👒
-    swapFeeFactor_BalanceWasImproved: float = 0.0005  # 👒
-    positionImpactExponentFactor_Positive: float = 1655417464419320500000000000000 / 10**30  # 👒
-    positionImpactExponentFactor_Negative: float = 1655417464419320500000000000000 / 10**30  # 👒
-    positionImpactFactor_Positive: float = 34111358107691540000000 / 10**30  # 👒
-    positionImpactFactor_Negative: float = 40933629729229850000000 / 10**30  # 👒
+    swapImpactExponentFactor: float = 2  
+    swapImpactFactor_Positive: float = 200000000000000000000 / 10**30  
+    swapImpactFactor_Negative: float = 300000000000000000000 / 10**30  
+    depositFeeFactor_Positive: float = 0.0005  
+    depositFeeFactor_Negative: float = 0.0007  
+    withdrawFeeFactor_Positive: float = 0.0005  
+    withdrawFeeFactor_Negative: float = 0.0007  
+    swapFeeFactor_BalanceNotImproved: float = 0.0007  
+    swapFeeFactor_BalanceWasImproved: float = 0.0005  
+    positionImpactExponentFactor_Positive: float = 1655417464419320500000000000000 / 10**30  
+    positionImpactExponentFactor_Negative: float = 1655417464419320500000000000000 / 10**30  
+    positionImpactFactor_Positive: float = 34111358107691540000000 / 10**30  
+    positionImpactFactor_Negative: float = 40933629729229850000000 / 10**30  
     maxPositionImpactFactor_Positive: float = 5000000000000000000000000000 / 10**30  # 0.005
     maxPositiveImpactFactor_Negative: float = 5000000000000000000000000000 / 10**30  # 0.005
-    positionFeeFactor_Positive: float = 400000000000000000000000000 / 10**30  # 0.0004# 👒
-    positionFeeFactor_Negative: float = 600000000000000000000000000 / 10**30  # 0.0006# 👒
-    liquidationFeeFactor: float = 400000000000000000000000000 / 10**30  # 👒
-    maxPnlFactor_ForTrader_Long: float = 900000000000000000000000000000 / 10**30  # 0.9 👒
-    maxPnlFactor_ForTrader_Short: float = 900000000000000000000000000000 / 10**30  # 0.9  👒
-    minCollateralFactorForOpenInterestMultiplier_Long: float = 60000000000000000000 / 10**30  # 👒
-    minCollateralFactorForOpenInterestMultiplier_Short: float = 60000000000000000000 / 10**30  # 👒
-    minCollateralFactor: float = 5000000000000000000000000000 / 10**30  # 0.005👒
-    minCollateralUsd: float = 1000000000000000000000000000000 / 10**30  # 1 👒
-    minPositionSizeUsd: float = 1000000000000000000000000000000 / 10**30  # 1 👒
+    positionFeeFactor_Positive: float = 400000000000000000000000000 / 10**30  # 0.0004
+    positionFeeFactor_Negative: float = 600000000000000000000000000 / 10**30  # 0.0006
+    liquidationFeeFactor: float = 400000000000000000000000000 / 10**30  
+    maxPnlFactor_ForTrader_Long: float = 900000000000000000000000000000 / 10**30  # 0.9 
+    maxPnlFactor_ForTrader_Short: float = 900000000000000000000000000000 / 10**30  # 0.9  
+    minCollateralFactorForOpenInterestMultiplier_Long: float = 60000000000000000000 / 10**30  
+    minCollateralFactorForOpenInterestMultiplier_Short: float = 60000000000000000000 / 10**30  
+    minCollateralFactor: float = 5000000000000000000000000000 / 10**30  # 0.005
+    minCollateralUsd: float = 1000000000000000000000000000000 / 10**30  # 1 
+    minPositionSizeUsd: float = 1000000000000000000000000000000 / 10**30  # 1 
     maxPositionImpactFactorForLiquidation: float = 0  # MAX_POSITION_IMPACT_FACTOR_FOR_LIQUIDATIONS
     minCollateralFactorForLiquidation: float = 0.005
-
-  # "openInterestReserveFactor_Long": 2.7,
-  # "openInterestReserveFactor_Short": 2.7,
-  # "baseBorrowingFactor_Long": 1.4269406392694064e-08,
-  # "baseBorrowingFactor_Short": 1.4269406392694064e-08,
-  # "fundingIncreaseFactorPerSecond": 1.4399635452319317e-12,
-  # "fundingDecreaseFactorPerSecond": 8.999772157699573e-14,
-  # "fundingExponentFactor": 1.0,
-  # "fundingFactor": 2e-08,
-  # "thresholdForStableFunding": 0.04,
-  # "thresholdForDecreaseFunding": 0.0,
-  # "minFundingFactorPerSecond": 3.1709791983764586e-10,
-  # "maxFundingFactorPerSecond": 1.5551606288504864e-08,
-  # "skip_borrowing_fee_for_smaller_side": true
 
 
 class GmxV2Pool(NamedTuple):
@@ -85,28 +71,28 @@ class GmxV2PoolStatus:
     pendingPnl: float  # pnl caused by open interest
     realizedPnl: float  # pnl for decreased position
     realizedProfit: float  # pnl + fee + priceImpact
-    openInterestLong: float  # 👒
-    openInterestShort: float  # 👒
+    openInterestLong: float  
+    openInterestShort: float  
     openInterestInTokensLong: float
     openInterestInTokensShort: float
     longPrice: float
     shortPrice: float
     indexPrice: float
-    virtualPositionInventory: float  # 👒
+    virtualPositionInventory: float  
     positionImpactPoolAmount: float  # PositionImpactPoolAmountUpdated
     positionFeeFactor: float  # -> positive & negative
     positionFeeReceiverFactor: float
     borrowingFeeReceiverFactor: float
-    cumulativeBorrowingFactorLong: float  # CumulativeBorrowingFactorUpdated  👒
-    cumulativeBorrowingFactorShort: float  # CumulativeBorrowingFactorUpdated  👒
-    longTokenFundingFeeAmountPerSizeLong: float  # FundingFeeAmountPerSizeUpdated  👒
-    longTokenFundingFeeAmountPerSizeShort: float  # FundingFeeAmountPerSizeUpdated  👒
-    shortTokenFundingFeeAmountPerSizeLong: float  # FundingFeeAmountPerSizeUpdated  👒
-    shortTokenFundingFeeAmountPerSizeShort: float  # FundingFeeAmountPerSizeUpdated  👒
-    longTokenClaimableFundingAmountPerSizeLong: float  # ClaimableFundingAmountPerSizeUpdated   👒
-    longTokenClaimableFundingAmountPerSizeShort: float  # ClaimableFundingAmountPerSizeUpdated  👒
-    shortTokenClaimableFundingAmountPerSizeLong: float  # ClaimableFundingAmountPerSizeUpdated  👒
-    shortTokenClaimableFundingAmountPerSizeShort: float  # ClaimableFundingAmountPerSizeUpdated  👒
+    cumulativeBorrowingFactorLong: float  # CumulativeBorrowingFactorUpdated  
+    cumulativeBorrowingFactorShort: float  # CumulativeBorrowingFactorUpdated  
+    longTokenFundingFeeAmountPerSizeLong: float  # FundingFeeAmountPerSizeUpdated  
+    longTokenFundingFeeAmountPerSizeShort: float  # FundingFeeAmountPerSizeUpdated  
+    shortTokenFundingFeeAmountPerSizeLong: float  # FundingFeeAmountPerSizeUpdated  
+    shortTokenFundingFeeAmountPerSizeShort: float  # FundingFeeAmountPerSizeUpdated  
+    longTokenClaimableFundingAmountPerSizeLong: float  # ClaimableFundingAmountPerSizeUpdated   
+    longTokenClaimableFundingAmountPerSizeShort: float  # ClaimableFundingAmountPerSizeUpdated  
+    shortTokenClaimableFundingAmountPerSizeLong: float  # ClaimableFundingAmountPerSizeUpdated  
+    shortTokenClaimableFundingAmountPerSizeShort: float  # ClaimableFundingAmountPerSizeUpdated  
 
 
 @dataclass

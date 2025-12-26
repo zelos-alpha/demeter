@@ -108,7 +108,7 @@ class TestActuator(unittest.TestCase):
             "0x70d95587d40a2caf56bd97485ab3eec10bee6336",
             day,
             day,
-            "/data/gmx_v2/arbitrum",
+            "tests/data",
         )
         price = get_price_from_v2_data(data, self.pool)
         market.data = data

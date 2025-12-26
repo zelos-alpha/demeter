@@ -173,25 +173,6 @@ class MarketUtils:
         """
         return priceImpactUsd
 
-    @staticmethod
-    def getCappedPositionImpactUsd(
-        indexTokenPrice: float,
-        priceImpactUsd: float,
-        sizeDeltaUsd: float,
-        pool_status: GmxV2PoolStatus,
-        pool_config: PoolConfig,
-    ):
-        if priceImpactUsd < 0:
-            return priceImpactUsd
-        impactPoolAmount = pool_status.positionImpactPoolAmount
-        maxPriceImpactUsdBasedOnImpactPool = impactPoolAmount * indexTokenPrice
-        if priceImpactUsd > maxPriceImpactUsdBasedOnImpactPool:
-            priceImpactUsd = maxPriceImpactUsdBasedOnImpactPool
-        maxPriceImpactFactor = MarketUtils.getMaxPositionImpactFactor(True, pool_status, pool_config)
-        maxPriceImpactUsdBasedOnMaxPriceImpactFactor = sizeDeltaUsd * maxPriceImpactFactor
-        if priceImpactUsd > maxPriceImpactUsdBasedOnMaxPriceImpactFactor:
-            priceImpactUsd = maxPriceImpactUsdBasedOnMaxPriceImpactFactor
-        return priceImpactUsd
 
     @staticmethod
     def getMaxPositionImpactFactor(isPositive: bool, pool_data: PoolData) -> float:
