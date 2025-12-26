@@ -13,11 +13,19 @@ from ._typing2 import (
     Gmx2SwapAction,
     GmxV2PrepBalance,
     PositionValue,
+    Gmx2DecreasePositionAction,
 )
 from .gmx_v2 import PoolConfig, GmxV2Pool
 from .gmx_v2._typing import OrderType, DecreasePositionSwapType, PoolData, Order, ExecuteOrderParams
+from .gmx_v2.market import MarketPrices
 from .gmx_v2.order import SwapOrderUtils, IncreaseOrderUtils, DecreaseOrderUtils
-from .gmx_v2.position import Position, PositionKey, DecreasePositionResult, DecreasePositionCollateralValues
+from .gmx_v2.position import (
+    Position,
+    PositionKey,
+    DecreasePositionResult,
+    DecreasePositionCollateralValues,
+    PositionUtils,
+)
 from .gmx_v2.pricing import PositionFees
 from .gmx_v2.reader.ReaderPositionUtils import ReaderPositionUtils, PositionInfo
 from .gmx_v2.swap.SwapUtils import SwapResult
@@ -90,8 +98,41 @@ class GmxV2PerpMarket(PrepMarket):
             self.broker.set_balance(self.short_token, DECIMAL_0)
 
     def update(self):
-        # TODO 清算逻辑
-        pass
+        pool_data = PoolData(self.pool, self._market_status.data, self.pool_config)
+        for pos_key in list(self.positions.keys()):
+            if not self.out_of_danger_price(self.positions[pos_key]):
+                continue
+            if self.is_position_liquidatable(self.positions[pos_key], pool_data):
+                self.liquidation(pos_key)
+
+    def is_position_liquidatable(self, pos, pool_data: PoolData) -> bool:
+        should_liquidate, msg, info = PositionUtils.isPositionLiquidatable(
+            pos,
+            MarketPrices(pool_data.status.indexPrice, pool_data.status.longPrice, pool_data.status.shortPrice),
+            True,
+            True,
+            pool_data,
+        )
+        return should_liquidate
+
+    def out_of_danger_price(self, pos_info: Position) -> bool:
+        # pre-check the position is liquidatable. to avoid slow calculation.
+        pool_status: GmxV2PoolStatus = self._market_status.data
+        init_price = pos_info.sizeInUsd / pos_info.sizeInTokens
+        collateral_price = (
+            pool_status.longPrice if self.pool.long_token == pos_info.collateralToken else pool_status.shortPrice
+        )
+        collateral_usd = pos_info.collateralAmount * collateral_price
+        if pos_info.isLong:
+            liq_price = (pos_info.sizeInUsd - collateral_usd) / pos_info.sizeInTokens
+        else:
+            liq_price = (pos_info.sizeInUsd + collateral_usd) / pos_info.sizeInTokens
+
+        price_diff = abs(liq_price - init_price) / 2
+        if pos_info.isLong:
+            return pool_status.indexPrice < (init_price - price_diff)
+        else:
+            return pool_status.indexPrice > (init_price + price_diff)
 
     def set_market_status(self, data: GmxV2LpMarketStatus | pd.Series, price: pd.Series):
         super().set_market_status(data, price)
@@ -261,7 +302,7 @@ class GmxV2PerpMarket(PrepMarket):
                 funding=UnitDecimal(fees.funding.fundingFeeAmount, collateral_token.name),
                 borrowing=UnitDecimal(fees.borrowing.borrowingFeeAmount, collateral_token.name),
                 liquidation=UnitDecimal(fees.liquidation.liquidationFeeAmount, collateral_token.name),
-                collateralTokenPrice=UnitDecimal(fees.collateralTokenPrice, collateral_token.name),
+                collateralTokenPrice=UnitDecimal(fees.collateralTokenPrice, f"{collateral_token.name}/usd"),
                 positionFeeAmount=UnitDecimal(fees.positionFeeAmount, collateral_token.name),
                 protocolFeeAmount=UnitDecimal(fees.positionFeeAmount, collateral_token.name),
                 totalCostAmountExcludingFunding=UnitDecimal(
@@ -300,6 +341,11 @@ class GmxV2PerpMarket(PrepMarket):
             isLong=is_long,
             decreasePositionSwapType=DecreasePositionSwapType.SwapPnlTokenToCollateralToken,
         )
+        return self._execute_decrease_order(order, position_key, collateral_token)
+
+    def _execute_decrease_order(
+        self, order: Order, position_key: PositionKey, collateral_token: TokenInfo
+    ) -> tuple[DecreasePositionResult, DecreasePositionCollateralValues, PositionFees]:
         params = ExecuteOrderParams(order=order, swapPathMarkets=order.swapPath, market=order.market)
         pool_status = {self.pool: PoolData(self.pool, self._market_status.data, self.pool_config)}
 
@@ -315,20 +361,37 @@ class GmxV2PerpMarket(PrepMarket):
         self.broker.add_to_balance(decrease_result.outputToken, decrease_result.outputAmount)
         self.broker.add_to_balance(decrease_result.secondaryOutputToken, decrease_result.secondaryOutputAmount)
 
-        # self._record_action(
-        #     Gmx2DecreasePositionAction(
-        #         market=self.market_info,
-        #         collateralToken=result.collateralToken,
-        #         collateralAmount=UnitDecimal(result.collateralAmount),
-        #         sizeInUsd=UnitDecimal(result.sizeInUsd),
-        #         sizeInTokens=UnitDecimal(result.sizeInTokens),
-        #         borrowingFactor=UnitDecimal(result.borrowingFactor),
-        #         fundingFeeAmountPerSize=UnitDecimal(result.fundingFeeAmountPerSize),
-        #         longTokenClaimableFundingAmountPerSize=UnitDecimal(result.longTokenClaimableFundingAmountPerSize),
-        #         shortTokenClaimableFundingAmountPerSize=UnitDecimal(result.shortTokenClaimableFundingAmountPerSize),
-        #         isLong=result.isLong,
-        #     )
-        # )
+        self._record_action(
+            Gmx2DecreasePositionAction(
+                market=self.market_info,
+                collateralToken=collateral_token.name,
+                remainingCollateralAmount=UnitDecimal(
+                    0 if decrease_result.position is None else decrease_result.position.collateralAmount,
+                    collateral_token.name,
+                ),
+                isLong=order.isLong,
+                outputAmount=UnitDecimal(decrease_result.outputAmount, decrease_result.outputToken.name),
+                secondaryOutputAmount=UnitDecimal(
+                    decrease_result.secondaryOutputAmount, decrease_result.secondaryOutputToken.name
+                ),
+                orderSizeDeltaUsd=UnitDecimal(decrease_result.orderSizeDeltaUsd, "USD"),
+                orderInitialCollateralDeltaAmount=UnitDecimal(
+                    decrease_result.orderInitialCollateralDeltaAmount, collateral_token.name
+                ),
+                basePnlUsd=UnitDecimal(values.basePnlUsd, "USD"),
+                priceImpactUsd=UnitDecimal(values.priceImpactUsd, "USD"),
+                fundingFeeAmount=UnitDecimal(fees.funding.fundingFeeAmount, self.pool.index_token.name),
+                borrowingFeeUsd=UnitDecimal(fees.borrowing.borrowingFeeUsd, "USD"),
+                liquidationFeeUsd=UnitDecimal(fees.liquidation.liquidationFeeUsd, "USD"),
+                collateralTokenPrice=UnitDecimal(fees.collateralTokenPrice, f"{collateral_token.name}/usd"),
+                positionFeeAmount=UnitDecimal(fees.positionFeeAmount, collateral_token.name),
+                protocolFeeAmount=UnitDecimal(fees.protocolFeeAmount, collateral_token.name),
+                totalCostAmountExcludingFunding=UnitDecimal(
+                    fees.totalCostAmountExcludingFunding, collateral_token.name
+                ),
+                totalCostAmount=UnitDecimal(fees.totalCostAmount, collateral_token.name),
+            )
+        )
         return decrease_result, values, fees
 
     def _do_swap(self, from_token: TokenInfo, amount: float | Decimal) -> tuple[TokenInfo, Decimal, SwapResult]:
@@ -375,3 +438,22 @@ class GmxV2PerpMarket(PrepMarket):
         )
 
         return out_token, Decimal(out_amount), swap_result
+
+    def liquidation(
+        self, position_key
+    ) -> tuple[DecreasePositionResult, DecreasePositionCollateralValues, PositionFees]:
+        if position_key not in self.positions:
+            raise DemeterError("Position not found")
+        position = self.positions[position_key]
+
+        order = Order(
+            market=self.pool,
+            initialCollateralToken=position.collateralToken,
+            swapPath=[],
+            orderType=OrderType.Liquidation,
+            sizeDeltaUsd=position.sizeInUsd,
+            initialCollateralDeltaAmount=0,
+            isLong=position.isLong,
+            decreasePositionSwapType=DecreasePositionSwapType.SwapPnlTokenToCollateralToken,
+        )
+        return self._execute_decrease_order(order, position_key, position.collateralToken)

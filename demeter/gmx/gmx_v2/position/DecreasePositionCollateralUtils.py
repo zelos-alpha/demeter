@@ -131,10 +131,10 @@ class DecreasePositionCollateralUtils:
             cache.prices, values.totalImpactUsd, pool_data
         )
 
-        if values.priceImpactUsd > 0:
-            deductionAmountForImpactPool = values.priceImpactUsd / cache.prices.indexTokenPrice
+        if values.totalImpactUsd > 0:
+            deductionAmountForImpactPool = values.totalImpactUsd / cache.prices.indexTokenPrice
             # applyDeltaToPositionImpactPool
-            deductionAmountForPool = values.priceImpactUsd / cache.pnlTokenPrice
+            deductionAmountForPool = values.totalImpactUsd / cache.pnlTokenPrice
             # applyDeltaToPoolAmount
             if values.output.outputToken == cache.pnlToken:
                 values.output.outputAmount += deductionAmountForPool
@@ -200,9 +200,9 @@ class DecreasePositionCollateralUtils:
             return values, PositionFees()  # handleEarlyReturn
 
         # pay for negative price impact
-        if values.priceImpactUsd < 0:
+        if values.totalImpactUsd < 0:
             values, collateralCache.result = DecreasePositionCollateralUtils.payForCost(
-                params, values, cache.prices, cache.collateralTokenPrice, -values.priceImpactUsd
+                params, values, cache.prices, cache.collateralTokenPrice, -values.totalImpactUsd
             )
 
             if collateralCache.result.remainingCostUsd > 0:

@@ -14,7 +14,7 @@ class PositionKey(NamedTuple):
 @dataclass
 class Position:
     market: GmxV2Pool | None
-    collateralToken: TokenInfo|None
+    collateralToken: TokenInfo | None
     isLong: bool
     sizeInUsd: float = 0.0
     sizeInTokens: float = 0.0

@@ -29,16 +29,16 @@ class PositionValue:
     leverage: Decimal
     size: Decimal
     net_value: Decimal
-    initial_collateral:Decimal
+    initial_collateral: Decimal
     initial_collateral_usd: Decimal
     finial_collateral: Decimal
     finial_collateral_usd: Decimal
     borrow_fee_usd: Decimal
-    negative_funding_fee_usd : Decimal
+    negative_funding_fee_usd: Decimal
     positive_funding_fee_usd: Decimal
     net_price_impact_usd: Decimal
     close_fee_usd: Decimal
-    pnl:Decimal
+    pnl: Decimal
     pnl_after_fee_usd: Decimal
     entry_price: Decimal
     market_price: Decimal
@@ -187,14 +187,22 @@ class Gmx2IncreasePositionAction(BaseAction):
 @dataclass
 class Gmx2DecreasePositionAction(BaseAction):
     collateralToken: str
-    collateralAmount: UnitDecimal
-    sizeInUsd: UnitDecimal
-    sizeInTokens: UnitDecimal
-    borrowingFactor: UnitDecimal
-    fundingFeeAmountPerSize: UnitDecimal
-    longTokenClaimableFundingAmountPerSize: UnitDecimal
-    shortTokenClaimableFundingAmountPerSize: UnitDecimal
+    remainingCollateralAmount: UnitDecimal
     isLong: bool
+    outputAmount: UnitDecimal
+    secondaryOutputAmount: UnitDecimal
+    orderSizeDeltaUsd: UnitDecimal
+    orderInitialCollateralDeltaAmount: UnitDecimal
+    basePnlUsd: UnitDecimal
+    priceImpactUsd: UnitDecimal
+    fundingFeeAmount: UnitDecimal
+    borrowingFeeUsd: UnitDecimal
+    liquidationFeeUsd: UnitDecimal
+    collateralTokenPrice: UnitDecimal
+    positionFeeAmount: UnitDecimal
+    protocolFeeAmount: UnitDecimal
+    totalCostAmountExcludingFunding: UnitDecimal
+    totalCostAmount: UnitDecimal
 
     def set_type(self):
         self.action_type = ActionTypeEnum.gmx2_decrease_position
@@ -206,13 +214,23 @@ class Gmx2DecreasePositionAction(BaseAction):
             {
                 "collateralToken": self.collateralToken,
                 "collateralAmount": self.collateralAmount.to_str(),
-                "sizeInUsd": self.sizeInUsd.to_str(),
-                "sizeInTokens": self.sizeInTokens.to_str(),
-                "borrowingFactor": self.borrowingFactor.to_str(),
-                "fundingFeeAmountPerSize": self.fundingFeeAmountPerSize.to_str(),
-                "longTokenClaimableFundingAmountPerSize": self.longTokenClaimableFundingAmountPerSize.to_str(),
-                "shortTokenClaimableFundingAmountPerSize": self.shortTokenClaimableFundingAmountPerSize.to_str(),
                 "isLong": self.isLong,
+                "outputToken": self.outputToken,
+                "outputAmount": self.outputAmount.to_str(),
+                "secondaryOutputToken": self.secondaryOutputToken,
+                "secondaryOutputAmount": self.secondaryOutputAmount.to_str(),
+                "orderSizeDeltaUsd": self.orderSizeDeltaUsd.to_str(),
+                "orderInitialCollateralDeltaAmount": self.orderInitialCollateralDeltaAmount.to_str(),
+                "basePnlUsd": self.basePnlUsd.to_str(),
+                "priceImpactUsd": self.priceImpactUsd.to_str(),
+                "fundingFeeAmount": self.fundingFeeAmount.to_str(),
+                "borrowingFeeUsd": self.borrowingFeeUsd.to_str(),
+                "liquidationFeeUsd": self.liquidationFeeUsd.to_str(),
+                "collateralTokenPrice": self.collateralTokenPrice.to_str(),
+                "positionFeeAmount": self.positionFeeAmount.to_str(),
+                "protocolFeeAmount": self.protocolFeeAmount.to_str(),
+                "totalCostAmountExcludingFunding": self.totalCostAmountExcludingFunding.to_str(),
+                "totalCostAmount": self.totalCostAmount.to_str(),
             },
         )
 

@@ -35,7 +35,7 @@ class PoolConfig:
     minCollateralUsd: float = 1000000000000000000000000000000 / 10**30  # 1 👒
     minPositionSizeUsd: float = 1000000000000000000000000000000 / 10**30  # 1 👒
     maxPositionImpactFactorForLiquidation: float = 0  # MAX_POSITION_IMPACT_FACTOR_FOR_LIQUIDATIONS
-    minCollateralFactorForLiquidation: float = 0
+    minCollateralFactorForLiquidation: float = 0.005
 
   # "openInterestReserveFactor_Long": 2.7,
   # "openInterestReserveFactor_Short": 2.7,

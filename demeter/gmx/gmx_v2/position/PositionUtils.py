@@ -298,11 +298,7 @@ class PositionUtils:
             priceImpactUsd, position.sizeInUsd, pool_data
         )
 
-        priceImpactUsd += (
-            position.pendingImpactAmount * prices.indexTokenPrice
-            if position.pendingImpactAmount > 0
-            else position.pendingImpactAmount * prices.indexTokenPrice
-        )
+        priceImpactUsd += position.pendingImpactAmount * prices.indexTokenPrice
 
         # even if there is a large positive price impact, positions that would be liquidated
         # if the positive price impact is reduced should not be allowed to be created

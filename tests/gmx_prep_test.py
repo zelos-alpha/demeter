@@ -123,22 +123,22 @@ class TestActuator(unittest.TestCase):
             market=self.pool,
             collateralToken=self.weth,
             isLong=True,
-            sizeInUsd=self.online_status["position"]["numbers"]["sizeInUsd"],
-            sizeInTokens=self.online_status["position"]["numbers"]["sizeInTokens"],
-            collateralAmount=self.online_status["position"]["numbers"]["collateralAmount"],
-            pendingImpactAmount=self.online_status["position"]["numbers"]["pendingImpactAmount"],
-            borrowingFactor=self.online_status["position"]["numbers"]["borrowingFactor"],
-            fundingFeeAmountPerSize=self.online_status["position"]["numbers"]["fundingFeeAmountPerSize"],
-            longTokenClaimableFundingAmountPerSize=self.online_status["position"]["numbers"][
-                "longTokenClaimableFundingAmountPerSize"
-            ],
-            shortTokenClaimableFundingAmountPerSize=self.online_status["position"]["numbers"][
-                "shortTokenClaimableFundingAmountPerSize"
-            ],
+            sizeInUsd=float(self.online_status["position"]["numbers"]["sizeInUsd"]),
+            sizeInTokens=float(self.online_status["position"]["numbers"]["sizeInTokens"]),
+            collateralAmount=float(self.online_status["position"]["numbers"]["collateralAmount"]),
+            pendingImpactAmount=float(self.online_status["position"]["numbers"]["pendingImpactAmount"]),
+            borrowingFactor=float(self.online_status["position"]["numbers"]["borrowingFactor"]),
+            fundingFeeAmountPerSize=float(self.online_status["position"]["numbers"]["fundingFeeAmountPerSize"]),
+            longTokenClaimableFundingAmountPerSize=float(
+                self.online_status["position"]["numbers"]["longTokenClaimableFundingAmountPerSize"]
+            ),
+            shortTokenClaimableFundingAmountPerSize=float(
+                self.online_status["position"]["numbers"]["shortTokenClaimableFundingAmountPerSize"]
+            ),
         )
 
     def test_position_info(self):
-        broker, market, data, price = self._get_market(datetime.date(2025,12,15))
+        broker, market, data, price = self._get_market(datetime.date(2025, 12, 15))
 
         market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
         pos_key = PositionKey(self.pool, self.weth, True)
@@ -150,7 +150,7 @@ class TestActuator(unittest.TestCase):
         compare_position_info(position_info, self.online_status)
 
     def test_position_value(self):
-        broker, market, data, price = self._get_market(datetime.date(2025,12,15))
+        broker, market, data, price = self._get_market(datetime.date(2025, 12, 15))
         market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
         pos_key = PositionKey(self.pool, self.weth, True)
         market.positions[pos_key] = self.get_position()
@@ -160,7 +160,7 @@ class TestActuator(unittest.TestCase):
         pp.pprint(position_value)
 
     def test_increase(self):
-        broker, market, data, price = self._get_market(datetime.date(2025,12,15))
+        broker, market, data, price = self._get_market(datetime.date(2025, 12, 15))
         market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
         market: GmxV2PerpMarket = market
         pos, fee = market.increase_position(self.weth, 1, True, 10)
@@ -168,7 +168,7 @@ class TestActuator(unittest.TestCase):
         pprint.pprint(pos)
 
     def test_increase_again(self):
-        broker, market, data, price = self._get_market(datetime.date(2025,12,15))
+        broker, market, data, price = self._get_market(datetime.date(2025, 12, 15))
         market.set_market_status(GmxV2LpMarketStatus(data.index[-1], data.iloc[-1]), price.iloc[-1])
         market: GmxV2PerpMarket = market
         pos, fee = market.increase_position(self.weth, 1, True, 10)
@@ -187,7 +187,7 @@ class TestActuator(unittest.TestCase):
     def test_increase_with_real_tx(self):
         # create: https://arbiscan.io/tx/0xf1f6a980fd9b8ab38563922f721da8e94b05b9c7ccbca7fac6b2304d022b663a#eventlog
         # execute: https://arbiscan.io/tx/0xc1ec383cd7d9541050f13b9d14c88369a85b7d92d962c85ece9a8e1adfede219#eventlog
-        broker, market, data, price = self._get_market(datetime.date(2025,12,15))
+        broker, market, data, price = self._get_market(datetime.date(2025, 12, 15))
         t = pd.Timestamp("2025-12-15 0:3:00")
 
         data.loc[t, "longPrice"] = 3075.745500562432
@@ -212,10 +212,11 @@ class TestActuator(unittest.TestCase):
         print()
         print("fees", fee.totalCostAmount, 1.272504)
         compare_position(pos, actual)
+        # pendingImpactAmount is not good
 
     def test_decrease(self):
 
-        broker, market, data, price = self._get_market(datetime.date(2025,12,15))
+        broker, market, data, price = self._get_market(datetime.date(2025, 12, 15))
         t = pd.Timestamp("2025-12-15 0:3:00")
 
         data.loc[t, "longPrice"] = 3075.745500562432
@@ -230,8 +231,9 @@ class TestActuator(unittest.TestCase):
         pprint.pprint(fee)
 
     def test_decrease_with_real_tx(self):
-        broker, market, data, price = self._get_market(datetime.date(2025,11,11))
+        broker, market, data, price = self._get_market(datetime.date(2025, 11, 11))
         t = pd.Timestamp("2025-11-11 8:0:00")
+
         market.set_market_status(GmxV2LpMarketStatus(t, data.loc[t]), price.loc[t])
         market: GmxV2PerpMarket = market
         pos_key = PositionKey(self.pool, self.usdc, False)
@@ -257,7 +259,53 @@ class TestActuator(unittest.TestCase):
         pprint.pprint(result)
         pprint.pprint(values)
         pprint.pprint(fee)
+        # pendingImpactAmount and borrrow amount is not good, will use AI generate some compare code
 
+    def test_liquidation_with_real_tx(self):
+
+        # increase tx: https://arbiscan.io/tx/0x6cb8663d3a13cfdd40b0721caf6fa6e48e1648d0bfc95defa02a1fe408b1cf98#eventlog
+        # liquidation tx:https://arbiscan.io/tx/0x6512f4109613d913bcb0da1f713226d594b900ac9f19a2e610681b9dcec0aab2#eventlog
+        broker, market, data, price = self._get_market(datetime.date(2025, 12, 11))
+        t = pd.Timestamp("2025-12-11 1:14:00")
+        data.loc[t, "indexPrice"] = 3256.461267663455
+        data.loc[t, "longPrice"] = 3256.461267663455
+        data.loc[t, "shortPrice"] = 0.999793838373229150000000
+        market.set_market_status(GmxV2LpMarketStatus(t, data.loc[t]), price.loc[t])
+        market: GmxV2PerpMarket = market
+        action_list = []
+        def record_action(action):
+            action_list.append(action)
+        market._record_action_callback =record_action
+        pos_key = PositionKey(self.pool, self.usdc, True)
+        market.positions[pos_key] = Position(
+            market=self.pool,
+            collateralToken=self.usdc,
+            isLong=True,
+            sizeInUsd=16590814454276798868214048800000000 / 10**30,
+            sizeInTokens=4919469975661200694 / 10**18,
+            collateralAmount=663545936 / 10**6,
+            pendingImpactAmount=-2038219224234325 / 10**18,
+            borrowingFactor=281970144601482118172241780776 / 10**30,
+            fundingFeeAmountPerSize=476208932773322718744 / 10**6 / 10**15,
+            longTokenClaimableFundingAmountPerSize=4527337741737576110700834270 / 10**18 / 10**15,
+            shortTokenClaimableFundingAmountPerSize=7804503553381844840 / 10**6 / 10**15,
+        )
+        position_value = market.get_position_value(pos_key)  # pnl should be negative
+        print()
+        pprint.pprint(position_value)
+        # # https://arbiscan.io/tx/0xdc0b6556700a893657ff1b51b065ef83e68db316cdcf365853982caf733bb77b
+        # result, values, fee = market.decrease_position(self.usdc, False)
+        # pprint.pprint(result)
+        # pprint.pprint(values)
+        # pprint.pprint(fee)
+        market.update()
+        output_amount = action_list[0].outputAmount
+        assert compare_value(output_amount, 43.837458, 0.003)
+        pass
+
+def compare_value(a,val, allowed_error):
+    error = abs(float(a)-val)/val
+    return error < allowed_error
 
 def compare_position(val, actual):
     rows = [
