@@ -58,8 +58,9 @@ class GmxV2LpDescription(MarketDescription):
 
 @dataclass
 class GmxV2PrepDescription(MarketDescription):
-    Positions: dict[PositionKey, Position]
-
+    long_token: str
+    short_token: str
+    index_token: str
 
 @dataclass
 class GmxV2LpMarketStatus(MarketStatus):
@@ -96,7 +97,11 @@ class Gmx2WithdrawAction(BaseAction):
 
 
 def position_dict_to_dataframe(positions: dict) -> pd.DataFrame:
-    return pd.DataFrame(positions.values())
+    positions = list(positions.copy().values())
+    for index, position in enumerate(positions):
+        positions[index].market= str(position.market)
+        positions[index].collateralToken= str(position.collateralToken)
+    return pd.DataFrame(positions)
 
 
 @dataclass
@@ -159,7 +164,7 @@ class Gmx2IncreasePositionAction(BaseAction):
             ForColorEnum.light_green,
             {
                 "collateralToken": self.collateralToken,
-                "isLong": self.isLong,
+                "isLong": str(self.isLong),
                 "collateralAmount": self.collateralAmount.to_str(),
                 "sizeInUsd": self.sizeInUsd.to_str(),
                 "borrowingFactor": self.borrowingFactor.to_str(),
@@ -207,11 +212,9 @@ class Gmx2DecreasePositionAction(BaseAction):
             ForColorEnum.light_green,
             {
                 "collateralToken": self.collateralToken,
-                "collateralAmount": self.collateralAmount.to_str(),
-                "isLong": self.isLong,
-                "outputToken": self.outputToken,
+                "remainingCollateralAmount": self.remainingCollateralAmount.to_str(),
+                "isLong": str(self.isLong),
                 "outputAmount": self.outputAmount.to_str(),
-                "secondaryOutputToken": self.secondaryOutputToken,
                 "secondaryOutputAmount": self.secondaryOutputAmount.to_str(),
                 "orderSizeDeltaUsd": self.orderSizeDeltaUsd.to_str(),
                 "orderInitialCollateralDeltaAmount": self.orderInitialCollateralDeltaAmount.to_str(),

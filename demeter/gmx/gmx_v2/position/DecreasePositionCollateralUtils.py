@@ -73,7 +73,7 @@ class DecreasePositionCollateralUtils:
         # the basePnlUsd is the pnl to be realized, and is calculated as:
         # totalPositionPnl * sizeDeltaInTokens / position.sizeInTokens()
         values.basePnlUsd, values.uncappedBasePnlUsd, values.sizeDeltaInTokens = PositionUtils.getPositionPnlUsd(
-            cache.prices, params.position, params.position.sizeInUsd, pool_data
+            cache.prices, params.position, params.order.sizeDeltaUsd, pool_data
         )
         getPositionFeesParams = GetPositionFeesParams(
             position=params.position,

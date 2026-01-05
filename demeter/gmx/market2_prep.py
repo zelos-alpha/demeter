@@ -44,11 +44,6 @@ class GmxV2PerpMarket(PrepMarket):
     ):
         super().__init__(market_info=market_info, data=data, data_path=data_path)
         self.pool: GmxV2Pool = pool
-
-        self.cumulative_borrowing = {
-            "cumulativeBorrowingFactorLong": {"value": 0, "time": None},
-            "cumulativeBorrowingFactorShort": {"value": 0, "time": None},
-        }
         self.pool_config = PoolConfig()
         self.positions: dict[PositionKey, Position] = {}
         self.claimableFundingAmount: dict[TokenInfo, float] = {
@@ -69,7 +64,9 @@ class GmxV2PerpMarket(PrepMarket):
         return GmxV2PrepDescription(
             type=type(self).__name__,
             name=self._market_info.name,
-            Positions=self.positions,
+            long_token=self.pool.long_token.name,
+            short_token=self.pool.short_token.name,
+            index_token=self.pool.index_token.name,
         )
 
     @property

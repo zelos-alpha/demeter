@@ -165,7 +165,7 @@ class PositionUtils:
         position: Position,
         sizeDeltaUsd: float,
         pool_data: PoolData,
-    ):
+    ) -> tuple[float, float, float]:
         market = pool_data.market
         executionPrice = prices.indexTokenPrice
 

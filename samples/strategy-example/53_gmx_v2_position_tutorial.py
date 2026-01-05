@@ -13,8 +13,8 @@ pd.set_option("display.width", 5000)
 class GmxV2PositionStrategy(Strategy):
     def initialize(self):
         increase_trigger = AtTimeTrigger(time=datetime(2025, 11, 11, 4, 55, 0), do=self.increase)
-        decrease_trigger = AtTimeTrigger(time=datetime(2025, 11, 11, 16, 4, 0), do=self.decrease)
         self.triggers.append(increase_trigger)
+        decrease_trigger = AtTimeTrigger(time=datetime(2025, 11, 11, 16, 4, 0), do=self.decrease)
         self.triggers.append(decrease_trigger)
         pass
 
@@ -33,8 +33,8 @@ class GmxV2PositionStrategy(Strategy):
         result = gmx_market.decrease_position(
             collateral_token=usdc,
             is_long=True,
-            size_in_usd=948.752617 / 2,
-            collateral_amount=4446.51078972797 / 2,
+            size_in_usd=4446.51078972797 / 5,
+            collateral_amount=948.752617 / 5,
         )
         pass
 
@@ -60,4 +60,5 @@ if __name__ == "__main__":
     actuator.broker.set_balance(weth, 0)
     actuator.strategy = GmxV2PositionStrategy()  # set strategy to actuator
     actuator.set_price(market.get_price_from_data())  # set actuator price
+    actuator.print_action = True
     actuator.run()
