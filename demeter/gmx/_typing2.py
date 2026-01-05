@@ -42,13 +42,15 @@ class PositionValue:
     pnl_after_fee_usd: Decimal
     entry_price: Decimal
     market_price: Decimal
-    liq_price: Decimal
 
 
 @dataclass
 class GmxV2PrepBalance(MarketBalance):
     position_count:int
-    # TODO : expend
+    total_pnl: Decimal
+    collateral_long: Decimal
+    collateral_short: Decimal
+    collateral_usd: Decimal
 
 
 @dataclass

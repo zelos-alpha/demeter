@@ -192,7 +192,6 @@ class GmxV2PerpMarket(PrepMarket):
             pnl_after_fee_usd=Decimal(pnl_after_fee_usd),
             entry_price=Decimal(position_info.position.sizeInUsd / position_info.position.sizeInTokens),
             market_price=Decimal(pool_status.indexPrice),
-            liq_price=Decimal(0),
         )
         return balance
 
@@ -203,15 +202,28 @@ class GmxV2PerpMarket(PrepMarket):
 
     def get_market_balance(self) -> GmxV2PrepBalance:
         position_balances: list[PositionValue] = []
-        net_value = 0
+        net_value = total_pnl = collateral_long = collateral_short = collateral_usd = Decimal(0)
         pool_status: GmxV2PoolStatus = self._market_status.data
         for key, position in self.positions.items():
-            position_info = self.get_position_info(key)
-            position_value = self._get_position_value(position_info, pool_status)
+            position_info: PositionInfo = self.get_position_info(key)
+            position_value: PositionValue = self._get_position_value(position_info, pool_status)
+            total_pnl += position_value.pnl_after_fee_usd
             net_value += position_value.net_value
+            collateral_usd += position_value.finial_collateral_usd
             position_balances.append(position_value)
+            if position_info.position.collateralToken == self.pool.long_token:
+                collateral_long += position_value.finial_collateral
+            elif position_info.position.collateralToken == self.pool.short_token:
+                collateral_short += position_value.finial_collateral
 
-        return GmxV2PrepBalance(net_value=net_value, position_count=len(self.positions))
+        return GmxV2PrepBalance(
+            net_value=net_value,
+            position_count=len(self.positions),
+            total_pnl=total_pnl,
+            collateral_long=collateral_long,
+            collateral_short=collateral_short,
+            collateral_usd=collateral_usd,
+        )
 
     def formatted_str(self):
         value = get_formatted_predefined(f"{self.market_info.name}({type(self).__name__})", STYLE["header3"]) + "\n"
