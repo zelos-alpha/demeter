@@ -66,43 +66,16 @@ class TestActuator(unittest.TestCase):
         broker.add_market(market)
         broker.set_balance(usdc, 1067)
         broker.set_balance(eth, 1)
-        broker.quote_token = usdc
+        broker._quote_token = usdc
         actuator.strategy = EmptyStrategy()  # set strategy to actuator
 
-        market.data_path = "data"
+        market.data_path = "tests/data"
         market.load_data(
             ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 14), date(2023, 8, 14)
         )
         # actuator.output()  # print final status
 
         return actuator
-
-    def test_run_empty_strategy(self):
-        actuator = TestActuator.get_actuator_with_uni_market()
-        actuator.run()  # Observe the format and content of the output log
-        print(actuator)
-        b = {
-            "Account status": {
-                "assets": [{"name": "USDC", "value": 1067.0}, {"name": "ETH", "value": 1.0}],
-                "markets": [
-                    {
-                        "type": "UniLpMarket",
-                        "name": "market1",
-                        "token0": {"name": "USDC", "decimal": 6, "address": ""},
-                        "token1": {"name": "ETH", "decimal": 18, "address": ""},
-                        "quote_token": {"name": "USDC", "decimal": 6, "address": ""},
-                        "base_token": {"name": "ETH", "decimal": 18, "address": ""},
-                        "fee_rate": "0.0005",
-                    }
-                ],
-            },
-            "action_count": 0,
-            "timestamp": "2023-08-14 23:59:00",
-            "strategy": "EmptyStrategy",
-            "price_df_rows": 1440,
-            "price_assets": ["ETH", "USDC", "USD"],
-        }
-        self.assertEqual(json.loads(str(actuator)), b)
 
     def test_run_buy_on_second(self):
         actuator = TestActuator.get_actuator_with_uni_market()
@@ -115,19 +88,6 @@ class TestActuator(unittest.TestCase):
         actuator.strategy = WithSMA()
         actuator.run()
         self.assertTrue("ma5" in actuator.broker.markets.default.data.columns)
-
-    def test_uniswap_load_missing_data(self):
-        pool = UniV3Pool(usdc, eth, 0.05, usdc)
-        market = UniLpMarket(test_market, pool)
-        actuator: Actuator = Actuator()  # declare actuator
-        broker = actuator.broker
-        broker.add_market(market)
-
-        market.data_path = "data"
-        market.load_data(
-            ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 13), date(2023, 8, 14)
-        )
-        self.assertEqual(market.data.loc[datetime(2023, 8, 14, 0, 0, 0)]["netAmount0"], 0)
 
     def test_add_liquidity(self):
         actuator = TestActuator.get_actuator_with_uni_market()

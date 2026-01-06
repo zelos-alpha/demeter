@@ -45,7 +45,7 @@ class OptionStrategyTest(unittest.TestCase):
 
     def test_empty_strategy(self):
         market = DeribitOptionMarket(market_key, DeribitOptionMarket.ETH)
-        market.data_path = "data"
+        market.data_path = "tests/data"
         market.load_data(date(2024, 2, 15), date(2024, 2, 16))
         actuator = Actuator()
         actuator.broker.add_market(market)

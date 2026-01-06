@@ -52,7 +52,7 @@ class OptionStrategyTest(unittest.TestCase):
 
         pool = UniV3Pool(token0=usdc, token1=eth, fee=0.05, quote_token=usdc)
         market_uni = UniLpMarket(market_u, pool)
-        market_uni.data_path = "data"  # set data path
+        market_uni.data_path = "tests/data"  # set data path
         market_uni.load_data(
             chain=ChainType.polygon.name,  # load data
             contract_addr="0x45dda9cb7c25131df268515131f647d726f50608",

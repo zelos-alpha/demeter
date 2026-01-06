@@ -15,6 +15,7 @@ from demeter import (
     AtTimeTrigger,
 )
 from demeter.aave import AaveV3Market
+from tests.aave_liquidate_test import risk_file_path
 
 # To print all the columns of dataframe, we should set up display option.
 pd.options.display.max_columns = None
@@ -117,11 +118,12 @@ class RepayWithCollateralStrategy(Strategy):
         aave_market.repay(borrow_token=weth, repay_with_collateral=True)
 
 
+risk_file_path = "tests/aave_risk_parameters/demo.csv"
+
+
 class TestActuator(unittest.TestCase):
     def test_basic(self):
-        aave_market = AaveV3Market(
-            market_info=market_key, risk_parameters_path="aave_risk_parameters/demo.csv", tokens=[weth]
-        )
+        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path=risk_file_path, tokens=[weth])
 
         aave_market.set_token_data(weth, pd.read_csv(StringIO(eth_data_csv), index_col=0, parse_dates=True))
 
@@ -138,9 +140,7 @@ class TestActuator(unittest.TestCase):
         self.assertEqual(account_status.tail(1).iloc[0]["aave"]["supplies_value"], Decimal("10090"))
 
     def test_all_operation(self):
-        aave_market = AaveV3Market(
-            market_info=market_key, risk_parameters_path="aave_risk_parameters/demo.csv", tokens=[weth]
-        )
+        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path=risk_file_path, tokens=[weth])
 
         aave_market.set_token_data(weth, pd.read_csv(StringIO(eth_data_csv), index_col=0, parse_dates=True))
 
@@ -163,9 +163,7 @@ class TestActuator(unittest.TestCase):
         self.assertEqual(account_status.iloc[9]["net_value"][""], Decimal("15031"))
 
     def test_repay_with_collateral(self):
-        aave_market = AaveV3Market(
-            market_info=market_key, risk_parameters_path="aave_risk_parameters/demo.csv", tokens=[weth]
-        )
+        aave_market = AaveV3Market(market_info=market_key, risk_parameters_path=risk_file_path, tokens=[weth])
 
         aave_market.set_token_data(weth, pd.read_csv(StringIO(eth_data_csv), index_col=0, parse_dates=True))
 

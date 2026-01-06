@@ -1,3 +1,4 @@
+import os
 import unittest
 from datetime import datetime, date
 from decimal import Decimal
@@ -16,7 +17,7 @@ from demeter.deribit import (
 from io import StringIO
 
 from demeter.deribit.helper import order_converter
-
+import getpass
 dp_market = MarketInfo("TestMarket", MarketTypeEnum.deribit_option)
 
 
@@ -59,8 +60,11 @@ ETH-22SEP23-1700-C,2023-09-01 06:00:00,2023-09-01 06:00:38.755,open,CALL,1700,21
         return broker
 
     def test_load_data(self):
+        cache_path = f"/home/{getpass.getuser()}/.demeter/deribit_option__240215_240216_ETH.feather"
+        if os.path.exists(cache_path):
+            os.remove(cache_path)
         market = DeribitOptionMarket(dp_market, DeribitOptionMarket.ETH)
-        market.data_path = "data"
+        market.data_path = "tests/data"
         market.load_data(date(2024, 2, 15), date(2024, 2, 16))
         self.assertEqual(market.data.shape[0], 33812)
         self.assertEqual(market.data.shape[1], 24)

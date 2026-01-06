@@ -132,7 +132,7 @@ def get_formatted(
     if style != "":
         style = """\033[{}m""".format(style)
         end = """\033[0m"""
-    string = prefix + string
+    string = prefix + str(string)
     if width > 0:
         string = "{}{:<{}}{}".format(style, string, width, end)
     else:

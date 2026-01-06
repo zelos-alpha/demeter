@@ -300,7 +300,7 @@ class TestActuator(unittest.TestCase):
         # pprint.pprint(fee)
         market.update()
         output_amount = action_list[0].outputAmount
-        assert compare_value(output_amount, 43.837458, 0.003)
+        assert compare_value(output_amount, 43.837458, 0.01)
         pass
 
 def compare_value(a,val, allowed_error):

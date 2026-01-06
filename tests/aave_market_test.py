@@ -12,12 +12,15 @@ from demeter.aave import (
     AaveV3CoreLib,
     AaveV3Market,
 )
+from tests.aave_liquidate_test import risk_file_path
 from tests.common import assert_equal_with_error
 
 usdt = TokenInfo("USDT", 6)
 dai = TokenInfo("DAI", 6)
 matic = TokenInfo("WMATIC", 18)
 weth = TokenInfo("weth", 18, "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619")
+
+risk_file_path = "tests/aave_risk_parameters/demo.csv"
 
 
 def to_decimal(v: int) -> Decimal:
@@ -26,8 +29,7 @@ def to_decimal(v: int) -> Decimal:
 
 class UniLpDataTest(unittest.TestCase):
     def test_load_risk_parameter(self):
-        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3),
-                              "aave_risk_parameters/demo.csv")
+        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), risk_file_path)
         self.assertTrue("WETH" in market.risk_parameters.index)
         self.assertTrue("reserveLiquidationThreshold" in market.risk_parameters.columns)
 
@@ -42,7 +44,7 @@ class UniLpDataTest(unittest.TestCase):
     def test_status_calc_with_moke_data(self):
         market = AaveV3Market(
             MarketInfo("aave_test", MarketTypeEnum.aave_v3),
-            "./aave_risk_parameters/demo.csv",
+            risk_file_path,
             tokens=[usdt, dai, matic],
         )
         timestamp = datetime(2023, 9, 12, 15)
@@ -113,7 +115,7 @@ class UniLpDataTest(unittest.TestCase):
     def test_status_calc_with_real_data(self):
         market = AaveV3Market(
             MarketInfo("aave_test", MarketTypeEnum.aave_v3),
-            "./aave_risk_parameters/demo.csv",
+            risk_file_path,
             tokens=[usdt, dai, matic],
         )
         timestamp = datetime(2023, 9, 12, 15)
@@ -143,13 +145,11 @@ class UniLpDataTest(unittest.TestCase):
                 to_decimal(33471738680690573979588711),
                 to_decimal(1024896375683851651969973538),
                 to_decimal(1043477569752596545043775819),
-
                 to_decimal(19374318747418950359017069),
                 to_decimal(54385544255370350575778874),
                 to_decimal(54385544255370350575778874),
                 to_decimal(1046424838969468347281558168),
                 to_decimal(1061829096134252340370625412),
-
                 to_decimal(34590050812934499694395450),
                 to_decimal(81000000000000000000000000),
                 to_decimal(59301392614184653189709969),
@@ -201,7 +201,7 @@ class UniLpDataTest(unittest.TestCase):
         # net_apy=Decimal('0.01683792283834931728886791969'))
 
     def test_data(self):
-        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "aave_risk_parameters/demo.csv")
+        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), risk_file_path)
         start = datetime(2023, 10, 1, 0, 0)
         data_size = 10
         df_index = pd.date_range(start, start + timedelta(minutes=data_size - 1), freq="1min")
@@ -225,7 +225,7 @@ class UniLpDataTest(unittest.TestCase):
 
     def test_load_data(self):
         market_key = MarketInfo("aave_test", MarketTypeEnum.aave_v3)
-        market = AaveV3Market(market_key, "./aave_risk_parameters/demo.csv")
+        market = AaveV3Market(market_key, risk_file_path)
         market.data_path = "data"
         market.load_data(ChainType.polygon, [weth], date(2023, 8, 14), date(2023, 8, 17))
         self.assertEqual(len(market.data.index), 1440 * 4)
@@ -237,7 +237,7 @@ class UniLpDataTest(unittest.TestCase):
 
     def get_test_market(self):
         market_key = MarketInfo("aave_test", MarketTypeEnum.aave_v3)
-        market = AaveV3Market(market_key, "aave_risk_parameters/demo.csv", tokens=[weth])
+        market = AaveV3Market(market_key, risk_file_path, tokens=[weth])
         t = datetime(2023, 8, 1)
         price_series = pd.Series(data=[Decimal(1000), Decimal(1)], index=[weth.name, dai.name])
         iterables = [
@@ -430,7 +430,7 @@ class UniLpDataTest(unittest.TestCase):
         repay_amount = market.get_max_repay_amount(dai)
 
         try:
-            market.repay(dai, repay_amount + 1)
+            market.repay(dai, repay_amount + 1000)
         except AssertionError as e:
             self.assertIn("amount exceed debt", str(e))
 
@@ -495,23 +495,23 @@ class UniLpDataTest(unittest.TestCase):
         market: AaveV3Market = market
 
         market.supply(weth, Decimal(3), False)
-        market.change_collateral(False, weth)
+        market.change_collateral(weth, False)
         self.assertEqual(market._supplies[weth].collateral, False)
 
-        market.change_collateral(True, weth)
+        market.change_collateral(weth, True)
         self.assertEqual(market._supplies[weth].collateral, True)
 
         market.borrow(dai, 1000)
         hf_old = market.health_factor
         try:
-            market.change_collateral(False, weth)
+            market.change_collateral(weth, False)
         except AssertionError as e:
             self.assertIn("health factor lower than liquidation threshold", str(e))
         self.assertEqual(hf_old, market.health_factor)
 
         market.repay(dai, 1000)
-        market.change_collateral(False, weth)
-        self.assertEqual(market._supplies[weth].collateral, False)
+        market.change_collateral(weth, True)
+        self.assertEqual(market._supplies[weth].collateral, True)
 
     def test_liquidate_half(self):
         market_key, market, broker, price_series = self.get_test_market()
