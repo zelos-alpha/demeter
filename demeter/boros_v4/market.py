@@ -90,6 +90,11 @@ class OpenFixedFloatAction(BaseAction):
     execution_timestamp: datetime | None = None
     execution_tx_hash: str = ""
     execution_source: str = ""
+    execution_effective_rate: Decimal = Decimal(0)
+    execution_available_abs_size_total: Decimal = Decimal(0)
+    execution_option_count: int = 0
+    execution_selection_reason: str = ""
+    execution_quote_options_json: str = ""
 
     def set_type(self):
         self.action_type = ActionTypeEnum.boros_open_fixed_float
@@ -126,6 +131,11 @@ class CloseFixedFloatAction(BaseAction):
     execution_timestamp: datetime | None = None
     execution_tx_hash: str = ""
     execution_source: str = ""
+    execution_effective_rate: Decimal = Decimal(0)
+    execution_available_abs_size_total: Decimal = Decimal(0)
+    execution_option_count: int = 0
+    execution_selection_reason: str = ""
+    execution_quote_options_json: str = ""
 
     def set_type(self):
         self.action_type = ActionTypeEnum.boros_close_fixed_float
@@ -270,6 +280,11 @@ class BorosMarket(Market):
         execution_timestamp: datetime | None = None,
         execution_tx_hash: str = "",
         execution_source: str = "",
+        execution_effective_rate: Decimal = Decimal(0),
+        execution_available_abs_size_total: Decimal = Decimal(0),
+        execution_option_count: int = 0,
+        execution_selection_reason: str = "",
+        execution_quote_options_json: str = "",
     ) -> Decimal:
         if not position.can_close():
             return Decimal(0)
@@ -317,6 +332,11 @@ class BorosMarket(Market):
                 execution_timestamp=execution_timestamp,
                 execution_tx_hash=execution_tx_hash,
                 execution_source=execution_source,
+                execution_effective_rate=Decimal(execution_effective_rate),
+                execution_available_abs_size_total=Decimal(execution_available_abs_size_total),
+                execution_option_count=int(execution_option_count),
+                execution_selection_reason=execution_selection_reason,
+                execution_quote_options_json=execution_quote_options_json,
             )
         )
         return portion_pnl
@@ -332,6 +352,11 @@ class BorosMarket(Market):
         execution_timestamp: datetime | None = None,
         execution_tx_hash: str = "",
         execution_source: str = "",
+        execution_effective_rate: Decimal = Decimal(0),
+        execution_available_abs_size_total: Decimal = Decimal(0),
+        execution_option_count: int = 0,
+        execution_selection_reason: str = "",
+        execution_quote_options_json: str = "",
     ):
         require(notional > 0, "notional should be positive")
         current_time = self._current_timestamp()
@@ -390,6 +415,11 @@ class BorosMarket(Market):
                 execution_timestamp=execution_timestamp,
                 execution_tx_hash=execution_tx_hash,
                 execution_source=execution_source,
+                execution_effective_rate=Decimal(execution_effective_rate),
+                execution_available_abs_size_total=Decimal(execution_available_abs_size_total),
+                execution_option_count=int(execution_option_count),
+                execution_selection_reason=execution_selection_reason,
+                execution_quote_options_json=execution_quote_options_json,
             )
         )
         return position
@@ -404,6 +434,11 @@ class BorosMarket(Market):
         execution_timestamp: datetime | None = None,
         execution_tx_hash: str = "",
         execution_source: str = "",
+        execution_effective_rate: Decimal = Decimal(0),
+        execution_available_abs_size_total: Decimal = Decimal(0),
+        execution_option_count: int = 0,
+        execution_selection_reason: str = "",
+        execution_quote_options_json: str = "",
         close_rate: Decimal | None = None,
     ):
         open_positions = self.get_open_positions()
@@ -425,6 +460,11 @@ class BorosMarket(Market):
             execution_timestamp=execution_timestamp,
             execution_tx_hash=execution_tx_hash,
             execution_source=execution_source,
+            execution_effective_rate=execution_effective_rate,
+            execution_available_abs_size_total=execution_available_abs_size_total,
+            execution_option_count=execution_option_count,
+            execution_selection_reason=execution_selection_reason,
+            execution_quote_options_json=execution_quote_options_json,
         )
 
     def check_market(self):
@@ -661,7 +701,24 @@ class BorosMarket(Market):
             ),
             reverse=prefer_higher_rate,
         )
+        quote_options_summary = [
+            {
+                "execution_source": quote["execution_source"],
+                "effective_rate": str(quote["_effective_rate"]),
+                "fixed_rate": str(quote["fixed_rate"]),
+                "execution_opening_fee_rate": str(quote["execution_opening_fee_rate"]),
+                "execution_fee_rate_annualized": str(quote["execution_fee_rate_annualized"]),
+                "execution_fee_paid": str(quote["execution_fee_paid"]),
+                "available_abs_size_total": str(quote["available_abs_size_total"]),
+            }
+            for quote in quote_options
+        ]
         best_quote = quote_options[0]
+        best_quote["execution_option_count"] = len(quote_options)
+        best_quote["execution_selection_reason"] = (
+            "only_available_quote" if len(quote_options) == 1 else "selected_best_all_in_rate"
+        )
+        best_quote["execution_quote_options_json"] = json.dumps(quote_options_summary, sort_keys=True)
         return best_quote
 
     def claim_full_execution_quote(

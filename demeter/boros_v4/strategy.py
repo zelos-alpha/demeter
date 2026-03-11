@@ -415,6 +415,11 @@ class FundingConvergenceStrategy(Strategy):
                 execution_timestamp=exec_a["execution_timestamp"],
                 execution_tx_hash=exec_a["execution_tx_hash"],
                 execution_source=exec_a["execution_source"],
+                execution_effective_rate=exec_a.get("_effective_rate", Decimal(0)),
+                execution_available_abs_size_total=exec_a.get("available_abs_size_total", Decimal(0)),
+                execution_option_count=exec_a.get("execution_option_count", 0),
+                execution_selection_reason=exec_a.get("execution_selection_reason", ""),
+                execution_quote_options_json=exec_a.get("execution_quote_options_json", ""),
             )
             pos_b = self.market_b.open_fixed_float(
                 self.notional,
@@ -425,6 +430,11 @@ class FundingConvergenceStrategy(Strategy):
                 execution_timestamp=exec_b["execution_timestamp"],
                 execution_tx_hash=exec_b["execution_tx_hash"],
                 execution_source=exec_b["execution_source"],
+                execution_effective_rate=exec_b.get("_effective_rate", Decimal(0)),
+                execution_available_abs_size_total=exec_b.get("available_abs_size_total", Decimal(0)),
+                execution_option_count=exec_b.get("execution_option_count", 0),
+                execution_selection_reason=exec_b.get("execution_selection_reason", ""),
+                execution_quote_options_json=exec_b.get("execution_quote_options_json", ""),
             )
         else:
             pos_a = self.market_a.open_fixed_float(
@@ -436,6 +446,11 @@ class FundingConvergenceStrategy(Strategy):
                 execution_timestamp=exec_a["execution_timestamp"],
                 execution_tx_hash=exec_a["execution_tx_hash"],
                 execution_source=exec_a["execution_source"],
+                execution_effective_rate=exec_a.get("_effective_rate", Decimal(0)),
+                execution_available_abs_size_total=exec_a.get("available_abs_size_total", Decimal(0)),
+                execution_option_count=exec_a.get("execution_option_count", 0),
+                execution_selection_reason=exec_a.get("execution_selection_reason", ""),
+                execution_quote_options_json=exec_a.get("execution_quote_options_json", ""),
             )
             pos_b = self.market_b.open_fixed_float(
                 self.notional,
@@ -446,6 +461,11 @@ class FundingConvergenceStrategy(Strategy):
                 execution_timestamp=exec_b["execution_timestamp"],
                 execution_tx_hash=exec_b["execution_tx_hash"],
                 execution_source=exec_b["execution_source"],
+                execution_effective_rate=exec_b.get("_effective_rate", Decimal(0)),
+                execution_available_abs_size_total=exec_b.get("available_abs_size_total", Decimal(0)),
+                execution_option_count=exec_b.get("execution_option_count", 0),
+                execution_selection_reason=exec_b.get("execution_selection_reason", ""),
+                execution_quote_options_json=exec_b.get("execution_quote_options_json", ""),
             )
         self._spread_position = SpreadPosition(position_id_a=pos_a.position_id, position_id_b=pos_b.position_id)
 
@@ -508,6 +528,11 @@ class FundingConvergenceStrategy(Strategy):
                 execution_timestamp=None if exec_a is None else exec_a["execution_timestamp"],
                 execution_tx_hash="" if exec_a is None else exec_a["execution_tx_hash"],
                 execution_source="" if exec_a is None else exec_a["execution_source"],
+                execution_effective_rate=Decimal(0) if exec_a is None else exec_a.get("_effective_rate", Decimal(0)),
+                execution_available_abs_size_total=Decimal(0) if exec_a is None else exec_a.get("available_abs_size_total", Decimal(0)),
+                execution_option_count=0 if exec_a is None else exec_a.get("execution_option_count", 0),
+                execution_selection_reason="" if exec_a is None else exec_a.get("execution_selection_reason", ""),
+                execution_quote_options_json="" if exec_a is None else exec_a.get("execution_quote_options_json", ""),
                 close_rate=None if exec_a is None else exec_a["fixed_rate"],
             )
         if self._spread_position.position_id_b in self.market_b.positions and self.market_b.positions[self._spread_position.position_id_b].can_close():
@@ -518,6 +543,11 @@ class FundingConvergenceStrategy(Strategy):
                 execution_timestamp=None if exec_b is None else exec_b["execution_timestamp"],
                 execution_tx_hash="" if exec_b is None else exec_b["execution_tx_hash"],
                 execution_source="" if exec_b is None else exec_b["execution_source"],
+                execution_effective_rate=Decimal(0) if exec_b is None else exec_b.get("_effective_rate", Decimal(0)),
+                execution_available_abs_size_total=Decimal(0) if exec_b is None else exec_b.get("available_abs_size_total", Decimal(0)),
+                execution_option_count=0 if exec_b is None else exec_b.get("execution_option_count", 0),
+                execution_selection_reason="" if exec_b is None else exec_b.get("execution_selection_reason", ""),
+                execution_quote_options_json="" if exec_b is None else exec_b.get("execution_quote_options_json", ""),
                 close_rate=None if exec_b is None else exec_b["fixed_rate"],
             )
         self._spread_position = None

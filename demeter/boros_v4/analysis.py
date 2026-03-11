@@ -87,6 +87,50 @@ def build_settlement_ledger(markets: list[BorosMarket], actions_df: pd.DataFrame
     ].reset_index(drop=True)
 
 
+def build_execution_diagnostics(actions_df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+    if actions_df.empty:
+        return pd.DataFrame(), {}
+    columns = [
+        "timestamp",
+        "market",
+        "action_type",
+        "position_id",
+        "direction",
+        "execution_source",
+        "execution_timestamp",
+        "execution_tx_hash",
+        "execution_fee_paid",
+        "execution_effective_rate",
+        "execution_available_abs_size_total",
+        "execution_option_count",
+        "execution_selection_reason",
+        "execution_quote_options_json",
+    ]
+    available_columns = [column for column in columns if column in actions_df.columns]
+    diagnostics_df = actions_df.loc[actions_df["execution_source"].fillna("") != "", available_columns].copy()
+    if diagnostics_df.empty:
+        return diagnostics_df, {}
+    diagnostics_df["execution_source"] = diagnostics_df["execution_source"].fillna("")
+    source_counts = diagnostics_df["execution_source"].value_counts().to_dict()
+    market_source_counts = (
+        diagnostics_df.groupby(["market", "execution_source"]).size().unstack(fill_value=0).to_dict(orient="index")
+    )
+    selection_reason_counts = (
+        diagnostics_df["execution_selection_reason"].fillna("").value_counts().to_dict()
+        if "execution_selection_reason" in diagnostics_df.columns
+        else {}
+    )
+    summary = {
+        "execution_source_counts": source_counts,
+        "market_execution_source_counts": market_source_counts,
+        "selection_reason_counts": selection_reason_counts,
+        "mean_execution_option_count": float(diagnostics_df["execution_option_count"].mean())
+        if "execution_option_count" in diagnostics_df.columns
+        else 0.0,
+    }
+    return diagnostics_df.reset_index(drop=True), summary
+
+
 def build_perp_funding_ledger(strategy: FundingConvergenceStrategy) -> pd.DataFrame:
     if not getattr(strategy, "perp_funding_ledger", None):
         return pd.DataFrame()
@@ -185,13 +229,16 @@ def export_convergence_result(
     actions_df = actions_to_dataframe(actuator.actions)
     positions_df = build_position_ledger(markets)
     settlement_df = build_settlement_ledger(markets, actions_df)
+    execution_diagnostics_df, execution_diagnostics_summary = build_execution_diagnostics(actions_df)
     perp_funding_df = build_perp_funding_ledger(strategy)
     spread_df = pd.DataFrame(strategy.spread_history)
     summary = summarize_backtest(actuator, strategy, markets, spread_df)
+    summary["execution_diagnostics"] = execution_diagnostics_summary
 
     actions_df.to_csv(root / "trade_ledger.csv", index=False)
     positions_df.to_csv(root / "position_ledger.csv", index=False)
     settlement_df.to_csv(root / "settlement_ledger.csv", index=False)
+    execution_diagnostics_df.to_csv(root / "execution_diagnostics.csv", index=False)
     perp_funding_df.to_csv(root / "perp_funding_ledger.csv", index=False)
     spread_df.to_csv(root / "spread_timeseries.csv", index=False)
     with open(root / "summary.json", "w", encoding="utf-8") as file:
@@ -240,6 +287,16 @@ def export_convergence_result(
             f"total_explicit_costs={payload['total_explicit_costs']}, "
             f"gross_pnl_before_explicit_costs={payload['gross_pnl_before_explicit_costs']}, "
             f"total_execution_fees={payload['total_execution_fees']}"
+        )
+    if execution_diagnostics_summary:
+        report_lines.extend(
+            [
+                "",
+                "## Execution Diagnostics",
+                f"- execution_source_counts: {execution_diagnostics_summary['execution_source_counts']}",
+                f"- selection_reason_counts: {execution_diagnostics_summary['selection_reason_counts']}",
+                f"- mean_execution_option_count: {execution_diagnostics_summary['mean_execution_option_count']}",
+            ]
         )
     with open(root / "report.md", "w", encoding="utf-8") as file:
         file.write("\n".join(report_lines) + "\n")

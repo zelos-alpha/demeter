@@ -151,4 +151,5 @@ outputs/boros_stoploss_diagnostics/
 outputs/boros_case_runs/
 outputs/boros_convergence_with_perp_funding/
 outputs/boros_full_execution_compare/
+outputs/boros_full_execution_diagnostics/
 bn_hl_260121-260226/

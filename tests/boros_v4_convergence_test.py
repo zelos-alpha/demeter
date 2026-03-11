@@ -344,6 +344,8 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         self.assertGreaterEqual(len(actuator.actions), 4)
         self.assertTrue(actuator.actions[0].execution_source.endswith("_fill"))
         self.assertIn(actuator.actions[0].execution_source, {"amm_fill", "orderbook_fill", "split_fill"})
+        self.assertIn(actuator.actions[0].execution_selection_reason, {"only_available_quote", "selected_best_all_in_rate"})
+        self.assertGreaterEqual(actuator.actions[0].execution_option_count, 1)
 
     def test_funding_convergence_with_synthetic_perp_funding(self):
         market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)
