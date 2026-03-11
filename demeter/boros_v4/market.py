@@ -70,6 +70,7 @@ class OpenFixedFloatAction(BaseAction):
     mark_rate: Decimal
     entry_upfront_fixed_cost: Decimal = Decimal(0)
     entry_opening_fee_cost: Decimal = Decimal(0)
+    execution_fee_paid: Decimal = Decimal(0)
     execution_timestamp: datetime | None = None
     execution_tx_hash: str = ""
     execution_source: str = ""
@@ -105,6 +106,7 @@ class CloseFixedFloatAction(BaseAction):
     settlement_payment: Decimal = Decimal(0)
     settlement_fees: Decimal = Decimal(0)
     mark_to_maturity_value: Decimal = Decimal(0)
+    execution_fee_paid: Decimal = Decimal(0)
     execution_timestamp: datetime | None = None
     execution_tx_hash: str = ""
     execution_source: str = ""
@@ -219,6 +221,7 @@ class BorosMarket(Market):
         close_time: datetime,
         close_notional: Decimal | None = None,
         close_reason: str = "manual",
+        execution_fee_paid: Decimal = Decimal(0),
         execution_timestamp: datetime | None = None,
         execution_tx_hash: str = "",
         execution_source: str = "",
@@ -237,7 +240,7 @@ class BorosMarket(Market):
         )
         full_unrealized = PaymentLib.wad_to_decimal(value_breakdown.total)
         close_ratio = close_notional / position.remaining_notional
-        portion_pnl = self._normalize_decimal(full_unrealized * close_ratio)
+        portion_pnl = self._normalize_decimal(full_unrealized * close_ratio - Decimal(execution_fee_paid))
 
         position.realized_pnl += portion_pnl
         position.closed_notional += close_notional
@@ -265,6 +268,7 @@ class BorosMarket(Market):
                 settlement_payment=PaymentLib.wad_to_decimal(value_breakdown.settlement.payment) * close_ratio,
                 settlement_fees=PaymentLib.wad_to_decimal(value_breakdown.settlement.fees) * close_ratio,
                 mark_to_maturity_value=PaymentLib.wad_to_decimal(value_breakdown.mark_to_maturity_value) * close_ratio,
+                execution_fee_paid=Decimal(execution_fee_paid),
                 execution_timestamp=execution_timestamp,
                 execution_tx_hash=execution_tx_hash,
                 execution_source=execution_source,
@@ -278,6 +282,7 @@ class BorosMarket(Market):
         notional: Decimal,
         direction: FixedFloatDirection,
         fixed_rate: Decimal | None = None,
+        execution_fee_paid: Decimal = Decimal(0),
         execution_timestamp: datetime | None = None,
         execution_tx_hash: str = "",
         execution_source: str = "",
@@ -291,13 +296,15 @@ class BorosMarket(Market):
         fixed_rate = current_mark_rate if fixed_rate is None else Decimal(fixed_rate)
         entry_time_to_mat = self._current_time_to_maturity_seconds()
         opening_fee_rate = Decimal(self.market_status.data.get("opening_fee_rate_annualized_proxy", Decimal(0)))
-        entry_opening_fee_cost = PaymentLib.wad_to_decimal(
-            PaymentLib.calc_floating_fee(
-                abs_size=PaymentLib.decimal_to_wad(abs(Decimal(notional))),
-                fee_rate=PaymentLib.decimal_to_wad(opening_fee_rate),
-                time_to_mat=entry_time_to_mat,
+        entry_opening_fee_cost = Decimal(execution_fee_paid)
+        if entry_opening_fee_cost <= 0:
+            entry_opening_fee_cost = PaymentLib.wad_to_decimal(
+                PaymentLib.calc_floating_fee(
+                    abs_size=PaymentLib.decimal_to_wad(abs(Decimal(notional))),
+                    fee_rate=PaymentLib.decimal_to_wad(opening_fee_rate),
+                    time_to_mat=entry_time_to_mat,
+                )
             )
-        )
         entry_upfront_fixed_cost = PaymentLib.wad_to_decimal(
             PaymentLib.calc_entry_fixed_cost(
                 signed_size=self._notional_to_signed_size_wad(Decimal(notional), direction),
@@ -330,6 +337,7 @@ class BorosMarket(Market):
                 mark_rate=current_mark_rate,
                 entry_upfront_fixed_cost=entry_upfront_fixed_cost,
                 entry_opening_fee_cost=entry_opening_fee_cost,
+                execution_fee_paid=Decimal(execution_fee_paid),
                 execution_timestamp=execution_timestamp,
                 execution_tx_hash=execution_tx_hash,
                 execution_source=execution_source,
@@ -343,6 +351,7 @@ class BorosMarket(Market):
         position_id: int | None = None,
         notional: Decimal | None = None,
         close_reason: str = "manual",
+        execution_fee_paid: Decimal = Decimal(0),
         execution_timestamp: datetime | None = None,
         execution_tx_hash: str = "",
         execution_source: str = "",
@@ -363,6 +372,7 @@ class BorosMarket(Market):
             close_time=self._current_timestamp(),
             close_notional=notional,
             close_reason=close_reason,
+            execution_fee_paid=execution_fee_paid,
             execution_timestamp=execution_timestamp,
             execution_tx_hash=execution_tx_hash,
             execution_source=execution_source,
@@ -382,6 +392,7 @@ class BorosMarket(Market):
             "time_to_maturity_seconds",
             "floating_index",
             "fee_index",
+            "settlement_fee_rate_annualized_proxy",
             "maturity",
             "venue",
             "latest_f_time",

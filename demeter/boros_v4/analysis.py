@@ -37,6 +37,8 @@ def build_position_ledger(markets: list[BorosMarket]) -> pd.DataFrame:
                     "entry_fixed_rate": position.entry_fixed_rate,
                     "entry_time": position.entry_time,
                     "exit_time": position.exit_time,
+                    "entry_upfront_fixed_cost": position.entry_upfront_fixed_cost,
+                    "entry_opening_fee_cost": position.entry_opening_fee_cost,
                     "realized_pnl": position.realized_pnl,
                     "is_closed": position.is_closed,
                 }
@@ -60,6 +62,7 @@ def build_settlement_ledger(markets: list[BorosMarket], actions_df: pd.DataFrame
             "settlement_payment",
             "settlement_fees",
             "mark_to_maturity_value",
+            "execution_fee_paid",
             "execution_timestamp",
             "execution_tx_hash",
             "execution_source",
@@ -69,14 +72,22 @@ def build_settlement_ledger(markets: list[BorosMarket], actions_df: pd.DataFrame
 
 def summarize_backtest(actuator: Actuator, markets: list[BorosMarket], spread_df: pd.DataFrame) -> dict:
     final_status = actuator.account_status_df.iloc[-1]
+    actions_df = actions_to_dataframe(actuator.actions)
     market_balances = {}
     for market in markets:
         balance = market.get_market_balance()
+        market_actions = actions_df.loc[actions_df["market"] == market.market_info.name] if not actions_df.empty else pd.DataFrame()
+        total_execution_fees = (
+            market_actions["execution_fee_paid"].fillna(Decimal(0)).sum()
+            if not market_actions.empty and "execution_fee_paid" in market_actions.columns
+            else Decimal(0)
+        )
         market_balances[market.market_info.name] = {
             "realized_pnl": str(balance.realized_pnl),
             "unrealized_pnl": str(balance.unrealized_pnl),
             "net_value": str(balance.net_value),
             "position_count": int(balance.position_count),
+            "total_execution_fees": str(total_execution_fees),
         }
     signal_ready_df = spread_df.loc[spread_df["signal_ready"] == True] if not spread_df.empty and "signal_ready" in spread_df.columns else spread_df
     summary = {
@@ -89,6 +100,11 @@ def summarize_backtest(actuator: Actuator, markets: list[BorosMarket], spread_df
         "signal_ready_count": int(len(signal_ready_df.index)) if signal_ready_df is not None else 0,
         "signal_ready_spread_mean": str(signal_ready_df["spread"].mean()) if signal_ready_df is not None and not signal_ready_df.empty else "0",
         "signal_ready_spread_max_abs": str(signal_ready_df["spread"].abs().max()) if signal_ready_df is not None and not signal_ready_df.empty else "0",
+        "total_execution_fees": str(
+            actions_df["execution_fee_paid"].fillna(Decimal(0)).sum()
+            if not actions_df.empty and "execution_fee_paid" in actions_df.columns
+            else Decimal(0)
+        ),
     }
     return summary
 
@@ -125,13 +141,15 @@ def export_convergence_result(
         f"- signal_ready_count: {summary['signal_ready_count']}",
         f"- signal_ready_spread_mean: {summary['signal_ready_spread_mean']}",
         f"- signal_ready_spread_max_abs: {summary['signal_ready_spread_max_abs']}",
+        f"- total_execution_fees: {summary['total_execution_fees']}",
         "",
         "## Markets",
     ]
     for market_name, payload in summary["market_balances"].items():
         report_lines.append(
             f"- {market_name}: net_value={payload['net_value']}, realized_pnl={payload['realized_pnl']}, "
-            f"unrealized_pnl={payload['unrealized_pnl']}, position_count={payload['position_count']}"
+            f"unrealized_pnl={payload['unrealized_pnl']}, position_count={payload['position_count']}, "
+            f"total_execution_fees={payload['total_execution_fees']}"
         )
     with open(root / "report.md", "w", encoding="utf-8") as file:
         file.write("\n".join(report_lines) + "\n")

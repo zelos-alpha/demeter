@@ -67,6 +67,7 @@ class SimpleFixedFloatStrategy(Strategy):
                 return None
             return {
                 "fixed_rate": execution_rate,
+                "execution_fee_paid": Decimal(0),
                 "execution_timestamp": snapshot.timestamp.to_pydatetime(),
                 "execution_tx_hash": "",
                 "execution_source": "minute_trade",
@@ -76,6 +77,7 @@ class SimpleFixedFloatStrategy(Strategy):
             return None
         return {
             "fixed_rate": row.implied_rate,
+            "execution_fee_paid": row.fee_paid,
             "execution_timestamp": row.timestamp.to_pydatetime(),
             "execution_tx_hash": row.tx_hash,
             "execution_source": row.source_kind,
@@ -100,6 +102,7 @@ class SimpleFixedFloatStrategy(Strategy):
                     self.notional,
                     FixedFloatDirection.PAY_FIXED,
                     fixed_rate=current_mark_rate if execution is None else execution["fixed_rate"],
+                    execution_fee_paid=Decimal(0) if execution is None else execution["execution_fee_paid"],
                     execution_timestamp=None if execution is None else execution["execution_timestamp"],
                     execution_tx_hash="" if execution is None else execution["execution_tx_hash"],
                     execution_source="" if execution is None else execution["execution_source"],
@@ -109,6 +112,7 @@ class SimpleFixedFloatStrategy(Strategy):
                     self.notional,
                     FixedFloatDirection.RECEIVE_FIXED,
                     fixed_rate=current_mark_rate if execution is None else execution["fixed_rate"],
+                    execution_fee_paid=Decimal(0) if execution is None else execution["execution_fee_paid"],
                     execution_timestamp=None if execution is None else execution["execution_timestamp"],
                     execution_tx_hash="" if execution is None else execution["execution_tx_hash"],
                     execution_source="" if execution is None else execution["execution_source"],
@@ -120,6 +124,7 @@ class SimpleFixedFloatStrategy(Strategy):
             execution = self._claim_execution(snapshot)
             self.market.close_position(
                 close_reason="signal",
+                execution_fee_paid=Decimal(0) if execution is None else execution["execution_fee_paid"],
                 execution_timestamp=None if execution is None else execution["execution_timestamp"],
                 execution_tx_hash="" if execution is None else execution["execution_tx_hash"],
                 execution_source="" if execution is None else execution["execution_source"],
@@ -172,8 +177,8 @@ class FundingConvergenceStrategy(Strategy):
     def _claim_pair_execution(self, snapshot: Snapshot):
         if self.execution_mode == BorosExecutionMode.BAR_APPROX:
             return (
-                {"fixed_rate": self.market_a.market_status.data["mark_rate"], "execution_timestamp": None, "execution_tx_hash": "", "execution_source": ""},
-                {"fixed_rate": self.market_b.market_status.data["mark_rate"], "execution_timestamp": None, "execution_tx_hash": "", "execution_source": ""},
+                {"fixed_rate": self.market_a.market_status.data["mark_rate"], "execution_timestamp": None, "execution_tx_hash": "", "execution_source": "", "execution_fee_paid": Decimal(0)},
+                {"fixed_rate": self.market_b.market_status.data["mark_rate"], "execution_timestamp": None, "execution_tx_hash": "", "execution_source": "", "execution_fee_paid": Decimal(0)},
             )
         if self.execution_mode == BorosExecutionMode.NEXT_TRADE:
             current_minute = snapshot.timestamp.floor("1min")
@@ -184,8 +189,8 @@ class FundingConvergenceStrategy(Strategy):
             row_a = rows_a.iloc[-1]
             row_b = rows_b.iloc[-1]
             return (
-                {"fixed_rate": row_a["trade_rate_vwap"], "execution_timestamp": snapshot.timestamp.to_pydatetime(), "execution_tx_hash": "", "execution_source": "minute_trade"},
-                {"fixed_rate": row_b["trade_rate_vwap"], "execution_timestamp": snapshot.timestamp.to_pydatetime(), "execution_tx_hash": "", "execution_source": "minute_trade"},
+                {"fixed_rate": row_a["trade_rate_vwap"], "execution_timestamp": snapshot.timestamp.to_pydatetime(), "execution_tx_hash": "", "execution_source": "minute_trade", "execution_fee_paid": row_a["fee_paid"] if "fee_paid" in row_a.index else Decimal(0)},
+                {"fixed_rate": row_b["trade_rate_vwap"], "execution_timestamp": snapshot.timestamp.to_pydatetime(), "execution_tx_hash": "", "execution_source": "minute_trade", "execution_fee_paid": row_b["fee_paid"] if "fee_paid" in row_b.index else Decimal(0)},
             )
 
         row_a = self.market_a.peek_next_replay_execution(snapshot.timestamp)
@@ -197,12 +202,14 @@ class FundingConvergenceStrategy(Strategy):
         return (
             {
                 "fixed_rate": row_a.implied_rate,
+                "execution_fee_paid": row_a.fee_paid,
                 "execution_timestamp": row_a.timestamp.to_pydatetime(),
                 "execution_tx_hash": row_a.tx_hash,
                 "execution_source": row_a.source_kind,
             },
             {
                 "fixed_rate": row_b.implied_rate,
+                "execution_fee_paid": row_b.fee_paid,
                 "execution_timestamp": row_b.timestamp.to_pydatetime(),
                 "execution_tx_hash": row_b.tx_hash,
                 "execution_source": row_b.source_kind,
@@ -219,6 +226,7 @@ class FundingConvergenceStrategy(Strategy):
                 self.notional,
                 FixedFloatDirection.PAY_FIXED,
                 fixed_rate=exec_a["fixed_rate"],
+                execution_fee_paid=exec_a["execution_fee_paid"],
                 execution_timestamp=exec_a["execution_timestamp"],
                 execution_tx_hash=exec_a["execution_tx_hash"],
                 execution_source=exec_a["execution_source"],
@@ -227,6 +235,7 @@ class FundingConvergenceStrategy(Strategy):
                 self.notional,
                 FixedFloatDirection.RECEIVE_FIXED,
                 fixed_rate=exec_b["fixed_rate"],
+                execution_fee_paid=exec_b["execution_fee_paid"],
                 execution_timestamp=exec_b["execution_timestamp"],
                 execution_tx_hash=exec_b["execution_tx_hash"],
                 execution_source=exec_b["execution_source"],
@@ -236,6 +245,7 @@ class FundingConvergenceStrategy(Strategy):
                 self.notional,
                 FixedFloatDirection.RECEIVE_FIXED,
                 fixed_rate=exec_a["fixed_rate"],
+                execution_fee_paid=exec_a["execution_fee_paid"],
                 execution_timestamp=exec_a["execution_timestamp"],
                 execution_tx_hash=exec_a["execution_tx_hash"],
                 execution_source=exec_a["execution_source"],
@@ -244,6 +254,7 @@ class FundingConvergenceStrategy(Strategy):
                 self.notional,
                 FixedFloatDirection.PAY_FIXED,
                 fixed_rate=exec_b["fixed_rate"],
+                execution_fee_paid=exec_b["execution_fee_paid"],
                 execution_timestamp=exec_b["execution_timestamp"],
                 execution_tx_hash=exec_b["execution_tx_hash"],
                 execution_source=exec_b["execution_source"],
@@ -260,6 +271,7 @@ class FundingConvergenceStrategy(Strategy):
             self.market_a.close_position(
                 position_id=self._spread_position.position_id_a,
                 close_reason=reason,
+                execution_fee_paid=Decimal(0) if exec_a is None else exec_a["execution_fee_paid"],
                 execution_timestamp=None if exec_a is None else exec_a["execution_timestamp"],
                 execution_tx_hash="" if exec_a is None else exec_a["execution_tx_hash"],
                 execution_source="" if exec_a is None else exec_a["execution_source"],
@@ -269,6 +281,7 @@ class FundingConvergenceStrategy(Strategy):
             self.market_b.close_position(
                 position_id=self._spread_position.position_id_b,
                 close_reason=reason,
+                execution_fee_paid=Decimal(0) if exec_b is None else exec_b["execution_fee_paid"],
                 execution_timestamp=None if exec_b is None else exec_b["execution_timestamp"],
                 execution_tx_hash="" if exec_b is None else exec_b["execution_tx_hash"],
                 execution_source="" if exec_b is None else exec_b["execution_source"],

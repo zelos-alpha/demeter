@@ -1,4 +1,5 @@
 import csv
+import json
 import tempfile
 import unittest
 from datetime import datetime, timezone
@@ -43,10 +44,11 @@ def _encode_market_orders_filled(size: Decimal, trade_value: Decimal, fee_value:
     )
 
 
-def _encode_swap(size: Decimal, trade_value: Decimal) -> str:
+def _encode_swap(size: Decimal, trade_value: Decimal, fee_value: Decimal = Decimal(0)) -> str:
     size_raw = int(size * Decimal("1e18"))
     value_raw = int(trade_value * Decimal("1e19"))
-    return "0x" + "".join([_encode_signed(size_raw, 256), _encode_signed(value_raw, 256), "0" * 64])
+    fee_raw = int(fee_value * Decimal("1e19"))
+    return "0x" + "".join([_encode_signed(size_raw, 256), _encode_signed(value_raw, 256), f"{fee_raw:064x}"])
 
 
 def _encode_dummy_findex() -> str:
@@ -96,7 +98,7 @@ def _build_dual_market_fixture(root: Path):
                     "transaction_hash": f"0x{market_key[:6]}ord{index:02d}",
                     "address": market_address,
                     "log_index": index,
-                    "data": _encode_market_orders_filled(Decimal("1"), trade_value),
+                    "data": _encode_market_orders_filled(Decimal("1"), trade_value, Decimal("0.001")),
                     "topics": str([ORDERBOOK_FILLED_TOPIC]),
                 }
             )
@@ -107,7 +109,7 @@ def _build_dual_market_fixture(root: Path):
                     "transaction_hash": f"0x{market_key[:6]}amm{index:02d}",
                     "address": amm_address,
                     "log_index": index,
-                    "data": _encode_swap(Decimal("1"), trade_value),
+                    "data": _encode_swap(Decimal("1"), trade_value, Decimal("0.0005")),
                     "topics": str([SWAP_TOPIC]),
                 }
             )
@@ -157,8 +159,10 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         )
         self.assertEqual(len(data.index), 4)
         self.assertIn("latest_f_time", data.columns)
+        self.assertIn("settlement_fee_rate_annualized_proxy", data.columns)
         self.assertEqual(len(event_ledger.index), 9)
         self.assertEqual(len(tx_ledger.index), 8)
+        self.assertGreater(tx_ledger.iloc[0]["opening_fee_rate_annualized"], Decimal(0))
 
     def test_funding_convergence_strategy_runs(self):
         market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)
@@ -189,6 +193,7 @@ class BorosV4ConvergenceTest(unittest.TestCase):
 
         self.assertGreaterEqual(len(actuator.actions), 4)
         self.assertEqual(actuator.actions[0].execution_source, "orderbook")
+        self.assertGreater(actuator.actions[0].execution_fee_paid, Decimal(0))
         self.assertIn(("binance_feb27", "net_value"), actuator.account_status_df.columns)
         spread_df = pd.DataFrame(actuator.strategy.spread_history)
         self.assertTrue(spread_df["signal_ready"].all())
@@ -202,3 +207,6 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         )
         self.assertTrue((output_dir / "trade_ledger.csv").exists())
         self.assertTrue((output_dir / "summary.json").exists())
+        with open(output_dir / "summary.json", "r", encoding="utf-8") as file:
+            summary = json.load(file)
+        self.assertGreater(Decimal(summary["total_execution_fees"]), Decimal(0))

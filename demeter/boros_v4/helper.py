@@ -208,8 +208,11 @@ def _build_decoded_trade_rows(event_ledger: pd.DataFrame, maturity: date | datet
         abs_size = abs(signed_size)
         time_to_mat = max(0, int((maturity_ts - row.timestamp).total_seconds()))
         implied_rate = Decimal(0)
+        opening_fee_rate_annualized = Decimal(0)
         if abs_size > 0 and time_to_mat > 0:
             implied_rate = abs(signed_trade_value) * Decimal(PMath.ONE_YEAR) / (abs_size * Decimal(time_to_mat))
+            if fee_paid > 0:
+                opening_fee_rate_annualized = fee_paid * Decimal(PMath.ONE_YEAR) / (abs_size * Decimal(time_to_mat))
         rows.append(
             {
                 "timestamp": row.timestamp,
@@ -225,6 +228,7 @@ def _build_decoded_trade_rows(event_ledger: pd.DataFrame, maturity: date | datet
                 "abs_trade_value": abs(signed_trade_value),
                 "fee_paid": fee_paid,
                 "implied_rate": implied_rate,
+                "opening_fee_rate_annualized": opening_fee_rate_annualized,
                 "time_to_maturity_seconds": time_to_mat,
             }
         )
@@ -240,6 +244,10 @@ def _build_event_tx_ledger(trade_ledger: pd.DataFrame) -> pd.DataFrame:
         abs_size_total = sum(group["abs_size_total"], Decimal(0))
         abs_trade_value = sum(group["abs_trade_value"], Decimal(0))
         weighted_sum = sum((row.abs_size_total * row.implied_rate for row in group.itertuples()), Decimal(0))
+        weighted_opening_fee_sum = sum(
+            (row.abs_size_total * row.opening_fee_rate_annualized for row in group.itertuples()),
+            Decimal(0),
+        )
         rows.append(
             {
                 "market_key": market_key,
@@ -255,6 +263,7 @@ def _build_event_tx_ledger(trade_ledger: pd.DataFrame) -> pd.DataFrame:
                 "fee_paid": sum(group["fee_paid"], Decimal(0)),
                 "trade_rate_vwap": weighted_sum / abs_size_total if abs_size_total else Decimal(0),
                 "implied_rate": weighted_sum / abs_size_total if abs_size_total else Decimal(0),
+                "opening_fee_rate_annualized": weighted_opening_fee_sum / abs_size_total if abs_size_total else Decimal(0),
             }
         )
     result = pd.DataFrame(rows)
@@ -288,7 +297,7 @@ def _build_state_frame(
     boundaries = [start_timestamp]
     boundaries.extend(list(findex_events["timestamp"]))
     boundaries = sorted(set(boundaries))
-    fee_rate = Decimal(default_opening_fee_rate)
+    settlement_fee_rate = Decimal(default_opening_fee_rate)
     fee_event_iter = list(fee_events.itertuples())
     fee_pointer = 0
     trade_rows = list(trade_ledger.sort_values("timestamp").itertuples())
@@ -303,7 +312,7 @@ def _build_state_frame(
         while fee_pointer < len(fee_event_iter) and fee_event_iter[fee_pointer].timestamp <= boundary:
             raw_words = _hex_words(fee_event_iter[fee_pointer].raw_data)
             if raw_words:
-                fee_rate = _parse_unsigned_256(raw_words[0]) / SIZE_SCALE
+                settlement_fee_rate = _parse_unsigned_256(raw_words[0]) / SIZE_SCALE
             fee_pointer += 1
 
         while trade_pointer < len(trade_rows) and trade_rows[trade_pointer].timestamp <= boundary:
@@ -311,7 +320,7 @@ def _build_state_frame(
             delta_seconds = int((trade.timestamp - last_trade_timestamp).total_seconds())
             if delta_seconds > 0:
                 floating_index += current_rate * Decimal(delta_seconds) / Decimal(PMath.ONE_YEAR)
-                fee_index += fee_rate * Decimal(delta_seconds) / Decimal(PMath.ONE_YEAR)
+                fee_index += settlement_fee_rate * Decimal(delta_seconds) / Decimal(PMath.ONE_YEAR)
             current_rate = trade.implied_rate
             last_trade_timestamp = trade.timestamp
             trade_pointer += 1
@@ -319,7 +328,7 @@ def _build_state_frame(
         if boundary > last_trade_timestamp:
             delta_seconds = int((boundary - last_trade_timestamp).total_seconds())
             floating_index += current_rate * Decimal(delta_seconds) / Decimal(PMath.ONE_YEAR)
-            fee_index += fee_rate * Decimal(delta_seconds) / Decimal(PMath.ONE_YEAR)
+            fee_index += settlement_fee_rate * Decimal(delta_seconds) / Decimal(PMath.ONE_YEAR)
             last_trade_timestamp = boundary
 
         rows.append(
@@ -327,7 +336,7 @@ def _build_state_frame(
                 "latest_f_time_timestamp": boundary,
                 "floating_index": floating_index,
                 "fee_index": fee_index,
-                "opening_fee_rate_annualized_proxy": fee_rate,
+                "settlement_fee_rate_annualized_proxy": settlement_fee_rate,
                 "time_to_maturity_seconds": max(0, int((maturity_ts - boundary).total_seconds())),
             }
         )
@@ -393,6 +402,20 @@ def load_boros_event_data(
         right_on="latest_f_time_timestamp",
         direction="backward",
     )
+    opening_fee_frame = tx_ledger.loc[
+        tx_ledger["opening_fee_rate_annualized"] > 0,
+        ["timestamp", "opening_fee_rate_annualized"],
+    ].sort_values("timestamp")
+    if len(opening_fee_frame.index) > 0:
+        merged_opening_fee = pd.merge_asof(
+            pd.DataFrame({"timestamp": data.index}).sort_values("timestamp"),
+            opening_fee_frame,
+            on="timestamp",
+            direction="backward",
+        )
+        opening_fee_rates = list(merged_opening_fee["opening_fee_rate_annualized"].fillna(Decimal(default_opening_fee_rate)))
+    else:
+        opening_fee_rates = [Decimal(default_opening_fee_rate)] * len(data.index)
     maturity_ts = _normalize_maturity(maturity)
     time_deltas = [0]
     for index in range(1, len(data.index)):
@@ -406,9 +429,10 @@ def load_boros_event_data(
     data["latest_f_time"] = list(merged_state["latest_f_time_timestamp"].fillna(data.index[0]))
     data["floating_index"] = list(merged_state["floating_index"].fillna(Decimal(0)))
     data["fee_index"] = list(merged_state["fee_index"].fillna(Decimal(0)))
-    data["opening_fee_rate_annualized_proxy"] = list(
-        merged_state["opening_fee_rate_annualized_proxy"].fillna(Decimal(default_opening_fee_rate))
+    data["settlement_fee_rate_annualized_proxy"] = list(
+        merged_state["settlement_fee_rate_annualized_proxy"].fillna(Decimal(default_opening_fee_rate))
     )
+    data["opening_fee_rate_annualized_proxy"] = opening_fee_rates
 
     if data["mark_rate"].isna().any():
         raise DemeterError(f"Unable to build mark_rate series from {market_key} event files")
@@ -595,6 +619,7 @@ def load_boros_data(
     result["latest_f_time"] = list(result.index)
     result["floating_index"] = floating_indices
     result["fee_index"] = fee_indices
+    result["settlement_fee_rate_annualized_proxy"] = Decimal(floating_fee_rate)
     result["opening_fee_rate_annualized_proxy"] = Decimal(0)
 
     if result["mark_rate"].isna().any():
