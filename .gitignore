@@ -145,3 +145,7 @@ cython_debug/
 demeter/*.pkl
 /tests/result/
 outputs/boros_diagnostics/
+outputs/boros_convergence/
+outputs/boros_sweeps/
+outputs/boros_stoploss_diagnostics/
+bn_hl_260121-260226/
