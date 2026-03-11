@@ -145,6 +145,8 @@ class FundingConvergenceStrategy(Strategy):
         execution_mode: BorosExecutionMode = BorosExecutionMode.TX_REPLAY_BEST_EXEC,
         min_time_to_maturity_seconds: int = 24 * 3600,
         max_signal_rate: Decimal = Decimal("2"),
+        expected_holding_seconds: int | None = None,
+        min_expected_edge_after_cost: Decimal = Decimal("0"),
     ):
         super().__init__()
         self.market_a_info = market_a_info
@@ -157,6 +159,12 @@ class FundingConvergenceStrategy(Strategy):
         self.execution_mode = execution_mode
         self.min_time_to_maturity_seconds = int(min_time_to_maturity_seconds)
         self.max_signal_rate = Decimal(max_signal_rate)
+        self.expected_holding_seconds = (
+            max(3600, int(expected_holding_seconds))
+            if expected_holding_seconds is not None
+            else max(3600, self.lookback * 60)
+        )
+        self.min_expected_edge_after_cost = Decimal(min_expected_edge_after_cost)
         self._spread_window: deque[Decimal] = deque(maxlen=self.lookback)
         self._spread_position: SpreadPosition | None = None
         self.spread_history: list[dict] = []
@@ -174,7 +182,7 @@ class FundingConvergenceStrategy(Strategy):
             return None
         return sum(self._spread_window, Decimal(0)) / Decimal(len(self._spread_window))
 
-    def _claim_pair_execution(self, snapshot: Snapshot):
+    def _pair_execution(self, snapshot: Snapshot, consume: bool = True):
         if self.execution_mode == BorosExecutionMode.BAR_APPROX:
             return (
                 {"fixed_rate": self.market_a.market_status.data["mark_rate"], "execution_timestamp": None, "execution_tx_hash": "", "execution_source": "", "execution_fee_paid": Decimal(0)},
@@ -197,8 +205,9 @@ class FundingConvergenceStrategy(Strategy):
         row_b = self.market_b.peek_next_replay_execution(snapshot.timestamp)
         if row_a is None or row_b is None:
             return None
-        row_a = self.market_a.claim_next_replay_execution(snapshot.timestamp)
-        row_b = self.market_b.claim_next_replay_execution(snapshot.timestamp)
+        if consume:
+            row_a = self.market_a.claim_next_replay_execution(snapshot.timestamp)
+            row_b = self.market_b.claim_next_replay_execution(snapshot.timestamp)
         return (
             {
                 "fixed_rate": row_a.implied_rate,
@@ -217,7 +226,7 @@ class FundingConvergenceStrategy(Strategy):
         )
 
     def _open_spread(self, snapshot: Snapshot, spread: Decimal):
-        execution = self._claim_pair_execution(snapshot)
+        execution = self._pair_execution(snapshot, consume=True)
         if execution is None:
             return
         exec_a, exec_b = execution
@@ -261,10 +270,45 @@ class FundingConvergenceStrategy(Strategy):
             )
         self._spread_position = SpreadPosition(position_id_a=pos_a.position_id, position_id_b=pos_b.position_id)
 
+    def _estimate_pair_edge_after_cost(
+        self,
+        spread_deviation: Decimal,
+        time_to_mat_a: int,
+        time_to_mat_b: int,
+        execution: tuple[dict, dict] | None,
+    ) -> tuple[Decimal, Decimal, Decimal]:
+        effective_time_to_mat = Decimal(max(0, min(time_to_mat_a, time_to_mat_b)))
+        effective_edge_rate = max(Decimal(0), abs(spread_deviation) - self.exit_threshold)
+        gross_edge_value = (
+            self.notional * effective_edge_rate * effective_time_to_mat / Decimal(365 * 24 * 3600)
+        )
+
+        market_rows = (
+            (self.market_a, time_to_mat_a, None if execution is None else execution[0]),
+            (self.market_b, time_to_mat_b, None if execution is None else execution[1]),
+        )
+        estimated_total_cost = Decimal(0)
+        hold_seconds = Decimal(self.expected_holding_seconds)
+        for market, time_to_mat, execution_row in market_rows:
+            opening_fee = Decimal(0)
+            if execution_row is not None:
+                opening_fee += Decimal(execution_row["execution_fee_paid"])
+            else:
+                opening_fee_rate = Decimal(market.market_status.data.get("opening_fee_rate_annualized_proxy", Decimal(0)))
+                opening_fee += self.notional * opening_fee_rate * Decimal(time_to_mat) / Decimal(365 * 24 * 3600)
+
+            settlement_fee_rate = Decimal(
+                market.market_status.data.get("settlement_fee_rate_annualized_actual", Decimal(0))
+            )
+            settlement_fee = self.notional * settlement_fee_rate * hold_seconds / Decimal(365 * 24 * 3600)
+            estimated_total_cost += opening_fee + settlement_fee
+
+        return gross_edge_value, estimated_total_cost, gross_edge_value - estimated_total_cost
+
     def _close_spread(self, snapshot: Snapshot, reason: str):
         if self._spread_position is None:
             return
-        execution = self._claim_pair_execution(snapshot)
+        execution = self._pair_execution(snapshot, consume=True)
         exec_a = None if execution is None else execution[0]
         exec_b = None if execution is None else execution[1]
         if self._spread_position.position_id_a in self.market_a.positions and self.market_a.positions[self._spread_position.position_id_a].can_close():
@@ -314,6 +358,21 @@ class FundingConvergenceStrategy(Strategy):
         if signal_ready:
             self._spread_window.append(spread)
         reference_spread = self._reference_spread()
+        spread_deviation = None if reference_spread is None else spread - reference_spread
+        expected_gross_edge = None
+        expected_total_cost = None
+        expected_edge_after_cost = None
+        entry_allowed = False
+        if signal_ready and spread_deviation is not None and abs(spread_deviation) >= self.entry_threshold:
+            planned_execution = self._pair_execution(snapshot, consume=False)
+            if planned_execution is not None:
+                expected_gross_edge, expected_total_cost, expected_edge_after_cost = self._estimate_pair_edge_after_cost(
+                    spread_deviation=spread_deviation,
+                    time_to_mat_a=time_to_mat_a,
+                    time_to_mat_b=time_to_mat_b,
+                    execution=planned_execution,
+                )
+                entry_allowed = expected_edge_after_cost >= self.min_expected_edge_after_cost
         self.spread_history.append(
             {
                 "timestamp": snapshot.timestamp,
@@ -325,16 +384,20 @@ class FundingConvergenceStrategy(Strategy):
                 "time_to_maturity_a": time_to_mat_a,
                 "time_to_maturity_b": time_to_mat_b,
                 "position_open": self._spread_position is not None,
+                "spread_deviation": None if spread_deviation is None else spread_deviation,
+                "expected_gross_edge": expected_gross_edge,
+                "expected_total_cost": expected_total_cost,
+                "expected_edge_after_cost": expected_edge_after_cost,
+                "entry_allowed": entry_allowed,
             }
         )
         if reference_spread is None:
             return
 
-        spread_deviation = spread - reference_spread
         open_a = self.market_a.get_open_positions()
         open_b = self.market_b.get_open_positions()
         if self._spread_position is None and len(open_a) == 0 and len(open_b) == 0:
-            if signal_ready and abs(spread_deviation) >= self.entry_threshold:
+            if signal_ready and abs(spread_deviation) >= self.entry_threshold and entry_allowed:
                 self._open_spread(snapshot, spread_deviation)
             return
 

@@ -218,6 +218,8 @@ class BorosV4ConvergenceTest(unittest.TestCase):
             execution_mode=BorosExecutionMode.TX_REPLAY_BEST_EXEC,
             min_time_to_maturity_seconds=60,
             max_signal_rate=Decimal("1"),
+            expected_holding_seconds=60,
+            min_expected_edge_after_cost=Decimal("-1"),
         )
         actuator.set_price(pd.DataFrame(index=market_a.data.index.union(market_b.data.index)))
         actuator.run(False)
@@ -228,6 +230,8 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         self.assertIn(("binance_feb27", "net_value"), actuator.account_status_df.columns)
         spread_df = pd.DataFrame(actuator.strategy.spread_history)
         self.assertTrue(spread_df["signal_ready"].all())
+        self.assertIn("expected_edge_after_cost", spread_df.columns)
+        self.assertIn("entry_allowed", spread_df.columns)
 
         output_dir = self.root / "outputs"
         export_convergence_result(
@@ -241,3 +245,34 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         with open(output_dir / "summary.json", "r", encoding="utf-8") as file:
             summary = json.load(file)
         self.assertGreater(Decimal(summary["total_execution_fees"]), Decimal(0))
+
+    def test_funding_convergence_edge_gate_blocks_entries(self):
+        market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)
+        market_b_info = MarketInfo("hyperliquid_feb27", MarketTypeEnum.boros)
+        market_a = BorosMarket(market_a_info)
+        market_b = BorosMarket(market_b_info)
+        market_a.load_event_data(str(self.root), "BINANCE-ETHUSDT-27FEB2026", "BINANCE", self.maturity)
+        market_b.load_event_data(str(self.root), "HYPERLIQUID-ETH-27FEB2026", "HYPERLIQUID", self.maturity)
+
+        actuator = Actuator()
+        actuator.broker.add_market(market_a)
+        actuator.broker.add_market(market_b)
+        actuator.broker.set_balance(USD, Decimal("1000"))
+        actuator.strategy = FundingConvergenceStrategy(
+            market_a_info=market_a_info,
+            market_b_info=market_b_info,
+            notional=Decimal("100"),
+            lookback=2,
+            entry_threshold=Decimal("0.004"),
+            exit_threshold=Decimal("0.005"),
+            stop_loss=Decimal("10"),
+            execution_mode=BorosExecutionMode.TX_REPLAY_BEST_EXEC,
+            min_time_to_maturity_seconds=60,
+            max_signal_rate=Decimal("1"),
+            expected_holding_seconds=3600,
+            min_expected_edge_after_cost=Decimal("1000"),
+        )
+        actuator.set_price(pd.DataFrame(index=market_a.data.index.union(market_b.data.index)))
+        actuator.run(False)
+
+        self.assertEqual(len(actuator.actions), 0)
