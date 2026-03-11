@@ -144,4 +144,4 @@ dmypy.json
 cython_debug/
 demeter/*.pkl
 /tests/result/
-
+outputs/boros_diagnostics/
