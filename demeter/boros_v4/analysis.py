@@ -175,6 +175,8 @@ def run_funding_convergence_backtest(
     max_signal_rate: Decimal = Decimal("2"),
     expected_holding_seconds: int | None = None,
     min_expected_edge_after_cost: Decimal = Decimal("0"),
+    max_execution_delay_seconds: int | None = None,
+    max_pair_execution_skew_seconds: int | None = None,
 ) -> tuple[Actuator, FundingConvergenceStrategy, list[BorosMarket]]:
     market_a_info = MarketInfo(market_a_name, MarketTypeEnum.boros)
     market_b_info = MarketInfo(market_b_name, MarketTypeEnum.boros)
@@ -200,6 +202,8 @@ def run_funding_convergence_backtest(
         max_signal_rate=max_signal_rate,
         expected_holding_seconds=expected_holding_seconds,
         min_expected_edge_after_cost=min_expected_edge_after_cost,
+        max_execution_delay_seconds=max_execution_delay_seconds,
+        max_pair_execution_skew_seconds=max_pair_execution_skew_seconds,
     )
     actuator.strategy = strategy
     price_index = market_a.get_price_from_data().index.union(market_b.get_price_from_data().index)

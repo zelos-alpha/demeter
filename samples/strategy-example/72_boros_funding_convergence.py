@@ -35,5 +35,7 @@ if __name__ == "__main__":
         max_signal_rate=Decimal("2"),
         expected_holding_seconds=2 * 3600,
         min_expected_edge_after_cost=Decimal("0.02"),
+        max_execution_delay_seconds=15 * 60,
+        max_pair_execution_skew_seconds=5 * 60,
     )
     print(f"actions={len(actuator.actions)} output_dir={OUTPUT_DIR}")

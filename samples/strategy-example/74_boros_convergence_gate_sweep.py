@@ -57,6 +57,8 @@ def run_case(case: SweepCase) -> dict:
         max_signal_rate=Decimal("2"),
         expected_holding_seconds=case.expected_holding_seconds,
         min_expected_edge_after_cost=case.min_expected_edge_after_cost,
+        max_execution_delay_seconds=15 * 60,
+        max_pair_execution_skew_seconds=5 * 60,
     )
     with open(output_dir / "summary.json", "r", encoding="utf-8") as file:
         summary = json.load(file)

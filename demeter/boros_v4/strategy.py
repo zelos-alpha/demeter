@@ -147,6 +147,8 @@ class FundingConvergenceStrategy(Strategy):
         max_signal_rate: Decimal = Decimal("2"),
         expected_holding_seconds: int | None = None,
         min_expected_edge_after_cost: Decimal = Decimal("0"),
+        max_execution_delay_seconds: int | None = None,
+        max_pair_execution_skew_seconds: int | None = None,
     ):
         super().__init__()
         self.market_a_info = market_a_info
@@ -165,6 +167,12 @@ class FundingConvergenceStrategy(Strategy):
             else max(3600, self.lookback * 60)
         )
         self.min_expected_edge_after_cost = Decimal(min_expected_edge_after_cost)
+        self.max_execution_delay_seconds = (
+            None if max_execution_delay_seconds is None else max(0, int(max_execution_delay_seconds))
+        )
+        self.max_pair_execution_skew_seconds = (
+            None if max_pair_execution_skew_seconds is None else max(0, int(max_pair_execution_skew_seconds))
+        )
         self._spread_window: deque[Decimal] = deque(maxlen=self.lookback)
         self._spread_position: SpreadPosition | None = None
         self.spread_history: list[dict] = []
@@ -205,6 +213,15 @@ class FundingConvergenceStrategy(Strategy):
         row_b = self.market_b.peek_next_replay_execution(snapshot.timestamp)
         if row_a is None or row_b is None:
             return None
+        signal_ts = pd.Timestamp(snapshot.timestamp)
+        if self.max_execution_delay_seconds is not None:
+            max_delay = pd.Timedelta(seconds=self.max_execution_delay_seconds)
+            if row_a.timestamp - signal_ts > max_delay or row_b.timestamp - signal_ts > max_delay:
+                return None
+        if self.max_pair_execution_skew_seconds is not None:
+            max_skew = pd.Timedelta(seconds=self.max_pair_execution_skew_seconds)
+            if abs(row_a.timestamp - row_b.timestamp) > max_skew:
+                return None
         if consume:
             row_a = self.market_a.claim_next_replay_execution(snapshot.timestamp)
             row_b = self.market_b.claim_next_replay_execution(snapshot.timestamp)
