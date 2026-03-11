@@ -48,6 +48,36 @@ some optimizations for backtesting speed.
 * **Sequeeth**
 * **GMX V1**
 * **GMX V2**
+* **Boros (experimental)**
+
+## Boros Experimental Support
+
+This repository now includes experimental Boros support under
+`demeter.boros_v4`.
+
+Two sample workflows are available:
+
+* `samples/strategy-example/72_boros_funding_convergence.py`
+  * Two-leg Boros spread backtest using two Boros implied-rate markets
+* `samples/strategy-example/77_boros_convergence_with_perp_funding.py`
+  * Four-leg style experimental backtest that keeps the two Boros legs and
+    mounts Binance and Hyperliquid funding histories as synthetic perp
+    cashflows
+
+The Boros implementation currently supports:
+
+* raw Boros event loading from `orderbook/*.csv` and `liquidity/*.csv`
+* Boros settlement recovery using `latestFTime`, `floating_index`, and
+  `fee_index`
+* taker-only replay with `TX_REPLAY_BEST_EXEC`
+* result exports including trade, settlement, spread, and perp funding ledgers
+
+Current limitations:
+
+* no standalone perp market yet
+* no maker queue simulation
+* no full liquidation or external margin model
+* still marked experimental rather than protocol-perfect
 
 ## Conclusion
 

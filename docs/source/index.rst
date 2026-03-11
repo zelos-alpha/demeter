@@ -11,6 +11,7 @@ Demeter is a backtesting framework for Defi of ethereum-like chain. It allows in
 - Deribit option
 - Squeeth
 - Gmx V1
+- Boros (experimental)
 
 Demeter's style is borrowed from backtrader, allowing developers of traditional financial engineering to get started quickly.
 
@@ -73,8 +74,8 @@ links
    market_deribit_option
    market_squeeth
    market_gmx
+   market_boros
    references
-
 
 
 
