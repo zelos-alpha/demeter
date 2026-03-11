@@ -534,6 +534,7 @@ class BorosMarket(Market):
         self,
         timestamp: datetime | pd.Timestamp,
         max_delay_seconds: int | None = None,
+        required_trade_side: str | None = None,
     ) -> pd.DataFrame:
         if len(self.trade_ledger.index) == 0:
             return pd.DataFrame()
@@ -543,11 +544,99 @@ class BorosMarket(Market):
             eligible = eligible.loc[eligible["timestamp"] <= ts + pd.Timedelta(seconds=max_delay_seconds)]
         if len(eligible.index) == 0:
             return pd.DataFrame()
+        if required_trade_side is not None:
+            eligible = eligible.loc[eligible["trade_side"] == required_trade_side]
+        if len(eligible.index) == 0:
+            return pd.DataFrame()
         eligible = eligible.loc[~eligible.index.isin(self._consumed_full_execution_rows)]
         if len(eligible.index) == 0:
             return pd.DataFrame()
         earliest_timestamp = eligible["timestamp"].min()
-        return eligible.loc[eligible["timestamp"] == earliest_timestamp].copy()
+        eligible = eligible.loc[eligible["timestamp"] == earliest_timestamp].copy()
+        return eligible
+
+    def peek_full_execution_quote(
+        self,
+        timestamp: datetime | pd.Timestamp,
+        required_trade_side: str,
+        prefer_higher_rate: bool,
+        max_delay_seconds: int | None = None,
+        include_opening_fee_rate: bool = True,
+    ) -> dict | None:
+        candidates = self._full_execution_candidates(
+            timestamp=timestamp,
+            max_delay_seconds=max_delay_seconds,
+            required_trade_side=required_trade_side,
+        )
+        if len(candidates.index) == 0:
+            return None
+
+        def effective_rate(row: pd.Series) -> Decimal:
+            implied_rate = Decimal(row["implied_rate"])
+            opening_fee_rate = (
+                Decimal(row["opening_fee_rate_annualized"])
+                if include_opening_fee_rate and pd.notna(row["opening_fee_rate_annualized"])
+                else Decimal(0)
+            )
+            return implied_rate - opening_fee_rate if prefer_higher_rate else implied_rate + opening_fee_rate
+
+        candidates["_effective_rate"] = candidates.apply(effective_rate, axis=1)
+        candidates = candidates.sort_values(
+            by=["_effective_rate", "log_index"],
+            ascending=[not prefer_higher_rate, True],
+        )
+        weight_sum = sum((Decimal(value) for value in candidates["abs_size_total"]), Decimal(0))
+        if weight_sum <= 0:
+            return None
+
+        weighted_fixed_rate = sum(
+            (Decimal(row.abs_size_total) * Decimal(row.implied_rate) for row in candidates.itertuples()),
+            Decimal(0),
+        ) / weight_sum
+        weighted_opening_fee_rate = sum(
+            (
+                Decimal(row.abs_size_total)
+                * (Decimal(row.opening_fee_rate_annualized) if pd.notna(row.opening_fee_rate_annualized) else Decimal(0))
+                for row in candidates.itertuples()
+            ),
+            Decimal(0),
+        ) / weight_sum
+        execution_fee_paid = sum((Decimal(row.fee_paid) for row in candidates.itertuples()), Decimal(0))
+        source_kinds = sorted(set(candidates["source_kind"]))
+        if len(source_kinds) == 1:
+            execution_source = f"{source_kinds[0]}_fill"
+        else:
+            execution_source = "split_fill"
+
+        return {
+            "fixed_rate": weighted_fixed_rate,
+            "execution_fee_paid": execution_fee_paid,
+            "execution_opening_fee_rate": weighted_opening_fee_rate if include_opening_fee_rate else Decimal(0),
+            "execution_timestamp": candidates.iloc[0]["timestamp"].to_pydatetime(),
+            "execution_tx_hash": candidates.iloc[0]["tx_hash"],
+            "execution_source": execution_source,
+            "_candidate_indices": list(candidates.index),
+        }
+
+    def claim_full_execution_quote(
+        self,
+        timestamp: datetime | pd.Timestamp,
+        required_trade_side: str,
+        prefer_higher_rate: bool,
+        max_delay_seconds: int | None = None,
+        include_opening_fee_rate: bool = True,
+    ) -> dict | None:
+        quote = self.peek_full_execution_quote(
+            timestamp=timestamp,
+            required_trade_side=required_trade_side,
+            prefer_higher_rate=prefer_higher_rate,
+            max_delay_seconds=max_delay_seconds,
+            include_opening_fee_rate=include_opening_fee_rate,
+        )
+        if quote is None:
+            return None
+        self._consumed_full_execution_rows.update(quote["_candidate_indices"])
+        return quote
 
     def peek_next_full_execution_scored(
         self,

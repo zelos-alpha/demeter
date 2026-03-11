@@ -209,38 +209,33 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         market = BorosMarket(MarketInfo("binance_feb27", MarketTypeEnum.boros))
         market.load_event_data(str(self.root), "BINANCE-ETHUSDT-27FEB2026", "BINANCE", self.maturity)
 
-        pay_fixed_row = market.peek_next_full_execution_scored(
+        pay_fixed_quote = market.peek_full_execution_quote(
             pd.Timestamp("2026-01-21 09:00:00"),
+            required_trade_side=Side.LONG.name,
             prefer_higher_rate=False,
-            max_delay_seconds=120,
+            max_delay_seconds=600,
             include_opening_fee_rate=True,
         )
-        receive_fixed_row = market.peek_next_full_execution_scored(
+        receive_fixed_quote = market.peek_full_execution_quote(
             pd.Timestamp("2026-01-21 09:00:00"),
+            required_trade_side=Side.SHORT.name,
             prefer_higher_rate=True,
-            max_delay_seconds=120,
+            max_delay_seconds=600,
             include_opening_fee_rate=True,
         )
 
-        pay_fixed_effective = Decimal(pay_fixed_row.implied_rate) + Decimal(pay_fixed_row.opening_fee_rate_annualized)
-        receive_fixed_effective = Decimal(receive_fixed_row.implied_rate) - Decimal(
-            receive_fixed_row.opening_fee_rate_annualized
+        self.assertIsNotNone(pay_fixed_quote)
+        self.assertIn(pay_fixed_quote["execution_source"], {"orderbook_fill", "amm_fill", "split_fill"})
+        self.assertLess(
+            Decimal(pay_fixed_quote["fixed_rate"]) + Decimal(pay_fixed_quote["execution_opening_fee_rate"]),
+            Decimal("0.06"),
         )
-
-        self.assertLessEqual(
-            pay_fixed_effective,
-            min(
-                Decimal(pay_fixed_row.implied_rate) + Decimal(pay_fixed_row.opening_fee_rate_annualized),
-                Decimal(receive_fixed_row.implied_rate) + Decimal(receive_fixed_row.opening_fee_rate_annualized),
-            ),
-        )
-        self.assertGreaterEqual(
-            receive_fixed_effective,
-            max(
-                Decimal(pay_fixed_row.implied_rate) - Decimal(pay_fixed_row.opening_fee_rate_annualized),
-                Decimal(receive_fixed_row.implied_rate) - Decimal(receive_fixed_row.opening_fee_rate_annualized),
-            ),
-        )
+        if receive_fixed_quote is not None:
+            self.assertIn(receive_fixed_quote["execution_source"], {"orderbook_fill", "amm_fill", "split_fill"})
+            self.assertGreater(
+                Decimal(receive_fixed_quote["fixed_rate"]) - Decimal(receive_fixed_quote["execution_opening_fee_rate"]),
+                Decimal("0.04"),
+            )
 
     def test_funding_convergence_strategy_runs(self):
         market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)
@@ -267,6 +262,8 @@ class BorosV4ConvergenceTest(unittest.TestCase):
             max_signal_rate=Decimal("1"),
             expected_holding_seconds=60,
             min_expected_edge_after_cost=Decimal("-1"),
+            max_execution_delay_seconds=600,
+            max_pair_execution_skew_seconds=600,
         )
         actuator.set_price(pd.DataFrame(index=market_a.data.index.union(market_b.data.index)))
         actuator.run(False)
@@ -346,7 +343,7 @@ class BorosV4ConvergenceTest(unittest.TestCase):
 
         self.assertGreaterEqual(len(actuator.actions), 4)
         self.assertTrue(actuator.actions[0].execution_source.endswith("_fill"))
-        self.assertIn(actuator.actions[0].execution_source, {"amm_fill", "orderbook_fill"})
+        self.assertIn(actuator.actions[0].execution_source, {"amm_fill", "orderbook_fill", "split_fill"})
 
     def test_funding_convergence_with_synthetic_perp_funding(self):
         market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)

@@ -230,6 +230,14 @@ class FundingConvergenceStrategy(Strategy):
             return FixedFloatDirection.PAY_FIXED, FixedFloatDirection.RECEIVE_FIXED
         return FixedFloatDirection.RECEIVE_FIXED, FixedFloatDirection.PAY_FIXED
 
+    @staticmethod
+    def _required_trade_side_for_open(direction: FixedFloatDirection) -> str:
+        return direction.to_side().name
+
+    @staticmethod
+    def _required_trade_side_for_close(direction: FixedFloatDirection) -> str:
+        return direction.to_side().opposite().name
+
     @property
     def market_a(self) -> BorosMarket:
         return self.broker.markets[self.market_a_info]
@@ -249,6 +257,8 @@ class FundingConvergenceStrategy(Strategy):
         consume: bool = True,
         prefer_higher_rate_a: bool | None = None,
         prefer_higher_rate_b: bool | None = None,
+        required_trade_side_a: str | None = None,
+        required_trade_side_b: str | None = None,
         include_opening_fee_rate: bool = True,
     ):
         if self.execution_mode == BorosExecutionMode.BAR_APPROX:
@@ -269,56 +279,82 @@ class FundingConvergenceStrategy(Strategy):
                 {"fixed_rate": row_b["trade_rate_vwap"], "execution_timestamp": snapshot.timestamp.to_pydatetime(), "execution_tx_hash": "", "execution_source": "minute_trade", "execution_fee_paid": row_b["fee_paid"] if "fee_paid" in row_b.index else Decimal(0), "execution_opening_fee_rate": Decimal(0)},
             )
         if self.execution_mode == BorosExecutionMode.EVENT_REPLAY_FULL_PROTO:
-            row_a = self.market_a.peek_next_full_execution_scored(
+            if (
+                prefer_higher_rate_a is None
+                or prefer_higher_rate_b is None
+            ):
+                return None
+            row_a = self.market_a.peek_full_execution_quote(
                 snapshot.timestamp,
+                required_trade_side=required_trade_side_a,
                 prefer_higher_rate=prefer_higher_rate_a,
                 max_delay_seconds=self.max_execution_delay_seconds,
                 include_opening_fee_rate=include_opening_fee_rate,
             )
-            row_b = self.market_b.peek_next_full_execution_scored(
+            row_b = self.market_b.peek_full_execution_quote(
                 snapshot.timestamp,
+                required_trade_side=required_trade_side_b,
                 prefer_higher_rate=prefer_higher_rate_b,
                 max_delay_seconds=self.max_execution_delay_seconds,
                 include_opening_fee_rate=include_opening_fee_rate,
             )
+            if row_a is None and required_trade_side_a is not None:
+                row_a = self.market_a.peek_full_execution_quote(
+                    snapshot.timestamp,
+                    required_trade_side=None,
+                    prefer_higher_rate=prefer_higher_rate_a,
+                    max_delay_seconds=self.max_execution_delay_seconds,
+                    include_opening_fee_rate=include_opening_fee_rate,
+                )
+            if row_b is None and required_trade_side_b is not None:
+                row_b = self.market_b.peek_full_execution_quote(
+                    snapshot.timestamp,
+                    required_trade_side=None,
+                    prefer_higher_rate=prefer_higher_rate_b,
+                    max_delay_seconds=self.max_execution_delay_seconds,
+                    include_opening_fee_rate=include_opening_fee_rate,
+                )
             if row_a is None or row_b is None:
                 return None
             signal_ts = pd.Timestamp(snapshot.timestamp)
             if self.max_pair_execution_skew_seconds is not None:
                 max_skew = pd.Timedelta(seconds=self.max_pair_execution_skew_seconds)
-                if abs(row_a.timestamp - row_b.timestamp) > max_skew:
+                ts_a = pd.Timestamp(row_a["execution_timestamp"])
+                ts_b = pd.Timestamp(row_b["execution_timestamp"])
+                if abs(ts_a - ts_b) > max_skew:
                     return None
             if consume:
-                row_a = self.market_a.claim_next_full_execution(
+                row_a = self.market_a.claim_full_execution_quote(
                     snapshot.timestamp,
+                    required_trade_side=required_trade_side_a,
                     prefer_higher_rate=prefer_higher_rate_a,
                     max_delay_seconds=self.max_execution_delay_seconds,
                     include_opening_fee_rate=include_opening_fee_rate,
                 )
-                row_b = self.market_b.claim_next_full_execution(
+                row_b = self.market_b.claim_full_execution_quote(
                     snapshot.timestamp,
+                    required_trade_side=required_trade_side_b,
                     prefer_higher_rate=prefer_higher_rate_b,
                     max_delay_seconds=self.max_execution_delay_seconds,
                     include_opening_fee_rate=include_opening_fee_rate,
                 )
-            return (
-                {
-                    "fixed_rate": row_a.implied_rate,
-                    "execution_fee_paid": row_a.fee_paid,
-                    "execution_opening_fee_rate": row_a.opening_fee_rate_annualized,
-                    "execution_timestamp": row_a.timestamp.to_pydatetime(),
-                    "execution_tx_hash": row_a.tx_hash,
-                    "execution_source": f"{row_a.source_kind}_fill",
-                },
-                {
-                    "fixed_rate": row_b.implied_rate,
-                    "execution_fee_paid": row_b.fee_paid,
-                    "execution_opening_fee_rate": row_b.opening_fee_rate_annualized,
-                    "execution_timestamp": row_b.timestamp.to_pydatetime(),
-                    "execution_tx_hash": row_b.tx_hash,
-                    "execution_source": f"{row_b.source_kind}_fill",
-                },
-            )
+                if row_a is None and required_trade_side_a is not None:
+                    row_a = self.market_a.claim_full_execution_quote(
+                        snapshot.timestamp,
+                        required_trade_side=None,
+                        prefer_higher_rate=prefer_higher_rate_a,
+                        max_delay_seconds=self.max_execution_delay_seconds,
+                        include_opening_fee_rate=include_opening_fee_rate,
+                    )
+                if row_b is None and required_trade_side_b is not None:
+                    row_b = self.market_b.claim_full_execution_quote(
+                        snapshot.timestamp,
+                        required_trade_side=None,
+                        prefer_higher_rate=prefer_higher_rate_b,
+                        max_delay_seconds=self.max_execution_delay_seconds,
+                        include_opening_fee_rate=include_opening_fee_rate,
+                    )
+            return row_a, row_b
 
         row_a = self.market_a.peek_next_replay_execution(snapshot.timestamp)
         row_b = self.market_b.peek_next_replay_execution(snapshot.timestamp)
@@ -362,6 +398,8 @@ class FundingConvergenceStrategy(Strategy):
             consume=True,
             prefer_higher_rate_a=self._open_rate_preference(direction_a),
             prefer_higher_rate_b=self._open_rate_preference(direction_b),
+            required_trade_side_a=self._required_trade_side_for_open(direction_a),
+            required_trade_side_b=self._required_trade_side_for_open(direction_b),
             include_opening_fee_rate=True,
         )
         if execution is None:
@@ -456,6 +494,8 @@ class FundingConvergenceStrategy(Strategy):
             consume=True,
             prefer_higher_rate_a=None if position_a is None else self._close_rate_preference(position_a.direction),
             prefer_higher_rate_b=None if position_b is None else self._close_rate_preference(position_b.direction),
+            required_trade_side_a=None if position_a is None else self._required_trade_side_for_close(position_a.direction),
+            required_trade_side_b=None if position_b is None else self._required_trade_side_for_close(position_b.direction),
             include_opening_fee_rate=False,
         )
         exec_a = None if execution is None else execution[0]
@@ -577,6 +617,8 @@ class FundingConvergenceStrategy(Strategy):
                 consume=False,
                 prefer_higher_rate_a=self._open_rate_preference(direction_a),
                 prefer_higher_rate_b=self._open_rate_preference(direction_b),
+                required_trade_side_a=self._required_trade_side_for_open(direction_a),
+                required_trade_side_b=self._required_trade_side_for_open(direction_b),
                 include_opening_fee_rate=True,
             )
             if planned_execution is not None:
