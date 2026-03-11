@@ -237,6 +237,27 @@ class BorosV4ConvergenceTest(unittest.TestCase):
                 Decimal("0.04"),
             )
 
+    def test_full_execution_ignores_dust_quote(self):
+        market = BorosMarket(MarketInfo("binance_feb27", MarketTypeEnum.boros))
+        market.load_event_data(str(self.root), "BINANCE-ETHUSDT-27FEB2026", "BINANCE", self.maturity)
+        earliest_timestamp = market.trade_ledger["timestamp"].min()
+        dust_mask = (
+            (market.trade_ledger["timestamp"] == earliest_timestamp)
+            & (market.trade_ledger["source_kind"] == "amm")
+        )
+        market.trade_ledger.loc[dust_mask, "abs_size_total"] = Decimal("1e-18")
+
+        quote = market.peek_full_execution_quote(
+            pd.Timestamp("2026-01-21 09:00:00"),
+            required_trade_side=Side.LONG.name,
+            prefer_higher_rate=False,
+            max_delay_seconds=600,
+            include_opening_fee_rate=True,
+        )
+
+        self.assertIsNotNone(quote)
+        self.assertEqual(quote["execution_source"], "orderbook_fill")
+
     def test_funding_convergence_strategy_runs(self):
         market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)
         market_b_info = MarketInfo("hyperliquid_feb27", MarketTypeEnum.boros)

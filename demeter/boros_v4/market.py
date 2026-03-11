@@ -171,6 +171,7 @@ class BorosMarket(Market):
         self._consumed_execution_rows: set[int] = set()
         self._consumed_full_execution_rows: set[int] = set()
         self._latest_f_time_to_maturity_cache: dict[pd.Timestamp, int] = {}
+        self.min_execution_quote_abs_size_total = Decimal("1e-9")
         self.mark_rate_column = "mark_rate"
 
     @staticmethod
@@ -635,7 +636,7 @@ class BorosMarket(Market):
 
         def build_quote(group: pd.DataFrame) -> dict | None:
             weight_sum = sum((Decimal(value) for value in group["abs_size_total"]), Decimal(0))
-            if weight_sum <= 0:
+            if weight_sum <= self.min_execution_quote_abs_size_total:
                 return None
 
             weighted_fixed_rate = sum(
