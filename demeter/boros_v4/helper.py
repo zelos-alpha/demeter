@@ -324,7 +324,7 @@ def _build_state_frame(
     default_opening_fee_rate: Decimal,
 ) -> pd.DataFrame:
     maturity_ts = _normalize_maturity(maturity)
-    start_timestamp = min(event_ledger["timestamp"].min(), trade_ledger["timestamp"].min())
+    start_timestamp = min(event_ledger["timestamp"].min(), trade_ledger["latest_f_time"].min())
     findex_events = _build_findex_frame(event_ledger).drop_duplicates(subset=["latest_f_time"]).sort_values("latest_f_time")
     fee_events = event_ledger.loc[event_ledger["event_type"] == "fee_rate_updated", ["timestamp", "raw_data"]].sort_values("timestamp")
 
@@ -334,36 +334,38 @@ def _build_state_frame(
     settlement_fee_rate = Decimal(default_opening_fee_rate)
     fee_event_iter = list(fee_events.itertuples())
     fee_pointer = 0
-    trade_rows = list(trade_ledger.sort_values("timestamp").itertuples())
-    trade_pointer = 0
-    current_rate = trade_rows[0].implied_rate if trade_rows else Decimal(0)
-    last_trade_timestamp = start_timestamp
+    if len(trade_ledger.index) > 0:
+        window_trade_rows: list[dict] = []
+        for latest_f_time, group in trade_ledger.groupby("latest_f_time", sort=True):
+            window_trade_rows.append(
+                {
+                    "latest_f_time": latest_f_time,
+                    "window_abs_size_total": sum(group["abs_size_total"], Decimal(0)),
+                    "window_weighted_rate_sum": sum(
+                        (row.abs_size_total * row.implied_rate for row in group.itertuples()),
+                        Decimal(0),
+                    ),
+                }
+            )
+        window_trade_stats = pd.DataFrame(window_trade_rows)
+    else:
+        window_trade_stats = pd.DataFrame(columns=["latest_f_time", "window_abs_size_total", "window_weighted_rate_sum"])
+    window_rate_map = {}
+    for row in window_trade_stats.itertuples():
+        window_rate_map[row.latest_f_time] = (
+            row.window_weighted_rate_sum / row.window_abs_size_total if row.window_abs_size_total else Decimal(0)
+        )
+    current_rate = window_rate_map.get(start_timestamp, Decimal(0))
     floating_index = Decimal(0)
     fee_index = Decimal(0)
     rows: list[dict] = []
 
-    for boundary in boundaries:
+    for index, boundary in enumerate(boundaries):
         while fee_pointer < len(fee_event_iter) and fee_event_iter[fee_pointer].timestamp <= boundary:
             raw_words = _hex_words(fee_event_iter[fee_pointer].raw_data)
             if raw_words:
                 settlement_fee_rate = _parse_unsigned_256(raw_words[0]) / SIZE_SCALE
             fee_pointer += 1
-
-        while trade_pointer < len(trade_rows) and trade_rows[trade_pointer].timestamp <= boundary:
-            trade = trade_rows[trade_pointer]
-            delta_seconds = int((trade.timestamp - last_trade_timestamp).total_seconds())
-            if delta_seconds > 0:
-                floating_index += current_rate * Decimal(delta_seconds) / Decimal(PMath.ONE_YEAR)
-                fee_index += settlement_fee_rate * Decimal(delta_seconds) / Decimal(PMath.ONE_YEAR)
-            current_rate = trade.implied_rate
-            last_trade_timestamp = trade.timestamp
-            trade_pointer += 1
-
-        if boundary > last_trade_timestamp:
-            delta_seconds = int((boundary - last_trade_timestamp).total_seconds())
-            floating_index += current_rate * Decimal(delta_seconds) / Decimal(PMath.ONE_YEAR)
-            fee_index += settlement_fee_rate * Decimal(delta_seconds) / Decimal(PMath.ONE_YEAR)
-            last_trade_timestamp = boundary
 
         rows.append(
             {
@@ -374,6 +376,17 @@ def _build_state_frame(
                 "time_to_maturity_seconds": max(0, int((maturity_ts - boundary).total_seconds())),
             }
         )
+
+        next_boundary = boundaries[index + 1] if index + 1 < len(boundaries) else None
+        if next_boundary is None:
+            continue
+        window_rate = window_rate_map.get(boundary)
+        if window_rate is not None:
+            current_rate = window_rate
+        delta_seconds = int((next_boundary - boundary).total_seconds())
+        if delta_seconds > 0:
+            floating_index += current_rate * Decimal(delta_seconds) / Decimal(PMath.ONE_YEAR)
+            fee_index += settlement_fee_rate * Decimal(delta_seconds) / Decimal(PMath.ONE_YEAR)
 
     return pd.DataFrame(rows).sort_values("latest_f_time_timestamp").reset_index(drop=True)
 
