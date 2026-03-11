@@ -181,6 +181,8 @@ class BorosV4ConvergenceTest(unittest.TestCase):
             exit_threshold=Decimal("0.005"),
             stop_loss=Decimal("10"),
             execution_mode=BorosExecutionMode.TX_REPLAY_BEST_EXEC,
+            min_time_to_maturity_seconds=60,
+            max_signal_rate=Decimal("1"),
         )
         actuator.set_price(pd.DataFrame(index=market_a.data.index.union(market_b.data.index)))
         actuator.run(False)
@@ -188,6 +190,8 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         self.assertGreaterEqual(len(actuator.actions), 4)
         self.assertEqual(actuator.actions[0].execution_source, "orderbook")
         self.assertIn(("binance_feb27", "net_value"), actuator.account_status_df.columns)
+        spread_df = pd.DataFrame(actuator.strategy.spread_history)
+        self.assertTrue(spread_df["signal_ready"].all())
 
         output_dir = self.root / "outputs"
         export_convergence_result(

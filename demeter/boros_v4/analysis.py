@@ -78,6 +78,7 @@ def summarize_backtest(actuator: Actuator, markets: list[BorosMarket], spread_df
             "net_value": str(balance.net_value),
             "position_count": int(balance.position_count),
         }
+    signal_ready_df = spread_df.loc[spread_df["signal_ready"] == True] if not spread_df.empty and "signal_ready" in spread_df.columns else spread_df
     summary = {
         "generated_at": datetime.now(UTC).isoformat(),
         "final_net_value": str(final_status["net_value"][""]),
@@ -85,6 +86,9 @@ def summarize_backtest(actuator: Actuator, markets: list[BorosMarket], spread_df
         "market_balances": market_balances,
         "spread_last": str(spread_df["spread"].iloc[-1]) if not spread_df.empty else "0",
         "spread_mean": str(spread_df["spread"].mean()) if not spread_df.empty else "0",
+        "signal_ready_count": int(len(signal_ready_df.index)) if signal_ready_df is not None else 0,
+        "signal_ready_spread_mean": str(signal_ready_df["spread"].mean()) if signal_ready_df is not None and not signal_ready_df.empty else "0",
+        "signal_ready_spread_max_abs": str(signal_ready_df["spread"].abs().max()) if signal_ready_df is not None and not signal_ready_df.empty else "0",
     }
     return summary
 
@@ -118,6 +122,9 @@ def export_convergence_result(
         f"- action_count: {summary['action_count']}",
         f"- spread_last: {summary['spread_last']}",
         f"- spread_mean: {summary['spread_mean']}",
+        f"- signal_ready_count: {summary['signal_ready_count']}",
+        f"- signal_ready_spread_mean: {summary['signal_ready_spread_mean']}",
+        f"- signal_ready_spread_max_abs: {summary['signal_ready_spread_max_abs']}",
         "",
         "## Markets",
     ]
@@ -146,6 +153,8 @@ def run_funding_convergence_backtest(
     exit_threshold: Decimal = Decimal("0.0008"),
     stop_loss: Decimal = Decimal("2"),
     execution_mode: BorosExecutionMode = BorosExecutionMode.TX_REPLAY_BEST_EXEC,
+    min_time_to_maturity_seconds: int = 24 * 3600,
+    max_signal_rate: Decimal = Decimal("2"),
 ) -> tuple[Actuator, FundingConvergenceStrategy, list[BorosMarket]]:
     market_a_info = MarketInfo(market_a_name, MarketTypeEnum.boros)
     market_b_info = MarketInfo(market_b_name, MarketTypeEnum.boros)
@@ -167,6 +176,8 @@ def run_funding_convergence_backtest(
         exit_threshold=exit_threshold,
         stop_loss=stop_loss,
         execution_mode=execution_mode,
+        min_time_to_maturity_seconds=min_time_to_maturity_seconds,
+        max_signal_rate=max_signal_rate,
     )
     actuator.strategy = strategy
     price_index = market_a.get_price_from_data().index.union(market_b.get_price_from_data().index)

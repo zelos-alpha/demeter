@@ -31,5 +31,7 @@ if __name__ == "__main__":
         exit_threshold=Decimal("0.001"),
         stop_loss=Decimal("5"),
         execution_mode=BorosExecutionMode.TX_REPLAY_BEST_EXEC,
+        min_time_to_maturity_seconds=24 * 3600,
+        max_signal_rate=Decimal("2"),
     )
     print(f"actions={len(actuator.actions)} output_dir={OUTPUT_DIR}")

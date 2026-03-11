@@ -138,6 +138,8 @@ class FundingConvergenceStrategy(Strategy):
         exit_threshold: Decimal = Decimal("0.0008"),
         stop_loss: Decimal | None = None,
         execution_mode: BorosExecutionMode = BorosExecutionMode.TX_REPLAY_BEST_EXEC,
+        min_time_to_maturity_seconds: int = 24 * 3600,
+        max_signal_rate: Decimal = Decimal("2"),
     ):
         super().__init__()
         self.market_a_info = market_a_info
@@ -148,6 +150,8 @@ class FundingConvergenceStrategy(Strategy):
         self.exit_threshold = Decimal(exit_threshold)
         self.stop_loss = Decimal(stop_loss) if stop_loss is not None else self.notional * Decimal("0.02")
         self.execution_mode = execution_mode
+        self.min_time_to_maturity_seconds = int(min_time_to_maturity_seconds)
+        self.max_signal_rate = Decimal(max_signal_rate)
         self._spread_window: deque[Decimal] = deque(maxlen=self.lookback)
         self._spread_position: SpreadPosition | None = None
         self.spread_history: list[dict] = []
@@ -275,8 +279,17 @@ class FundingConvergenceStrategy(Strategy):
     def on_bar(self, snapshot: Snapshot):
         rate_a = self.market_a.market_status.data["mark_rate"]
         rate_b = self.market_b.market_status.data["mark_rate"]
+        time_to_mat_a = int(self.market_a.market_status.data["time_to_maturity_seconds"])
+        time_to_mat_b = int(self.market_b.market_status.data["time_to_maturity_seconds"])
+        signal_ready = (
+            time_to_mat_a >= self.min_time_to_maturity_seconds
+            and time_to_mat_b >= self.min_time_to_maturity_seconds
+            and abs(rate_a) <= self.max_signal_rate
+            and abs(rate_b) <= self.max_signal_rate
+        )
         spread = rate_a - rate_b
-        self._spread_window.append(spread)
+        if signal_ready:
+            self._spread_window.append(spread)
         reference_spread = self._reference_spread()
         self.spread_history.append(
             {
@@ -285,6 +298,9 @@ class FundingConvergenceStrategy(Strategy):
                 "rate_b": rate_b,
                 "spread": spread,
                 "reference_spread": spread if reference_spread is None else reference_spread,
+                "signal_ready": signal_ready,
+                "time_to_maturity_a": time_to_mat_a,
+                "time_to_maturity_b": time_to_mat_b,
                 "position_open": self._spread_position is not None,
             }
         )
@@ -295,14 +311,16 @@ class FundingConvergenceStrategy(Strategy):
         open_a = self.market_a.get_open_positions()
         open_b = self.market_b.get_open_positions()
         if self._spread_position is None and len(open_a) == 0 and len(open_b) == 0:
-            if abs(spread_deviation) >= self.entry_threshold:
+            if signal_ready and abs(spread_deviation) >= self.entry_threshold:
                 self._open_spread(snapshot, spread_deviation)
             return
 
         combined_unrealized = self.market_a.get_market_balance().unrealized_pnl + self.market_b.get_market_balance().unrealized_pnl
         snapshot_ts = pd.Timestamp(snapshot.timestamp).to_pydatetime()
         matured = snapshot_ts >= self.market_a.maturity.to_pydatetime() or snapshot_ts >= self.market_b.maturity.to_pydatetime()
-        if abs(spread_deviation) <= self.exit_threshold:
+        if not signal_ready:
+            self._close_spread(snapshot, "signal_guard")
+        elif abs(spread_deviation) <= self.exit_threshold:
             self._close_spread(snapshot, "spread_exit")
         elif combined_unrealized <= -self.stop_loss:
             self._close_spread(snapshot, "stop_loss")
