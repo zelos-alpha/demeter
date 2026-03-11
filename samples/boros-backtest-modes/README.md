@@ -18,6 +18,8 @@ Primary sample entry points:
   - Benchmarks the recommended replay engines
 - `samples/strategy-example/79_boros_full_execution_diagnostics.py`
   - Exports source-selection diagnostics for full execution
+- `samples/strategy-example/80_boros_release_validation.py`
+  - Re-runs the release baseline matrix and checks for drift
 
 ## Engine Modes
 
@@ -96,6 +98,31 @@ Recommended internal comparison workflow:
 1. Run `TX_REPLAY_BEST_EXEC`
 2. Run `EVENT_REPLAY_FULL_PROTO`
 3. Compare pnl, runtime, and source diagnostics
+
+## Release Validation
+
+Checked-in release baseline:
+
+- `samples/boros-backtest-modes/release_baseline.json`
+
+Single-entry validation command:
+
+```bash
+PYTHONPATH=/Users/hou/Desktop/demeter /Users/hou/Desktop/demeter/.venv/bin/python \
+  /Users/hou/Desktop/demeter/samples/strategy-example/80_boros_release_validation.py
+```
+
+To force a full re-run of the heavy real-data matrix:
+
+```bash
+PYTHONPATH=/Users/hou/Desktop/demeter /Users/hou/Desktop/demeter/.venv/bin/python \
+  /Users/hou/Desktop/demeter/samples/strategy-example/80_boros_release_validation.py --rerun
+```
+
+Validation output:
+
+- `outputs/boros_release_validation/report.md`
+- `outputs/boros_release_validation/validation.json`
 
 ## What To Read Next
 

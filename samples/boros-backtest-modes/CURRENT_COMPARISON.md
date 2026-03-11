@@ -63,3 +63,18 @@ If you are exposing Boros execution mode as a user-facing parameter:
 - safe default: `TX_REPLAY_BEST_EXEC`
 - recommended high-fidelity mode: `EVENT_REPLAY_FULL_PROTO`
 - dev-only modes: `BAR_APPROX`, `NEXT_TRADE`
+
+## Release Baseline
+
+The checked-in release baseline now lives at:
+
+- `samples/boros-backtest-modes/release_baseline.json`
+
+Use the single-entry validator to confirm that:
+
+- `72_boros_funding_convergence.py`
+- `77_boros_convergence_with_perp_funding.py`
+- `78_boros_full_execution_compare.py`
+- `79_boros_full_execution_diagnostics.py`
+
+still match the expected research baseline before release.

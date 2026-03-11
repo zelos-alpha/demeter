@@ -60,3 +60,28 @@ If Boros were released today, the best release framing would be:
   - `TX_REPLAY_BEST_EXEC`
 - advanced protocol replay:
   - not yet claimed
+
+## Current Validation Entry Point
+
+The release baseline is now checked in at:
+
+- `samples/boros-backtest-modes/release_baseline.json`
+
+The single-entry validation command is:
+
+```bash
+PYTHONPATH=/Users/hou/Desktop/demeter /Users/hou/Desktop/demeter/.venv/bin/python \
+  /Users/hou/Desktop/demeter/samples/strategy-example/80_boros_release_validation.py
+```
+
+To regenerate the heavy baseline scenarios instead of reusing existing outputs:
+
+```bash
+PYTHONPATH=/Users/hou/Desktop/demeter /Users/hou/Desktop/demeter/.venv/bin/python \
+  /Users/hou/Desktop/demeter/samples/strategy-example/80_boros_release_validation.py --rerun
+```
+
+Validation output is written to:
+
+- `outputs/boros_release_validation/report.md`
+- `outputs/boros_release_validation/validation.json`
