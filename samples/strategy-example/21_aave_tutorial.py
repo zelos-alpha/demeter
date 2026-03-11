@@ -1,0 +1,59 @@
+import pandas as pd
+from datetime import date, datetime
+from typing import Union
+
+from demeter import TokenInfo, Actuator, Strategy, Snapshot, MarketInfo, MarketTypeEnum, ChainType, AtTimeTrigger
+from demeter.aave import AaveBalance, AaveV3Market, AaveTokenStatus, load_aave_data
+
+# To print all the columns of dataframe, we should set up display option.
+pd.options.display.max_columns = None
+pd.set_option("display.width", 5000)
+
+
+class MyFirstAaveStrategy(Strategy):
+    def initialize(self):
+        supply_trigger = AtTimeTrigger(time=datetime(2023, 8, 14, 0, 1, 0), do=self.supply)
+        withdraw_trigger = AtTimeTrigger(time=datetime(2023, 8, 14, 23, 58, 0), do=self.withdraw)
+        borrow_trigger = AtTimeTrigger(time=datetime(2023, 8, 14, 0, 2, 0), do=self.borrow)
+        repay_trigger = AtTimeTrigger(time=datetime(2023, 8, 14, 23, 57, 0), do=self.repay)
+
+        self.triggers.extend([supply_trigger, withdraw_trigger, borrow_trigger, repay_trigger])
+
+    def supply(self, snapshot: Snapshot):
+        aave_market.supply(weth, 10, True)
+
+    def borrow(self, snapshot: Snapshot):
+        aave_market.borrow(weth, 3)
+
+    def repay(self, snapshot: Snapshot):
+        for key in aave_market.borrow_keys:
+            aave_market.repay(key)
+
+    def withdraw(self, snapshot: Snapshot):
+        for key in aave_market.supply_keys:
+            aave_market.withdraw(key)
+
+    def on_bar(self, snapshot: Snapshot):
+        balance: AaveBalance = aave_market.get_market_balance()
+        market_status: Union[pd.Series, AaveTokenStatus] = snapshot.market_status[market_key]
+
+        pass
+
+
+if __name__ == "__main__":
+    weth = TokenInfo(name="weth", decimal=18, address="0x7ceb23fd6bc0add59e62ac25578270cff1b9f619")  # declare token eth
+
+    market_key = MarketInfo("aave", MarketTypeEnum.aave_v3)
+    aave_market = AaveV3Market(
+        market_info=market_key, risk_parameters_path="../../tests/aave_risk_parameters/demo.csv", tokens=[weth]
+    )
+    aave_market.data = load_aave_data(ChainType.polygon, [weth], date(2023, 8, 14), date(2023, 8, 14), "../data")
+    actuator = Actuator()
+    actuator.broker.add_market(aave_market)
+    actuator.broker.set_balance(weth, 15)
+    actuator.strategy = MyFirstAaveStrategy()
+
+    price_df = pd.read_csv("../data/price_weth_usdc_0813_0817.csv", index_col=0, parse_dates=True)
+    # if price is not quoted by usd, please specify a quote token.
+    actuator.set_price(price_df)
+    actuator.run()

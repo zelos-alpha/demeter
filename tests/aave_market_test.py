@@ -1,0 +1,590 @@
+import unittest
+from _decimal import Decimal
+from datetime import datetime, timedelta, date
+
+import numpy as np
+import pandas as pd
+
+from demeter import MarketInfo, TokenInfo, MarketTypeEnum, Broker, MarketStatus, ChainType, DemeterError
+from demeter.aave import (
+    SupplyInfo,
+    BorrowInfo,
+    AaveV3CoreLib,
+    AaveV3Market,
+)
+from tests.common import assert_equal_with_error
+
+usdt = TokenInfo("USDT", 6)
+dai = TokenInfo("DAI", 6)
+matic = TokenInfo("WMATIC", 18)
+weth = TokenInfo("weth", 18, "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619")
+
+
+def to_decimal(v: int) -> Decimal:
+    return Decimal(v) / Decimal(10**27)
+
+
+class UniLpDataTest(unittest.TestCase):
+    def test_load_risk_parameter(self):
+        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3),
+                              "aave_risk_parameters/demo.csv")
+        self.assertTrue("WETH" in market.risk_parameters.index)
+        self.assertTrue("reserveLiquidationThreshold" in market.risk_parameters.columns)
+
+    def test_apy_to_rate(self):
+        self.assertEqual(
+            Decimal("0.0558916165865621190990895936500967"),
+            AaveV3CoreLib.rate_to_apy(Decimal("0.054385544255370350575778874")),
+        )
+        self.assertEqual(Decimal("1.7182817853609708212635582654585362"), AaveV3CoreLib.rate_to_apy(Decimal("1")))
+        self.assertEqual(Decimal("0"), AaveV3CoreLib.rate_to_apy(Decimal("0")))
+
+    def test_status_calc_with_moke_data(self):
+        market = AaveV3Market(
+            MarketInfo("aave_test", MarketTypeEnum.aave_v3),
+            "./aave_risk_parameters/demo.csv",
+            tokens=[usdt, dai, matic],
+        )
+        timestamp = datetime(2023, 9, 12, 15)
+
+        price = pd.DataFrame(data={"USDT": Decimal(1), "WETH": Decimal(1000)}, index=[timestamp])
+
+        iterables = [
+            [usdt.name, weth.name],
+            [
+                "liquidity_rate",
+                "stable_borrow_rate",
+                "variable_borrow_rate",
+                "liquidity_index",
+                "variable_borrow_index",
+            ],
+        ]
+        index = pd.MultiIndex.from_product(iterables)
+        pool_stat = MarketStatus(timestamp)
+        pool_stat.data = pd.Series(
+            index=index,
+            data=[
+                # usdt
+                Decimal("0.1"),
+                Decimal("0.1"),
+                Decimal("0.1"),
+                Decimal("1"),
+                Decimal("1"),
+                # weth
+                Decimal("0.2"),
+                Decimal("0.2"),
+                Decimal("0.2"),
+                Decimal("1.1"),
+                Decimal("1.1"),
+            ],
+        )
+        market.set_market_status(data=pool_stat, price=price.iloc[0])
+        market._supplies[weth] = SupplyInfo(Decimal(1), True, Decimal(0))
+        market._supplies[usdt] = SupplyInfo(Decimal(100), False, Decimal(0))
+        market._borrows[usdt] = BorrowInfo(Decimal(600), Decimal(0))
+        stat = market.get_market_balance()
+
+        self.assertEqual(market.get_supply(weth).value, Decimal("1100"))
+        self.assertEqual(market.get_supply(weth).apy, Decimal("0.2214027573855612896486160045299073"))
+        self.assertEqual(market.get_supply(weth).amount, Decimal("1.1"))
+
+        self.assertEqual(market.get_supply(usdt).value, Decimal("100"))
+        self.assertEqual(market.get_supply(usdt).apy, Decimal("0.1051709179004239256025944671567982"))
+        self.assertEqual(market.get_supply(usdt).amount, Decimal("100"))
+
+        self.assertEqual(stat.supplies_value, Decimal("1200"))
+        self.assertEqual(stat.supply_apy, Decimal("0.2117"))
+        self.assertEqual(stat.collaterals_value, Decimal("1100"))
+
+        self.assertEqual(market.get_borrow(usdt).value, Decimal("600"))
+        self.assertEqual(market.get_borrow(usdt).apy, Decimal("0.1051709179004239256025944671567982"))
+        self.assertEqual(market.get_borrow(usdt).amount, Decimal("600"))
+
+        self.assertEqual(stat.borrows_value, Decimal("600"))
+        self.assertEqual(stat.borrow_apy, Decimal("0.1052"))
+
+        self.assertEqual(stat.health_factor, Decimal("1.5125"))
+        self.assertEqual(stat.liquidation_threshold, Decimal("0.825"))
+        self.assertEqual(stat.max_ltv, Decimal("0.8"))
+        self.assertEqual(stat.net_apy, Decimal("0.3182"))
+
+        self.assertEqual(stat.net_value, Decimal("600"))
+
+    def test_status_calc_with_real_data(self):
+        market = AaveV3Market(
+            MarketInfo("aave_test", MarketTypeEnum.aave_v3),
+            "./aave_risk_parameters/demo.csv",
+            tokens=[usdt, dai, matic],
+        )
+        timestamp = datetime(2023, 9, 12, 15)
+
+        price = pd.DataFrame(
+            data={"USDT": Decimal(0.999990), "DAI": Decimal(1), "WMATIC": Decimal(0.509952)}, index=[timestamp]
+        )
+
+        iterables = [
+            [dai.name, usdt.name, matic.name],
+            [
+                "liquidity_rate",
+                "stable_borrow_rate",
+                "variable_borrow_rate",
+                "liquidity_index",
+                "variable_borrow_index",
+            ],
+        ]
+
+        index = pd.MultiIndex.from_product(iterables)
+        pool_stat = MarketStatus(timestamp)
+        pool_stat.data = pd.Series(
+            index=index,
+            data=[
+                to_decimal(20721780596069986118711585),
+                to_decimal(54183967335086321747448589),
+                to_decimal(33471738680690573979588711),
+                to_decimal(1024896375683851651969973538),
+                to_decimal(1043477569752596545043775819),
+
+                to_decimal(19374318747418950359017069),
+                to_decimal(54385544255370350575778874),
+                to_decimal(54385544255370350575778874),
+                to_decimal(1046424838969468347281558168),
+                to_decimal(1061829096134252340370625412),
+
+                to_decimal(34590050812934499694395450),
+                to_decimal(81000000000000000000000000),
+                to_decimal(59301392614184653189709969),
+                to_decimal(1033989834711222334753899684),
+                to_decimal(1091266512915678985090375114),
+            ],
+        )
+
+        market.set_market_status(data=pool_stat, price=price.iloc[0])
+        market._supplies[dai] = SupplyInfo(Decimal(97.56471188217428), True, Decimal(0))
+        market._supplies[matic] = SupplyInfo(Decimal(19.35174760735758), True, Decimal(0))
+        market._borrows[matic] = BorrowInfo(Decimal(4.583153411559582), Decimal(0))
+        market._borrows[usdt] = BorrowInfo(Decimal(4.709392084139431), Decimal(0))
+        stat = market.get_market_balance()
+        print(stat)
+        # supplies
+        market.get_supply(dai)
+        assert_equal_with_error(market.get_supply(dai).value, Decimal("99.99"), 0.001)
+        assert_equal_with_error(market.get_supply(dai).apy, Decimal("0.02093"), 0.001)
+        assert_equal_with_error(market.get_supply(dai).amount, Decimal("99.99"), 0.001)
+
+        assert_equal_with_error(market.get_supply(matic).value, Decimal("10.21"), 0.001)
+        assert_equal_with_error(market.get_supply(matic).apy, Decimal("0.0352"), 0.001)
+        assert_equal_with_error(market.get_supply(matic).amount, Decimal("20.01"), 0.001)
+
+        assert_equal_with_error(stat.supplies_value, Decimal("110.19"), 0.001)
+        assert_equal_with_error(stat.supply_apy, Decimal("0.0223"), 0.001)
+        assert_equal_with_error(stat.collaterals_value, Decimal("110.18877975"), 0.001)
+
+        # borrows
+        assert_equal_with_error(market.get_borrow(usdt).value, Decimal("5"), 0.001)
+        assert_equal_with_error(market.get_borrow(usdt).apy, Decimal("0.0559"), 0.001)
+        assert_equal_with_error(market.get_borrow(usdt).amount, Decimal("5"), 0.001)
+
+        assert_equal_with_error(market.get_borrow(matic).value, Decimal("2.55"), 0.001)
+        assert_equal_with_error(market.get_borrow(matic).apy, Decimal("0.0611"), 0.001)
+        assert_equal_with_error(market.get_borrow(matic).amount, Decimal("5"), 0.001)
+
+        assert_equal_with_error(stat.borrows_value, Decimal("7.55"), 0.001)
+        assert_equal_with_error(stat.borrow_apy, Decimal("0.0576"), 0.001)
+
+        assert_equal_with_error(stat.health_factor, Decimal("11.711114759422364164"), 0.001)
+        assert_equal_with_error(stat.liquidation_threshold, Decimal("0.8025"), 0.001)
+        assert_equal_with_error(stat.max_ltv, Decimal("0.7525"), 0.001)
+        assert_equal_with_error(stat.net_apy, Decimal("0.01970"), 0.001)
+
+        assert_equal_with_error(stat.net_value, Decimal("102.64"), 0.001)
+
+        # net_apy=Decimal('0.01683792283834931728886791969'))
+
+    def test_data(self):
+        market = AaveV3Market(MarketInfo("aave_test", MarketTypeEnum.aave_v3), "aave_risk_parameters/demo.csv")
+        start = datetime(2023, 10, 1, 0, 0)
+        data_size = 10
+        df_index = pd.date_range(start, start + timedelta(minutes=data_size - 1), freq="1min")
+        token_data = {
+            "liquidity_rate": np.zeros(shape=data_size),
+            "stable_borrow_rate": np.zeros(shape=data_size),
+            "variable_borrow_rate": np.zeros(shape=data_size),
+            "liquidity_index": np.zeros(shape=data_size),
+            "variable_borrow_index": np.zeros(shape=data_size),
+        }
+        token_df = pd.DataFrame(index=df_index, data=token_data)
+
+        market.set_token_data(usdt, token_df)
+        market.set_token_data(matic, token_df)
+
+        self.assertEqual(len(market.data.columns), 10)
+        self.assertEqual(len(market.data.index), 10)
+        self.assertTrue(("USDT", "liquidity_rate") in market.data.columns)
+        self.assertEqual(market.data[usdt.name]["liquidity_rate"].iloc[0], 0)
+        pass
+
+    def test_load_data(self):
+        market_key = MarketInfo("aave_test", MarketTypeEnum.aave_v3)
+        market = AaveV3Market(market_key, "./aave_risk_parameters/demo.csv")
+        market.data_path = "data"
+        market.load_data(ChainType.polygon, [weth], date(2023, 8, 14), date(2023, 8, 17))
+        self.assertEqual(len(market.data.index), 1440 * 4)
+        self.assertEqual(market.data.index[0].to_pydatetime(), datetime(2023, 8, 14, 0, 0))
+        self.assertEqual(market.data.index[1440 * 4 - 1].to_pydatetime(), datetime(2023, 8, 17, 23, 59))
+        self.assertIn(("WETH", "stable_borrow_rate"), market.data)
+        self.assertTrue(1 < market.data.iloc[0][weth.name]["liquidity_index"] < 1.1)
+        pass
+
+    def get_test_market(self):
+        market_key = MarketInfo("aave_test", MarketTypeEnum.aave_v3)
+        market = AaveV3Market(market_key, "aave_risk_parameters/demo.csv", tokens=[weth])
+        t = datetime(2023, 8, 1)
+        price_series = pd.Series(data=[Decimal(1000), Decimal(1)], index=[weth.name, dai.name])
+        iterables = [
+            [weth.name, dai.name],
+            [
+                "liquidity_rate",
+                "stable_borrow_rate",
+                "variable_borrow_rate",
+                "liquidity_index",
+                "variable_borrow_index",
+            ],
+        ]
+
+        index = pd.MultiIndex.from_product(iterables)
+        pool_stat = MarketStatus(t)
+        pool_stat.data = pd.Series(
+            index=index,
+            data=[
+                Decimal("0.05"),
+                Decimal("0.1"),
+                Decimal("0.08"),
+                Decimal("1.6"),
+                Decimal("1"),
+                Decimal("0.08"),
+                Decimal("0.12"),
+                Decimal("0.1"),
+                Decimal("1.6"),
+                Decimal("1.6"),
+            ],
+        )
+        market.set_market_status(data=pool_stat, price=price_series)
+        amount = Decimal(5)
+        broker = Broker()
+        broker.set_balance(weth, amount)
+        market.broker = broker
+        return market_key, market, broker, price_series
+
+    def test_supply(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        amount = broker.get_token_balance(weth)
+        market.supply(weth, amount, False)
+
+        self.assertEqual(len(market._supplies), 1)
+        self.assertEqual(
+            market._supplies[weth].base_amount, amount / market.market_status.data[weth.name].liquidity_index
+        )
+        self.assertEqual(broker.get_token_balance(weth), 0)
+
+        self.assertEqual(market.supplies[weth].amount, amount)
+        self.assertEqual(market.supplies[weth].value, amount * price_series[weth.name])
+        self.assertEqual(market.supplies[weth].collateral, False)
+        self.assertEqual(market.total_supply_value, amount * price_series[weth.name])
+        pass
+
+    def test_supply_to_the_same(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market.supply(weth, Decimal(1), False)
+        market.supply(weth, Decimal(4), False)
+
+        self.assertEqual(len(market._supplies), 1)
+        self.assertEqual(
+            market._supplies[weth].base_amount, Decimal(5) / market.market_status.data[weth.name].liquidity_index
+        )
+        self.assertEqual(broker.get_token_balance(weth), 0)
+
+        pass
+
+    def test_collateral(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        amount = broker.get_token_balance(weth)
+
+        market.supply(weth, amount, True)
+
+        self.assertEqual(len(market._supplies), 1)
+        self.assertEqual(
+            market._supplies[weth].base_amount, Decimal(5) / market.market_status.data[weth.name].liquidity_index
+        )
+        self.assertEqual(market._supplies[weth].collateral, True)
+
+        self.assertEqual(broker.get_token_balance(weth), 0)
+
+        collaterals = market.collateral_value
+        value = Decimal(5) * price_series[weth.name]
+        self.assertEqual(collaterals[weth], value)
+        self.assertEqual(market.total_collateral_value, value)
+
+    def test_different_collateral(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        try:
+            supply_key = market.supply(weth, Decimal(1), True)
+            supply_key = market.supply(weth, Decimal(1), False)
+        except AssertionError as e:
+            self.assertTrue("Collateral different from existing supply" in str(e))
+
+    def test_supply_with_float(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market.supply(weth, 1.2345, True)
+        self.assertEqual(market.supplies[weth].amount, Decimal("1.2345"))
+
+    def test_withdraw(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        amount = broker.get_token_balance(weth)
+
+        market.supply(weth, amount, True)
+        market.withdraw(weth, 5)
+        self.assertEqual(broker.get_token_balance(weth), amount)
+        self.assertTrue(weth not in market._supplies)
+
+        market.supply(weth, amount, True)
+        market.withdraw(weth, 2)
+        self.assertEqual(broker.get_token_balance(weth), Decimal(2))
+        self.assertEqual(market.supplies[weth].amount, Decimal(3))
+        self.assertEqual(market.supplies[weth].base_amount, Decimal("1.875"))
+        pass
+
+    def test_max_withdraw(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        market.supply(weth, Decimal("5"), True)
+        market.borrow(dai, 3300)
+        max_withdraw = market.get_max_withdraw_amount(weth)
+        self.assertEqual(max_withdraw, Decimal(1))
+        market.withdraw(weth, max_withdraw)
+        self.assertEqual(market.health_factor, Decimal(1))
+        pass
+
+    def test_withdraw_too_much(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        amount = broker.get_token_balance(weth)
+
+        market.supply(weth, amount, True)
+        try:
+            market.withdraw(weth, 6)
+        except AssertionError as e:
+            self.assertIn("not enough available user balance", str(e))
+
+        market.borrow(dai, 3300)
+        max_withdraw = market.get_max_withdraw_amount(weth)
+        try:
+            market.withdraw(weth, max_withdraw * Decimal(1.01))
+        except AssertionError as e:
+            self.assertIn("health factor lower than liquidation threshold", str(e))
+            self.assertEqual(market.supplies[weth].amount, amount)
+
+    def test_borrow(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        amount = broker.get_token_balance(weth)
+
+        market.supply(weth, amount, True)
+        market.borrow(dai, 1000)
+
+        self.assertEqual(market.borrows[dai].amount, 1000)
+        self.assertEqual(market.borrows[dai].base_amount, 625)
+        self.assertEqual(market.health_factor, Decimal("4.125"))
+        self.assertEqual(market.max_ltv, Decimal("0.8"))
+        pass
+
+    def test_borrow_too_much(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        amount = broker.get_token_balance(weth)
+
+        supply_key = market.supply(weth, amount, True)
+        try:
+            borrow_key = market.borrow(dai, 5000)
+        except AssertionError as e:
+            self.assertIn("collateral cannot cover new borrow", str(e))
+
+    def test_borrow_stable(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        amount = broker.get_token_balance(weth)
+
+        supply_key = market.supply(weth, amount, True)
+        try:
+            borrow_key = market.borrow(weth, 0.1)
+        except DemeterError as e:
+            self.assertIn("borrows at a stable rate were halted", str(e))
+        pass
+
+    def test_repay(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        amount = broker.get_token_balance(weth)
+
+        market.supply(weth, amount, True)
+        market.borrow(dai, 1000)
+        self.assertEqual(broker.get_token_balance(dai), Decimal(1000))
+        repay_amount = market.get_max_repay_amount(dai)
+
+        try:
+            market.repay(dai, repay_amount + 1)
+        except AssertionError as e:
+            self.assertIn("amount exceed debt", str(e))
+
+        market.repay(dai, repay_amount)
+        self.assertEqual(len(market._borrows), Decimal(0))
+        self.assertEqual(broker.get_token_balance(dai), Decimal(0))
+        pass
+
+    def test_repay_with_collateral(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        amount = broker.get_token_balance(weth)
+
+        market.supply(weth, amount, True)
+        market.borrow(dai, 1000)
+        self.assertEqual(broker.get_token_balance(dai), Decimal(1000))
+        repay_amount = market.get_max_repay_amount(dai)
+
+        market.repay(dai, repay_amount, repay_with_collateral=True, repay_collateral_token=weth)
+        self.assertEqual(len(market._borrows), Decimal(0))
+        self.assertEqual(broker.get_token_balance(dai), Decimal(1000))
+        self.assertEqual(market.supplies[weth].amount, Decimal(4))
+        pass
+
+    def test_repay_with_collateral_in_all_token_supply(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        broker.set_balance(dai, 1000)
+        market: AaveV3Market = market
+        amount = broker.get_token_balance(weth)
+
+        market.supply(weth, 1, True)
+        market.supply(dai, 1000, True)
+
+        borrow_dai = market.borrow(dai, 1500)
+        self.assertEqual(broker.get_token_balance(dai), Decimal(1500))
+        self.assertEqual(market.supplies[weth].amount, Decimal(1))
+        self.assertEqual(market.supplies[dai].amount, Decimal(1000))
+        self.assertEqual(market.borrows[dai].amount, Decimal(1500))
+
+        market.repay(dai, 1500, repay_with_collateral=True, repay_collateral_token=weth)
+
+        self.assertEqual(broker.get_token_balance(dai), Decimal(1500))
+        self.assertTrue(weth not in market.supplies)
+        self.assertEqual(market.supplies[dai].amount, Decimal(1000))
+        self.assertEqual(market.borrows[dai].amount, Decimal(500))
+        pass
+
+    def test_max_borrow(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+
+        market.supply(weth, Decimal(1), True)
+        max_borrow = market.get_max_borrow_amount(weth)
+        self.assertEqual(max_borrow, Decimal("0.792"))
+        try:
+            market.borrow(weth, max_borrow / Decimal(0.99))
+        except AssertionError as e:
+            self.assertIn("collateral cannot cover new borrow", str(e))
+
+    def test_change_collateral(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+
+        market.supply(weth, Decimal(3), False)
+        market.change_collateral(False, weth)
+        self.assertEqual(market._supplies[weth].collateral, False)
+
+        market.change_collateral(True, weth)
+        self.assertEqual(market._supplies[weth].collateral, True)
+
+        market.borrow(dai, 1000)
+        hf_old = market.health_factor
+        try:
+            market.change_collateral(False, weth)
+        except AssertionError as e:
+            self.assertIn("health factor lower than liquidation threshold", str(e))
+        self.assertEqual(hf_old, market.health_factor)
+
+        market.repay(dai, 1000)
+        market.change_collateral(False, weth)
+        self.assertEqual(market._supplies[weth].collateral, False)
+
+    def test_liquidate_half(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        market.supply(weth, Decimal("4.2"), True)
+        market.borrow(dai, 3300)
+        self.assertEqual(market.health_factor, Decimal("1.05"))
+        market.update()  # trigger liquidate, nothing will happen as hf > 1
+
+        t = datetime(2023, 8, 1, 1)
+        price_series = pd.Series(data=[Decimal(920), Decimal(1)], index=[weth.name, dai.name])
+        old_market_status = market.market_status
+        market.set_market_status(
+            data=MarketStatus(timestamp=t, data=old_market_status.data),
+            price=price_series,
+        )
+        self.assertEqual(market.health_factor, Decimal("0.966"))
+        market.update()  # trigger again
+
+        self.assertEqual(market.health_factor.quantize(Decimal("0.000000001")), Decimal("1.06575"))
+        # 920 * (4.2 - 1650/920*1.05)
+        # collateral_price * collateral_amount  - half_debt_amount * delt_price * (1 + liq_bones))
+        self.assertEqual(market.supplies[weth].value.quantize(Decimal("0.000000001")), Decimal("2131.5"))
+        self.assertEqual(market.borrows[dai].value, Decimal("1650"))  # 3300 - 3300/2, delt - liquidated
+
+        pass
+
+    def test_liquidate_all(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        market.supply(weth, Decimal("4.2"), True)
+        market.borrow(dai, 3300)
+        self.assertEqual(market.health_factor, Decimal("1.05"))
+        market.update()  # trigger liquidate, nothing will happen as hf > 1
+
+        t = datetime(2023, 8, 1, 1)
+        price_series = pd.Series(data=[Decimal(900), Decimal(1)], index=[weth.name, dai.name])
+        old_market_status = market.market_status
+        market.set_market_status(
+            data=MarketStatus(timestamp=t, data=old_market_status.data),
+            price=price_series,
+        )
+        self.assertEqual(market.health_factor, Decimal("0.945"))
+        market.update()  # trigger again
+
+        self.assertEqual(market.health_factor, Decimal("inf"))
+
+        self.assertEqual(market.supplies[weth].value, Decimal("315"))
+        self.assertEqual(len(market.borrows), 0)
+
+        pass
+
+    def test_liquidate_all_collateral_but_still_have_delt(self):
+        market_key, market, broker, price_series = self.get_test_market()
+        market: AaveV3Market = market
+        market.supply(weth, Decimal("4.2"), True)
+        market.borrow(dai, 3300)
+        self.assertEqual(market.health_factor, Decimal("1.05"))
+        market.update()  # trigger liquidate, nothing will happen as hf > 1
+
+        t = datetime(2023, 8, 1, 1)
+        price_series = pd.Series(data=[Decimal(800), Decimal(1)], index=[weth.name, dai.name])
+        old_market_status = market.market_status
+        market.set_market_status(
+            data=MarketStatus(timestamp=t, data=old_market_status.data),
+            price=price_series,
+        )
+        self.assertEqual(market.health_factor, Decimal("0.84"))
+        market.update()  # trigger again
+
+        self.assertEqual(market.health_factor, Decimal("0"))
+
+        self.assertNotIn(weth, market.supplies)
+        self.assertEqual(market.borrows[dai].value, Decimal("100"))  # 3300 - 3300/2, delt - liquidated
+
+        pass
