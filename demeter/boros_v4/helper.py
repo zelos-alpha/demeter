@@ -178,20 +178,31 @@ def _decode_findex_updated(raw_data: str) -> dict[str, Decimal | pd.Timestamp]:
     words = _hex_words(raw_data)
     if len(words) < 2:
         raise DemeterError("findex_updated payload is too short")
-    payload = raw_data[2:] if raw_data.startswith("0x") else raw_data
-    latest_f_time = pd.Timestamp(int(payload[:8], 16), unit="s")
+    # Official Boros layout:
+    # FIndex = bytes26(uint32 fTime | int112 floatingIndex | uint64 feeIndex)
+    # Event payload = abi.encode(FIndex newIndex, uint32 newFTag)
+    raw_index = words[0][:52]
+    latest_f_time = pd.Timestamp(int(raw_index[:8], 16), unit="s")
+    floating_index_raw = int(raw_index[8:36], 16)
+    if floating_index_raw >= 1 << 111:
+        floating_index_raw -= 1 << 112
+    fee_index_raw = int(raw_index[36:52], 16)
     return {
         "latest_f_time": latest_f_time,
-        "findex_sequence": Decimal(int(payload[-8:], 16)),
+        "floating_index": Decimal(floating_index_raw) / SIZE_SCALE,
+        "fee_index": Decimal(fee_index_raw) / SIZE_SCALE,
+        "findex_sequence": Decimal(int(words[1], 16)),
     }
 
 
 def _build_findex_frame(event_ledger: pd.DataFrame) -> pd.DataFrame:
     findex_events = event_ledger.loc[event_ledger["event_type"] == "findex_updated", ["timestamp", "raw_data"]].copy()
     if len(findex_events.index) == 0:
-        return pd.DataFrame(columns=["timestamp", "latest_f_time", "findex_sequence"])
+        return pd.DataFrame(columns=["timestamp", "latest_f_time", "floating_index", "fee_index", "findex_sequence"])
     decoded = findex_events["raw_data"].apply(_decode_findex_updated)
     findex_events["latest_f_time"] = decoded.apply(lambda item: item["latest_f_time"])
+    findex_events["floating_index"] = decoded.apply(lambda item: item["floating_index"])
+    findex_events["fee_index"] = decoded.apply(lambda item: item["fee_index"])
     findex_events["findex_sequence"] = decoded.apply(lambda item: item["findex_sequence"])
     return findex_events.sort_values("timestamp").reset_index(drop=True)
 
@@ -326,67 +337,58 @@ def _build_state_frame(
     maturity_ts = _normalize_maturity(maturity)
     start_timestamp = min(event_ledger["timestamp"].min(), trade_ledger["latest_f_time"].min())
     findex_events = _build_findex_frame(event_ledger).drop_duplicates(subset=["latest_f_time"]).sort_values("latest_f_time")
-    fee_events = event_ledger.loc[event_ledger["event_type"] == "fee_rate_updated", ["timestamp", "raw_data"]].sort_values("timestamp")
-
-    boundaries = [start_timestamp]
-    boundaries.extend(list(findex_events["latest_f_time"]))
-    boundaries = sorted(set(boundaries))
-    settlement_fee_rate = Decimal(default_opening_fee_rate)
-    fee_event_iter = list(fee_events.itertuples())
-    fee_pointer = 0
-    if len(trade_ledger.index) > 0:
-        window_trade_rows: list[dict] = []
-        for latest_f_time, group in trade_ledger.groupby("latest_f_time", sort=True):
-            window_trade_rows.append(
+    if len(findex_events.index) == 0:
+        return pd.DataFrame(
+            [
                 {
-                    "latest_f_time": latest_f_time,
-                    "window_abs_size_total": sum(group["abs_size_total"], Decimal(0)),
-                    "window_weighted_rate_sum": sum(
-                        (row.abs_size_total * row.implied_rate for row in group.itertuples()),
-                        Decimal(0),
-                    ),
+                    "latest_f_time_timestamp": start_timestamp,
+                    "latest_f_time": start_timestamp,
+                    "floating_index": Decimal(0),
+                    "fee_index": Decimal(0),
+                    "findex_sequence": Decimal(0),
+                    "settlement_fee_rate_annualized_proxy": Decimal(default_opening_fee_rate),
+                    "settlement_fee_rate_annualized_actual": Decimal(default_opening_fee_rate),
+                    "time_to_maturity_seconds": max(0, int((maturity_ts - start_timestamp).total_seconds())),
                 }
-            )
-        window_trade_stats = pd.DataFrame(window_trade_rows)
-    else:
-        window_trade_stats = pd.DataFrame(columns=["latest_f_time", "window_abs_size_total", "window_weighted_rate_sum"])
-    window_rate_map = {}
-    for row in window_trade_stats.itertuples():
-        window_rate_map[row.latest_f_time] = (
-            row.window_weighted_rate_sum / row.window_abs_size_total if row.window_abs_size_total else Decimal(0)
+            ]
         )
-    current_rate = window_rate_map.get(start_timestamp, Decimal(0))
-    floating_index = Decimal(0)
-    fee_index = Decimal(0)
+
     rows: list[dict] = []
-
-    for index, boundary in enumerate(boundaries):
-        while fee_pointer < len(fee_event_iter) and fee_event_iter[fee_pointer].timestamp <= boundary:
-            raw_words = _hex_words(fee_event_iter[fee_pointer].raw_data)
-            if raw_words:
-                settlement_fee_rate = _parse_unsigned_256(raw_words[0]) / SIZE_SCALE
-            fee_pointer += 1
-
+    prev_row = None
+    if findex_events.iloc[0]["latest_f_time"] > start_timestamp:
         rows.append(
             {
-                "latest_f_time_timestamp": boundary,
-                "floating_index": floating_index,
-                "fee_index": fee_index,
-                "settlement_fee_rate_annualized_proxy": settlement_fee_rate,
-                "time_to_maturity_seconds": max(0, int((maturity_ts - boundary).total_seconds())),
+                "latest_f_time_timestamp": start_timestamp,
+                "latest_f_time": start_timestamp,
+                "floating_index": Decimal(0),
+                "fee_index": Decimal(0),
+                "findex_sequence": Decimal(0),
+                "settlement_fee_rate_annualized_proxy": Decimal(default_opening_fee_rate),
+                "settlement_fee_rate_annualized_actual": Decimal(default_opening_fee_rate),
+                "time_to_maturity_seconds": max(0, int((maturity_ts - start_timestamp).total_seconds())),
             }
         )
 
-        next_boundary = boundaries[index + 1] if index + 1 < len(boundaries) else None
-        if next_boundary is None:
-            continue
-        window_rate = window_rate_map.get(boundary)
-        if window_rate is not None:
-            current_rate = window_rate
-        delta_seconds = int((next_boundary - boundary).total_seconds())
-        if delta_seconds > 0:
-            floating_index += current_rate * Decimal(delta_seconds) / Decimal(PMath.ONE_YEAR)
-            fee_index += settlement_fee_rate * Decimal(delta_seconds) / Decimal(PMath.ONE_YEAR)
+    for row in findex_events.itertuples():
+        actual_fee_rate = Decimal(default_opening_fee_rate)
+        if prev_row is not None:
+            delta_seconds = int((row.latest_f_time - prev_row.latest_f_time).total_seconds())
+            delta_fee_index = row.fee_index - prev_row.fee_index
+            if delta_seconds > 0:
+                actual_fee_rate = delta_fee_index * Decimal(PMath.ONE_YEAR) / Decimal(delta_seconds)
+        rows.append(
+            {
+                "latest_f_time_timestamp": row.latest_f_time,
+                "latest_f_time": row.latest_f_time,
+                "floating_index": row.floating_index,
+                "fee_index": row.fee_index,
+                "findex_sequence": row.findex_sequence,
+                "settlement_fee_rate_annualized_proxy": actual_fee_rate,
+                "settlement_fee_rate_annualized_actual": actual_fee_rate,
+                "time_to_maturity_seconds": max(0, int((maturity_ts - row.latest_f_time).total_seconds())),
+            }
+        )
+        prev_row = row
 
     return pd.DataFrame(rows).sort_values("latest_f_time_timestamp").reset_index(drop=True)
 
@@ -481,6 +483,9 @@ def load_boros_event_data(
     data["fee_index"] = list(merged_state["fee_index"].fillna(Decimal(0)))
     data["settlement_fee_rate_annualized_proxy"] = list(
         merged_state["settlement_fee_rate_annualized_proxy"].fillna(Decimal(default_opening_fee_rate))
+    )
+    data["settlement_fee_rate_annualized_actual"] = list(
+        merged_state["settlement_fee_rate_annualized_actual"].fillna(Decimal(default_opening_fee_rate))
     )
     data["opening_fee_rate_annualized_proxy"] = opening_fee_rates
 

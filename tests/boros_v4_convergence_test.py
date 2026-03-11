@@ -51,9 +51,23 @@ def _encode_swap(size: Decimal, trade_value: Decimal, fee_value: Decimal = Decim
     return "0x" + "".join([_encode_signed(size_raw, 256), _encode_signed(value_raw, 256), f"{fee_raw:064x}"])
 
 
-def _encode_dummy_findex(latest_f_time: datetime, sequence: int = 0) -> str:
+def _encode_dummy_findex(
+    latest_f_time: datetime,
+    floating_index: Decimal = Decimal("0"),
+    fee_index: Decimal = Decimal("0"),
+    sequence: int = 0,
+) -> str:
     ts = int(latest_f_time.replace(tzinfo=timezone.utc).timestamp())
-    return "0x" + f"{ts:08x}" + "0" * 112 + f"{sequence:08x}"
+    floating_raw = int(floating_index * Decimal("1e18"))
+    if floating_raw < 0:
+        floating_raw += 1 << 112
+    fee_raw = int(fee_index * Decimal("1e18"))
+    return "0x" + "".join(
+        [
+            f"{ts:08x}{floating_raw:028x}{fee_raw:016x}" + "0" * 12,
+            f"{sequence:064x}",
+        ]
+    )
 
 
 def _trade_value_for_rate(rate: Decimal, pricing_timestamp: datetime, maturity: datetime, size: Decimal = Decimal("1")) -> Decimal:
@@ -122,7 +136,12 @@ def _build_dual_market_fixture(root: Path):
                     "transaction_hash": f"0x{market_key[:6]}fidx{index:02d}",
                     "address": market_address,
                     "log_index": 90 + index,
-                    "data": _encode_dummy_findex(timestamp.replace(tzinfo=None), sequence=2 * index + 1),
+                    "data": _encode_dummy_findex(
+                        timestamp.replace(tzinfo=None),
+                        floating_index=Decimal("0.0001") * Decimal(index),
+                        fee_index=Decimal("0.00001") * Decimal(index),
+                        sequence=2 * index + 1,
+                    ),
                     "topics": str([F_INDEX_TOPIC]),
                 }
                 for index, timestamp in enumerate(timestamps, start=1)
@@ -165,9 +184,14 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         self.assertIn("latest_f_time", data.columns)
         self.assertIn("latest_f_time_to_maturity_seconds", data.columns)
         self.assertIn("settlement_fee_rate_annualized_proxy", data.columns)
+        self.assertIn("settlement_fee_rate_annualized_actual", data.columns)
         self.assertEqual(len(event_ledger.index), 12)
         self.assertEqual(len(tx_ledger.index), 8)
         self.assertGreater(tx_ledger.iloc[0]["opening_fee_rate_annualized"], Decimal(0))
+        self.assertEqual(data.iloc[0]["floating_index"], Decimal("0.0001"))
+        self.assertEqual(data.iloc[0]["fee_index"], Decimal("0.00001"))
+        self.assertEqual(data.iloc[1]["floating_index"], Decimal("0.0002"))
+        self.assertEqual(data.iloc[1]["fee_index"], Decimal("0.00002"))
         self.assertEqual(data.iloc[-1]["latest_f_time"], pd.Timestamp("2026-01-21 09:03:00"))
         self.assertEqual(tx_ledger.iloc[-1]["latest_f_time"], pd.Timestamp("2026-01-21 09:02:00"))
 
