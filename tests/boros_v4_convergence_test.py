@@ -13,7 +13,11 @@ from demeter import Actuator, MarketInfo, MarketTypeEnum, USD
 from demeter.boros_v4 import (
     BorosExecutionMode,
     BorosMarket,
+    FixedFloatDirection,
     FundingConvergenceStrategy,
+    Side,
+    TimeInForce,
+    Trade,
     export_convergence_result,
     load_binance_funding_history,
     load_boros_event_data,
@@ -176,6 +180,7 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         )
         self.assertEqual(len(trade_ledger.index), 8)
         self.assertGreater(trade_ledger.iloc[0]["implied_rate"], Decimal("0.04"))
+        self.assertEqual(trade_ledger.iloc[0]["trade_side"], "LONG")
 
         data, event_ledger, tx_ledger = load_boros_event_data(
             event_dir=str(self.root),
@@ -197,6 +202,7 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         self.assertEqual(data.iloc[1]["fee_index"], Decimal("0.00002"))
         self.assertEqual(data.iloc[-1]["latest_f_time"], pd.Timestamp("2026-01-21 09:03:00"))
         self.assertEqual(tx_ledger.iloc[-1]["latest_f_time"], pd.Timestamp("2026-01-21 09:02:00"))
+        self.assertEqual(tx_ledger.iloc[0]["trade_side"], "LONG")
 
     def test_funding_convergence_strategy_runs(self):
         market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)
@@ -253,6 +259,9 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         self.assertIn("gross_pnl_before_explicit_costs", summary)
         self.assertIn("total_opening_fees", summary)
         self.assertIn("total_settlement_fees", summary)
+        self.assertEqual(summary["settlement_index_model"], "decoded_findex")
+        self.assertEqual(summary["mark_rate_model"], "trade_vwap_proxy")
+        self.assertEqual(summary["protocol_alignment_mode"], "experimental_taker_only")
         self.assertGreaterEqual(Decimal(summary["total_explicit_costs"]), Decimal(summary["total_execution_fees"]))
         self.assertEqual(
             Decimal(summary["total_explicit_costs"]),
@@ -355,6 +364,16 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         self.assertIn("annualized_rate", hyperliquid.columns)
         self.assertGreater(len(binance.index), 0)
         self.assertGreater(len(hyperliquid.index), 0)
+
+    def test_protocol_primitives_alignment(self):
+        self.assertEqual(FixedFloatDirection.PAY_FIXED.to_side(), Side.LONG)
+        self.assertEqual(FixedFloatDirection.RECEIVE_FIXED.to_side(), Side.SHORT)
+        self.assertEqual(FixedFloatDirection.from_side(Side.LONG), FixedFloatDirection.PAY_FIXED)
+        self.assertEqual(FixedFloatDirection.from_side(Side.SHORT), FixedFloatDirection.RECEIVE_FIXED)
+        self.assertEqual(TimeInForce.GTC.name, "GTC")
+        trade = Trade.from3(Side.LONG, Decimal("2"), Decimal("0.05"))
+        self.assertEqual(trade.signed_size, Decimal("2"))
+        self.assertEqual(trade.side(), Side.LONG)
 
     def test_funding_convergence_edge_gate_blocks_entries(self):
         market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)

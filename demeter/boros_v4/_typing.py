@@ -1,9 +1,11 @@
 from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import IntEnum
-from typing import Tuple, List
-from .AMM import AMM
-from .Trade import Trade
+from typing import TYPE_CHECKING, List, Tuple
+
+if TYPE_CHECKING:
+    from .AMM import AMM
+    from .Trade import Trade
 
 
 class TimeInForce(IntEnum):
@@ -167,7 +169,7 @@ class OrderId:
 
 @dataclass
 class OrderReq:
-    amm: AMM
+    amm: "AMM"
     side: Side
     tif: TimeInForce
     size: Decimal
@@ -287,7 +289,7 @@ class Stage(IntEnum):
 
 @dataclass
 class OTCTrade:
-    trade: Trade
+    trade: "Trade"
     cash_to_counter: Decimal
 
 

@@ -10,6 +10,7 @@ from .._typing import DemeterError, USD, TokenInfo
 from ..broker import ActionTypeEnum, BaseAction, Market, MarketBalance, MarketInfo, MarketStatus, write_func
 from ..utils import ForColorEnum, get_formatted_from_dict, get_formatted_predefined, require, STYLE
 from ..utils.console_text import get_action_str
+from ._typing import Side
 from .PaymentLib import FIndex, PaymentLib, SettlementBreakdown
 from .helper import get_price_from_data, load_boros_data, load_boros_event_data, load_boros_tx_ledger
 
@@ -21,6 +22,20 @@ class FixedFloatDirection(Enum):
     @property
     def sign(self) -> int:
         return 1 if self == FixedFloatDirection.PAY_FIXED else -1
+
+    def to_side(self) -> Side:
+        """
+        Protocol-level Boros side mapping.
+
+        In Boros/YU terms:
+        - LONG pays fixed upfront and receives floating
+        - SHORT receives fixed upfront and pays floating
+        """
+        return Side.LONG if self == FixedFloatDirection.PAY_FIXED else Side.SHORT
+
+    @staticmethod
+    def from_side(side: Side) -> "FixedFloatDirection":
+        return FixedFloatDirection.PAY_FIXED if side == Side.LONG else FixedFloatDirection.RECEIVE_FIXED
 
 
 @dataclass
@@ -198,7 +213,8 @@ class BorosMarket(Market):
 
     @staticmethod
     def _notional_to_signed_size_wad(notional: Decimal, direction: FixedFloatDirection) -> int:
-        return PaymentLib.decimal_to_wad(notional * Decimal(direction.sign))
+        signed_notional = direction.to_side().to_signed_size(Decimal(notional))
+        return PaymentLib.decimal_to_wad(signed_notional)
 
     def _position_value_breakdown(
         self,

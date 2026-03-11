@@ -11,6 +11,7 @@ import pandas as pd
 from .._typing import DemeterError
 from ..utils import to_decimal
 from .PMath import PMath
+from ._typing import Side
 
 SIZE_SCALE = Decimal("1e18")
 TRADE_VALUE_SCALE = Decimal("1e19")
@@ -193,6 +194,10 @@ def _classify_topic(source_kind: str, topic0: str) -> str:
     return mapping.get(topic0, "unknown")
 
 
+def _side_from_signed_size(signed_size: Decimal) -> Side:
+    return Side.LONG if signed_size >= 0 else Side.SHORT
+
+
 def _normalize_market_key(file_stem: str, source_kind: str) -> str:
     parts = file_stem.split("-")
     if len(parts) >= 4 and all(part.isdigit() for part in parts[-3:]):
@@ -373,6 +378,7 @@ def _build_decoded_trade_rows(event_ledger: pd.DataFrame, maturity: date | datet
                 "signed_trade_value": signed_trade_value,
                 "abs_trade_value": abs(signed_trade_value),
                 "fee_paid": fee_paid,
+                "trade_side": _side_from_signed_size(signed_size).name,
                 "implied_rate": implied_rate,
                 "opening_fee_rate_annualized": opening_fee_rate_annualized,
                 "time_to_maturity_seconds": time_to_mat,
@@ -409,6 +415,7 @@ def _build_event_tx_ledger(trade_ledger: pd.DataFrame) -> pd.DataFrame:
                 "signed_trade_value": sum(group["signed_trade_value"], Decimal(0)),
                 "abs_trade_value": abs_trade_value,
                 "fee_paid": sum(group["fee_paid"], Decimal(0)),
+                "trade_side": _side_from_signed_size(sum(group["signed_size_net"], Decimal(0))).name,
                 "trade_rate_vwap": weighted_sum / abs_size_total if abs_size_total else Decimal(0),
                 "implied_rate": weighted_sum / abs_size_total if abs_size_total else Decimal(0),
                 "opening_fee_rate_annualized": weighted_opening_fee_sum / abs_size_total if abs_size_total else Decimal(0),
@@ -677,6 +684,7 @@ def load_boros_tx_ledger(
                 "signed_size_net": sum(group["size"], Decimal(0)),
                 "abs_size_total": abs_size_total,
                 "signed_trade_value": sum((size * rate for size, rate in zip(group["size"], group["rate"])), Decimal(0)),
+                "trade_side": _side_from_signed_size(sum(group["size"], Decimal(0))).name,
                 "trade_rate_first": group["rate"].iloc[0],
                 "trade_rate_last": group["rate"].iloc[-1],
                 "trade_rate_vwap": weighted_sum / abs_size_total if abs_size_total else group["rate"].iloc[-1],

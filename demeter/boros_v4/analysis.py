@@ -153,6 +153,10 @@ def summarize_backtest(actuator: Actuator, strategy: FundingConvergenceStrategy,
         "total_explicit_costs": str(total_explicit_costs),
         "gross_pnl_before_explicit_costs": str(gross_pnl_before_explicit_costs),
         "total_perp_funding_pnl": str(getattr(strategy, "total_perp_funding_pnl", Decimal(0))),
+        "execution_model": strategy.execution_mode.value,
+        "settlement_index_model": "decoded_findex",
+        "mark_rate_model": "trade_vwap_proxy",
+        "protocol_alignment_mode": "experimental_taker_only",
     }
     return summary
 
@@ -205,6 +209,10 @@ def export_convergence_result(
         f"- total_explicit_costs: {summary['total_explicit_costs']}",
         f"- gross_pnl_before_explicit_costs: {summary['gross_pnl_before_explicit_costs']}",
         f"- total_perp_funding_pnl: {summary['total_perp_funding_pnl']}",
+        f"- execution_model: {summary['execution_model']}",
+        f"- settlement_index_model: {summary['settlement_index_model']}",
+        f"- mark_rate_model: {summary['mark_rate_model']}",
+        f"- protocol_alignment_mode: {summary['protocol_alignment_mode']}",
         "",
         "## Markets",
     ]

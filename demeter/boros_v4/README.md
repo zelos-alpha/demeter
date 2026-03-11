@@ -38,6 +38,34 @@ Not supported yet:
 - liquidation or margin simulation for external perp venues
 - protocol-perfect settlement fee oracle replay
 
+## Protocol alignment notes
+
+The current implementation intentionally follows several protocol-level Boros
+practices:
+
+- `latestFTime` is used as the time-to-maturity basis for trade recovery and
+  settlement
+- `floating_index` and `fee_index` are decoded from `FIndexUpdated` events
+- fixed-float direction is aligned to Boros `Side`
+  - `PAY_FIXED -> LONG`
+  - `RECEIVE_FIXED -> SHORT`
+- the public API now exposes Boros-side protocol primitives:
+  - `Side`
+  - `TimeInForce`
+  - `Trade`
+  - `Fill`
+
+Known gaps against full protocol behavior:
+
+- `mark_rate` in current backtests is still a traded implied-rate proxy built
+  from decoded fills, not the exact protocol `markRateView` / oracle-derived
+  mark rate
+- the engine is still `taker-only`; maker zero-fee behavior is therefore not
+  modeled yet
+- settlement fee configuration is recovered from decoded index movement, not
+  directly from full oracle config state
+- external perp legs are cashflow-only in the four-leg experimental sample
+
 ## Sample strategies
 
 Two sample scripts are the recommended entry points.

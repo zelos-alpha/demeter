@@ -15,6 +15,32 @@ centralized-exchange replay.
 - Four-leg style experiments where Boros legs are combined with synthetic perp
   funding cashflows
 
+## Protocol alignment
+
+The current Boros engine already aligns several protocol-critical details:
+
+- `latestFTime` is the basis for time-to-maturity in trade recovery and
+  settlement
+- `floating_index` and `fee_index` are recovered from Boros `FIndexUpdated`
+  events
+- fixed-float directions are aligned with Boros side semantics
+  - `PAY_FIXED -> LONG`
+  - `RECEIVE_FIXED -> SHORT`
+- Boros-side protocol primitives are exposed in Python:
+  - `Side`
+  - `TimeInForce`
+  - `Trade`
+  - `Fill`
+
+Important remaining gap:
+
+- the current `mark_rate` used by the backtests is a decoded traded-rate proxy,
+  not the full protocol `markRateView` implementation from an orderbook
+  observation window
+
+That means settlement is materially closer to protocol behavior than before,
+but execution and mark-rate estimation are still experimental.
+
 ## What is not supported yet
 
 - A standalone perp market inside Demeter
