@@ -59,6 +59,29 @@ class BorosV4BacktestTest(unittest.TestCase):
         self.assertNotEqual(realized, Decimal(0))
         self.assertEqual(len(market.positions), 1)
 
+    def test_execution_opening_fee_rate_overrides_proxy(self):
+        market = BorosMarket(MarketInfo("boros_demo", MarketTypeEnum.boros))
+        market.load_data(
+            trade_path=str(DEMO_TRADE_PATH),
+            log_path=str(DEMO_LOG_PATH),
+            venue="BINANCE",
+            maturity=date(2025, 7, 1),
+        )
+        price = pd.Series({"USD": Decimal(1)})
+        market.set_market_status(MarketStatus(pd.Timestamp("2025-07-01 00:00:00")), price)
+        status_data = market.market_status.data.copy()
+        status_data["opening_fee_rate_annualized_proxy"] = Decimal("100")
+        market.market_status.data = status_data
+
+        position = market.open_fixed_float(
+            Decimal("100"),
+            FixedFloatDirection.PAY_FIXED,
+            execution_fee_paid=Decimal(0),
+            execution_opening_fee_rate=Decimal(0),
+            execution_source="amm",
+        )
+        self.assertEqual(position.entry_opening_fee_cost, Decimal(0))
+
     def test_actuator_runs_simple_fixed_float_strategy(self):
         market = BorosMarket(MarketInfo("boros_demo", MarketTypeEnum.boros))
         market.load_data(

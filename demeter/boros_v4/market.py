@@ -288,6 +288,7 @@ class BorosMarket(Market):
         direction: FixedFloatDirection,
         fixed_rate: Decimal | None = None,
         execution_fee_paid: Decimal = Decimal(0),
+        execution_opening_fee_rate: Decimal | None = None,
         execution_timestamp: datetime | None = None,
         execution_tx_hash: str = "",
         execution_source: str = "",
@@ -300,9 +301,12 @@ class BorosMarket(Market):
         current_mark_rate = self._current_mark_rate()
         fixed_rate = current_mark_rate if fixed_rate is None else Decimal(fixed_rate)
         entry_time_to_mat = self._current_latest_f_time_to_maturity_seconds()
-        opening_fee_rate = Decimal(self.market_status.data.get("opening_fee_rate_annualized_proxy", Decimal(0)))
         entry_opening_fee_cost = Decimal(execution_fee_paid)
         if entry_opening_fee_cost <= 0:
+            if execution_opening_fee_rate is None:
+                opening_fee_rate = Decimal(self.market_status.data.get("opening_fee_rate_annualized_proxy", Decimal(0)))
+            else:
+                opening_fee_rate = Decimal(execution_opening_fee_rate)
             entry_opening_fee_cost = PaymentLib.wad_to_decimal(
                 PaymentLib.calc_floating_fee(
                     abs_size=PaymentLib.decimal_to_wad(abs(Decimal(notional))),
