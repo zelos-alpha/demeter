@@ -140,9 +140,18 @@ The Boros strategy layer currently supports these execution modes:
 - `BAR_APPROX`
 - `NEXT_TRADE`
 - `TX_REPLAY_BEST_EXEC`
+- `EVENT_REPLAY_FULL_PROTO`
 
-For Boros convergence research, `TX_REPLAY_BEST_EXEC` is the default and
-recommended mode.
+For Boros convergence research:
+
+- `TX_REPLAY_BEST_EXEC` is the stable experimental baseline
+- `EVENT_REPLAY_FULL_PROTO` is the current highest-fidelity mode
+
+Detailed mode guidance and comparison are documented in:
+
+- `samples/boros-backtest-modes/README.md`
+- `samples/boros-backtest-modes/CURRENT_COMPARISON.md`
+- `samples/boros-backtest-modes/RELEASE_GUIDANCE.md`
 
 ## Key outputs
 

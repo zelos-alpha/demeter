@@ -75,8 +75,8 @@ links
    market_squeeth
    market_gmx
    market_boros
+   market_boros_modes
    references
-
 
 
 

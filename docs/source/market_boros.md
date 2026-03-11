@@ -133,3 +133,7 @@ If your goal is parser and settlement validation, start with the two-leg sample.
 If your goal is research on Boros plus external funding carry, use the
 four-leg experimental sample and treat it as a costed research prototype, not a
 production-grade perp replay.
+
+For execution mode selection and current benchmark guidance, see:
+
+- `market_boros_modes`

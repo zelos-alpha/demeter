@@ -70,7 +70,14 @@ The Boros implementation currently supports:
 * Boros settlement recovery using `latestFTime`, `floating_index`, and
   `fee_index`
 * taker-only replay with `TX_REPLAY_BEST_EXEC`
+* higher-fidelity event replay with `EVENT_REPLAY_FULL_PROTO`
 * result exports including trade, settlement, spread, and perp funding ledgers
+
+Mode selection and current Boros engine comparison are documented in:
+
+* `samples/boros-backtest-modes/README.md`
+* `samples/boros-backtest-modes/CURRENT_COMPARISON.md`
+* `samples/boros-backtest-modes/RELEASE_GUIDANCE.md`
 
 Current limitations:
 
