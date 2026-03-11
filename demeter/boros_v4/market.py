@@ -12,6 +12,7 @@ from ..utils import ForColorEnum, get_formatted_from_dict, get_formatted_predefi
 from ..utils.console_text import get_action_str
 from ._typing import Side
 from .PaymentLib import FIndex, PaymentLib, SettlementBreakdown
+from .PMath import PMath
 from .helper import get_price_from_data, load_boros_data, load_boros_event_data, load_boros_tx_ledger
 
 
@@ -159,6 +160,7 @@ class BorosMarket(Market):
         self.event_ledger: pd.DataFrame = pd.DataFrame()
         self._consumed_execution_rows: set[int] = set()
         self._consumed_full_execution_rows: set[int] = set()
+        self._latest_f_time_to_maturity_cache: dict[pd.Timestamp, int] = {}
         self.mark_rate_column = "mark_rate"
 
     @staticmethod
@@ -213,6 +215,25 @@ class BorosMarket(Market):
         if self.market_status.data is not None and "latest_f_time_to_maturity_seconds" in self.market_status.data.index:
             return int(self.market_status.data["latest_f_time_to_maturity_seconds"])
         return self._current_time_to_maturity_seconds()
+
+    def _latest_f_time_to_maturity_seconds_asof(self, timestamp: datetime | pd.Timestamp) -> int:
+        ts = pd.Timestamp(timestamp)
+        cached = self._latest_f_time_to_maturity_cache.get(ts)
+        if cached is not None:
+            return cached
+        if self.data is None or len(self.data.index) == 0:
+            value = self._current_latest_f_time_to_maturity_seconds()
+            self._latest_f_time_to_maturity_cache[ts] = value
+            return value
+        eligible = self.data.loc[self.data.index <= ts]
+        if len(eligible.index) == 0:
+            value = int(self.data.iloc[0].get("latest_f_time_to_maturity_seconds", self.data.iloc[0]["time_to_maturity_seconds"]))
+            self._latest_f_time_to_maturity_cache[ts] = value
+            return value
+        row = eligible.iloc[-1]
+        value = int(row.get("latest_f_time_to_maturity_seconds", row["time_to_maturity_seconds"]))
+        self._latest_f_time_to_maturity_cache[ts] = value
+        return value
 
     @staticmethod
     def _notional_to_signed_size_wad(notional: Decimal, direction: FixedFloatDirection) -> int:
@@ -507,6 +528,7 @@ class BorosMarket(Market):
         self._data = resampled
         self._consumed_execution_rows = set()
         self._consumed_full_execution_rows = set()
+        self._latest_f_time_to_maturity_cache = {}
 
     def peek_next_replay_execution(self, timestamp: datetime | pd.Timestamp):
         if len(self.tx_ledger.index) == 0:
@@ -589,6 +611,10 @@ class BorosMarket(Market):
                 Decimal(0),
             ) / weight_sum
             execution_fee_paid = sum((Decimal(row.fee_paid) for row in group.itertuples()), Decimal(0))
+            time_to_mat = self._latest_f_time_to_maturity_seconds_asof(group.iloc[0]["timestamp"])
+            execution_fee_rate = Decimal(0)
+            if execution_fee_paid > 0 and time_to_mat > 0:
+                execution_fee_rate = execution_fee_paid * Decimal(PMath.ONE_YEAR) / (weight_sum * Decimal(time_to_mat))
             source_kinds = sorted(set(group["source_kind"]))
             if len(source_kinds) == 1:
                 execution_source = f"{source_kinds[0]}_fill"
@@ -597,13 +623,14 @@ class BorosMarket(Market):
 
             opening_fee_rate = weighted_opening_fee_rate if include_opening_fee_rate else Decimal(0)
             effective_rate = (
-                weighted_fixed_rate - opening_fee_rate
+                weighted_fixed_rate - opening_fee_rate - execution_fee_rate
                 if prefer_higher_rate
-                else weighted_fixed_rate + opening_fee_rate
+                else weighted_fixed_rate + opening_fee_rate + execution_fee_rate
             )
             return {
                 "fixed_rate": weighted_fixed_rate,
                 "execution_fee_paid": execution_fee_paid,
+                "execution_fee_rate_annualized": execution_fee_rate,
                 "execution_opening_fee_rate": opening_fee_rate,
                 "execution_timestamp": group.iloc[0]["timestamp"].to_pydatetime(),
                 "execution_tx_hash": group.iloc[0]["tx_hash"],
@@ -628,8 +655,8 @@ class BorosMarket(Market):
         quote_options.sort(
             key=lambda quote: (
                 quote["_effective_rate"],
-                quote["execution_fee_paid"],
                 -quote["available_abs_size_total"],
+                quote["execution_fee_paid"],
                 quote["execution_source"] == "split_fill",
             ),
             reverse=prefer_higher_rate,
@@ -730,6 +757,7 @@ class BorosMarket(Market):
         self.maturity = pd.Timestamp(self._data["maturity"].iloc[0])
         self._consumed_execution_rows = set()
         self._consumed_full_execution_rows = set()
+        self._latest_f_time_to_maturity_cache = {}
         self.mark_rate_column = "mark_rate"
 
     def load_event_data(
@@ -759,6 +787,7 @@ class BorosMarket(Market):
         self.maturity = pd.Timestamp(self._data["maturity"].iloc[0])
         self._consumed_execution_rows = set()
         self._consumed_full_execution_rows = set()
+        self._latest_f_time_to_maturity_cache = {}
         self.mark_rate_column = "mark_rate"
 
     def get_price_from_data(self) -> pd.DataFrame:
