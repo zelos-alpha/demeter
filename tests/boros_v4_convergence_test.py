@@ -245,6 +245,23 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         with open(output_dir / "summary.json", "r", encoding="utf-8") as file:
             summary = json.load(file)
         self.assertGreater(Decimal(summary["total_execution_fees"]), Decimal(0))
+        self.assertIn("total_pnl", summary)
+        self.assertIn("total_explicit_costs", summary)
+        self.assertIn("gross_pnl_before_explicit_costs", summary)
+        self.assertIn("total_opening_fees", summary)
+        self.assertIn("total_settlement_fees", summary)
+        self.assertGreaterEqual(Decimal(summary["total_explicit_costs"]), Decimal(summary["total_execution_fees"]))
+        self.assertEqual(
+            Decimal(summary["total_explicit_costs"]),
+            Decimal(summary["total_opening_fees"])
+            + Decimal(summary["total_closing_execution_fees"])
+            + Decimal(summary["total_settlement_fees"]),
+        )
+        self.assertEqual(
+            Decimal(summary["gross_pnl_before_explicit_costs"]),
+            Decimal(summary["combined_realized_pnl"]) + Decimal(summary["total_explicit_costs"]),
+        )
+        self.assertIn("total_explicit_costs", summary["market_balances"]["binance_feb27"])
 
     def test_funding_convergence_edge_gate_blocks_entries(self):
         market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)

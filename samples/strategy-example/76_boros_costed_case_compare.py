@@ -17,29 +17,24 @@ from demeter.boros_v4 import BorosExecutionMode, run_funding_convergence_backtes
 
 
 EVENT_DIR = ROOT / "bn_hl_260121-260226"
-OUTPUT_ROOT = ROOT / "outputs" / "boros_sweeps"
+OUTPUT_ROOT = ROOT / "outputs" / "boros_case_runs"
 
 
 @dataclass
-class SweepCase:
+class CompareCase:
     name: str
     expected_holding_seconds: int
     min_expected_edge_after_cost: Decimal
 
 
 CASES = [
-    SweepCase(name="gate_2h_0p01", expected_holding_seconds=2 * 3600, min_expected_edge_after_cost=Decimal("0.01")),
-    SweepCase(name="gate_2h_0p02", expected_holding_seconds=2 * 3600, min_expected_edge_after_cost=Decimal("0.02")),
-    SweepCase(name="gate_2h_0p05", expected_holding_seconds=2 * 3600, min_expected_edge_after_cost=Decimal("0.05")),
-    SweepCase(name="gate_2h_0p08", expected_holding_seconds=2 * 3600, min_expected_edge_after_cost=Decimal("0.08")),
-    SweepCase(name="gate_4h_0p02", expected_holding_seconds=4 * 3600, min_expected_edge_after_cost=Decimal("0.02")),
-    SweepCase(name="gate_4h_0p05", expected_holding_seconds=4 * 3600, min_expected_edge_after_cost=Decimal("0.05")),
-    SweepCase(name="gate_6h_0p02", expected_holding_seconds=6 * 3600, min_expected_edge_after_cost=Decimal("0.02")),
-    SweepCase(name="gate_6h_0p05", expected_holding_seconds=6 * 3600, min_expected_edge_after_cost=Decimal("0.05")),
+    CompareCase(name="baseline_2h_0p02", expected_holding_seconds=2 * 3600, min_expected_edge_after_cost=Decimal("0.02")),
+    CompareCase(name="lighter_gate_2h_0p01", expected_holding_seconds=2 * 3600, min_expected_edge_after_cost=Decimal("0.01")),
+    CompareCase(name="stricter_gate_2h_0p05", expected_holding_seconds=2 * 3600, min_expected_edge_after_cost=Decimal("0.05")),
 ]
 
 
-def run_case(case: SweepCase) -> dict:
+def run_case(case: CompareCase) -> dict:
     output_dir = OUTPUT_ROOT / case.name
     actuator, strategy, _markets = run_funding_convergence_backtest(
         event_dir=str(EVENT_DIR),
@@ -72,16 +67,16 @@ def run_case(case: SweepCase) -> dict:
         **asdict(case),
         "final_net_value": Decimal(summary["final_net_value"]),
         "total_pnl": Decimal(summary["total_pnl"]),
-        "action_count": int(summary["action_count"]),
-        "total_execution_fees": Decimal(summary["total_execution_fees"]),
+        "gross_pnl_before_explicit_costs": Decimal(summary["gross_pnl_before_explicit_costs"]),
         "total_opening_fees": Decimal(summary["total_opening_fees"]),
         "total_closing_execution_fees": Decimal(summary["total_closing_execution_fees"]),
         "total_settlement_fees": Decimal(summary["total_settlement_fees"]),
         "total_explicit_costs": Decimal(summary["total_explicit_costs"]),
-        "gross_pnl_before_explicit_costs": Decimal(summary["gross_pnl_before_explicit_costs"]),
+        "action_count": int(summary["action_count"]),
+        "open_action_count": int(summary["open_action_count"]),
+        "entry_allowed_count": entry_allowed_count,
         "binance_pnl": Decimal(summary["market_balances"]["binance_feb27"]["realized_pnl"]),
         "hyperliquid_pnl": Decimal(summary["market_balances"]["hyperliquid_feb27"]["realized_pnl"]),
-        "entry_allowed_count": entry_allowed_count,
     }
 
 
@@ -89,8 +84,8 @@ def main():
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     rows = [run_case(case) for case in CASES]
     result = pd.DataFrame(rows).sort_values("final_net_value", ascending=False).reset_index(drop=True)
-    result.to_csv(OUTPUT_ROOT / "gate_sweep_summary.csv", index=False)
-    lines = ["# Boros Gate Sweep", ""]
+    result.to_csv(OUTPUT_ROOT / "costed_case_compare.csv", index=False)
+    lines = ["# Boros Costed Case Compare", ""]
     for row in result.itertuples():
         lines.extend(
             [
@@ -99,16 +94,16 @@ def main():
                 f"- min_expected_edge_after_cost: {row.min_expected_edge_after_cost}",
                 f"- final_net_value: {row.final_net_value}",
                 f"- total_pnl: {row.total_pnl}",
-                f"- action_count: {row.action_count}",
-                f"- total_execution_fees: {row.total_execution_fees}",
+                f"- gross_pnl_before_explicit_costs: {row.gross_pnl_before_explicit_costs}",
                 f"- total_opening_fees: {row.total_opening_fees}",
                 f"- total_closing_execution_fees: {row.total_closing_execution_fees}",
                 f"- total_settlement_fees: {row.total_settlement_fees}",
                 f"- total_explicit_costs: {row.total_explicit_costs}",
-                f"- gross_pnl_before_explicit_costs: {row.gross_pnl_before_explicit_costs}",
+                f"- action_count: {row.action_count}",
+                f"- open_action_count: {row.open_action_count}",
+                f"- entry_allowed_count: {row.entry_allowed_count}",
                 f"- binance_pnl: {row.binance_pnl}",
                 f"- hyperliquid_pnl: {row.hyperliquid_pnl}",
-                f"- entry_allowed_count: {row.entry_allowed_count}",
                 "",
             ]
         )

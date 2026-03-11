@@ -148,4 +148,5 @@ outputs/boros_diagnostics/
 outputs/boros_convergence/
 outputs/boros_sweeps/
 outputs/boros_stoploss_diagnostics/
+outputs/boros_case_runs/
 bn_hl_260121-260226/
