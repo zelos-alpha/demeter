@@ -182,7 +182,18 @@ def _decode_findex_updated(raw_data: str) -> dict[str, Decimal | pd.Timestamp]:
     latest_f_time = pd.Timestamp(int(payload[:8], 16), unit="s")
     return {
         "latest_f_time": latest_f_time,
+        "findex_sequence": Decimal(int(payload[-8:], 16)),
     }
+
+
+def _build_findex_frame(event_ledger: pd.DataFrame) -> pd.DataFrame:
+    findex_events = event_ledger.loc[event_ledger["event_type"] == "findex_updated", ["timestamp", "raw_data"]].copy()
+    if len(findex_events.index) == 0:
+        return pd.DataFrame(columns=["timestamp", "latest_f_time", "findex_sequence"])
+    decoded = findex_events["raw_data"].apply(_decode_findex_updated)
+    findex_events["latest_f_time"] = decoded.apply(lambda item: item["latest_f_time"])
+    findex_events["findex_sequence"] = decoded.apply(lambda item: item["findex_sequence"])
+    return findex_events.sort_values("timestamp").reset_index(drop=True)
 
 
 def _decode_amm_swap(raw_data: str) -> dict[str, Decimal]:
@@ -203,6 +214,7 @@ def _decode_amm_swap(raw_data: str) -> dict[str, Decimal]:
 
 def _build_decoded_trade_rows(event_ledger: pd.DataFrame, maturity: date | datetime) -> pd.DataFrame:
     maturity_ts = _normalize_maturity(maturity)
+    findex_frame = _build_findex_frame(event_ledger)
     rows: list[dict] = []
     for row in event_ledger.itertuples():
         decoded: dict[str, Decimal] | None = None
@@ -217,7 +229,14 @@ def _build_decoded_trade_rows(event_ledger: pd.DataFrame, maturity: date | datet
         signed_trade_value = decoded["signed_trade_value"]
         fee_paid = decoded["fee_paid"]
         abs_size = abs(signed_size)
-        time_to_mat = max(0, int((maturity_ts - row.timestamp).total_seconds()))
+        latest_f_time = row.timestamp
+        findex_sequence = Decimal(0)
+        if len(findex_frame.index) > 0:
+            eligible = findex_frame.loc[findex_frame["timestamp"] <= row.timestamp]
+            if len(eligible.index) > 0:
+                latest_f_time = eligible.iloc[-1]["latest_f_time"]
+                findex_sequence = eligible.iloc[-1]["findex_sequence"]
+        time_to_mat = max(0, int((maturity_ts - latest_f_time).total_seconds()))
         implied_rate = Decimal(0)
         opening_fee_rate_annualized = Decimal(0)
         if abs_size > 0 and time_to_mat > 0:
@@ -241,6 +260,8 @@ def _build_decoded_trade_rows(event_ledger: pd.DataFrame, maturity: date | datet
                 "implied_rate": implied_rate,
                 "opening_fee_rate_annualized": opening_fee_rate_annualized,
                 "time_to_maturity_seconds": time_to_mat,
+                "latest_f_time": latest_f_time,
+                "findex_sequence": findex_sequence,
             }
         )
     if not rows:
@@ -275,6 +296,8 @@ def _build_event_tx_ledger(trade_ledger: pd.DataFrame) -> pd.DataFrame:
                 "trade_rate_vwap": weighted_sum / abs_size_total if abs_size_total else Decimal(0),
                 "implied_rate": weighted_sum / abs_size_total if abs_size_total else Decimal(0),
                 "opening_fee_rate_annualized": weighted_opening_fee_sum / abs_size_total if abs_size_total else Decimal(0),
+                "latest_f_time": group["latest_f_time"].iloc[-1],
+                "findex_sequence": group["findex_sequence"].iloc[-1],
             }
         )
     result = pd.DataFrame(rows)
@@ -302,12 +325,7 @@ def _build_state_frame(
 ) -> pd.DataFrame:
     maturity_ts = _normalize_maturity(maturity)
     start_timestamp = min(event_ledger["timestamp"].min(), trade_ledger["timestamp"].min())
-    findex_events = event_ledger.loc[event_ledger["event_type"] == "findex_updated", ["timestamp", "raw_data"]].copy()
-    if len(findex_events.index) > 0:
-        findex_events["latest_f_time"] = findex_events["raw_data"].apply(lambda value: _decode_findex_updated(value)["latest_f_time"])
-        findex_events = findex_events.drop_duplicates(subset=["latest_f_time"]).sort_values("latest_f_time")
-    else:
-        findex_events = pd.DataFrame(columns=["timestamp", "raw_data", "latest_f_time"])
+    findex_events = _build_findex_frame(event_ledger).drop_duplicates(subset=["latest_f_time"]).sort_values("latest_f_time")
     fee_events = event_ledger.loc[event_ledger["event_type"] == "fee_rate_updated", ["timestamp", "raw_data"]].sort_values("timestamp")
 
     boundaries = [start_timestamp]

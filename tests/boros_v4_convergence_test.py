@@ -56,8 +56,8 @@ def _encode_dummy_findex(latest_f_time: datetime, sequence: int = 0) -> str:
     return "0x" + f"{ts:08x}" + "0" * 112 + f"{sequence:08x}"
 
 
-def _trade_value_for_rate(rate: Decimal, timestamp: datetime, maturity: datetime, size: Decimal = Decimal("1")) -> Decimal:
-    seconds = Decimal((maturity - timestamp).total_seconds())
+def _trade_value_for_rate(rate: Decimal, pricing_timestamp: datetime, maturity: datetime, size: Decimal = Decimal("1")) -> Decimal:
+    seconds = Decimal((maturity - pricing_timestamp).total_seconds())
     return rate * size * seconds / Decimal(365 * 24 * 3600)
 
 
@@ -91,7 +91,7 @@ def _build_dual_market_fixture(root: Path):
         market_address = "0x" + market_key.encode().hex()[:40].ljust(40, "0")
         amm_address = "0x" + ("amm" + market_key).encode().hex()[:40].ljust(40, "0")
         for index, (timestamp, rate) in enumerate(zip(timestamps, rate_series), start=1):
-            trade_value = _trade_value_for_rate(rate=rate, timestamp=timestamp.replace(tzinfo=None), maturity=maturity)
+            trade_value = _trade_value_for_rate(rate=rate, pricing_timestamp=timestamp.replace(tzinfo=None), maturity=maturity)
             orderbook_rows.append(
                 {
                     "block_number": 1,
@@ -114,16 +114,19 @@ def _build_dual_market_fixture(root: Path):
                     "topics": str([SWAP_TOPIC]),
                 }
             )
-        orderbook_rows.append(
-            {
-                "block_number": 1,
-                "block_timestamp": (timestamps[1] + pd.Timedelta(seconds=30)).isoformat(),
-                "transaction_hash": f"0x{market_key[:6]}fidx",
-                "address": market_address,
-                "log_index": 99,
-                "data": _encode_dummy_findex(timestamps[1].replace(tzinfo=None), sequence=9),
-                "topics": str([F_INDEX_TOPIC]),
-            }
+        orderbook_rows.extend(
+            [
+                {
+                    "block_number": 1,
+                    "block_timestamp": (timestamp + pd.Timedelta(seconds=30)).isoformat(),
+                    "transaction_hash": f"0x{market_key[:6]}fidx{index:02d}",
+                    "address": market_address,
+                    "log_index": 90 + index,
+                    "data": _encode_dummy_findex(timestamp.replace(tzinfo=None), sequence=2 * index + 1),
+                    "topics": str([F_INDEX_TOPIC]),
+                }
+                for index, timestamp in enumerate(timestamps, start=1)
+            ]
         )
         _write_csv(root / "orderbook" / f"{market_key}-2026-01-21.csv", orderbook_rows)
         _write_csv(root / "liquidity" / f"AMM-{market_key}-2026-01-21.csv", amm_rows)
@@ -162,10 +165,11 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         self.assertIn("latest_f_time", data.columns)
         self.assertIn("latest_f_time_to_maturity_seconds", data.columns)
         self.assertIn("settlement_fee_rate_annualized_proxy", data.columns)
-        self.assertEqual(len(event_ledger.index), 9)
+        self.assertEqual(len(event_ledger.index), 12)
         self.assertEqual(len(tx_ledger.index), 8)
         self.assertGreater(tx_ledger.iloc[0]["opening_fee_rate_annualized"], Decimal(0))
-        self.assertEqual(data.iloc[-1]["latest_f_time"], pd.Timestamp("2026-01-21 09:01:00"))
+        self.assertEqual(data.iloc[-1]["latest_f_time"], pd.Timestamp("2026-01-21 09:03:00"))
+        self.assertEqual(tx_ledger.iloc[-1]["latest_f_time"], pd.Timestamp("2026-01-21 09:02:00"))
 
     def test_funding_convergence_strategy_runs(self):
         market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)
