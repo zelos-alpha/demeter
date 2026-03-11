@@ -164,7 +164,10 @@ class Side(IntEnum):
 
 @dataclass
 class OrderId:
-    pass  # todo
+    value: int = 0
+
+    def is_zero(self) -> bool:
+        return self.value == 0
 
 
 @dataclass
@@ -208,6 +211,10 @@ class CancelData:
     ids: List[OrderId] = field(default_factory=list)
     is_all: bool = False
     is_strict: bool = False
+
+    @staticmethod
+    def empty() -> "CancelData":
+        return CancelData()
 
 
 class OrdersLib:

@@ -137,7 +137,7 @@ class AMM:
         return 1000000  # Mock size
 
     def swap_view(self, size_out: Decimal) -> Decimal:
-        cost_out = self._applyFee(size_out, self._swap_view(size_out))
+        cost_out, _ = self._applyFee(size_out, self._swap_view(size_out))
         return cost_out
 
     def _swap_view(self, size_out: Decimal) -> Decimal:

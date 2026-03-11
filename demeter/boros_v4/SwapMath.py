@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from _typing import Side, Tuple
+from typing import Tuple
+
 from decimal import Decimal
 from .TickMath import TickMath
 from .AMM import AMM
@@ -8,7 +9,7 @@ from .PaymentLib import PaymentLib
 from .TickSweepStateLib import TickSweepState
 from .MarketEntry import MarketEntry
 from .OrderBookUtils import OrderBookStorageStruct
-from ._typing import Stage
+from ._typing import Side, Stage
 
 
 @dataclass
@@ -57,23 +58,39 @@ class SwapMathParams:
 
     def calc_amm_otc_fee(self, swap_size: Decimal) -> Decimal:
         abs_size = PMath.abs(swap_size)
-        return PaymentLib.calc_floating_fee(abs_size, self.amm_otc_fee_rate, self.time_to_mat)
+        return PaymentLib.wad_to_decimal(
+            PaymentLib.calc_floating_fee(
+                PaymentLib.decimal_to_wad(abs_size),
+                PaymentLib.decimal_to_wad(self.amm_otc_fee_rate),
+                self.time_to_mat,
+            )
+        )
 
     def calc_book_taker_fee(self, swap_size: Decimal) -> Decimal:
         abs_size = PMath.abs(swap_size)
-        return PaymentLib.calc_floating_fee(abs_size, self.taker_fee_rate, self.time_to_mat)
+        return PaymentLib.wad_to_decimal(
+            PaymentLib.calc_floating_fee(
+                PaymentLib.decimal_to_wad(abs_size),
+                PaymentLib.decimal_to_wad(self.taker_fee_rate),
+                self.time_to_mat,
+            )
+        )
 
     def calc_swap_amm(self, amm_swap_size: Decimal) -> Tuple[Decimal, Decimal]:
         if amm_swap_size == 0:
             return 0, 0
         amm_cost = self.amm.swap_view(amm_swap_size)
-        net_cash_to_amm = PaymentLib.calc_upfront_fixed_cost(amm_cost, self.time_to_mat)
+        net_cash_to_amm = PaymentLib.wad_to_decimal(
+            PaymentLib.calc_upfront_fixed_cost(PaymentLib.decimal_to_wad(amm_cost), self.time_to_mat)
+        )
         otc_fee = self.calc_amm_otc_fee(amm_swap_size)
         net_cash_in = net_cash_to_amm + otc_fee
         return net_cash_in, net_cash_to_amm
 
     def calc_swap_book(self, book_swap_size: Decimal, book_cost: Decimal) -> Decimal:
-        upfront_cost = PaymentLib.calc_upfront_fixed_cost(book_cost, self.time_to_mat)
+        upfront_cost = PaymentLib.wad_to_decimal(
+            PaymentLib.calc_upfront_fixed_cost(PaymentLib.decimal_to_wad(book_cost), self.time_to_mat)
+        )
         taker_fee = self.calc_book_taker_fee(book_swap_size)
 
         return upfront_cost + taker_fee
@@ -119,4 +136,3 @@ class SwapMathParams:
         elif sweep_status.stage == Stage.SWEPT_ALL:
             return limit_tick
         assert False
-

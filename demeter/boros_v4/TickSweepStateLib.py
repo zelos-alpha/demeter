@@ -86,7 +86,7 @@ class TickSweepState:
         else:
             raise ValueError(f"Invalid stage for getLastTick: {self.stage}")
 
-    def get_last_tick_and_sum_size(self) -> Tuple[int, Decimal | Literal]:
+    def get_last_tick_and_sum_size(self) -> Tuple[int, Decimal]:
         """
         获取最后一个tick和累计订单数量
 
