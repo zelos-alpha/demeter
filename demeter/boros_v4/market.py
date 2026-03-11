@@ -11,7 +11,7 @@ from ..broker import ActionTypeEnum, BaseAction, Market, MarketBalance, MarketIn
 from ..utils import ForColorEnum, get_formatted_from_dict, get_formatted_predefined, require, STYLE
 from ..utils.console_text import get_action_str
 from .PaymentLib import FIndex, PaymentLib, SettlementBreakdown
-from .helper import get_price_from_data, load_boros_data, load_boros_tx_ledger
+from .helper import get_price_from_data, load_boros_data, load_boros_event_data, load_boros_tx_ledger
 
 
 class FixedFloatDirection(Enum):
@@ -70,6 +70,9 @@ class OpenFixedFloatAction(BaseAction):
     mark_rate: Decimal
     entry_upfront_fixed_cost: Decimal = Decimal(0)
     entry_opening_fee_cost: Decimal = Decimal(0)
+    execution_timestamp: datetime | None = None
+    execution_tx_hash: str = ""
+    execution_source: str = ""
 
     def set_type(self):
         self.action_type = ActionTypeEnum.boros_open_fixed_float
@@ -102,6 +105,9 @@ class CloseFixedFloatAction(BaseAction):
     settlement_payment: Decimal = Decimal(0)
     settlement_fees: Decimal = Decimal(0)
     mark_to_maturity_value: Decimal = Decimal(0)
+    execution_timestamp: datetime | None = None
+    execution_tx_hash: str = ""
+    execution_source: str = ""
 
     def set_type(self):
         self.action_type = ActionTypeEnum.boros_close_fixed_float
@@ -132,6 +138,8 @@ class BorosMarket(Market):
         self.realized_pnl: Decimal = Decimal(0)
         self._next_position_id = 1
         self.tx_ledger: pd.DataFrame = pd.DataFrame()
+        self.event_ledger: pd.DataFrame = pd.DataFrame()
+        self._consumed_execution_rows: set[int] = set()
 
     @staticmethod
     def _normalize_decimal(value: Decimal) -> Decimal:
@@ -211,6 +219,9 @@ class BorosMarket(Market):
         close_time: datetime,
         close_notional: Decimal | None = None,
         close_reason: str = "manual",
+        execution_timestamp: datetime | None = None,
+        execution_tx_hash: str = "",
+        execution_source: str = "",
     ) -> Decimal:
         if not position.can_close():
             return Decimal(0)
@@ -254,12 +265,23 @@ class BorosMarket(Market):
                 settlement_payment=PaymentLib.wad_to_decimal(value_breakdown.settlement.payment) * close_ratio,
                 settlement_fees=PaymentLib.wad_to_decimal(value_breakdown.settlement.fees) * close_ratio,
                 mark_to_maturity_value=PaymentLib.wad_to_decimal(value_breakdown.mark_to_maturity_value) * close_ratio,
+                execution_timestamp=execution_timestamp,
+                execution_tx_hash=execution_tx_hash,
+                execution_source=execution_source,
             )
         )
         return portion_pnl
 
     @write_func
-    def open_fixed_float(self, notional: Decimal, direction: FixedFloatDirection, fixed_rate: Decimal | None = None):
+    def open_fixed_float(
+        self,
+        notional: Decimal,
+        direction: FixedFloatDirection,
+        fixed_rate: Decimal | None = None,
+        execution_timestamp: datetime | None = None,
+        execution_tx_hash: str = "",
+        execution_source: str = "",
+    ):
         require(notional > 0, "notional should be positive")
         current_time = self._current_timestamp()
         if self.maturity is not None and current_time >= self.maturity.to_pydatetime():
@@ -308,12 +330,24 @@ class BorosMarket(Market):
                 mark_rate=current_mark_rate,
                 entry_upfront_fixed_cost=entry_upfront_fixed_cost,
                 entry_opening_fee_cost=entry_opening_fee_cost,
+                execution_timestamp=execution_timestamp,
+                execution_tx_hash=execution_tx_hash,
+                execution_source=execution_source,
             )
         )
         return position
 
     @write_func
-    def close_position(self, position_id: int | None = None, notional: Decimal | None = None, close_reason: str = "manual"):
+    def close_position(
+        self,
+        position_id: int | None = None,
+        notional: Decimal | None = None,
+        close_reason: str = "manual",
+        execution_timestamp: datetime | None = None,
+        execution_tx_hash: str = "",
+        execution_source: str = "",
+        close_rate: Decimal | None = None,
+    ):
         open_positions = self.get_open_positions()
         if len(open_positions) == 0:
             raise DemeterError("Boros market has no open position")
@@ -325,10 +359,13 @@ class BorosMarket(Market):
             position = self.positions[position_id]
         return self._close_position_internal(
             position=position,
-            current_mark_rate=self._current_mark_rate(),
+            current_mark_rate=self._current_mark_rate() if close_rate is None else Decimal(close_rate),
             close_time=self._current_timestamp(),
             close_notional=notional,
             close_reason=close_reason,
+            execution_timestamp=execution_timestamp,
+            execution_tx_hash=execution_tx_hash,
+            execution_source=execution_source,
         )
 
     def check_market(self):
@@ -347,6 +384,7 @@ class BorosMarket(Market):
             "fee_index",
             "maturity",
             "venue",
+            "latest_f_time",
         }
         missing_columns = required_columns - set(self.data.columns)
         require(len(missing_columns) == 0, f"Boros market data missing columns: {sorted(missing_columns)}")
@@ -360,7 +398,14 @@ class BorosMarket(Market):
     def set_market_status(self, data: MarketStatus, price: pd.Series):
         super().set_market_status(data, price)
         if data.data is None:
-            data.data = self.data.loc[data.timestamp]
+            timestamp = pd.Timestamp(data.timestamp)
+            if timestamp in self.data.index:
+                data.data = self.data.loc[timestamp]
+            else:
+                previous_index = self.data.index.asof(timestamp)
+                if pd.isna(previous_index):
+                    raise DemeterError(f"Boros market has no data available at or before {timestamp}")
+                data.data = self.data.loc[previous_index]
         self._market_status = data
 
     def get_market_balance(self) -> BorosBalance:
@@ -419,6 +464,26 @@ class BorosMarket(Market):
         for column in ["trade_count", "tx_count"]:
             resampled[column] = resampled[column].fillna(0).astype(int)
         self._data = resampled
+        self._consumed_execution_rows = set()
+
+    def peek_next_replay_execution(self, timestamp: datetime | pd.Timestamp):
+        if len(self.tx_ledger.index) == 0:
+            return None
+        ts = pd.Timestamp(timestamp)
+        eligible = self.tx_ledger.loc[self.tx_ledger["timestamp"] >= ts]
+        if len(eligible.index) == 0:
+            return None
+        for row in eligible.itertuples():
+            if row.Index not in self._consumed_execution_rows:
+                return row
+        return None
+
+    def claim_next_replay_execution(self, timestamp: datetime | pd.Timestamp):
+        row = self.peek_next_replay_execution(timestamp)
+        if row is None:
+            return None
+        self._consumed_execution_rows.add(row.Index)
+        return row
 
     def load_data(
         self,
@@ -439,8 +504,34 @@ class BorosMarket(Market):
             validate_logs=validate_logs,
         )
         self.tx_ledger = load_boros_tx_ledger(trade_path=trade_path, log_path=log_path, validate_logs=validate_logs)
+        self.event_ledger = pd.DataFrame()
         self.venue = venue
         self.maturity = pd.Timestamp(self._data["maturity"].iloc[0])
+        self._consumed_execution_rows = set()
+
+    def load_event_data(
+        self,
+        event_dir: str,
+        market_key: str,
+        venue: str,
+        maturity: date | datetime,
+        resample_rule: str = "1min",
+        default_opening_fee_rate: Decimal = Decimal(0),
+    ):
+        data, event_ledger, tx_ledger = load_boros_event_data(
+            event_dir=event_dir,
+            market_key=market_key,
+            venue=venue,
+            maturity=maturity,
+            resample_rule=resample_rule,
+            default_opening_fee_rate=default_opening_fee_rate,
+        )
+        self._data = data
+        self.event_ledger = event_ledger
+        self.tx_ledger = tx_ledger
+        self.venue = venue
+        self.maturity = pd.Timestamp(self._data["maturity"].iloc[0])
+        self._consumed_execution_rows = set()
 
     def get_price_from_data(self) -> pd.DataFrame:
         return get_price_from_data(self.data)
