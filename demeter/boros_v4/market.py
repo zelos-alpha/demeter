@@ -172,6 +172,8 @@ class BorosMarket(Market):
         self._consumed_full_execution_rows: set[int] = set()
         self._latest_f_time_to_maturity_cache: dict[pd.Timestamp, int] = {}
         self.min_execution_quote_abs_size_total = Decimal("1e-9")
+        self.min_split_rate_improvement = Decimal("1e-6")
+        self.min_split_size_improvement_ratio = Decimal("0.01")
         self.mark_rate_column = "mark_rate"
 
     @staticmethod
@@ -689,7 +691,29 @@ class BorosMarket(Market):
         if candidates["source_kind"].nunique() > 1:
             split_quote = build_quote(candidates.copy())
             if split_quote is not None:
-                quote_options.append(split_quote)
+                single_quotes = [quote for quote in quote_options if quote["execution_source"] != "split_fill"]
+                if single_quotes:
+                    best_single_quote = sorted(
+                        single_quotes,
+                        key=lambda quote: quote["_effective_rate"],
+                        reverse=prefer_higher_rate,
+                    )[0]
+                    if prefer_higher_rate:
+                        rate_improvement = split_quote["_effective_rate"] - best_single_quote["_effective_rate"]
+                    else:
+                        rate_improvement = best_single_quote["_effective_rate"] - split_quote["_effective_rate"]
+                    size_improvement_ratio = Decimal(0)
+                    if best_single_quote["available_abs_size_total"] > 0:
+                        size_improvement_ratio = (
+                            split_quote["available_abs_size_total"] - best_single_quote["available_abs_size_total"]
+                        ) / best_single_quote["available_abs_size_total"]
+                    if (
+                        rate_improvement >= self.min_split_rate_improvement
+                        or size_improvement_ratio >= self.min_split_size_improvement_ratio
+                    ):
+                        quote_options.append(split_quote)
+                else:
+                    quote_options.append(split_quote)
         if not quote_options:
             return None
 

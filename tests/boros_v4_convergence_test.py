@@ -258,6 +258,23 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         self.assertIsNotNone(quote)
         self.assertEqual(quote["execution_source"], "orderbook_fill")
 
+    def test_full_execution_split_requires_meaningful_improvement(self):
+        market = BorosMarket(MarketInfo("binance_feb27", MarketTypeEnum.boros))
+        market.load_event_data(str(self.root), "BINANCE-ETHUSDT-27FEB2026", "BINANCE", self.maturity)
+        market.min_split_rate_improvement = Decimal("0.01")
+        market.min_split_size_improvement_ratio = Decimal("10")
+
+        quote = market.peek_full_execution_quote(
+            pd.Timestamp("2026-01-21 09:00:00"),
+            required_trade_side=Side.LONG.name,
+            prefer_higher_rate=False,
+            max_delay_seconds=600,
+            include_opening_fee_rate=True,
+        )
+
+        self.assertIsNotNone(quote)
+        self.assertNotEqual(quote["execution_source"], "split_fill")
+
     def test_funding_convergence_strategy_runs(self):
         market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)
         market_b_info = MarketInfo("hyperliquid_feb27", MarketTypeEnum.boros)
