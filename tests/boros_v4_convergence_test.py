@@ -225,13 +225,13 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         )
 
         self.assertIsNotNone(pay_fixed_quote)
-        self.assertIn(pay_fixed_quote["execution_source"], {"orderbook_fill", "amm_fill", "split_fill"})
+        self.assertEqual(pay_fixed_quote["execution_source"], "amm_fill")
         self.assertLess(
             Decimal(pay_fixed_quote["fixed_rate"]) + Decimal(pay_fixed_quote["execution_opening_fee_rate"]),
             Decimal("0.06"),
         )
         if receive_fixed_quote is not None:
-            self.assertIn(receive_fixed_quote["execution_source"], {"orderbook_fill", "amm_fill", "split_fill"})
+            self.assertEqual(receive_fixed_quote["execution_source"], "amm_fill")
             self.assertGreater(
                 Decimal(receive_fixed_quote["fixed_rate"]) - Decimal(receive_fixed_quote["execution_opening_fee_rate"]),
                 Decimal("0.04"),

@@ -571,52 +571,71 @@ class BorosMarket(Market):
         if len(candidates.index) == 0:
             return None
 
-        def effective_rate(row: pd.Series) -> Decimal:
-            implied_rate = Decimal(row["implied_rate"])
-            opening_fee_rate = (
-                Decimal(row["opening_fee_rate_annualized"])
-                if include_opening_fee_rate and pd.notna(row["opening_fee_rate_annualized"])
-                else Decimal(0)
-            )
-            return implied_rate - opening_fee_rate if prefer_higher_rate else implied_rate + opening_fee_rate
+        def build_quote(group: pd.DataFrame) -> dict | None:
+            weight_sum = sum((Decimal(value) for value in group["abs_size_total"]), Decimal(0))
+            if weight_sum <= 0:
+                return None
 
-        candidates["_effective_rate"] = candidates.apply(effective_rate, axis=1)
-        candidates = candidates.sort_values(
-            by=["_effective_rate", "log_index"],
-            ascending=[not prefer_higher_rate, True],
-        )
-        weight_sum = sum((Decimal(value) for value in candidates["abs_size_total"]), Decimal(0))
-        if weight_sum <= 0:
+            weighted_fixed_rate = sum(
+                (Decimal(row.abs_size_total) * Decimal(row.implied_rate) for row in group.itertuples()),
+                Decimal(0),
+            ) / weight_sum
+            weighted_opening_fee_rate = sum(
+                (
+                    Decimal(row.abs_size_total)
+                    * (Decimal(row.opening_fee_rate_annualized) if pd.notna(row.opening_fee_rate_annualized) else Decimal(0))
+                    for row in group.itertuples()
+                ),
+                Decimal(0),
+            ) / weight_sum
+            execution_fee_paid = sum((Decimal(row.fee_paid) for row in group.itertuples()), Decimal(0))
+            source_kinds = sorted(set(group["source_kind"]))
+            if len(source_kinds) == 1:
+                execution_source = f"{source_kinds[0]}_fill"
+            else:
+                execution_source = "split_fill"
+
+            opening_fee_rate = weighted_opening_fee_rate if include_opening_fee_rate else Decimal(0)
+            effective_rate = (
+                weighted_fixed_rate - opening_fee_rate
+                if prefer_higher_rate
+                else weighted_fixed_rate + opening_fee_rate
+            )
+            return {
+                "fixed_rate": weighted_fixed_rate,
+                "execution_fee_paid": execution_fee_paid,
+                "execution_opening_fee_rate": opening_fee_rate,
+                "execution_timestamp": group.iloc[0]["timestamp"].to_pydatetime(),
+                "execution_tx_hash": group.iloc[0]["tx_hash"],
+                "execution_source": execution_source,
+                "available_abs_size_total": weight_sum,
+                "_effective_rate": effective_rate,
+                "_candidate_indices": list(group.index),
+            }
+
+        quote_options: list[dict] = []
+        for _, source_group in candidates.groupby("source_kind", sort=True):
+            quote = build_quote(source_group.copy())
+            if quote is not None:
+                quote_options.append(quote)
+        if candidates["source_kind"].nunique() > 1:
+            split_quote = build_quote(candidates.copy())
+            if split_quote is not None:
+                quote_options.append(split_quote)
+        if not quote_options:
             return None
 
-        weighted_fixed_rate = sum(
-            (Decimal(row.abs_size_total) * Decimal(row.implied_rate) for row in candidates.itertuples()),
-            Decimal(0),
-        ) / weight_sum
-        weighted_opening_fee_rate = sum(
-            (
-                Decimal(row.abs_size_total)
-                * (Decimal(row.opening_fee_rate_annualized) if pd.notna(row.opening_fee_rate_annualized) else Decimal(0))
-                for row in candidates.itertuples()
+        quote_options.sort(
+            key=lambda quote: (
+                quote["_effective_rate"],
+                quote["execution_fee_paid"],
+                -quote["available_abs_size_total"],
+                quote["execution_source"] == "split_fill",
             ),
-            Decimal(0),
-        ) / weight_sum
-        execution_fee_paid = sum((Decimal(row.fee_paid) for row in candidates.itertuples()), Decimal(0))
-        source_kinds = sorted(set(candidates["source_kind"]))
-        if len(source_kinds) == 1:
-            execution_source = f"{source_kinds[0]}_fill"
-        else:
-            execution_source = "split_fill"
-
-        return {
-            "fixed_rate": weighted_fixed_rate,
-            "execution_fee_paid": execution_fee_paid,
-            "execution_opening_fee_rate": weighted_opening_fee_rate if include_opening_fee_rate else Decimal(0),
-            "execution_timestamp": candidates.iloc[0]["timestamp"].to_pydatetime(),
-            "execution_tx_hash": candidates.iloc[0]["tx_hash"],
-            "execution_source": execution_source,
-            "_candidate_indices": list(candidates.index),
-        }
+            reverse=prefer_higher_rate,
+        )
+        best_quote = quote_options[0]
+        return best_quote
 
     def claim_full_execution_quote(
         self,
