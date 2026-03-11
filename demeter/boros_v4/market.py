@@ -528,19 +528,70 @@ class BorosMarket(Market):
         return row
 
     def peek_next_full_execution(self, timestamp: datetime | pd.Timestamp):
+        return self.peek_next_full_execution_scored(timestamp)
+
+    def _full_execution_candidates(
+        self,
+        timestamp: datetime | pd.Timestamp,
+        max_delay_seconds: int | None = None,
+    ) -> pd.DataFrame:
         if len(self.trade_ledger.index) == 0:
-            return None
+            return pd.DataFrame()
         ts = pd.Timestamp(timestamp)
         eligible = self.trade_ledger.loc[self.trade_ledger["timestamp"] >= ts]
+        if max_delay_seconds is not None:
+            eligible = eligible.loc[eligible["timestamp"] <= ts + pd.Timedelta(seconds=max_delay_seconds)]
         if len(eligible.index) == 0:
-            return None
-        for row in eligible.itertuples():
-            if row.Index not in self._consumed_full_execution_rows:
-                return row
-        return None
+            return pd.DataFrame()
+        eligible = eligible.loc[~eligible.index.isin(self._consumed_full_execution_rows)]
+        if len(eligible.index) == 0:
+            return pd.DataFrame()
+        earliest_timestamp = eligible["timestamp"].min()
+        return eligible.loc[eligible["timestamp"] == earliest_timestamp].copy()
 
-    def claim_next_full_execution(self, timestamp: datetime | pd.Timestamp):
-        row = self.peek_next_full_execution(timestamp)
+    def peek_next_full_execution_scored(
+        self,
+        timestamp: datetime | pd.Timestamp,
+        prefer_higher_rate: bool | None = None,
+        max_delay_seconds: int | None = None,
+        include_opening_fee_rate: bool = True,
+    ):
+        candidates = self._full_execution_candidates(timestamp=timestamp, max_delay_seconds=max_delay_seconds)
+        if len(candidates.index) == 0:
+            return None
+        if prefer_higher_rate is None:
+            return next(candidates.sort_values(["timestamp", "log_index"]).itertuples())
+
+        def effective_rate(row: pd.Series) -> Decimal:
+            implied_rate = Decimal(row["implied_rate"])
+            opening_fee_rate = (
+                Decimal(row["opening_fee_rate_annualized"])
+                if include_opening_fee_rate and pd.notna(row["opening_fee_rate_annualized"])
+                else Decimal(0)
+            )
+            return implied_rate - opening_fee_rate if prefer_higher_rate else implied_rate + opening_fee_rate
+
+        candidates["_effective_rate"] = candidates.apply(effective_rate, axis=1)
+        candidates["_fee_paid"] = candidates["fee_paid"].apply(Decimal)
+        candidates = candidates.sort_values(
+            by=["_effective_rate", "_fee_paid", "log_index"],
+            ascending=[not prefer_higher_rate, True, True],
+        )
+        return next(candidates.itertuples())
+
+    def claim_next_full_execution(
+        self,
+        timestamp: datetime | pd.Timestamp,
+        prefer_higher_rate: bool | None = None,
+        max_delay_seconds: int | None = None,
+        include_opening_fee_rate: bool = True,
+    ):
+        row = self.peek_next_full_execution_scored(
+            timestamp=timestamp,
+            prefer_higher_rate=prefer_higher_rate,
+            max_delay_seconds=max_delay_seconds,
+            include_opening_fee_rate=include_opening_fee_rate,
+        )
         if row is None:
             return None
         self._consumed_full_execution_rows.add(row.Index)

@@ -217,6 +217,19 @@ class FundingConvergenceStrategy(Strategy):
         self.perp_funding_ledger: list[dict] = []
         self.total_perp_funding_pnl: Decimal = Decimal(0)
 
+    @staticmethod
+    def _open_rate_preference(direction: FixedFloatDirection) -> bool:
+        return direction == FixedFloatDirection.RECEIVE_FIXED
+
+    @staticmethod
+    def _close_rate_preference(direction: FixedFloatDirection) -> bool:
+        return direction == FixedFloatDirection.PAY_FIXED
+
+    def _entry_directions(self, spread_deviation: Decimal) -> tuple[FixedFloatDirection, FixedFloatDirection]:
+        if spread_deviation >= self.entry_threshold:
+            return FixedFloatDirection.PAY_FIXED, FixedFloatDirection.RECEIVE_FIXED
+        return FixedFloatDirection.RECEIVE_FIXED, FixedFloatDirection.PAY_FIXED
+
     @property
     def market_a(self) -> BorosMarket:
         return self.broker.markets[self.market_a_info]
@@ -230,7 +243,14 @@ class FundingConvergenceStrategy(Strategy):
             return None
         return sum(self._spread_window, Decimal(0)) / Decimal(len(self._spread_window))
 
-    def _pair_execution(self, snapshot: Snapshot, consume: bool = True):
+    def _pair_execution(
+        self,
+        snapshot: Snapshot,
+        consume: bool = True,
+        prefer_higher_rate_a: bool | None = None,
+        prefer_higher_rate_b: bool | None = None,
+        include_opening_fee_rate: bool = True,
+    ):
         if self.execution_mode == BorosExecutionMode.BAR_APPROX:
             return (
                 {"fixed_rate": self.market_a.market_status.data["mark_rate"], "execution_timestamp": None, "execution_tx_hash": "", "execution_source": "", "execution_fee_paid": Decimal(0), "execution_opening_fee_rate": None},
@@ -249,22 +269,38 @@ class FundingConvergenceStrategy(Strategy):
                 {"fixed_rate": row_b["trade_rate_vwap"], "execution_timestamp": snapshot.timestamp.to_pydatetime(), "execution_tx_hash": "", "execution_source": "minute_trade", "execution_fee_paid": row_b["fee_paid"] if "fee_paid" in row_b.index else Decimal(0), "execution_opening_fee_rate": Decimal(0)},
             )
         if self.execution_mode == BorosExecutionMode.EVENT_REPLAY_FULL_PROTO:
-            row_a = self.market_a.peek_next_full_execution(snapshot.timestamp)
-            row_b = self.market_b.peek_next_full_execution(snapshot.timestamp)
+            row_a = self.market_a.peek_next_full_execution_scored(
+                snapshot.timestamp,
+                prefer_higher_rate=prefer_higher_rate_a,
+                max_delay_seconds=self.max_execution_delay_seconds,
+                include_opening_fee_rate=include_opening_fee_rate,
+            )
+            row_b = self.market_b.peek_next_full_execution_scored(
+                snapshot.timestamp,
+                prefer_higher_rate=prefer_higher_rate_b,
+                max_delay_seconds=self.max_execution_delay_seconds,
+                include_opening_fee_rate=include_opening_fee_rate,
+            )
             if row_a is None or row_b is None:
                 return None
             signal_ts = pd.Timestamp(snapshot.timestamp)
-            if self.max_execution_delay_seconds is not None:
-                max_delay = pd.Timedelta(seconds=self.max_execution_delay_seconds)
-                if row_a.timestamp - signal_ts > max_delay or row_b.timestamp - signal_ts > max_delay:
-                    return None
             if self.max_pair_execution_skew_seconds is not None:
                 max_skew = pd.Timedelta(seconds=self.max_pair_execution_skew_seconds)
                 if abs(row_a.timestamp - row_b.timestamp) > max_skew:
                     return None
             if consume:
-                row_a = self.market_a.claim_next_full_execution(snapshot.timestamp)
-                row_b = self.market_b.claim_next_full_execution(snapshot.timestamp)
+                row_a = self.market_a.claim_next_full_execution(
+                    snapshot.timestamp,
+                    prefer_higher_rate=prefer_higher_rate_a,
+                    max_delay_seconds=self.max_execution_delay_seconds,
+                    include_opening_fee_rate=include_opening_fee_rate,
+                )
+                row_b = self.market_b.claim_next_full_execution(
+                    snapshot.timestamp,
+                    prefer_higher_rate=prefer_higher_rate_b,
+                    max_delay_seconds=self.max_execution_delay_seconds,
+                    include_opening_fee_rate=include_opening_fee_rate,
+                )
             return (
                 {
                     "fixed_rate": row_a.implied_rate,
@@ -320,7 +356,14 @@ class FundingConvergenceStrategy(Strategy):
         )
 
     def _open_spread(self, snapshot: Snapshot, spread: Decimal):
-        execution = self._pair_execution(snapshot, consume=True)
+        direction_a, direction_b = self._entry_directions(spread)
+        execution = self._pair_execution(
+            snapshot,
+            consume=True,
+            prefer_higher_rate_a=self._open_rate_preference(direction_a),
+            prefer_higher_rate_b=self._open_rate_preference(direction_b),
+            include_opening_fee_rate=True,
+        )
         if execution is None:
             return
         exec_a, exec_b = execution
@@ -406,7 +449,15 @@ class FundingConvergenceStrategy(Strategy):
     def _close_spread(self, snapshot: Snapshot, reason: str):
         if self._spread_position is None:
             return
-        execution = self._pair_execution(snapshot, consume=True)
+        position_a = self.market_a.positions.get(self._spread_position.position_id_a)
+        position_b = self.market_b.positions.get(self._spread_position.position_id_b)
+        execution = self._pair_execution(
+            snapshot,
+            consume=True,
+            prefer_higher_rate_a=None if position_a is None else self._close_rate_preference(position_a.direction),
+            prefer_higher_rate_b=None if position_b is None else self._close_rate_preference(position_b.direction),
+            include_opening_fee_rate=False,
+        )
         exec_a = None if execution is None else execution[0]
         exec_b = None if execution is None else execution[1]
         if self._spread_position.position_id_a in self.market_a.positions and self.market_a.positions[self._spread_position.position_id_a].can_close():
@@ -520,7 +571,14 @@ class FundingConvergenceStrategy(Strategy):
         expected_edge_after_cost = None
         entry_allowed = False
         if signal_ready and spread_deviation is not None and abs(spread_deviation) >= self.entry_threshold:
-            planned_execution = self._pair_execution(snapshot, consume=False)
+            direction_a, direction_b = self._entry_directions(spread_deviation)
+            planned_execution = self._pair_execution(
+                snapshot,
+                consume=False,
+                prefer_higher_rate_a=self._open_rate_preference(direction_a),
+                prefer_higher_rate_b=self._open_rate_preference(direction_b),
+                include_opening_fee_rate=True,
+            )
             if planned_execution is not None:
                 expected_gross_edge, expected_total_cost, expected_edge_after_cost = self._estimate_pair_edge_after_cost(
                     spread_deviation=spread_deviation,

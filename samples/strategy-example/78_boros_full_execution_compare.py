@@ -132,7 +132,7 @@ def main():
         "",
     ]
     (OUTPUT_ROOT / "report.md").write_text("\n".join(lines), encoding="utf-8")
-    print(json.dumps(comparison, indent=2))
+    print(json.dumps(_json_safe(comparison), indent=2))
 
 
 if __name__ == "__main__":

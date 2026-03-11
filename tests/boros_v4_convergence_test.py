@@ -205,6 +205,43 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         self.assertEqual(tx_ledger.iloc[-1]["latest_f_time"], pd.Timestamp("2026-01-21 09:02:00"))
         self.assertEqual(tx_ledger.iloc[0]["trade_side"], "LONG")
 
+    def test_full_execution_selection_prefers_best_rate_for_direction(self):
+        market = BorosMarket(MarketInfo("binance_feb27", MarketTypeEnum.boros))
+        market.load_event_data(str(self.root), "BINANCE-ETHUSDT-27FEB2026", "BINANCE", self.maturity)
+
+        pay_fixed_row = market.peek_next_full_execution_scored(
+            pd.Timestamp("2026-01-21 09:00:00"),
+            prefer_higher_rate=False,
+            max_delay_seconds=120,
+            include_opening_fee_rate=True,
+        )
+        receive_fixed_row = market.peek_next_full_execution_scored(
+            pd.Timestamp("2026-01-21 09:00:00"),
+            prefer_higher_rate=True,
+            max_delay_seconds=120,
+            include_opening_fee_rate=True,
+        )
+
+        pay_fixed_effective = Decimal(pay_fixed_row.implied_rate) + Decimal(pay_fixed_row.opening_fee_rate_annualized)
+        receive_fixed_effective = Decimal(receive_fixed_row.implied_rate) - Decimal(
+            receive_fixed_row.opening_fee_rate_annualized
+        )
+
+        self.assertLessEqual(
+            pay_fixed_effective,
+            min(
+                Decimal(pay_fixed_row.implied_rate) + Decimal(pay_fixed_row.opening_fee_rate_annualized),
+                Decimal(receive_fixed_row.implied_rate) + Decimal(receive_fixed_row.opening_fee_rate_annualized),
+            ),
+        )
+        self.assertGreaterEqual(
+            receive_fixed_effective,
+            max(
+                Decimal(pay_fixed_row.implied_rate) - Decimal(pay_fixed_row.opening_fee_rate_annualized),
+                Decimal(receive_fixed_row.implied_rate) - Decimal(receive_fixed_row.opening_fee_rate_annualized),
+            ),
+        )
+
     def test_funding_convergence_strategy_runs(self):
         market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)
         market_b_info = MarketInfo("hyperliquid_feb27", MarketTypeEnum.boros)
@@ -309,6 +346,7 @@ class BorosV4ConvergenceTest(unittest.TestCase):
 
         self.assertGreaterEqual(len(actuator.actions), 4)
         self.assertTrue(actuator.actions[0].execution_source.endswith("_fill"))
+        self.assertIn(actuator.actions[0].execution_source, {"amm_fill", "orderbook_fill"})
 
     def test_funding_convergence_with_synthetic_perp_funding(self):
         market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)
