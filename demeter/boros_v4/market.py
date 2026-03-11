@@ -155,8 +155,11 @@ class BorosMarket(Market):
         self.realized_pnl: Decimal = Decimal(0)
         self._next_position_id = 1
         self.tx_ledger: pd.DataFrame = pd.DataFrame()
+        self.trade_ledger: pd.DataFrame = pd.DataFrame()
         self.event_ledger: pd.DataFrame = pd.DataFrame()
         self._consumed_execution_rows: set[int] = set()
+        self._consumed_full_execution_rows: set[int] = set()
+        self.mark_rate_column = "mark_rate"
 
     @staticmethod
     def _normalize_decimal(value: Decimal) -> Decimal:
@@ -184,8 +187,8 @@ class BorosMarket(Market):
         return [position for position in self.positions.values() if position.can_close()]
 
     def _current_mark_rate(self) -> Decimal:
-        if self.market_status.data is not None and "mark_rate" in self.market_status.data.index:
-            return self.market_status.data["mark_rate"]
+        if self.market_status.data is not None and self.mark_rate_column in self.market_status.data.index:
+            return self.market_status.data[self.mark_rate_column]
         raise DemeterError("Boros market rate is unavailable")
 
     def _current_timestamp(self) -> datetime:
@@ -407,6 +410,7 @@ class BorosMarket(Market):
         super().check_market()
         required_columns = {
             "mark_rate",
+            "mark_rate_full_proto",
             "trade_rate_last",
             "trade_rate_vwap",
             "executed_size_abs",
@@ -502,6 +506,7 @@ class BorosMarket(Market):
             resampled[column] = resampled[column].fillna(0).astype(int)
         self._data = resampled
         self._consumed_execution_rows = set()
+        self._consumed_full_execution_rows = set()
 
     def peek_next_replay_execution(self, timestamp: datetime | pd.Timestamp):
         if len(self.tx_ledger.index) == 0:
@@ -520,6 +525,25 @@ class BorosMarket(Market):
         if row is None:
             return None
         self._consumed_execution_rows.add(row.Index)
+        return row
+
+    def peek_next_full_execution(self, timestamp: datetime | pd.Timestamp):
+        if len(self.trade_ledger.index) == 0:
+            return None
+        ts = pd.Timestamp(timestamp)
+        eligible = self.trade_ledger.loc[self.trade_ledger["timestamp"] >= ts]
+        if len(eligible.index) == 0:
+            return None
+        for row in eligible.itertuples():
+            if row.Index not in self._consumed_full_execution_rows:
+                return row
+        return None
+
+    def claim_next_full_execution(self, timestamp: datetime | pd.Timestamp):
+        row = self.peek_next_full_execution(timestamp)
+        if row is None:
+            return None
+        self._consumed_full_execution_rows.add(row.Index)
         return row
 
     def load_data(
@@ -541,10 +565,13 @@ class BorosMarket(Market):
             validate_logs=validate_logs,
         )
         self.tx_ledger = load_boros_tx_ledger(trade_path=trade_path, log_path=log_path, validate_logs=validate_logs)
+        self.trade_ledger = pd.DataFrame()
         self.event_ledger = pd.DataFrame()
         self.venue = venue
         self.maturity = pd.Timestamp(self._data["maturity"].iloc[0])
         self._consumed_execution_rows = set()
+        self._consumed_full_execution_rows = set()
+        self.mark_rate_column = "mark_rate"
 
     def load_event_data(
         self,
@@ -566,9 +593,14 @@ class BorosMarket(Market):
         self._data = data
         self.event_ledger = event_ledger
         self.tx_ledger = tx_ledger
+        from .helper import load_boros_event_trade_ledger
+
+        self.trade_ledger = load_boros_event_trade_ledger(event_dir=event_dir, market_key=market_key, maturity=maturity)
         self.venue = venue
         self.maturity = pd.Timestamp(self._data["maturity"].iloc[0])
         self._consumed_execution_rows = set()
+        self._consumed_full_execution_rows = set()
+        self.mark_rate_column = "mark_rate"
 
     def get_price_from_data(self) -> pd.DataFrame:
         return get_price_from_data(self.data)

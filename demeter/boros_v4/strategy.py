@@ -15,6 +15,7 @@ class BorosExecutionMode(Enum):
     BAR_APPROX = "bar_approx"
     NEXT_TRADE = "next_trade"
     TX_REPLAY_BEST_EXEC = "tx_replay_best_exec"
+    EVENT_REPLAY_FULL_PROTO = "event_replay_full_proto"
 
 
 @dataclass
@@ -86,6 +87,18 @@ class SimpleFixedFloatStrategy(Strategy):
                 "execution_timestamp": snapshot.timestamp.to_pydatetime(),
                 "execution_tx_hash": "",
                 "execution_source": "minute_trade",
+            }
+        if self.execution_mode == BorosExecutionMode.EVENT_REPLAY_FULL_PROTO:
+            row = self.market.claim_next_full_execution(snapshot.timestamp)
+            if row is None:
+                return None
+            return {
+                "fixed_rate": row.implied_rate,
+                "execution_fee_paid": row.fee_paid,
+                "execution_opening_fee_rate": row.opening_fee_rate_annualized,
+                "execution_timestamp": row.timestamp.to_pydatetime(),
+                "execution_tx_hash": row.tx_hash,
+                "execution_source": f"{row.source_kind}_fill",
             }
         row = self.market.claim_next_replay_execution(snapshot.timestamp)
         if row is None:
@@ -234,6 +247,41 @@ class FundingConvergenceStrategy(Strategy):
             return (
                 {"fixed_rate": row_a["trade_rate_vwap"], "execution_timestamp": snapshot.timestamp.to_pydatetime(), "execution_tx_hash": "", "execution_source": "minute_trade", "execution_fee_paid": row_a["fee_paid"] if "fee_paid" in row_a.index else Decimal(0), "execution_opening_fee_rate": Decimal(0)},
                 {"fixed_rate": row_b["trade_rate_vwap"], "execution_timestamp": snapshot.timestamp.to_pydatetime(), "execution_tx_hash": "", "execution_source": "minute_trade", "execution_fee_paid": row_b["fee_paid"] if "fee_paid" in row_b.index else Decimal(0), "execution_opening_fee_rate": Decimal(0)},
+            )
+        if self.execution_mode == BorosExecutionMode.EVENT_REPLAY_FULL_PROTO:
+            row_a = self.market_a.peek_next_full_execution(snapshot.timestamp)
+            row_b = self.market_b.peek_next_full_execution(snapshot.timestamp)
+            if row_a is None or row_b is None:
+                return None
+            signal_ts = pd.Timestamp(snapshot.timestamp)
+            if self.max_execution_delay_seconds is not None:
+                max_delay = pd.Timedelta(seconds=self.max_execution_delay_seconds)
+                if row_a.timestamp - signal_ts > max_delay or row_b.timestamp - signal_ts > max_delay:
+                    return None
+            if self.max_pair_execution_skew_seconds is not None:
+                max_skew = pd.Timedelta(seconds=self.max_pair_execution_skew_seconds)
+                if abs(row_a.timestamp - row_b.timestamp) > max_skew:
+                    return None
+            if consume:
+                row_a = self.market_a.claim_next_full_execution(snapshot.timestamp)
+                row_b = self.market_b.claim_next_full_execution(snapshot.timestamp)
+            return (
+                {
+                    "fixed_rate": row_a.implied_rate,
+                    "execution_fee_paid": row_a.fee_paid,
+                    "execution_opening_fee_rate": row_a.opening_fee_rate_annualized,
+                    "execution_timestamp": row_a.timestamp.to_pydatetime(),
+                    "execution_tx_hash": row_a.tx_hash,
+                    "execution_source": f"{row_a.source_kind}_fill",
+                },
+                {
+                    "fixed_rate": row_b.implied_rate,
+                    "execution_fee_paid": row_b.fee_paid,
+                    "execution_opening_fee_rate": row_b.opening_fee_rate_annualized,
+                    "execution_timestamp": row_b.timestamp.to_pydatetime(),
+                    "execution_tx_hash": row_b.tx_hash,
+                    "execution_source": f"{row_b.source_kind}_fill",
+                },
             )
 
         row_a = self.market_a.peek_next_replay_execution(snapshot.timestamp)

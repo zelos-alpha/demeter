@@ -19,6 +19,14 @@ def _sum_decimal_column(df: pd.DataFrame, column: str) -> Decimal:
     return total
 
 
+def _mark_rate_model_name(column_name: str) -> str:
+    if column_name == "mark_rate":
+        return "trade_vwap_proxy"
+    if column_name == "mark_rate_full_proto":
+        return "event_window_twap_proto"
+    return column_name
+
+
 def actions_to_dataframe(actions) -> pd.DataFrame:
     rows = []
     for action in actions:
@@ -155,8 +163,12 @@ def summarize_backtest(actuator: Actuator, strategy: FundingConvergenceStrategy,
         "total_perp_funding_pnl": str(getattr(strategy, "total_perp_funding_pnl", Decimal(0))),
         "execution_model": strategy.execution_mode.value,
         "settlement_index_model": "decoded_findex",
-        "mark_rate_model": "trade_vwap_proxy",
-        "protocol_alignment_mode": "experimental_taker_only",
+        "mark_rate_model": "+".join(sorted({_mark_rate_model_name(market.mark_rate_column) for market in markets})),
+        "protocol_alignment_mode": (
+            "experimental_full_execution_proto"
+            if strategy.execution_mode == BorosExecutionMode.EVENT_REPLAY_FULL_PROTO
+            else "experimental_taker_only"
+        ),
     }
     return summary
 
@@ -263,6 +275,9 @@ def run_funding_convergence_backtest(
     market_b = BorosMarket(market_b_info)
     market_a.load_event_data(event_dir=event_dir, market_key=market_a_key, venue=venue_a, maturity=maturity)
     market_b.load_event_data(event_dir=event_dir, market_key=market_b_key, venue=venue_b, maturity=maturity)
+    if execution_mode == BorosExecutionMode.EVENT_REPLAY_FULL_PROTO:
+        market_a.mark_rate_column = "mark_rate_full_proto"
+        market_b.mark_rate_column = "mark_rate_full_proto"
 
     actuator = Actuator()
     actuator.broker.add_market(market_a)

@@ -1,5 +1,6 @@
 import ast
 import json
+from collections import deque
 from datetime import date, datetime, time
 from decimal import Decimal
 from pathlib import Path
@@ -430,6 +431,49 @@ def _build_event_tx_ledger(trade_ledger: pd.DataFrame) -> pd.DataFrame:
     return result.drop(columns=["source_priority"])
 
 
+def _build_event_mark_rate_series(
+    trade_ledger: pd.DataFrame,
+    full_index: pd.DatetimeIndex,
+    lookback: str = "30min",
+) -> pd.Series:
+    """
+    Experimental mark-rate approximation using event-level implied rates.
+
+    This is intentionally heavier than the tx-level VWAP proxy and acts as a
+    prototype for a fuller Boros execution / mark observation path:
+    - build from decoded fill events instead of tx-aggregated rows
+    - forward-fill implied rate to minute grid
+    - apply a trailing rolling mean to approximate an observation window
+    """
+    if len(trade_ledger.index) == 0:
+        return pd.Series(index=full_index, dtype=object)
+
+    event_series = (
+        trade_ledger.loc[:, ["timestamp", "implied_rate"]]
+        .drop_duplicates(subset=["timestamp"], keep="last")
+        .set_index("timestamp")["implied_rate"]
+        .sort_index()
+    )
+    minute_series = event_series.reindex(full_index, method="ffill")
+    minute_series = minute_series.ffill()
+    if minute_series.isna().all():
+        return minute_series
+    lookback_delta = pd.Timedelta(lookback)
+    window: deque[tuple[pd.Timestamp, Decimal]] = deque()
+    rolling_values: list[Decimal] = []
+    running_sum = Decimal(0)
+    for timestamp, value in minute_series.items():
+        value = Decimal(value)
+        window.append((timestamp, value))
+        running_sum += value
+        cutoff = timestamp - lookback_delta
+        while window and window[0][0] < cutoff:
+            _, old_value = window.popleft()
+            running_sum -= old_value
+        rolling_values.append(running_sum / Decimal(len(window)))
+    return pd.Series(rolling_values, index=full_index, dtype=object)
+
+
 def load_boros_event_trade_ledger(event_dir: str, market_key: str, maturity: date | datetime) -> pd.DataFrame:
     event_ledger = load_boros_event_ledger(event_dir=event_dir, market_key=market_key)
     return _build_decoded_trade_rows(event_ledger=event_ledger, maturity=maturity)
@@ -555,6 +599,11 @@ def load_boros_event_data(
         data[column] = data[column].apply(lambda value: value if pd.notna(value) else Decimal(0))
     for column in ["trade_count", "tx_count"]:
         data[column] = data[column].fillna(0).astype(int)
+    data["mark_rate_full_proto"] = list(_build_event_mark_rate_series(trade_ledger=trade_ledger, full_index=full_index))
+    data["mark_rate_full_proto"] = data["mark_rate_full_proto"].ffill().bfill()
+    data["mark_rate_full_proto"] = data["mark_rate_full_proto"].where(
+        data["mark_rate_full_proto"].notna(), data["mark_rate"]
+    )
 
     merged_state = pd.merge_asof(
         pd.DataFrame({"timestamp": data.index}).sort_values("timestamp"),
@@ -603,6 +652,8 @@ def load_boros_event_data(
 
     if data["mark_rate"].isna().any():
         raise DemeterError(f"Unable to build mark_rate series from {market_key} event files")
+    if data["mark_rate_full_proto"].isna().any():
+        raise DemeterError(f"Unable to build mark_rate_full_proto series from {market_key} event files")
     return data, event_ledger, tx_ledger
 
 
@@ -790,6 +841,7 @@ def load_boros_data(
     result["fee_index"] = fee_indices
     result["settlement_fee_rate_annualized_proxy"] = Decimal(floating_fee_rate)
     result["opening_fee_rate_annualized_proxy"] = Decimal(0)
+    result["mark_rate_full_proto"] = result["mark_rate"]
 
     if result["mark_rate"].isna().any():
         raise DemeterError(f"Unable to build mark_rate series from {trade_path}")
