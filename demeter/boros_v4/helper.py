@@ -174,6 +174,17 @@ def _decode_market_orders_filled(raw_data: str) -> dict[str, Decimal]:
     }
 
 
+def _decode_findex_updated(raw_data: str) -> dict[str, Decimal | pd.Timestamp]:
+    words = _hex_words(raw_data)
+    if len(words) < 2:
+        raise DemeterError("findex_updated payload is too short")
+    payload = raw_data[2:] if raw_data.startswith("0x") else raw_data
+    latest_f_time = pd.Timestamp(int(payload[:8], 16), unit="s")
+    return {
+        "latest_f_time": latest_f_time,
+    }
+
+
 def _decode_amm_swap(raw_data: str) -> dict[str, Decimal]:
     words = _hex_words(raw_data)
     if len(words) < 2:
@@ -291,11 +302,16 @@ def _build_state_frame(
 ) -> pd.DataFrame:
     maturity_ts = _normalize_maturity(maturity)
     start_timestamp = min(event_ledger["timestamp"].min(), trade_ledger["timestamp"].min())
-    findex_events = event_ledger.loc[event_ledger["event_type"] == "findex_updated", ["timestamp"]].drop_duplicates().sort_values("timestamp")
+    findex_events = event_ledger.loc[event_ledger["event_type"] == "findex_updated", ["timestamp", "raw_data"]].copy()
+    if len(findex_events.index) > 0:
+        findex_events["latest_f_time"] = findex_events["raw_data"].apply(lambda value: _decode_findex_updated(value)["latest_f_time"])
+        findex_events = findex_events.drop_duplicates(subset=["latest_f_time"]).sort_values("latest_f_time")
+    else:
+        findex_events = pd.DataFrame(columns=["timestamp", "raw_data", "latest_f_time"])
     fee_events = event_ledger.loc[event_ledger["event_type"] == "fee_rate_updated", ["timestamp", "raw_data"]].sort_values("timestamp")
 
     boundaries = [start_timestamp]
-    boundaries.extend(list(findex_events["timestamp"]))
+    boundaries.extend(list(findex_events["latest_f_time"]))
     boundaries = sorted(set(boundaries))
     settlement_fee_rate = Decimal(default_opening_fee_rate)
     fee_event_iter = list(fee_events.itertuples())
@@ -427,6 +443,9 @@ def load_boros_event_data(
     data["time_delta_seconds"] = time_deltas
     data["time_to_maturity_seconds"] = [max(0, int((maturity_ts - timestamp).total_seconds())) for timestamp in data.index]
     data["latest_f_time"] = list(merged_state["latest_f_time_timestamp"].fillna(data.index[0]))
+    data["latest_f_time_to_maturity_seconds"] = [
+        max(0, int((maturity_ts - timestamp).total_seconds())) for timestamp in data["latest_f_time"]
+    ]
     data["floating_index"] = list(merged_state["floating_index"].fillna(Decimal(0)))
     data["fee_index"] = list(merged_state["fee_index"].fillna(Decimal(0)))
     data["settlement_fee_rate_annualized_proxy"] = list(
@@ -617,6 +636,7 @@ def load_boros_data(
     result["time_delta_seconds"] = time_deltas
     result["time_to_maturity_seconds"] = [max(0, int((maturity_ts - timestamp).total_seconds())) for timestamp in result.index]
     result["latest_f_time"] = list(result.index)
+    result["latest_f_time_to_maturity_seconds"] = result["time_to_maturity_seconds"]
     result["floating_index"] = floating_indices
     result["fee_index"] = fee_indices
     result["settlement_fee_rate_annualized_proxy"] = Decimal(floating_fee_rate)

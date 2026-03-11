@@ -191,6 +191,11 @@ class BorosMarket(Market):
             return int(self.market_status.data["time_to_maturity_seconds"])
         raise DemeterError("Boros market maturity is unavailable")
 
+    def _current_latest_f_time_to_maturity_seconds(self) -> int:
+        if self.market_status.data is not None and "latest_f_time_to_maturity_seconds" in self.market_status.data.index:
+            return int(self.market_status.data["latest_f_time_to_maturity_seconds"])
+        return self._current_time_to_maturity_seconds()
+
     @staticmethod
     def _notional_to_signed_size_wad(notional: Decimal, direction: FixedFloatDirection) -> int:
         return PaymentLib.decimal_to_wad(notional * Decimal(direction.sign))
@@ -294,7 +299,7 @@ class BorosMarket(Market):
 
         current_mark_rate = self._current_mark_rate()
         fixed_rate = current_mark_rate if fixed_rate is None else Decimal(fixed_rate)
-        entry_time_to_mat = self._current_time_to_maturity_seconds()
+        entry_time_to_mat = self._current_latest_f_time_to_maturity_seconds()
         opening_fee_rate = Decimal(self.market_status.data.get("opening_fee_rate_annualized_proxy", Decimal(0)))
         entry_opening_fee_cost = Decimal(execution_fee_paid)
         if entry_opening_fee_cost <= 0:
@@ -390,6 +395,7 @@ class BorosMarket(Market):
             "tx_count",
             "time_delta_seconds",
             "time_to_maturity_seconds",
+            "latest_f_time_to_maturity_seconds",
             "floating_index",
             "fee_index",
             "settlement_fee_rate_annualized_proxy",

@@ -51,8 +51,9 @@ def _encode_swap(size: Decimal, trade_value: Decimal, fee_value: Decimal = Decim
     return "0x" + "".join([_encode_signed(size_raw, 256), _encode_signed(value_raw, 256), f"{fee_raw:064x}"])
 
 
-def _encode_dummy_findex() -> str:
-    return "0x" + "0" * 128
+def _encode_dummy_findex(latest_f_time: datetime, sequence: int = 0) -> str:
+    ts = int(latest_f_time.replace(tzinfo=timezone.utc).timestamp())
+    return "0x" + f"{ts:08x}" + "0" * 112 + f"{sequence:08x}"
 
 
 def _trade_value_for_rate(rate: Decimal, timestamp: datetime, maturity: datetime, size: Decimal = Decimal("1")) -> Decimal:
@@ -116,11 +117,11 @@ def _build_dual_market_fixture(root: Path):
         orderbook_rows.append(
             {
                 "block_number": 1,
-                "block_timestamp": timestamps[1].isoformat(),
+                "block_timestamp": (timestamps[1] + pd.Timedelta(seconds=30)).isoformat(),
                 "transaction_hash": f"0x{market_key[:6]}fidx",
                 "address": market_address,
                 "log_index": 99,
-                "data": _encode_dummy_findex(),
+                "data": _encode_dummy_findex(timestamps[1].replace(tzinfo=None), sequence=9),
                 "topics": str([F_INDEX_TOPIC]),
             }
         )
@@ -159,10 +160,12 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         )
         self.assertEqual(len(data.index), 4)
         self.assertIn("latest_f_time", data.columns)
+        self.assertIn("latest_f_time_to_maturity_seconds", data.columns)
         self.assertIn("settlement_fee_rate_annualized_proxy", data.columns)
         self.assertEqual(len(event_ledger.index), 9)
         self.assertEqual(len(tx_ledger.index), 8)
         self.assertGreater(tx_ledger.iloc[0]["opening_fee_rate_annualized"], Decimal(0))
+        self.assertEqual(data.iloc[-1]["latest_f_time"], pd.Timestamp("2026-01-21 09:01:00"))
 
     def test_funding_convergence_strategy_runs(self):
         market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)
