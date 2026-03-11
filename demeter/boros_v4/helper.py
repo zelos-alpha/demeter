@@ -3,6 +3,8 @@ import json
 from datetime import date, datetime, time
 from decimal import Decimal
 from pathlib import Path
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 import pandas as pd
 
@@ -14,6 +16,7 @@ SIZE_SCALE = Decimal("1e18")
 TRADE_VALUE_SCALE = Decimal("1e19")
 EVENT_KIND_ORDERBOOK = "orderbook"
 EVENT_KIND_AMM = "amm"
+SECONDS_PER_YEAR = Decimal(365 * 24 * 3600)
 
 ORDERBOOK_TOPIC_MAP = {
     "0x7a1823ff8473ae353f7ac7587b085e7544b1e3cc8f87c33c504af60fe5111471": "limit_order_placed",
@@ -40,6 +43,108 @@ def _normalize_maturity(maturity: date | datetime) -> pd.Timestamp:
         ts = pd.Timestamp(maturity)
         return ts.tz_localize(None) if ts.tzinfo else ts
     return pd.Timestamp(datetime.combine(maturity, time(23, 59)))
+
+
+def _normalize_timestamp(value: date | datetime | pd.Timestamp) -> pd.Timestamp:
+    ts = pd.Timestamp(value)
+    if ts.tzinfo is not None:
+        ts = ts.tz_convert(None)
+    return ts
+
+
+def _funding_frame(rows: list[dict], venue: str, symbol: str, period_seconds: int) -> pd.DataFrame:
+    frame = pd.DataFrame(rows)
+    if len(frame.index) == 0:
+        return pd.DataFrame(
+            columns=[
+                "timestamp",
+                "venue",
+                "symbol",
+                "funding_rate",
+                "period_seconds",
+                "annualized_rate",
+            ]
+        )
+    frame = frame.sort_values("timestamp").reset_index(drop=True)
+    frame["venue"] = venue
+    frame["symbol"] = symbol
+    frame["period_seconds"] = int(period_seconds)
+    frame["annualized_rate"] = frame["funding_rate"].apply(
+        lambda value: Decimal(value) * SECONDS_PER_YEAR / Decimal(period_seconds)
+    )
+    return frame
+
+
+def load_binance_funding_history(
+    symbol: str,
+    start: date | datetime | pd.Timestamp,
+    end: date | datetime | pd.Timestamp,
+    limit: int = 1000,
+) -> pd.DataFrame:
+    start_ts = int(_normalize_timestamp(start).timestamp() * 1000)
+    end_ts = int(_normalize_timestamp(end).timestamp() * 1000)
+    rows: list[dict] = []
+    current_start = start_ts
+    while current_start <= end_ts:
+        query = urlencode({"symbol": symbol, "startTime": current_start, "endTime": end_ts, "limit": limit})
+        with urlopen(f"https://fapi.binance.com/fapi/v1/fundingRate?{query}", timeout=30) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        if not payload:
+            break
+        for item in payload:
+            rows.append(
+                {
+                    "timestamp": pd.Timestamp(int(item["fundingTime"]), unit="ms"),
+                    "funding_rate": Decimal(item["fundingRate"]),
+                    "mark_price": Decimal(item["markPrice"]),
+                }
+            )
+        last_time = int(payload[-1]["fundingTime"])
+        if last_time >= end_ts or len(payload) < limit:
+            break
+        current_start = last_time + 1
+    return _funding_frame(rows=rows, venue="BINANCE", symbol=symbol, period_seconds=8 * 3600)
+
+
+def load_hyperliquid_funding_history(
+    coin: str,
+    start: date | datetime | pd.Timestamp,
+    end: date | datetime | pd.Timestamp,
+    chunk_days: int = 7,
+) -> pd.DataFrame:
+    start_ts = _normalize_timestamp(start)
+    end_ts = _normalize_timestamp(end)
+    rows: list[dict] = []
+    current = start_ts
+    while current <= end_ts:
+        chunk_end = min(current + pd.Timedelta(days=chunk_days) - pd.Timedelta(milliseconds=1), end_ts)
+        request = Request(
+            "https://api.hyperliquid.xyz/info",
+            data=json.dumps(
+                {
+                    "type": "fundingHistory",
+                    "coin": coin,
+                    "startTime": int(current.timestamp() * 1000),
+                    "endTime": int(chunk_end.timestamp() * 1000),
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
+        with urlopen(request, timeout=30) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        for item in payload:
+            rows.append(
+                {
+                    "timestamp": pd.Timestamp(int(item["time"]), unit="ms"),
+                    "funding_rate": Decimal(item["fundingRate"]),
+                    "premium": Decimal(item["premium"]),
+                }
+            )
+        current = chunk_end + pd.Timedelta(milliseconds=1)
+    frame = _funding_frame(rows=rows, venue="HYPERLIQUID", symbol=coin, period_seconds=3600)
+    if len(frame.index) > 0:
+        frame = frame.drop_duplicates(subset=["timestamp"]).reset_index(drop=True)
+    return frame
 
 
 def _hex_words(data: str) -> list[str]:

@@ -79,7 +79,13 @@ def build_settlement_ledger(markets: list[BorosMarket], actions_df: pd.DataFrame
     ].reset_index(drop=True)
 
 
-def summarize_backtest(actuator: Actuator, markets: list[BorosMarket], spread_df: pd.DataFrame) -> dict:
+def build_perp_funding_ledger(strategy: FundingConvergenceStrategy) -> pd.DataFrame:
+    if not getattr(strategy, "perp_funding_ledger", None):
+        return pd.DataFrame()
+    return pd.DataFrame(strategy.perp_funding_ledger)
+
+
+def summarize_backtest(actuator: Actuator, strategy: FundingConvergenceStrategy, markets: list[BorosMarket], spread_df: pd.DataFrame) -> dict:
     final_status = actuator.account_status_df.iloc[-1]
     actions_df = actions_to_dataframe(actuator.actions)
     initial_net_value = Decimal("1000")
@@ -146,6 +152,7 @@ def summarize_backtest(actuator: Actuator, markets: list[BorosMarket], spread_df
         "total_settlement_fees": str(total_settlement_fees),
         "total_explicit_costs": str(total_explicit_costs),
         "gross_pnl_before_explicit_costs": str(gross_pnl_before_explicit_costs),
+        "total_perp_funding_pnl": str(getattr(strategy, "total_perp_funding_pnl", Decimal(0))),
     }
     return summary
 
@@ -162,12 +169,14 @@ def export_convergence_result(
     actions_df = actions_to_dataframe(actuator.actions)
     positions_df = build_position_ledger(markets)
     settlement_df = build_settlement_ledger(markets, actions_df)
+    perp_funding_df = build_perp_funding_ledger(strategy)
     spread_df = pd.DataFrame(strategy.spread_history)
-    summary = summarize_backtest(actuator, markets, spread_df)
+    summary = summarize_backtest(actuator, strategy, markets, spread_df)
 
     actions_df.to_csv(root / "trade_ledger.csv", index=False)
     positions_df.to_csv(root / "position_ledger.csv", index=False)
     settlement_df.to_csv(root / "settlement_ledger.csv", index=False)
+    perp_funding_df.to_csv(root / "perp_funding_ledger.csv", index=False)
     spread_df.to_csv(root / "spread_timeseries.csv", index=False)
     with open(root / "summary.json", "w", encoding="utf-8") as file:
         json.dump(summary, file, indent=2)
@@ -195,6 +204,7 @@ def export_convergence_result(
         f"- total_settlement_fees: {summary['total_settlement_fees']}",
         f"- total_explicit_costs: {summary['total_explicit_costs']}",
         f"- gross_pnl_before_explicit_costs: {summary['gross_pnl_before_explicit_costs']}",
+        f"- total_perp_funding_pnl: {summary['total_perp_funding_pnl']}",
         "",
         "## Markets",
     ]
@@ -237,6 +247,7 @@ def run_funding_convergence_backtest(
     min_expected_edge_after_cost: Decimal = Decimal("0"),
     max_execution_delay_seconds: int | None = None,
     max_pair_execution_skew_seconds: int | None = None,
+    synthetic_perp_funding: dict[str, pd.DataFrame] | None = None,
 ) -> tuple[Actuator, FundingConvergenceStrategy, list[BorosMarket]]:
     market_a_info = MarketInfo(market_a_name, MarketTypeEnum.boros)
     market_b_info = MarketInfo(market_b_name, MarketTypeEnum.boros)
@@ -264,6 +275,7 @@ def run_funding_convergence_backtest(
         min_expected_edge_after_cost=min_expected_edge_after_cost,
         max_execution_delay_seconds=max_execution_delay_seconds,
         max_pair_execution_skew_seconds=max_pair_execution_skew_seconds,
+        synthetic_perp_funding=synthetic_perp_funding,
     )
     actuator.strategy = strategy
     price_index = market_a.get_price_from_data().index.union(market_b.get_price_from_data().index)

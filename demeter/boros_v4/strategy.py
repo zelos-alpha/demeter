@@ -7,6 +7,7 @@ import pandas as pd
 
 from .. import MarketInfo, Snapshot
 from ..strategy import Strategy
+from .. import USD
 from .market import BorosMarket, FixedFloatDirection
 
 
@@ -20,6 +21,19 @@ class BorosExecutionMode(Enum):
 class SpreadPosition:
     position_id_a: int
     position_id_b: int
+
+
+def _normalize_funding_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    required = {"timestamp", "funding_rate"}
+    missing = required - set(frame.columns)
+    if missing:
+        raise ValueError(f"Missing funding columns: {sorted(missing)}")
+    result = frame.copy()
+    result["timestamp"] = pd.to_datetime(result["timestamp"], utc=True).dt.tz_localize(None)
+    result["funding_rate"] = result["funding_rate"].apply(lambda value: Decimal(str(value)))
+    if "period_seconds" not in result.columns:
+        result["period_seconds"] = 0
+    return result.sort_values("timestamp").reset_index(drop=True)
 
 
 class SimpleFixedFloatStrategy(Strategy):
@@ -153,6 +167,7 @@ class FundingConvergenceStrategy(Strategy):
         min_expected_edge_after_cost: Decimal = Decimal("0"),
         max_execution_delay_seconds: int | None = None,
         max_pair_execution_skew_seconds: int | None = None,
+        synthetic_perp_funding: dict[str, pd.DataFrame] | None = None,
     ):
         super().__init__()
         self.market_a_info = market_a_info
@@ -180,6 +195,14 @@ class FundingConvergenceStrategy(Strategy):
         self._spread_window: deque[Decimal] = deque(maxlen=self.lookback)
         self._spread_position: SpreadPosition | None = None
         self.spread_history: list[dict] = []
+        self.synthetic_perp_funding = (
+            {market_name: _normalize_funding_frame(frame) for market_name, frame in synthetic_perp_funding.items()}
+            if synthetic_perp_funding is not None
+            else {}
+        )
+        self._funding_cursor = {market_name: 0 for market_name in self.synthetic_perp_funding}
+        self.perp_funding_ledger: list[dict] = []
+        self.total_perp_funding_pnl: Decimal = Decimal(0)
 
     @property
     def market_a(self) -> BorosMarket:
@@ -360,7 +383,65 @@ class FundingConvergenceStrategy(Strategy):
             )
         self._spread_position = None
 
+    @staticmethod
+    def _perp_side_for_direction(direction: FixedFloatDirection) -> int:
+        return 1 if direction == FixedFloatDirection.PAY_FIXED else -1
+
+    def _get_open_position_for_market(self, market: BorosMarket) -> tuple[int | None, object | None]:
+        if self._spread_position is None:
+            return None, None
+        if market.market_info == self.market_a_info:
+            position_id = self._spread_position.position_id_a
+        elif market.market_info == self.market_b_info:
+            position_id = self._spread_position.position_id_b
+        else:
+            return None, None
+        position = market.positions.get(position_id)
+        if position is None or not position.can_close():
+            return position_id, None
+        return position_id, position
+
+    def _apply_synthetic_perp_funding(self, snapshot: Snapshot):
+        if not self.synthetic_perp_funding:
+            return
+        current_ts = pd.Timestamp(snapshot.timestamp)
+        for market in (self.market_a, self.market_b):
+            market_name = market.market_info.name
+            if market_name not in self.synthetic_perp_funding:
+                continue
+            frame = self.synthetic_perp_funding[market_name]
+            cursor = self._funding_cursor.get(market_name, 0)
+            while cursor < len(frame.index) and frame.iloc[cursor]["timestamp"] <= current_ts:
+                event = frame.iloc[cursor]
+                position_id, position = self._get_open_position_for_market(market)
+                if position is not None:
+                    perp_side = self._perp_side_for_direction(position.direction)
+                    funding_rate = Decimal(event["funding_rate"])
+                    notional = Decimal(position.remaining_notional)
+                    cashflow = -(Decimal(perp_side) * notional * funding_rate)
+                    if cashflow >= 0:
+                        self.broker.add_to_balance(USD, cashflow)
+                    else:
+                        self.broker.subtract_from_balance(USD, -cashflow)
+                    self.total_perp_funding_pnl += cashflow
+                    self.perp_funding_ledger.append(
+                        {
+                            "timestamp": event["timestamp"],
+                            "market": market_name,
+                            "position_id": position_id,
+                            "boros_direction": position.direction.name,
+                            "synthetic_perp_side": "long" if perp_side > 0 else "short",
+                            "notional": notional,
+                            "funding_rate": funding_rate,
+                            "period_seconds": int(event["period_seconds"]),
+                            "cashflow": cashflow,
+                        }
+                    )
+                cursor += 1
+            self._funding_cursor[market_name] = cursor
+
     def on_bar(self, snapshot: Snapshot):
+        self._apply_synthetic_perp_funding(snapshot)
         rate_a = self.market_a.market_status.data["mark_rate"]
         rate_b = self.market_b.market_status.data["mark_rate"]
         time_to_mat_a = int(

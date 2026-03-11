@@ -1,12 +1,14 @@
 from .analysis import export_convergence_result, run_funding_convergence_backtest
 from .helper import (
     get_price_from_data,
+    load_binance_funding_history,
     load_boros_data,
     load_boros_event_data,
     load_boros_event_ledger,
     load_boros_event_trade_ledger,
     load_boros_event_tx_ledger,
     load_boros_tx_ledger,
+    load_hyperliquid_funding_history,
 )
 from .market import (
     BorosBalance,
@@ -30,11 +32,13 @@ __all__ = [
     "SimpleFixedFloatStrategy",
     "export_convergence_result",
     "get_price_from_data",
+    "load_binance_funding_history",
     "load_boros_data",
     "load_boros_event_data",
     "load_boros_event_ledger",
     "load_boros_event_trade_ledger",
     "load_boros_event_tx_ledger",
     "load_boros_tx_ledger",
+    "load_hyperliquid_funding_history",
     "run_funding_convergence_backtest",
 ]

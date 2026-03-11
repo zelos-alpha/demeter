@@ -5,6 +5,7 @@ import unittest
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import patch
 
 import pandas as pd
 
@@ -14,9 +15,11 @@ from demeter.boros_v4 import (
     BorosMarket,
     FundingConvergenceStrategy,
     export_convergence_result,
+    load_binance_funding_history,
     load_boros_event_data,
     load_boros_event_ledger,
     load_boros_event_trade_ledger,
+    load_hyperliquid_funding_history,
 )
 
 
@@ -262,6 +265,96 @@ class BorosV4ConvergenceTest(unittest.TestCase):
             Decimal(summary["combined_realized_pnl"]) + Decimal(summary["total_explicit_costs"]),
         )
         self.assertIn("total_explicit_costs", summary["market_balances"]["binance_feb27"])
+
+    def test_funding_convergence_with_synthetic_perp_funding(self):
+        market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)
+        market_b_info = MarketInfo("hyperliquid_feb27", MarketTypeEnum.boros)
+        market_a = BorosMarket(market_a_info)
+        market_b = BorosMarket(market_b_info)
+        market_a.load_event_data(str(self.root), "BINANCE-ETHUSDT-27FEB2026", "BINANCE", self.maturity)
+        market_b.load_event_data(str(self.root), "HYPERLIQUID-ETH-27FEB2026", "HYPERLIQUID", self.maturity)
+
+        actuator = Actuator()
+        actuator.broker.add_market(market_a)
+        actuator.broker.add_market(market_b)
+        actuator.broker.set_balance(USD, Decimal("1000"))
+        funding_a = pd.DataFrame(
+            [{"timestamp": datetime(2026, 1, 21, 9, 2, 30), "funding_rate": Decimal("0.001"), "period_seconds": 3600}]
+        )
+        funding_b = pd.DataFrame(
+            [{"timestamp": datetime(2026, 1, 21, 9, 2, 30), "funding_rate": Decimal("0.0005"), "period_seconds": 3600}]
+        )
+        actuator.strategy = FundingConvergenceStrategy(
+            market_a_info=market_a_info,
+            market_b_info=market_b_info,
+            notional=Decimal("100"),
+            lookback=2,
+            entry_threshold=Decimal("0.004"),
+            exit_threshold=Decimal("0.005"),
+            stop_loss=Decimal("10"),
+            execution_mode=BorosExecutionMode.TX_REPLAY_BEST_EXEC,
+            min_time_to_maturity_seconds=60,
+            max_signal_rate=Decimal("1"),
+            expected_holding_seconds=60,
+            min_expected_edge_after_cost=Decimal("-1"),
+            synthetic_perp_funding={
+                "binance_feb27": funding_a,
+                "hyperliquid_feb27": funding_b,
+            },
+        )
+        actuator.set_price(pd.DataFrame(index=market_a.data.index.union(market_b.data.index)))
+        actuator.run(False)
+
+        self.assertEqual(actuator.strategy.total_perp_funding_pnl, Decimal("-0.05"))
+        self.assertEqual(len(actuator.strategy.perp_funding_ledger), 2)
+
+    def test_external_funding_loaders_shape(self):
+        start = datetime(2026, 1, 21)
+        end = datetime(2026, 1, 22)
+        binance_payload = json.dumps(
+            [
+                {
+                    "symbol": "ETHUSDT",
+                    "fundingTime": 1768953600001,
+                    "fundingRate": "0.00000552",
+                    "markPrice": "2938.29662016",
+                }
+            ]
+        ).encode("utf-8")
+        hyperliquid_payload = json.dumps(
+            [
+                {
+                    "coin": "ETH",
+                    "fundingRate": "0.0000125",
+                    "premium": "-0.0003077475",
+                    "time": 1768953600063,
+                }
+            ]
+        ).encode("utf-8")
+
+        class _MockResponse:
+            def __init__(self, payload: bytes):
+                self.payload = payload
+
+            def read(self):
+                return self.payload
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        with patch("demeter.boros_v4.helper.urlopen") as mocked_urlopen:
+            mocked_urlopen.side_effect = [_MockResponse(binance_payload), _MockResponse(hyperliquid_payload)]
+            binance = load_binance_funding_history("ETHUSDT", start, end)
+            hyperliquid = load_hyperliquid_funding_history("ETH", start, end)
+        self.assertIn("funding_rate", binance.columns)
+        self.assertIn("annualized_rate", binance.columns)
+        self.assertIn("funding_rate", hyperliquid.columns)
+        self.assertIn("annualized_rate", hyperliquid.columns)
+        self.assertGreater(len(binance.index), 0)
+        self.assertGreater(len(hyperliquid.index), 0)
 
     def test_funding_convergence_edge_gate_blocks_entries(self):
         market_a_info = MarketInfo("binance_feb27", MarketTypeEnum.boros)
