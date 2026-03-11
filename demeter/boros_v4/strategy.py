@@ -292,8 +292,18 @@ class FundingConvergenceStrategy(Strategy):
     def on_bar(self, snapshot: Snapshot):
         rate_a = self.market_a.market_status.data["mark_rate"]
         rate_b = self.market_b.market_status.data["mark_rate"]
-        time_to_mat_a = int(self.market_a.market_status.data["time_to_maturity_seconds"])
-        time_to_mat_b = int(self.market_b.market_status.data["time_to_maturity_seconds"])
+        time_to_mat_a = int(
+            self.market_a.market_status.data.get(
+                "latest_f_time_to_maturity_seconds",
+                self.market_a.market_status.data["time_to_maturity_seconds"],
+            )
+        )
+        time_to_mat_b = int(
+            self.market_b.market_status.data.get(
+                "latest_f_time_to_maturity_seconds",
+                self.market_b.market_status.data["time_to_maturity_seconds"],
+            )
+        )
         signal_ready = (
             time_to_mat_a >= self.min_time_to_maturity_seconds
             and time_to_mat_b >= self.min_time_to_maturity_seconds

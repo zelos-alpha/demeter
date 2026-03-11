@@ -215,7 +215,7 @@ class BorosMarket(Market):
             current_findex=current_findex,
             current_mark_rate=PaymentLib.decimal_to_wad(current_mark_rate),
             entry_time_to_mat=position.entry_time_to_maturity_seconds,
-            current_time_to_mat=current_time_to_maturity_seconds,
+            current_time_to_mat=self._current_latest_f_time_to_maturity_seconds(),
             entry_opening_fee_cost=PaymentLib.decimal_to_wad(position.entry_opening_fee_cost),
         )
 
