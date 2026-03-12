@@ -119,6 +119,9 @@ auth/
 env.bak/
 venv.bak/
 data*
+!demeter/data/
+!demeter/data/__init__.py
+!demeter/data/data_cache.py
 # Spyder project settings
 .spyderproject
 .spyproject
