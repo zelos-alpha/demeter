@@ -15,7 +15,9 @@ from .PMath import PMath
 from ._typing import Side
 
 SIZE_SCALE = Decimal("1e18")
-TRADE_VALUE_SCALE = Decimal("1e19")
+# Official Boros trade/cost/rate math uses FixedX18. MarketOrdersFilled.totalTrade
+# and AMM Swap.costOut carry annualized cost, not upfront fixed cashflow.
+TRADE_VALUE_SCALE = Decimal("1e18")
 EVENT_KIND_ORDERBOOK = "orderbook"
 EVENT_KIND_AMM = "amm"
 SECONDS_PER_YEAR = Decimal(365 * 24 * 3600)
@@ -348,6 +350,7 @@ def _build_decoded_trade_rows(event_ledger: pd.DataFrame, maturity: date | datet
             continue
 
         signed_size = decoded["signed_size"]
+        # Boros events emit Trade.signedCost / Swap.costOut as annualized cost (FixedX18).
         signed_trade_value = decoded["signed_trade_value"]
         fee_paid = decoded["fee_paid"]
         abs_size = abs(signed_size)
@@ -361,8 +364,9 @@ def _build_decoded_trade_rows(event_ledger: pd.DataFrame, maturity: date | datet
         time_to_mat = max(0, int((maturity_ts - latest_f_time).total_seconds()))
         implied_rate = Decimal(0)
         opening_fee_rate_annualized = Decimal(0)
+        if abs_size > 0:
+            implied_rate = abs(signed_trade_value) / abs_size
         if abs_size > 0 and time_to_mat > 0:
-            implied_rate = abs(signed_trade_value) * Decimal(PMath.ONE_YEAR) / (abs_size * Decimal(time_to_mat))
             if fee_paid > 0:
                 opening_fee_rate_annualized = fee_paid * Decimal(PMath.ONE_YEAR) / (abs_size * Decimal(time_to_mat))
         rows.append(

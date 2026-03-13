@@ -40,8 +40,8 @@ def _encode_signed(value: int, bits: int) -> str:
 
 def _encode_market_orders_filled(size: Decimal, trade_value: Decimal, fee_value: Decimal = Decimal(0)) -> str:
     size_raw = int(size * Decimal("1e18"))
-    value_raw = int(trade_value * Decimal("1e19"))
-    fee_raw = int(fee_value * Decimal("1e19"))
+    value_raw = int(trade_value * Decimal("1e18"))
+    fee_raw = int(fee_value * Decimal("1e18"))
     return "0x" + "".join(
         [
             "0" * 64,
@@ -53,8 +53,8 @@ def _encode_market_orders_filled(size: Decimal, trade_value: Decimal, fee_value:
 
 def _encode_swap(size: Decimal, trade_value: Decimal, fee_value: Decimal = Decimal(0)) -> str:
     size_raw = int(size * Decimal("1e18"))
-    value_raw = int(trade_value * Decimal("1e19"))
-    fee_raw = int(fee_value * Decimal("1e19"))
+    value_raw = int(trade_value * Decimal("1e18"))
+    fee_raw = int(fee_value * Decimal("1e18"))
     return "0x" + "".join([_encode_signed(size_raw, 256), _encode_signed(value_raw, 256), f"{fee_raw:064x}"])
 
 
@@ -78,8 +78,8 @@ def _encode_dummy_findex(
 
 
 def _trade_value_for_rate(rate: Decimal, pricing_timestamp: datetime, maturity: datetime, size: Decimal = Decimal("1")) -> Decimal:
-    seconds = Decimal((maturity - pricing_timestamp).total_seconds())
-    return rate * size * seconds / Decimal(365 * 24 * 3600)
+    del pricing_timestamp, maturity
+    return rate * size
 
 
 def _write_csv(path: Path, rows: list[dict]):
@@ -180,6 +180,7 @@ class BorosV4ConvergenceTest(unittest.TestCase):
         )
         self.assertEqual(len(trade_ledger.index), 8)
         self.assertGreater(trade_ledger.iloc[0]["implied_rate"], Decimal("0.04"))
+        self.assertEqual(trade_ledger.iloc[0]["implied_rate"], Decimal("0.05"))
         self.assertEqual(trade_ledger.iloc[0]["trade_side"], "LONG")
 
         data, event_ledger, tx_ledger = load_boros_event_data(
