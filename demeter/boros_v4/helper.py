@@ -478,8 +478,8 @@ def _build_event_mark_rate_series(
     return pd.Series(rolling_values, index=full_index, dtype=object)
 
 
-def load_boros_event_trade_ledger(event_dir: str, market_key: str, maturity: date | datetime) -> pd.DataFrame:
-    event_ledger = load_boros_event_ledger(event_dir=event_dir, market_key=market_key)
+def load_boros_event_trade_ledger(event_dir: str, market_key: str, maturity: date | datetime, source_kind: str | None = None) -> pd.DataFrame:
+    event_ledger = load_boros_event_ledger(event_dir=event_dir, market_key=market_key, source_kind=source_kind)
     return _build_decoded_trade_rows(event_ledger=event_ledger, maturity=maturity)
 
 
@@ -560,8 +560,9 @@ def load_boros_event_data(
     maturity: date | datetime,
     resample_rule: str = "1min",
     default_opening_fee_rate: Decimal = Decimal(0),
+    source_kind: str | None = None
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    event_ledger = load_boros_event_ledger(event_dir=event_dir, market_key=market_key)
+    event_ledger = load_boros_event_ledger(event_dir=event_dir, market_key=market_key, source_kind=source_kind)
     trade_ledger = _build_decoded_trade_rows(event_ledger=event_ledger, maturity=maturity)
     tx_ledger = _build_event_tx_ledger(trade_ledger=trade_ledger)
     state_frame = _build_state_frame(

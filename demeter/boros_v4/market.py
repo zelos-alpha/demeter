@@ -261,7 +261,7 @@ class BorosMarket(Market):
         current_time_to_maturity_seconds: int,
     ) -> SettlementBreakdown:
         signed_size = self._notional_to_signed_size_wad(position.remaining_notional, position.direction)
-        return PaymentLib.calc_present_value(
+        position_value = PaymentLib.calc_present_value(
             signed_size=signed_size,
             entry_fixed_rate=PaymentLib.decimal_to_wad(position.entry_fixed_rate),
             entry_findex=position.entry_findex,
@@ -271,6 +271,7 @@ class BorosMarket(Market):
             current_time_to_mat=self._current_latest_f_time_to_maturity_seconds(),
             entry_opening_fee_cost=PaymentLib.decimal_to_wad(position.entry_opening_fee_cost),
         )
+        return position_value
 
     def _close_position_internal(
         self,
@@ -850,6 +851,7 @@ class BorosMarket(Market):
         maturity: date | datetime,
         resample_rule: str = "1min",
         default_opening_fee_rate: Decimal = Decimal(0),
+        source_kind: str | None = None
     ):
         data, event_ledger, tx_ledger = load_boros_event_data(
             event_dir=event_dir,
@@ -858,13 +860,14 @@ class BorosMarket(Market):
             maturity=maturity,
             resample_rule=resample_rule,
             default_opening_fee_rate=default_opening_fee_rate,
+            source_kind=source_kind
         )
         self._data = data
         self.event_ledger = event_ledger
         self.tx_ledger = tx_ledger
         from .helper import load_boros_event_trade_ledger
 
-        self.trade_ledger = load_boros_event_trade_ledger(event_dir=event_dir, market_key=market_key, maturity=maturity)
+        self.trade_ledger = load_boros_event_trade_ledger(event_dir=event_dir, market_key=market_key, maturity=maturity, source_kind=source_kind)
         self.venue = venue
         self.maturity = pd.Timestamp(self._data["maturity"].iloc[0])
         self._consumed_execution_rows = set()

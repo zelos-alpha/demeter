@@ -1,5 +1,5 @@
 import json
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -182,7 +182,7 @@ def summarize_backtest(actuator: Actuator, strategy: FundingConvergenceStrategy,
     gross_pnl_before_explicit_costs = combined_realized_pnl + total_explicit_costs
     final_net_value = Decimal(str(final_status["net_value"][""]))
     summary = {
-        "generated_at": datetime.now(UTC).isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "initial_net_value": str(initial_net_value),
         "final_net_value": str(final_net_value),
         "total_pnl": str(final_net_value - initial_net_value),
@@ -360,6 +360,6 @@ def run_funding_convergence_backtest(
     actuator.strategy = strategy
     price_index = market_a.get_price_from_data().index.union(market_b.get_price_from_data().index)
     actuator.set_price(pd.DataFrame(index=price_index))
-    actuator.run(print_result=False)
+    actuator.run(print_result=True)
     export_convergence_result(actuator=actuator, strategy=strategy, output_dir=output_dir, markets=[market_a, market_b])
     return actuator, strategy, [market_a, market_b]

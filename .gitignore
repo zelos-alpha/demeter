@@ -122,6 +122,7 @@ data*
 !demeter/data/
 !demeter/data/__init__.py
 !demeter/data/data_cache.py
+!demeter/uniswap/data.py
 # Spyder project settings
 .spyderproject
 .spyproject
