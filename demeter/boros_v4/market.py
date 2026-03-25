@@ -56,9 +56,18 @@ class FixedFloatPosition:
     realized_pnl: Decimal = Decimal(0)
     exit_time: datetime | None = None
     is_closed: bool = False
+    leverage: Decimal = Decimal(1)  # 杠杆倍数，默认1x
+    margin: Decimal | None = None  # 保证金（计算得出：notional / leverage）
 
     def can_close(self) -> bool:
         return not self.is_closed and self.remaining_notional > 0
+
+    @property
+    def effective_margin(self) -> Decimal:
+        """计算实际保证金"""
+        if self.margin is not None:
+            return self.margin
+        return self.notional / self.leverage if self.leverage > 0 else self.notional
 
 
 @dataclass
@@ -75,6 +84,12 @@ class BorosBalance(MarketBalance):
     pay_fixed_notional: Decimal
     receive_fixed_notional: Decimal
     current_mark_rate: Decimal
+    
+    # 新增字段
+    open_margin: Decimal = Decimal(0)           # 总保证金
+    margin_utilization: Decimal = Decimal(0)   # 保证金利用率
+    leverage: Decimal = Decimal(1)              # 加权平均杠杆
+    required_margin: Decimal = Decimal(0)      # 所需保证金（基于当前市值）
 
 
 @dataclass
@@ -95,6 +110,8 @@ class OpenFixedFloatAction(BaseAction):
     execution_option_count: int = 0
     execution_selection_reason: str = ""
     execution_quote_options_json: str = ""
+    leverage: Decimal = Decimal(1)  # 杠杆倍数
+    margin: Decimal = Decimal(0)  # 保证金
 
     def set_type(self):
         self.action_type = ActionTypeEnum.boros_open_fixed_float
@@ -107,6 +124,8 @@ class OpenFixedFloatAction(BaseAction):
                 "position_id": str(self.position_id),
                 "direction": self.direction,
                 "notional": str(self.notional),
+                "leverage": str(self.leverage),
+                "margin": str(self.margin),
                 "fixed_rate": str(self.fixed_rate),
                 "mark_rate": str(self.mark_rate),
             },
@@ -124,6 +143,12 @@ class CloseFixedFloatAction(BaseAction):
     exit_mark_rate: Decimal
     pnl: Decimal
     close_reason: str
+    leverage: Decimal = Decimal(1)  # 杠杆倍数
+    margin: Decimal = Decimal(0)  # 保证金
+    # 新增：收益率相关字段
+    return_on_margin: Decimal = Decimal(0)  # 保证金收益率
+    margin_utilization_before: Decimal = Decimal(0)  # 平仓前保证金利用率
+
     settlement_payment: Decimal = Decimal(0)
     settlement_fees: Decimal = Decimal(0)
     mark_to_maturity_value: Decimal = Decimal(0)
@@ -148,9 +173,12 @@ class CloseFixedFloatAction(BaseAction):
                 "position_id": str(self.position_id),
                 "direction": self.direction,
                 "notional": str(self.notional),
+                "leverage": str(self.leverage),
+                "margin": str(self.margin),
                 "close_notional": str(self.close_notional),
                 "remaining_notional": str(self.remaining_notional),
                 "pnl": str(self.pnl),
+                "return_on_margin": str(self.return_on_margin),
                 "close_reason": self.close_reason,
             },
         )
@@ -273,6 +301,163 @@ class BorosMarket(Market):
         )
         return position_value
 
+    def _calculate_position_value(self, position: FixedFloatPosition) -> Decimal:
+        """
+        计算当前仓位价值（考虑市价波动）
+        用于保证金充足率检查
+        """
+        current_mark_rate = self._current_mark_rate()
+        current_findex = self._current_findex()
+        current_time_to_mat = self._current_time_to_maturity_seconds()
+        
+        value_breakdown = self._position_value_breakdown(
+            position=position,
+            current_mark_rate=current_mark_rate,
+            current_findex=current_findex,
+            current_time_to_maturity_seconds=current_time_to_mat,
+        )
+        return PaymentLib.wad_to_decimal(value_breakdown.mark_to_maturity_value)
+
+    def calculate_health_ratio(
+        self,
+        rate_threshold: Decimal = Decimal("0.0001"),
+        kmm: Decimal = Decimal("0.2"),
+    ) -> Decimal:
+        """
+        计算当前市场的健康指数
+        Health Ratio = Total Value / Total Maintenance Margin
+        """
+        cash = Decimal(0)  # 市场层不持有现金，现金在 broker 层
+        total_value = Decimal(0)
+        total_maintenance_margin = Decimal(0)
+        
+        for position in self.get_open_positions():
+            if position.remaining_notional > 0:
+                # 仓位价值 = 当前价值 - 保证金（实际是净价值）
+                current_value = self._calculate_position_value(position)
+                total_value += current_value
+                
+                # 维持保证金 = |Position Size| × max(|Mark Rate|, Rate Threshold) × kMM × Time to Maturity
+                current_mark_rate = self._current_mark_rate()
+                abs_rate = max(abs(current_mark_rate), rate_threshold)
+                signed_size = self._notional_to_signed_size_wad(position.remaining_notional, position.direction)
+                current_time_to_mat = self._current_time_to_maturity_seconds()
+                kmm = PaymentLib.decimal_to_wad(kmm)
+                abs_rate = PaymentLib.decimal_to_wad(abs_rate)
+                maintenance_margin = PaymentLib.calc_mm(abs(signed_size), abs_rate, kmm, current_time_to_mat)
+                total_maintenance_margin += PaymentLib.wad_to_decimal(maintenance_margin)
+
+        # 健康指数
+        if total_maintenance_margin == 0:
+            return Decimal(999)  # 无持仓时视为健康
+        
+        return total_value / total_maintenance_margin
+
+    def check_liquidation(
+        self,
+        rate_threshold: Decimal = Decimal("0.0001"),
+        kmm: Decimal = Decimal("0.2"),
+        liquidation_threshold: Decimal = Decimal("1.0"),
+    ) -> tuple[bool, Decimal]:
+        """
+        检查当前市场是否触发清算
+        清算条件: Health Ratio < 100%
+        返回: (是否触发清算, 健康指数)
+        """
+        health_ratio = self.calculate_health_ratio(rate_threshold, kmm)
+        return abs(health_ratio) < liquidation_threshold, abs(health_ratio)
+
+    def calculate_liquidation_target(
+        self,
+        rate_threshold: Decimal = Decimal("0.0001"),
+        kmm: Decimal = Decimal("1"),
+        target_health_ratio: Decimal = Decimal("1.0"),
+    ) -> tuple[Decimal, Decimal]:
+        """
+        计算当前市场需要清算到目标健康指数的仓位数量
+        返回: (需要平仓的数量, 平仓后的健康指数)
+        """
+        # 当前市场价值
+        market_value = Decimal(0)
+        for position in self.get_open_positions():
+            if position.remaining_notional > 0:
+                current_value = self._calculate_position_value(position)
+                market_value += current_value
+        
+        # 当前维持保证金
+        maintenance_margin = Decimal(0)
+        current_mark_rate = self._current_mark_rate()
+        for position in self.get_open_positions():
+            if position.remaining_notional > 0:
+                rate = max(abs(current_mark_rate), rate_threshold)
+                maintenance_margin += abs(position.remaining_notional) * rate * kmm * Decimal(position.entry_time_to_maturity_seconds)
+        
+        # 如果当前已无持仓
+        if maintenance_margin == 0:
+            return Decimal(0), Decimal(999)
+        
+        # 目标维持保证金 = market_value / target_health_ratio
+        required_margin = market_value / target_health_ratio
+        
+        # 需要减少的维持保证金
+        margin_to_reduce = maintenance_margin - required_margin
+        
+        # 计算需要平仓的数量（按比例）
+        total_notional = sum(
+            p.remaining_notional for p in self.get_open_positions()
+            if p.remaining_notional > 0
+        )
+        
+        if total_notional > 0 and maintenance_margin > 0:
+            notional_to_close = (margin_to_reduce / maintenance_margin) * total_notional
+            notional_to_close = max(Decimal(0), notional_to_close)
+        else:
+            notional_to_close = Decimal(0)
+        
+        return notional_to_close, target_health_ratio
+
+    def check_margin_sufficient(
+        self,
+        position: FixedFloatPosition,
+        margin_call_threshold: Decimal = Decimal("1.2"),
+    ) -> tuple[bool, Decimal]:
+        """
+        检查仓位保证金是否充足
+        返回: (是否充足, 保证金率)
+        """
+        required_margin = position.notional / position.leverage if position.leverage > 0 else position.notional
+        actual_margin = position.effective_margin
+        
+        # 考虑市场波动导致的仓位价值变化
+        current_value = self._calculate_position_value(position)
+        
+        # 保证金充足率 = (当前仓位价值 + 保证金) / 所需保证金
+        margin_ratio = (current_value + actual_margin) / required_margin if required_margin > 0 else Decimal(999)
+        
+        is_sufficient = margin_ratio >= margin_call_threshold
+        
+        return is_sufficient, margin_ratio
+
+    def _check_margin_sufficient(
+        self,
+        margin: Decimal,
+        notional: Decimal,
+    ) -> bool:
+        """
+        简化版保证金充足性检查
+        用于开仓时快速验证
+        返回: 是否充足
+        """
+        # 开仓时只需要检查保证金是否满足最低要求
+        # 最低保证金比例为 1%（即最大杠杆为 100 倍）
+        min_margin_ratio = Decimal("0.01")
+        
+        if notional <= 0 or margin <= 0:
+            return False
+        
+        actual_ratio = margin / notional
+        return actual_ratio >= min_margin_ratio
+
     def _close_position_internal(
         self,
         position: FixedFloatPosition,
@@ -343,13 +528,17 @@ class BorosMarket(Market):
                 execution_quote_options_json=execution_quote_options_json,
             )
         )
-        return portion_pnl
+        effective_margin = position.effective_margin
+        return_on_margin = portion_pnl / effective_margin if effective_margin > 0 else Decimal(0)
+        return portion_pnl, return_on_margin
 
     @write_func
     def open_fixed_float(
         self,
         notional: Decimal,
         direction: FixedFloatDirection,
+        leverage: Decimal = Decimal(1),          # 新增：杠杆倍数
+        margin: Decimal | None = None,         # 新增：保证金（可选，如果提供则忽略leverage）
         fixed_rate: Decimal | None = None,
         execution_fee_paid: Decimal = Decimal(0),
         execution_opening_fee_rate: Decimal | None = None,
@@ -366,6 +555,18 @@ class BorosMarket(Market):
         current_time = self._current_timestamp()
         if self.maturity is not None and current_time >= self.maturity.to_pydatetime():
             raise DemeterError("Boros market has matured")
+
+        # 计算保证金和杠杆
+        if margin is not None:
+            effective_margin = margin
+            effective_leverage = notional / margin if margin > 0 else Decimal(1)
+        else:
+            effective_leverage = leverage
+            effective_margin = notional / leverage if leverage > 0 else notional
+
+        # 2. 验证保证金充足性
+        if not self._check_margin_sufficient(effective_margin, notional):
+            raise DemeterError("Insufficient margin for position")
 
         current_mark_rate = self._current_mark_rate()
         fixed_rate = current_mark_rate if fixed_rate is None else Decimal(fixed_rate)
@@ -394,6 +595,8 @@ class BorosMarket(Market):
             position_id=self._next_position_id,
             direction=direction,
             notional=Decimal(notional),
+            leverage=effective_leverage,
+            margin=effective_margin,
             entry_fixed_rate=fixed_rate,
             entry_time=current_time,
             maturity=self.maturity,
@@ -411,6 +614,8 @@ class BorosMarket(Market):
                 position_id=position.position_id,
                 direction=direction.name,
                 notional=position.notional,
+                leverage=effective_leverage,
+                margin=effective_margin,
                 fixed_rate=fixed_rate,
                 mark_rate=current_mark_rate,
                 entry_upfront_fixed_cost=entry_upfront_fixed_cost,
@@ -528,6 +733,22 @@ class BorosMarket(Market):
         mark_to_maturity_value = self._normalize_decimal(sum((PaymentLib.wad_to_decimal(item.mark_to_maturity_value) for item in breakdowns), Decimal(0)))
         pay_fixed_notional = sum((p.remaining_notional for p in self.get_open_positions() if p.direction == FixedFloatDirection.PAY_FIXED), Decimal(0))
         receive_fixed_notional = sum((p.remaining_notional for p in self.get_open_positions() if p.direction == FixedFloatDirection.RECEIVE_FIXED), Decimal(0))
+        
+        # 新增：保证金相关计算
+        open_positions = self.get_open_positions()
+        total_margin = sum((p.effective_margin for p in open_positions if p.remaining_notional > 0), Decimal(0))
+        
+        # 加权平均杠杆
+        if total_margin > 0:
+            total_notional = sum((p.remaining_notional for p in open_positions), Decimal(0))
+            weighted_leverage = total_notional / total_margin
+        else:
+            weighted_leverage = Decimal(1)
+        
+        # 所需保证金（基于当前市值和利率）
+        # 简化计算：使用 notional 作为所需保证金的近似
+        required_margin = total_margin
+        
         return BorosBalance(
             net_value=self.realized_pnl + unrealized_pnl,
             realized_pnl=self.realized_pnl,
@@ -535,13 +756,17 @@ class BorosMarket(Market):
             accrued_payment=accrued_payment,
             accrued_fees=accrued_fees,
             mark_to_maturity_value=mark_to_maturity_value,
-            upfront_fixed_cost=sum((p.entry_upfront_fixed_cost for p in self.get_open_positions()), Decimal(0)),
-            upfront_opening_fee_cost=sum((p.entry_opening_fee_cost for p in self.get_open_positions()), Decimal(0)),
-            position_count=len(self.get_open_positions()),
+            upfront_fixed_cost=sum((p.entry_upfront_fixed_cost for p in open_positions), Decimal(0)),
+            upfront_opening_fee_cost=sum((p.entry_opening_fee_cost for p in open_positions), Decimal(0)),
+            position_count=len(open_positions),
             open_notional=pay_fixed_notional + receive_fixed_notional,
             pay_fixed_notional=pay_fixed_notional,
             receive_fixed_notional=receive_fixed_notional,
             current_mark_rate=current_mark_rate,
+            # 新增字段
+            open_margin=total_margin,
+            leverage=weighted_leverage,
+            required_margin=required_margin,
         )
 
     def formatted_str(self):

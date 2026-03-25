@@ -78,6 +78,12 @@ class PaymentLib:
         return PMath.raw_div_floor(numerator, PMath.IONE_MUL_YEAR)
 
     @staticmethod
+    def calc_mm(abs_size: int, abs_rate: int, kmm: int, time_to_mat: int) -> int:
+        pm = PMath.mul_down(abs_size, abs_rate)
+        mm = PMath.raw_div_up(pm * kmm * time_to_mat, PMath.ONE_MUL_YEAR)
+        return mm
+
+    @staticmethod
     def calc_entry_fixed_cost(signed_size: int, fixed_rate: int, entry_time_to_mat: int) -> int:
         signed_cost = PMath.mul_floor(signed_size, fixed_rate)
         return PaymentLib.calc_upfront_fixed_cost(signed_cost, entry_time_to_mat)

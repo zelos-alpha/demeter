@@ -9,31 +9,6 @@ from datetime import datetime
 from decimal import Decimal
 from dataclasses import dataclass
 
-# 第一步：在 Boros 做空 BNB HL 市场的 YU，这一步是为了收HL固定利率，付HL浮动费率。
-# 第二步：在 Hyperliquid 开YU等量的 BNB 空单，收HL的浮动费率，抵消在boros付的浮动费率。
-#
-# 前两步让你的只剩下在Boros市场收到的做空YU的固定利率，现在这个值是6.45%
-#
-# 第三步：在 Boros 做多 BNB BN 市场的 YU， 同理收BN浮动费率，付BN固定利率。
-# 第四步：在 Binance 开YU等量的 BNB 多单，付BN浮动费率，抵消在boros收的浮动费率。
-#
-# 后两步让你的只剩下在Boros市场付出的做多YU的固定利率，现在这个值是2.83%
-#
-# 一收一付之间产生了6.45% - 2.83% = 3.62% 的利差。但是波动已经被摒除，同时达到价格波动和费率波动的delta中性了。
-#
-# 再严谨一点，严格计算一下APR，举个例子，这个100 YU的情况下，吃100BNB的固定费率，你在boros的BNB BN和BNB HL分别需要付 0.2613 BNB， 0.5204 BNB来做多空YU。BN和HL上各需要100BNB等值的U来做多空。
-#
-# 也就是说在没有杠杆的情况下 Y = 100 * 3.62% / (100 / 1 + 100 / 1 + 0.2613 + 0.5204） = 1.80% APR
-#
-# 但对于BNB这个量级的币，5x 开多空还算相对安全（因合约仓位是否全仓，是否有其他已开仓位产生安全垫而异）
-#
-# 在5x杠杆的情况下 Y = 100 * 3.62% / (100 / 5 + 100 / 5 + 0.2613 + 0.5204） = 8.88% APR
-#
-# 依次类推 10x 为 17.4% APR， 20x为33.6% APR
-#
-# 另外需要注意的是，由于费率在boros也会产生结算和波动，且boros自带了少量杠杆，在boros上开多空YU也会被清算，所以健康因子也同样需要关注。
-
-
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -56,11 +31,21 @@ class BorosBinanceHyperliquidArbitrageStrategy(Strategy):
             market_a_info: MarketInfo,
             market_b_info: MarketInfo,
             notional: Decimal,
+            leverage: Decimal = Decimal(1),           # 新增：杠杆倍数
+            margin: Decimal | None = None,            # 新增：保证金（可选，如果提供则忽略leverage）
             lookback: int = 60,
             entry_threshold: Decimal = Decimal("0.002"),
             exit_threshold: Decimal = Decimal("0.0005"),
             rebalance_threshold: Decimal = Decimal("0.002"),
             stop_loss: Decimal | None = None,
+            stop_loss_rate: Decimal = Decimal("0.01"), # 新增：基于保证金的止损比例
+            max_leverage: Decimal = Decimal("20"),      # 新增：最大杠杆限制
+            
+            # 清算相关参数（基于 Health Ratio）
+            rate_threshold: Decimal = Decimal("0.0001"),  # 利率绝对值下限
+            kmm: Decimal = Decimal("0.2"),                # 维持保证金系数
+            liquidation_threshold: Decimal = Decimal("1.0"), # 清算阈值 (100%)
+            
             execution_mode: BorosExecutionMode = BorosExecutionMode.BAR_APPROX,
             min_time_to_maturity_seconds: int = 24 * 3600,
             max_signal_rate: Decimal = Decimal("2"),
@@ -71,11 +56,32 @@ class BorosBinanceHyperliquidArbitrageStrategy(Strategy):
         self.market_a_info = market_a_info
         self.market_b_info = market_b_info
         self.notional = Decimal(notional)
+        
+        # 新增：杠杆相关参数
+        self.leverage = Decimal(leverage)
+        self.margin = Decimal(margin) if margin is not None else None
+        self.max_leverage = Decimal(max_leverage)
+        
+        # 计算有效保证金
+        if self.margin is not None:
+            self.effective_margin = self.margin
+            self.effective_leverage = notional / self.margin if self.margin > 0 else Decimal(1)
+        else:
+            self.effective_leverage = self.leverage
+            self.effective_margin = notional / self.leverage if self.leverage > 0 else notional
+        
         self.lookback = int(lookback)
         self.entry_threshold = Decimal(entry_threshold)
         self.exit_threshold = Decimal(exit_threshold)
         self.rebalance_threshold = Decimal(rebalance_threshold)
-        self.stop_loss = Decimal(stop_loss) if stop_loss is not None else self.notional * Decimal("0.01")
+        self.stop_loss = Decimal(stop_loss) if stop_loss is not None else self.effective_margin * stop_loss_rate
+        self.stop_loss_rate = Decimal(stop_loss_rate)
+        
+        # 清算相关参数
+        self.rate_threshold = Decimal(rate_threshold)
+        self.kmm = Decimal(kmm)
+        self.liquidation_threshold = Decimal(liquidation_threshold)
+        
         self.execution_mode = execution_mode
         self.min_time_to_maturity_seconds = int(min_time_to_maturity_seconds)
         self.max_signal_rate = Decimal(max_signal_rate)
@@ -89,6 +95,123 @@ class BorosBinanceHyperliquidArbitrageStrategy(Strategy):
 
         self._spread_window: deque[Decimal] = deque(maxlen=self.lookback)
         self._spread_position: SpreadPosition | None = None
+
+    def calculate_maintenance_margin(
+        self,
+        position_size: Decimal,
+        mark_rate: Decimal,
+        time_to_maturity: int
+    ) -> Decimal:
+        """
+        计算维持保证金
+        Maintenance Margin = |Position Size| × max(|Mark Rate|, Rate Threshold) × kMM × Time to Maturity
+        """
+        rate = max(abs(mark_rate), self.rate_threshold)
+        return abs(position_size) * rate * self.kmm * Decimal(time_to_maturity)
+
+    def calculate_health_ratio(
+        self,
+        cash: Decimal,
+        markets: list
+    ) -> Decimal:
+        """
+        计算健康指数
+        Health Ratio = Total Value / Total Maintenance Margin
+        """
+        total_value = cash
+        total_maintenance_margin = Decimal(0)
+        
+        for market in markets:
+            balance = market.get_market_balance()
+            # 账户权益 = 已实现盈亏 + 未实现盈亏 + 现金
+            total_value += balance.realized_pnl + balance.unrealized_pnl
+            
+            # 获取该市场的仓位
+            for position in market.get_open_positions():
+                if position.remaining_notional > 0:
+                    maintenance_margin = self.calculate_maintenance_margin(
+                        position_size=position.remaining_notional,
+                        mark_rate=balance.current_mark_rate,
+                        time_to_maturity=position.entry_time_to_maturity_seconds,
+                    )
+                    total_maintenance_margin += maintenance_margin
+        
+        # 健康指数
+        if total_maintenance_margin == 0:
+            return Decimal(999)  # 无持仓时视为健康
+        
+        return total_value / total_maintenance_margin
+
+    def check_liquidation(self, cash: Decimal, markets: list) -> tuple[bool, Decimal]:
+        """
+        检查是否触发清算
+        清算条件: Health Ratio < 100%
+        返回: (是否触发清算, 健康指数)
+        """
+        health_ratio = self.calculate_health_ratio(cash, markets)
+        return health_ratio < self.liquidation_threshold, health_ratio
+
+    def calculate_liquidation_amount(
+        self,
+        cash: Decimal,
+        markets: list,
+        target_health_ratio: Decimal = Decimal("1.0"),
+    ) -> dict:
+        """
+        计算需要清算的仓位数量，使健康指数恢复到目标值
+        返回: {market: 需要平仓的数量}
+        """
+        total_value = cash
+        total_maintenance_margin = Decimal(0)
+        market_maintenance_margins = {}
+        
+        for market in markets:
+            balance = market.get_market_balance()
+            total_value += balance.realized_pnl + balance.unrealized_pnl
+            
+            market_margin = Decimal(0)
+            for position in market.get_open_positions():
+                if position.remaining_notional > 0:
+                    maintenance_margin = self.calculate_maintenance_margin(
+                        position_size=position.remaining_notional,
+                        mark_rate=balance.current_mark_rate,
+                        time_to_maturity=position.entry_time_to_maturity_seconds,
+                    )
+                    market_margin += maintenance_margin
+            
+            market_maintenance_margins[market] = market_margin
+            total_maintenance_margin += market_margin
+        
+        # 当前健康指数
+        if total_maintenance_margin == 0:
+            return {}
+        
+        current_health_ratio = total_value / total_maintenance_margin
+        
+        # 如果健康指数已经>=目标值，无需清算
+        if current_health_ratio >= target_health_ratio:
+            return {}
+        
+        # 需要增加到 target_health_ratio 所需的维持保证金
+        # target_health_ratio = total_value / required_maintenance_margin
+        # required_maintenance_margin = total_value / target_health_ratio
+        required_maintenance_margin = total_value / target_health_ratio
+        
+        # 需要减少的维持保证金
+        margin_to_reduce = total_maintenance_margin - required_maintenance_margin
+        
+        # 按比例分配需要平仓的仓位
+        liquidation_amounts = {}
+        for market, market_margin in market_maintenance_margins.items():
+            if market_margin > 0 and margin_to_reduce > 0:
+                # 按比例计算该市场需要平仓的数量
+                ratio = min(margin_to_reduce / market_margin, Decimal(1))
+                open_positions = market.get_open_positions()
+                if open_positions:
+                    total_notional = sum(p.remaining_notional for p in open_positions)
+                    liquidation_amounts[market] = total_notional * ratio
+        
+        return liquidation_amounts
 
 
     @property
@@ -283,6 +406,8 @@ class BorosBinanceHyperliquidArbitrageStrategy(Strategy):
             pos_a = self.market_a.open_fixed_float(
                 self.notional,
                 FixedFloatDirection.PAY_FIXED, # bn open BNB pay fixed
+                leverage=self.effective_leverage,
+                margin=self.effective_margin,
                 fixed_rate=exec_a["fixed_rate"],
                 execution_fee_paid=exec_a["execution_fee_paid"],
                 execution_opening_fee_rate=exec_a["execution_opening_fee_rate"],
@@ -298,6 +423,8 @@ class BorosBinanceHyperliquidArbitrageStrategy(Strategy):
             pos_b = self.market_b.open_fixed_float(
                 self.notional,
                 FixedFloatDirection.RECEIVE_FIXED, # hl open BNB receive fixed
+                leverage=self.effective_leverage,
+                margin=self.effective_margin,
                 fixed_rate=exec_b["fixed_rate"],
                 execution_fee_paid=exec_b["execution_fee_paid"],
                 execution_opening_fee_rate=exec_b["execution_opening_fee_rate"],
@@ -314,6 +441,8 @@ class BorosBinanceHyperliquidArbitrageStrategy(Strategy):
             pos_a = self.market_a.open_fixed_float(
                 self.notional,
                 FixedFloatDirection.RECEIVE_FIXED,
+                leverage=self.effective_leverage,
+                margin=self.effective_margin,
                 fixed_rate=exec_a["fixed_rate"],
                 execution_fee_paid=exec_a["execution_fee_paid"],
                 execution_opening_fee_rate=exec_a["execution_opening_fee_rate"],
@@ -329,6 +458,8 @@ class BorosBinanceHyperliquidArbitrageStrategy(Strategy):
             pos_b = self.market_b.open_fixed_float(
                 self.notional,
                 FixedFloatDirection.PAY_FIXED,
+                leverage=self.effective_leverage,
+                margin=self.effective_margin,
                 fixed_rate=exec_b["fixed_rate"],
                 execution_fee_paid=exec_b["execution_fee_paid"],
                 execution_opening_fee_rate=exec_b["execution_opening_fee_rate"],
@@ -398,6 +529,46 @@ class BorosBinanceHyperliquidArbitrageStrategy(Strategy):
         self._spread_position = None
 
     def on_bar(self, snapshot: Snapshot):
+        # 获取账户状态（包含现金和仓位）
+        account_status = self.broker.get_account_status(snapshot.prices, snapshot.timestamp)
+        
+        # 计算账户总现金（asset_value 就是现金价值）
+        cash = account_status.asset_value
+        
+        # 检查每个市场的清算条件: Health Ratio < 100%
+        # 如果任何一个市场触发清算，关闭所有仓位
+        is_liquidated_a, health_ratio_a = self.market_a.check_liquidation(
+            self.rate_threshold, self.kmm, self.liquidation_threshold
+        )
+        is_liquidated_b, health_ratio_b = self.market_b.check_liquidation(
+            self.rate_threshold, self.kmm, self.liquidation_threshold
+        )
+        
+        if is_liquidated_a or is_liquidated_b:
+            # 任何一个市场触发清算，关闭所有仓位
+            self._close_spread(snapshot, "liquidation")
+            return
+        
+        # 可选：检查是否需要部分平仓以恢复到健康水平
+        # 如果健康指数接近阈值，可以提前部分平仓
+        if health_ratio_a < self.liquidation_threshold * Decimal("1.5"):
+            # 计算需要平仓的数量以恢复到 target_health_ratio = 1.0
+            target_notional_a = self.market_a.calculate_liquidation_target(
+                self.rate_threshold, self.kmm, Decimal("1.0")
+            )[0]
+            if target_notional_a > 0:
+                # 可以选择部分平仓，这里简化为全部平仓
+                self._close_spread(snapshot, "margin_call")
+                return
+        
+        if health_ratio_b < self.liquidation_threshold * Decimal("1.5"):
+            target_notional_b = self.market_b.calculate_liquidation_target(
+                self.rate_threshold, self.kmm, Decimal("1.0")
+            )[0]
+            if target_notional_b > 0:
+                self._close_spread(snapshot, "margin_call")
+                return
+        
         rate_a, rate_b = self.market_a.market_status.data["mark_rate"], self.market_b.market_status.data["mark_rate"]
         time_to_mat_a, time_to_mat_b = int(
             self.market_a.market_status.data.get(
@@ -435,8 +606,8 @@ class BorosBinanceHyperliquidArbitrageStrategy(Strategy):
             return
 
         to_rebalance = False
-        if (abs(spread_deviation) > abs(self._spread_window[-1])):
-            print('-' * 20, abs(spread_deviation), abs(self._spread_window[-1]))
+        # if (abs(spread_deviation) > abs(self._spread_window[-1])):
+        #     print('-' * 20, abs(spread_deviation), abs(self._spread_window[-1]))
         if len(self._spread_window) >= 1 and (abs(spread_deviation) - abs(self._spread_window[-1])) > self.rebalance_threshold:
             to_rebalance = True
 
@@ -464,8 +635,6 @@ class BorosBinanceHyperliquidArbitrageStrategy(Strategy):
                     if self._spread_position:
                         self._spread_window.append(spread_deviation)
                 return
-
-
 
 
 if __name__ == '__main__':
@@ -511,7 +680,8 @@ if __name__ == '__main__':
         min_time_to_maturity_seconds=min_time_to_maturity_seconds,
         max_signal_rate=max_signal_rate,
         max_execution_delay_seconds=max_execution_delay_seconds,
-        max_pair_execution_skew_seconds=max_pair_execution_skew_seconds
+        max_pair_execution_skew_seconds=max_pair_execution_skew_seconds,
+        leverage=Decimal('5')
     )
 
     actuator.strategy = strategy
