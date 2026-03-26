@@ -22,9 +22,10 @@ class SpreadPosition:
     position_id_b: int
 
 
-class BorosBinanceHyperliquidArbitrageStrategy(Strategy):
+class CrossExchangeFixedRateSpreadStrategy(Strategy):
     """
-    Interest Rate Spread Lock Between BNB and HyperLiquid
+    Fixed Rate Spread Lock Between BNB and HyperLiquid
+    Only support cross margin and single market risk will close position to avoid liquidity
     """
     def __init__(
             self,
@@ -668,7 +669,7 @@ if __name__ == '__main__':
     max_execution_delay_seconds = 15 * 60
     max_pair_execution_skew_seconds = 5 * 60
 
-    strategy = BorosBinanceHyperliquidArbitrageStrategy(
+    strategy = CrossExchangeFixedRateSpreadStrategy(
         market_a_info=market_a_info,
         market_b_info=market_b_info,
         notional=notional,

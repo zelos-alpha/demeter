@@ -44,8 +44,8 @@ hyperliquid_cols = {
 }
 
 # 开仓规模
-open_notional = Decimal('100')
-open_margin = Decimal('20')
+open_notional = Decimal('100')  # 符合策略输入
+open_margin = Decimal('20')  #
 
 # 提取数据
 binance_df = pd.DataFrame()
@@ -119,10 +119,8 @@ result_df['return_rate'] = result_df['profit_cumulative'].diff() / float(open_ma
 # 第一行没有前一行，设为NaN
 result_df.loc[result_df.index[0], 'return_rate'] = np.nan
 
-# 年化收益率 = (1 + minute_return_rate)^(minutes_per_year) - 1
-# 使用简化公式：annualized_return = minute_return_rate * minutes_per_year
-annualized_return_rate = result_df['return_rate'].mean()
-print('\nannualized_return_rate', annualized_return_rate)
+avg_minute_return = result_df['return_rate'].mean()
+print('\navg_minute_return', avg_minute_return)
 
 # 输出结果
 print("\nResult DataFrame head:")
