@@ -147,7 +147,6 @@ class CloseFixedFloatAction(BaseAction):
     margin: Decimal = Decimal(0)  # 保证金
     # 新增：收益率相关字段
     return_on_margin: Decimal = Decimal(0)  # 保证金收益率
-    margin_utilization_before: Decimal = Decimal(0)  # 平仓前保证金利用率
 
     settlement_payment: Decimal = Decimal(0)
     settlement_fees: Decimal = Decimal(0)
@@ -327,8 +326,9 @@ class BorosMarket(Market):
         计算当前市场的健康指数
         Health Ratio = Total Value / Total Maintenance Margin
         """
-        cash = Decimal(0)  # 市场层不持有现金，现金在 broker 层
         total_value = Decimal(0)
+        cash = self.broker.get_token_balance(USD)
+        total_value += cash
         total_maintenance_margin = Decimal(0)
         
         for position in self.get_open_positions():
@@ -365,7 +365,7 @@ class BorosMarket(Market):
         返回: (是否触发清算, 健康指数)
         """
         health_ratio = self.calculate_health_ratio(rate_threshold, kmm)
-        return abs(health_ratio) < liquidation_threshold, abs(health_ratio)
+        return health_ratio < liquidation_threshold, health_ratio
 
     def calculate_liquidation_target(
         self,
@@ -377,30 +377,36 @@ class BorosMarket(Market):
         计算当前市场需要清算到目标健康指数的仓位数量
         返回: (需要平仓的数量, 平仓后的健康指数)
         """
-        # 当前市场价值
         market_value = Decimal(0)
+        cash = self.broker.get_token_balance(USD)
+        market_value += cash
+        total_maintenance_margin = Decimal(0)
+
         for position in self.get_open_positions():
             if position.remaining_notional > 0:
+                # 仓位价值 = 当前价值 - 保证金（实际是净价值）
                 current_value = self._calculate_position_value(position)
                 market_value += current_value
-        
-        # 当前维持保证金
-        maintenance_margin = Decimal(0)
-        current_mark_rate = self._current_mark_rate()
-        for position in self.get_open_positions():
-            if position.remaining_notional > 0:
-                rate = max(abs(current_mark_rate), rate_threshold)
-                maintenance_margin += abs(position.remaining_notional) * rate * kmm * Decimal(position.entry_time_to_maturity_seconds)
+
+                # 维持保证金 = |Position Size| × max(|Mark Rate|, Rate Threshold) × kMM × Time to Maturity
+                current_mark_rate = self._current_mark_rate()
+                maintenance_margin = PaymentLib.calc_mm(
+                    abs_size=abs(self._notional_to_signed_size_wad(position.remaining_notional, position.direction)),
+                    abs_rate=PaymentLib.decimal_to_wad(max(abs(current_mark_rate), rate_threshold)),
+                    kmm=PaymentLib.decimal_to_wad(kmm),
+                    time_to_mat=self._current_time_to_maturity_seconds()
+                )
+                total_maintenance_margin += PaymentLib.wad_to_decimal(maintenance_margin)
         
         # 如果当前已无持仓
-        if maintenance_margin == 0:
+        if total_maintenance_margin == 0:
             return Decimal(0), Decimal(999)
         
         # 目标维持保证金 = market_value / target_health_ratio
         required_margin = market_value / target_health_ratio
         
         # 需要减少的维持保证金
-        margin_to_reduce = maintenance_margin - required_margin
+        margin_to_reduce = total_maintenance_margin - required_margin
         
         # 计算需要平仓的数量（按比例）
         total_notional = sum(
@@ -408,8 +414,8 @@ class BorosMarket(Market):
             if p.remaining_notional > 0
         )
         
-        if total_notional > 0 and maintenance_margin > 0:
-            notional_to_close = (margin_to_reduce / maintenance_margin) * total_notional
+        if total_notional > 0 and total_maintenance_margin > 0:
+            notional_to_close = (margin_to_reduce / total_maintenance_margin) * total_notional
             notional_to_close = max(Decimal(0), notional_to_close)
         else:
             notional_to_close = Decimal(0)
@@ -502,6 +508,8 @@ class BorosMarket(Market):
             position.is_closed = True
 
         self.realized_pnl = self._normalize_decimal(self.realized_pnl + portion_pnl)
+        effective_margin = position.effective_margin
+        return_on_margin = portion_pnl / effective_margin if effective_margin > 0 else Decimal(0)
         self._record_action(
             CloseFixedFloatAction(
                 market=self.market_info,
@@ -526,10 +534,12 @@ class BorosMarket(Market):
                 execution_option_count=int(execution_option_count),
                 execution_selection_reason=execution_selection_reason,
                 execution_quote_options_json=execution_quote_options_json,
+                leverage=position.leverage,
+                margin=position.margin,
+                return_on_margin=return_on_margin
             )
         )
-        effective_margin = position.effective_margin
-        return_on_margin = portion_pnl / effective_margin if effective_margin > 0 else Decimal(0)
+
         return portion_pnl, return_on_margin
 
     @write_func
