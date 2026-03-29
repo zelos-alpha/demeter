@@ -638,7 +638,7 @@ class CrossExchangeFixedRateSpreadStrategy(Strategy):
                 return
 
 
-if __name__ == '__main__':
+def short_leverage():
     event_dir = str(EVENT_DIR)
     market_a_name, market_b_name = 'binance_feb27', 'hyperliquid_feb27'
     market_a_key = "BINANCE-ETHUSDT-27FEB2026"
@@ -690,3 +690,60 @@ if __name__ == '__main__':
     actuator.set_price(pd.DataFrame(index=price_index))
     actuator.run(print_result=True)
     actuator.save_result(path="./result", file_name="boros", decimals=5)
+
+
+def long_leverage():
+    event_dir = str(ROOT / "bn_hl_250910-251226")
+    market_a_name, market_b_name = 'binance_dec26', 'hyperliquid_dec26'
+    market_a_key = "BINANCE-ETHUSDT-26DEC2025"
+    market_b_key = "HYPERLIQUID-ETH-26DEC2025"
+    venue_a = "BINANCE"
+    venue_b = "HYPERLIQUID"
+    market_a_info = MarketInfo(market_a_name, MarketTypeEnum.boros)
+    market_b_info = MarketInfo(market_b_name, MarketTypeEnum.boros)
+    market_a = BorosMarket(market_a_info)
+    market_b = BorosMarket(market_b_info)
+    maturity = datetime(2025, 12, 26, 0, 0, 0)
+    market_a.load_event_data(event_dir=event_dir, market_key=market_a_key, venue=venue_a, maturity=maturity)
+    market_b.load_event_data(event_dir=event_dir, market_key=market_b_key, venue=venue_b, maturity=maturity)
+
+    actuator = Actuator()
+    actuator.broker.add_market(market_a)
+    actuator.broker.add_market(market_b)
+    actuator.broker.set_balance(USD, Decimal("1000"))
+
+    notional = Decimal("100")
+    lookback = 60
+    entry_threshold = Decimal("0.004")
+    exit_threshold = Decimal("0.001")
+    stop_loss = Decimal("5")
+    execution_mode = BorosExecutionMode.TX_REPLAY_BEST_EXEC
+    min_time_to_maturity_seconds = 24 * 3600
+    max_signal_rate = Decimal("2")
+    max_execution_delay_seconds = 15 * 60
+    max_pair_execution_skew_seconds = 5 * 60
+
+    strategy = CrossExchangeFixedRateSpreadStrategy(
+        market_a_info=market_a_info,
+        market_b_info=market_b_info,
+        notional=notional,
+        lookback=lookback,
+        entry_threshold=entry_threshold,
+        exit_threshold=exit_threshold,
+        stop_loss=stop_loss,
+        execution_mode=execution_mode,
+        min_time_to_maturity_seconds=min_time_to_maturity_seconds,
+        max_signal_rate=max_signal_rate,
+        max_execution_delay_seconds=max_execution_delay_seconds,
+        max_pair_execution_skew_seconds=max_pair_execution_skew_seconds,
+        leverage=Decimal('5')
+    )
+
+    actuator.strategy = strategy
+    price_index = market_a.get_price_from_data().index.union(market_b.get_price_from_data().index)
+    actuator.set_price(pd.DataFrame(index=price_index))
+    actuator.run(print_result=True)
+    actuator.save_result(path="./result", file_name="boros.long", decimals=6)
+
+if __name__ == '__main__':
+    long_leverage()
