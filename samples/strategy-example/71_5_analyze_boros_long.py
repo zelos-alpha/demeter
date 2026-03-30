@@ -9,7 +9,7 @@ warnings.filterwarnings('ignore')
 
 # 读取 CSV 文件
 df = pd.read_csv(
-    'samples/strategy-example/result/boros.long.account.csv',
+    'result/boros.long.account.csv',
     header=[0, 1],
     index_col=0
 )
@@ -19,21 +19,21 @@ df.index = pd.to_datetime(df.index)
 
 # ============== 提取关键数据 ==============
 # net_value 数据
-net_value = df[('net_value', 'Unnamed: 1_level_1')]
+net_value = df[('net_value', 'Unnamed: 1_level_1')].astype(float)
 
 # binance 仓位数据
-binance_position = df[('binance_dec26', 'position_count')]
-binance_net_value = df[('binance_dec26', 'net_value')]
-binance_margin = df[('binance_dec26', 'open_margin')]
+binance_position = df[('binance_dec26', 'position_count')].astype(float)
+binance_net_value = df[('binance_dec26', 'net_value')].astype(float)
+binance_margin = df[('binance_dec26', 'open_margin')].astype(float)
 
 # hyperliquid 仓位数据
-hl_position = df[('hyperliquid_dec26', 'position_count')]
-hl_net_value = df[('hyperliquid_dec26', 'net_value')]
-hl_margin = df[('hyperliquid_dec26', 'open_margin')]
+hl_position = df[('hyperliquid_dec26', 'position_count')].astype(float)
+hl_net_value = df[('hyperliquid_dec26', 'net_value')].astype(float)
+hl_margin = df[('hyperliquid_dec26', 'open_margin')].astype(float)
 
 # margin_utilization
-binance_margin_util = df[('binance_dec26', 'margin_utilization')]
-hl_margin_util = df[('hyperliquid_dec26', 'margin_utilization')]
+binance_margin_util = df[('binance_dec26', 'margin_utilization')].astype(float)
+hl_margin_util = df[('hyperliquid_dec26', 'margin_utilization')].astype(float)
 
 # ============== 1. 累计收益率 (Cumulative Return) ==============
 initial_value = net_value.iloc[0]
@@ -83,36 +83,97 @@ annual_volatility = daily_vol * np.sqrt(365)
 all_positions = binance_position + hl_position
 position_changes = all_positions.diff().fillna(0)
 
-# ============== 7. Margin Call Count ==============
-# margin_utilization > 80% 视为 margin call 警告
-margin_call_count = ((binance_margin_util > 0.8) | (hl_margin_util > 0.8)).sum()
-
-# ============== 8. 交易次数 (Trade Count) ==============
+# ============== 7. 交易次数 (Trade Count) ==============
 # 交易次数通过头寸变化来估算
 # 当 position 变化时算一次交易
 trade_count = (position_changes != 0).sum()
 
-# ============== 9. 再平衡次数 (Rebalance Count) ==============
+# ============== 8. 再平衡次数 (Rebalance Count) ==============
 # 再平衡定义为 binance/hyperliquid 头寸比例变化超过阈值
 binance_hl_ratio = binance_position / (binance_position + hl_position + 1e-10)
 ratio_changes = binance_hl_ratio.diff().abs().fillna(0)
 rebalance_count = (ratio_changes > 0.05).sum()  # 超过5%变化视为再平衡
 
-# ============== 10. 平均持��时间 (Average Holding Minutes) ==============
-# 使用采样频率估算（数据是每分钟一条）
-# 假设平均持仓时间为数据点之间的平均间隔
-avg_holding_minutes = 1  # 数据是每分钟一条，所以平均持仓1分钟
+# ============== 9. 平均持仓时间 (Average Holding Minutes) ==============
+# 计算每个仓位的持有时间，然后取平均
+# 同时计算每个仓位的盈亏，用于计算胜率和盈利因子
+all_positions = (binance_position + hl_position).astype(float)
 
-# ============== 11. 胜率 (Win Rate) ==============
-# 日收益为正的天数 / 总天数
-daily_net = net_value.resample('D').last().dropna()
-daily_pnl = daily_net.diff().dropna()
-win_rate = (daily_pnl > 0).sum() / len(daily_pnl) * 100 if len(daily_pnl) > 0 else 0
+holding_durations = []
+position_pnls = []  # 每个持仓周期的盈亏
+current_entry_time = None
+current_entry_nv = None  # 开仓时的净值
 
-# ============== 12. 盈利因子 (Profit Factor) ==============
-gross_profit = daily_pnl[daily_pnl > 0].sum()
-gross_loss = abs(daily_pnl[daily_pnl < 0].sum())
-profit_factor = gross_profit / gross_loss if gross_loss > 0 else float('inf')
+for i in range(len(all_positions)):
+    timestamp = all_positions.index[i]
+    position = all_positions.iloc[i]
+    current_nv = net_value.iloc[i]  # 当时的净值
+    
+    if i == 0:
+        if position > 0:
+            current_entry_time = timestamp
+            current_entry_nv = current_nv
+    else:
+        prev_position = all_positions.iloc[i-1]
+        
+        # 开仓: 从 0 到 正数
+        if prev_position == 0 and position > 0:
+            current_entry_time = timestamp
+            current_entry_nv = current_nv
+            
+        # 平仓: 从 正数 到 0
+        elif prev_position > 0 and position == 0:
+            if current_entry_time is not None:
+                duration_minutes = (timestamp - current_entry_time).total_seconds() / 60
+                pnl = current_nv - current_entry_nv  # 持仓期间的盈亏
+                if duration_minutes > 0:
+                    holding_durations.append(duration_minutes)
+                    position_pnls.append(pnl)
+                current_entry_time = None
+                current_entry_nv = None
+                
+        # 换仓: 仓位 > 0 但与上一个不同
+        elif prev_position != position and position > 0 and current_entry_time is not None:
+            duration_minutes = (timestamp - current_entry_time).total_seconds() / 60
+            pnl = current_nv - current_entry_nv
+            if duration_minutes > 0:
+                holding_durations.append(duration_minutes)
+                position_pnls.append(pnl)
+            current_entry_time = timestamp
+            current_entry_nv = current_nv
+
+# 检查最后是否还有未平仓的仓位
+if current_entry_time is not None:
+    last_timestamp = all_positions.index[-1]
+    last_nv = net_value.iloc[-1]
+    duration_minutes = (last_timestamp - current_entry_time).total_seconds() / 60
+    pnl = last_nv - current_entry_nv
+    if duration_minutes > 0:
+        holding_durations.append(duration_minutes)
+        position_pnls.append(pnl)
+
+if len(holding_durations) > 0:
+    avg_holding_minutes = np.mean(holding_durations)
+else:
+    avg_holding_minutes = 0
+
+# ============== 10. 胜率 (Win Rate) ==============
+# 基于每个持仓周期的盈亏计算（即每个 round-trip 的盈亏）
+# 盈利的持仓次数 / 总持仓次数
+if len(position_pnls) > 0:
+    winning_positions = sum(1 for pnl in position_pnls if pnl > 0)
+    win_rate = winning_positions / len(position_pnls) * 100
+    
+    # 盈利因子 = 总盈利 / 总亏损
+    gross_profit = sum(pnl for pnl in position_pnls if pnl > 0)
+    gross_loss = abs(sum(pnl for pnl in position_pnls if pnl < 0))
+    profit_factor = gross_profit / gross_loss if gross_loss > 0 else float('inf')
+else:
+    win_rate = 0
+    profit_factor = 0
+
+# ============== 11. 盈利因子 (Profit Factor) ==============
+# 已在上方基于持仓周期计算
 
 # ============== 输出结果 ==============
 print("=" * 70)
@@ -130,12 +191,12 @@ print(f"{'3. Return on Posted Margin (%)':<30} {return_on_posted_margin:>20.4f}"
 print(f"{'4. Return on Total Capital (%)':<30} {return_on_total_capital:>20.4f}")
 print(f"{'5. Max Drawdown (%)':<30} {max_drawdown:>20.4f}")
 print(f"{'6. Volatility (年化 %)':<30} {annual_volatility:>20.4f}")
-print(f"{'7. Margin Call Count':<30} {margin_call_count:>20}")
-print(f"{'8. Trade Count':<30} {int(trade_count):>20}")
-print(f"{'9. Rebalance Count':<30} {int(rebalance_count):>20}")
-print(f"{'10. Avg Holding Minutes':<30} {avg_holding_minutes:>20}")
-print(f"{'11. Win Rate (%)':<30} {win_rate:>20.4f}")
-print(f"{'12. Profit Factor':<30} {profit_factor:>20.4f}")
+print(f"{'7. Trade Count':<30} {int(trade_count):>20}")
+print(f"{'8. Rebalance Count':<30} {int(rebalance_count):>20}")
+print(f"{'9. Avg Holding Minutes':<30} {avg_holding_minutes:>20.2f}")
+print(f"{'10. Win Rate (%)':<30} {win_rate:>20.4f}")
+print(f"{'11. Profit Factor':<30} {profit_factor:>20.4f}")
+print(f"{'# of Positions':<30} {len(holding_durations):>20}")
 
 # 额外统计
 print(f"\n{'额外统计':<30} {'值':>20}")
