@@ -51,7 +51,8 @@ class CrossExchangeFixedRateSpreadStrategy(Strategy):
             min_time_to_maturity_seconds: int = 24 * 3600,
             max_signal_rate: Decimal = Decimal("2"),
             max_execution_delay_seconds: int | None = None,
-            max_pair_execution_skew_seconds: int | None = None
+            max_pair_execution_skew_seconds: int | None = None,
+            rate_fluctuate: Decimal = Decimal('0.3')  #
     ):
         super().__init__()
         self.market_a_info = market_a_info
@@ -82,6 +83,9 @@ class CrossExchangeFixedRateSpreadStrategy(Strategy):
         self.rate_threshold = Decimal(rate_threshold)
         self.kmm = Decimal(kmm)
         self.liquidation_threshold = Decimal(liquidation_threshold)
+
+        #
+        self.rate_fluctuate = rate_fluctuate
         
         self.execution_mode = execution_mode
         self.min_time_to_maturity_seconds = int(min_time_to_maturity_seconds)
@@ -607,9 +611,48 @@ class CrossExchangeFixedRateSpreadStrategy(Strategy):
             return
 
         to_rebalance = False
-        # if (abs(spread_deviation) > abs(self._spread_window[-1])):
-        #     print('-' * 20, abs(spread_deviation), abs(self._spread_window[-1]))
-        if len(self._spread_window) >= 1 and (abs(spread_deviation) - abs(self._spread_window[-1])) > self.rebalance_threshold:
+        # 检查仓位是否需要调仓：
+        # 1、如果仓位direction == PAY_FIXED, 价格下跌超过15%
+        # 2、如果仓位direction == RECEIVE_FIXED, 价格上涨超过15%
+        # 3、如果资金费率差方向反转（spread从正变负或从负变正），需要调仓
+        threshold = self.rate_fluctuate
+        for position in open_a:
+            if position.remaining_notional > 0:
+                if position.direction == FixedFloatDirection.PAY_FIXED:
+                    # PAY_FIXED: 价格下跌超过15% -> mark_rate下跌超过15%
+                    # 即 current_mark_rate < entry_fixed_rate * (1 - 0.15)
+                    if rate_a < position.entry_fixed_rate * (Decimal(1) - threshold) or position.entry_fixed_rate * rate_a < 0:
+                        to_rebalance = True
+                        break
+                elif position.direction == FixedFloatDirection.RECEIVE_FIXED:
+                    # RECEIVE_FIXED: 价格上涨超过15%
+                    # 即 current_mark_rate > entry_fixed_rate * (1 + 0.15)
+                    if rate_a > position.entry_fixed_rate * (Decimal(1) + threshold) or position.entry_fixed_rate * rate_a < 0:
+                        to_rebalance = True
+                        break
+        # 如果to_rebalance已经为True，不需要再检查open_b
+        if not to_rebalance:
+            for position in open_b:
+                if position.remaining_notional > 0:
+                    if position.direction == FixedFloatDirection.PAY_FIXED:
+                        if rate_b < position.entry_fixed_rate * (Decimal(1) - threshold) or position.entry_fixed_rate * rate_b < 0:
+                            to_rebalance = True
+                            break
+                    elif position.direction == FixedFloatDirection.RECEIVE_FIXED:
+                        if rate_b > position.entry_fixed_rate * (Decimal(1) + threshold) or position.entry_fixed_rate * rate_b < 0:
+                            to_rebalance = True
+                            break
+        # 检查资金费率差方向是否反转
+        # 如果当前spread方向与开仓时相反，需要调仓
+        if not to_rebalance and len(self._spread_window) > 0:
+            # 获取开仓时的spread（_spread_window的第一个值）
+            entry_spread = self._spread_window[-1]
+            # 判断方向是否反转：entry_spread > 0 表示做多spread，entry_spread < 0 表示做空spread
+            # 如果当前spread方向与开仓时相反，则需要rebalance
+            if (entry_spread > 0 and spread < 0) or (entry_spread < 0 and spread > 0):
+                to_rebalance = True
+
+        if not to_rebalance and len(self._spread_window) >= 1 and (abs(spread_deviation) - abs(self._spread_window[-1])) > self.rebalance_threshold:
             to_rebalance = True
 
         snapshot_ts = pd.Timestamp(snapshot.timestamp).to_pydatetime()
@@ -619,8 +662,8 @@ class CrossExchangeFixedRateSpreadStrategy(Strategy):
         if not to_rebalance:
             if not signal_ready:
                 self._close_spread(snapshot, "signal_guard")
-            # elif abs(spread_deviation) <= self.exit_threshold:
-            #     self._close_spread(snapshot, "spread_exit")
+            elif abs(spread_deviation) <= self.exit_threshold:
+                self._close_spread(snapshot, "spread_exit")
             elif unrealized <= -self.stop_loss:
                 self._close_spread(snapshot, "stop_loss")
             elif matured:
@@ -628,14 +671,14 @@ class CrossExchangeFixedRateSpreadStrategy(Strategy):
         else:
             self._close_spread(snapshot, "rebalance")
 
-            open_a = self.market_a.get_open_positions()
-            open_b = self.market_b.get_open_positions()
-            if self._spread_position is None and len(open_a) == 0 and len(open_b) == 0:
-                if signal_ready and abs(spread_deviation) >= self.entry_threshold:
-                    self._open_spread(snapshot, spread_deviation)
-                    if self._spread_position:
-                        self._spread_window.append(spread_deviation)
-                return
+            # open_a = self.market_a.get_open_positions()
+            # open_b = self.market_b.get_open_positions()
+            # if self._spread_position is None and len(open_a) == 0 and len(open_b) == 0:
+            #     if signal_ready and abs(spread_deviation) >= self.entry_threshold:
+            #         self._open_spread(snapshot, spread_deviation)
+            #         if self._spread_position:
+            #             self._spread_window.append(spread_deviation)
+            #     return
 
 
 def short_leverage():

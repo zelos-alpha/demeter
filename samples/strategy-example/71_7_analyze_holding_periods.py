@@ -4,6 +4,7 @@
 - position_count > 0 则认为持仓
 - 持仓时间统计为连续 position_count > 0 的区间
 - 统计持仓区间数量、每个区间的持仓时间，并绘制图表
+- 在图表中显示每个持仓周期的盈利数据
 """
 import pandas as pd
 import numpy as np
@@ -15,7 +16,7 @@ warnings.filterwarnings('ignore')
 # 读取数据
 print("Loading data...")
 df = pd.read_csv(
-    'samples/strategy-example/result/boros.long.account.csv',
+    'result/boros.long.account.csv',
     header=[0, 1],
     index_col=0
 )
@@ -124,24 +125,24 @@ if len(holding_periods) > 0:
     print(f"  Winning periods: {sum(1 for p in pnls if p > 0)}/{len(pnls)}")
     print(f"  Win rate: {sum(1 for p in pnls if p > 0)/len(pnls)*100:.2f}%")
     
-    # 打印前10个持仓区间详情
-    print(f"\n{'First 10 holding periods:'}")
+    # 打印所有持仓区间详情
+    print(f"\n{'All holding periods (sorted by time):'}")
     print(f"{'#':<4} {'Start':<20} {'End':<20} {'Duration(min)':<15} {'PnL':<15}")
     print("-" * 75)
-    for i, p in enumerate(holding_periods[:10]):
+    for i, p in enumerate(holding_periods):
         print(f"{i+1:<4} {str(p['start'])[:19]:<20} {str(p['end'])[:19]:<20} {p['duration_minutes']:<15.2f} {p['pnl']:<15.4f}")
     
     # ============================================
-    # 绘制图表
+    # 绘制图表 - 改进版
     # ============================================
-    # 创建一个包含两个子图的图表
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10))
+    fig = plt.figure(figsize=(16, 14))
     
-    # 子图1: 持仓时间线
-    ax1.set_title('Holding Periods Timeline', fontsize=14, fontweight='bold')
+    # 子图1: 持仓时间线（在上方）
+    ax1 = plt.subplot(2, 1, 1)
+    ax1.set_title('Net Value with Holding Periods (Green = Position > 0)', fontsize=14, fontweight='bold')
     
     # 绘制净值的完整曲线（灰色背景）
-    ax1.fill_between(net_value.index, net_value.values, alpha=0.3, color='gray', label='Net Value')
+    ax1.fill_between(net_value.index, net_value.values, alpha=0.2, color='gray')
     
     # 为每个持仓区间绘制绿色背景
     for p in holding_periods:
@@ -158,26 +159,49 @@ if len(holding_periods) > 0:
     ax1.grid(True, alpha=0.3)
     ax1.legend(loc='upper right')
     
-    # 子图2: 每个持仓区间的持续时间
+    # 子图2: 每个持仓区间的持续时间和盈亏（按时间顺序）
+    ax2 = plt.subplot(2, 1, 2)
+    ax2.set_title('Holding Duration and PnL by Period (Ordered by Time)', fontsize=14, fontweight='bold')
+    
     period_numbers = list(range(1, len(holding_periods) + 1))
-    durations_hours = [d/60 for d in durations]
+    
+    # 双Y轴
+    ax2_twin = ax2.twinx()
+    
+    # 绘制持仓时间（柱状图）
     colors = ['green' if p > 0 else 'red' for p in pnls]
+    bars = ax2.bar(period_numbers, durations, color=colors, alpha=0.6, label='Duration (min)')
+    ax2.set_ylabel('Duration (minutes)', color='blue')
+    ax2.tick_params(axis='y', labelcolor='blue')
     
-    ax2.bar(period_numbers, durations_hours, color=colors, alpha=0.7)
-    ax2.axhline(y=np.mean(durations_hours), color='orange', linestyle='--', linewidth=2, 
-               label=f'Average: {np.mean(durations_hours):.2f} hours')
+    # 绘制盈亏（折线图，在右侧Y轴）
+    line = ax2_twin.plot(period_numbers, pnls, 'o-', color='orange', linewidth=2, markersize=6, label='PnL')
+    ax2_twin.set_ylabel('PnL', color='orange')
+    ax2_twin.tick_params(axis='y', labelcolor='orange')
+    ax2_twin.axhline(y=0, color='gray', linestyle='--', linewidth=1)
     
-    ax2.set_title('Holding Duration by Period (green=profit, red=loss)', fontsize=14, fontweight='bold')
-    ax2.set_xlabel('Holding Period #')
-    ax2.set_ylabel('Duration (hours)')
+    # 在每个柱子上方标注盈亏值
+    for i, (d, p) in enumerate(zip(durations, pnls)):
+        if p > 0:
+            ax2_twin.annotate(f'+{p:.2f}', (i+1, p), textcoords="offset points", 
+                        xytext=(0, 5), ha='center', fontsize=7, color='green')
+        else:
+            ax2_twin.annotate(f'{p:.2f}', (i+1, p), textcoords="offset points",
+                        xytext=(0, -10), ha='center', fontsize=7, color='red')
+    
+    ax2.set_xlabel('Holding Period # (chronological order)')
     ax2.set_xticks(period_numbers)
     ax2.grid(True, alpha=0.3, axis='y')
-    ax2.legend()
+    
+    # 添加图例
+    lines1, labels1 = ax2.get_legend_handles_labels()
+    lines2, labels2 = ax2_twin.get_legend_handles_labels()
+    ax2.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
     
     plt.tight_layout()
     
     # 保存图表
-    output_path = 'samples/strategy-example/result/holding_periods_analysis.png'
+    output_path = 'result/holding_periods_analysis.png'
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     print(f"\nChart saved to: {output_path}")
     
@@ -200,7 +224,7 @@ Run Command:
     samples/strategy-example/71_7_analyze_holding_periods.py
 
 Output: 
-  - Console output with statistics
+  - Console output with statistics (all 27 holding periods with duration and PnL)
   - Chart: samples/strategy-example/result/holding_periods_analysis.png
 
 Dependencies:
