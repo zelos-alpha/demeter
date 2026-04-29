@@ -4,10 +4,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 .idea
-<<<<<<< HEAD
 .DS_Store
-=======
->>>>>>> 21e3fb82103c832eb2c0622d397832cae012eb6f
 # C extensions
 *.so
 zelos/.DS_Store
@@ -122,6 +119,10 @@ auth/
 env.bak/
 venv.bak/
 data*
+!demeter/data/
+!demeter/data/__init__.py
+!demeter/data/data_cache.py
+!demeter/uniswap/data.py
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -148,4 +149,13 @@ cython_debug/
 demeter/*.pkl
 /tests/result/
 
-
+outputs/boros_diagnostics/
+outputs/boros_convergence/
+outputs/boros_sweeps/
+outputs/boros_stoploss_diagnostics/
+outputs/boros_case_runs/
+outputs/boros_convergence_with_perp_funding/
+outputs/boros_full_execution_compare/
+outputs/boros_full_execution_diagnostics/
+outputs/boros_release_validation/
+bn_hl_260121-260226/

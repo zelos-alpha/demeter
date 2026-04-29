@@ -1,0 +1,365 @@
+import json
+from datetime import datetime, timezone
+from decimal import Decimal
+from pathlib import Path
+
+import pandas as pd
+
+from .. import Actuator, MarketInfo, MarketTypeEnum, USD
+from .market import BorosMarket
+from .strategy import BorosExecutionMode, FundingConvergenceStrategy
+
+
+def _sum_decimal_column(df: pd.DataFrame, column: str) -> Decimal:
+    if df.empty or column not in df.columns:
+        return Decimal(0)
+    total = Decimal(0)
+    for value in df[column].fillna(Decimal(0)):
+        total += Decimal(str(value))
+    return total
+
+
+def _mark_rate_model_name(column_name: str) -> str:
+    if column_name == "mark_rate":
+        return "trade_vwap_proxy"
+    if column_name == "mark_rate_full_proto":
+        return "event_window_twap_proto"
+    return column_name
+
+
+def actions_to_dataframe(actions) -> pd.DataFrame:
+    rows = []
+    for action in actions:
+        payload = action.__dict__.copy()
+        payload["action_type"] = action.action_type.name
+        payload["market"] = action.market.name
+        rows.append(payload)
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows)
+
+
+def build_position_ledger(markets: list[BorosMarket]) -> pd.DataFrame:
+    rows = []
+    for market in markets:
+        for position in market.positions.values():
+            rows.append(
+                {
+                    "market": market.market_info.name,
+                    "position_id": position.position_id,
+                    "direction": position.direction.name,
+                    "notional": position.notional,
+                    "remaining_notional": position.remaining_notional,
+                    "closed_notional": position.closed_notional,
+                    "entry_fixed_rate": position.entry_fixed_rate,
+                    "entry_time": position.entry_time,
+                    "exit_time": position.exit_time,
+                    "entry_upfront_fixed_cost": position.entry_upfront_fixed_cost,
+                    "entry_opening_fee_cost": position.entry_opening_fee_cost,
+                    "realized_pnl": position.realized_pnl,
+                    "is_closed": position.is_closed,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def build_settlement_ledger(markets: list[BorosMarket], actions_df: pd.DataFrame) -> pd.DataFrame:
+    if actions_df.empty:
+        return pd.DataFrame()
+    close_rows = actions_df.loc[actions_df["action_type"] == "boros_close_fixed_float"].copy()
+    if close_rows.empty:
+        return close_rows
+    return close_rows[
+        [
+            "market",
+            "position_id",
+            "timestamp",
+            "close_reason",
+            "pnl",
+            "settlement_payment",
+            "settlement_fees",
+            "mark_to_maturity_value",
+            "execution_fee_paid",
+            "execution_timestamp",
+            "execution_tx_hash",
+            "execution_source",
+        ]
+    ].reset_index(drop=True)
+
+
+def build_execution_diagnostics(actions_df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+    if actions_df.empty:
+        return pd.DataFrame(), {}
+    columns = [
+        "timestamp",
+        "market",
+        "action_type",
+        "position_id",
+        "direction",
+        "execution_source",
+        "execution_timestamp",
+        "execution_tx_hash",
+        "execution_fee_paid",
+        "execution_effective_rate",
+        "execution_available_abs_size_total",
+        "execution_option_count",
+        "execution_selection_reason",
+        "execution_quote_options_json",
+    ]
+    available_columns = [column for column in columns if column in actions_df.columns]
+    diagnostics_df = actions_df.loc[actions_df["execution_source"].fillna("") != "", available_columns].copy()
+    if diagnostics_df.empty:
+        return diagnostics_df, {}
+    diagnostics_df["execution_source"] = diagnostics_df["execution_source"].fillna("")
+    source_counts = diagnostics_df["execution_source"].value_counts().to_dict()
+    market_source_counts = (
+        diagnostics_df.groupby(["market", "execution_source"]).size().unstack(fill_value=0).to_dict(orient="index")
+    )
+    selection_reason_counts = (
+        diagnostics_df["execution_selection_reason"].fillna("").value_counts().to_dict()
+        if "execution_selection_reason" in diagnostics_df.columns
+        else {}
+    )
+    summary = {
+        "execution_source_counts": source_counts,
+        "market_execution_source_counts": market_source_counts,
+        "selection_reason_counts": selection_reason_counts,
+        "mean_execution_option_count": float(diagnostics_df["execution_option_count"].mean())
+        if "execution_option_count" in diagnostics_df.columns
+        else 0.0,
+    }
+    return diagnostics_df.reset_index(drop=True), summary
+
+
+def build_perp_funding_ledger(strategy: FundingConvergenceStrategy) -> pd.DataFrame:
+    if not getattr(strategy, "perp_funding_ledger", None):
+        return pd.DataFrame()
+    return pd.DataFrame(strategy.perp_funding_ledger)
+
+
+def summarize_backtest(actuator: Actuator, strategy: FundingConvergenceStrategy, markets: list[BorosMarket], spread_df: pd.DataFrame) -> dict:
+    final_status = actuator.account_status_df.iloc[-1]
+    actions_df = actions_to_dataframe(actuator.actions)
+    initial_net_value = Decimal("1000")
+    open_actions = actions_df.loc[actions_df["action_type"] == "boros_open_fixed_float"].copy() if not actions_df.empty else pd.DataFrame()
+    close_actions = actions_df.loc[actions_df["action_type"] == "boros_close_fixed_float"].copy() if not actions_df.empty else pd.DataFrame()
+    market_balances = {}
+    for market in markets:
+        balance = market.get_market_balance()
+        market_actions = actions_df.loc[actions_df["market"] == market.market_info.name].copy() if not actions_df.empty else pd.DataFrame()
+        market_open_actions = open_actions.loc[open_actions["market"] == market.market_info.name].copy() if not open_actions.empty else pd.DataFrame()
+        market_close_actions = close_actions.loc[close_actions["market"] == market.market_info.name].copy() if not close_actions.empty else pd.DataFrame()
+        total_execution_fees = _sum_decimal_column(market_actions, "execution_fee_paid")
+        total_opening_fees = _sum_decimal_column(market_open_actions, "entry_opening_fee_cost")
+        total_closing_execution_fees = _sum_decimal_column(market_close_actions, "execution_fee_paid")
+        total_settlement_fees = _sum_decimal_column(market_close_actions, "settlement_fees")
+        total_explicit_costs = total_opening_fees + total_closing_execution_fees + total_settlement_fees
+        gross_pnl_before_explicit_costs = balance.realized_pnl + total_explicit_costs
+        market_balances[market.market_info.name] = {
+            "realized_pnl": str(balance.realized_pnl),
+            "unrealized_pnl": str(balance.unrealized_pnl),
+            "net_value": str(balance.net_value),
+            "position_count": int(balance.position_count),
+            "total_execution_fees": str(total_execution_fees),
+            "open_action_count": int(len(market_open_actions.index)),
+            "close_action_count": int(len(market_close_actions.index)),
+            "total_upfront_fixed_cashflow": str(_sum_decimal_column(market_open_actions, "entry_upfront_fixed_cost")),
+            "total_opening_fees": str(total_opening_fees),
+            "total_closing_execution_fees": str(total_closing_execution_fees),
+            "total_settlement_fees": str(total_settlement_fees),
+            "total_explicit_costs": str(total_explicit_costs),
+            "gross_pnl_before_explicit_costs": str(gross_pnl_before_explicit_costs),
+        }
+    signal_ready_df = spread_df.loc[spread_df["signal_ready"] == True] if not spread_df.empty and "signal_ready" in spread_df.columns else spread_df
+    combined_realized_pnl = sum((Decimal(payload["realized_pnl"]) for payload in market_balances.values()), Decimal(0))
+    combined_unrealized_pnl = sum((Decimal(payload["unrealized_pnl"]) for payload in market_balances.values()), Decimal(0))
+    total_execution_fees = _sum_decimal_column(actions_df, "execution_fee_paid")
+    total_opening_fees = _sum_decimal_column(open_actions, "entry_opening_fee_cost")
+    total_closing_execution_fees = _sum_decimal_column(close_actions, "execution_fee_paid")
+    total_settlement_fees = _sum_decimal_column(close_actions, "settlement_fees")
+    total_upfront_fixed_cashflow = _sum_decimal_column(open_actions, "entry_upfront_fixed_cost")
+    total_explicit_costs = total_opening_fees + total_closing_execution_fees + total_settlement_fees
+    gross_pnl_before_explicit_costs = combined_realized_pnl + total_explicit_costs
+    final_net_value = Decimal(str(final_status["net_value"][""]))
+    summary = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "initial_net_value": str(initial_net_value),
+        "final_net_value": str(final_net_value),
+        "total_pnl": str(final_net_value - initial_net_value),
+        "combined_realized_pnl": str(combined_realized_pnl),
+        "combined_unrealized_pnl": str(combined_unrealized_pnl),
+        "action_count": int(len(actuator.actions)),
+        "open_action_count": int(len(open_actions.index)),
+        "close_action_count": int(len(close_actions.index)),
+        "market_balances": market_balances,
+        "spread_last": str(spread_df["spread"].iloc[-1]) if not spread_df.empty else "0",
+        "spread_mean": str(spread_df["spread"].mean()) if not spread_df.empty else "0",
+        "signal_ready_count": int(len(signal_ready_df.index)) if signal_ready_df is not None else 0,
+        "signal_ready_spread_mean": str(signal_ready_df["spread"].mean()) if signal_ready_df is not None and not signal_ready_df.empty else "0",
+        "signal_ready_spread_max_abs": str(signal_ready_df["spread"].abs().max()) if signal_ready_df is not None and not signal_ready_df.empty else "0",
+        "total_execution_fees": str(total_execution_fees),
+        "total_upfront_fixed_cashflow": str(total_upfront_fixed_cashflow),
+        "total_opening_fees": str(total_opening_fees),
+        "total_closing_execution_fees": str(total_closing_execution_fees),
+        "total_settlement_fees": str(total_settlement_fees),
+        "total_explicit_costs": str(total_explicit_costs),
+        "gross_pnl_before_explicit_costs": str(gross_pnl_before_explicit_costs),
+        "total_perp_funding_pnl": str(getattr(strategy, "total_perp_funding_pnl", Decimal(0))),
+        "execution_model": strategy.execution_mode.value,
+        "settlement_index_model": "decoded_findex",
+        "mark_rate_model": "+".join(sorted({_mark_rate_model_name(market.mark_rate_column) for market in markets})),
+        "protocol_alignment_mode": (
+            "experimental_full_execution_proto"
+            if strategy.execution_mode == BorosExecutionMode.EVENT_REPLAY_FULL_PROTO
+            else "experimental_taker_only"
+        ),
+    }
+    return summary
+
+
+def export_convergence_result(
+    actuator: Actuator,
+    strategy: FundingConvergenceStrategy,
+    output_dir: str,
+    markets: list[BorosMarket],
+):
+    root = Path(output_dir)
+    root.mkdir(parents=True, exist_ok=True)
+
+    actions_df = actions_to_dataframe(actuator.actions)
+    positions_df = build_position_ledger(markets)
+    settlement_df = build_settlement_ledger(markets, actions_df)
+    execution_diagnostics_df, execution_diagnostics_summary = build_execution_diagnostics(actions_df)
+    perp_funding_df = build_perp_funding_ledger(strategy)
+    spread_df = pd.DataFrame(strategy.spread_history)
+    summary = summarize_backtest(actuator, strategy, markets, spread_df)
+    summary["execution_diagnostics"] = execution_diagnostics_summary
+
+    actions_df.to_csv(root / "trade_ledger.csv", index=False)
+    positions_df.to_csv(root / "position_ledger.csv", index=False)
+    settlement_df.to_csv(root / "settlement_ledger.csv", index=False)
+    execution_diagnostics_df.to_csv(root / "execution_diagnostics.csv", index=False)
+    perp_funding_df.to_csv(root / "perp_funding_ledger.csv", index=False)
+    spread_df.to_csv(root / "spread_timeseries.csv", index=False)
+    with open(root / "summary.json", "w", encoding="utf-8") as file:
+        json.dump(summary, file, indent=2)
+
+    report_lines = [
+        "# Boros Funding Convergence Report",
+        "",
+        f"- initial_net_value: {summary['initial_net_value']}",
+        f"- final_net_value: {summary['final_net_value']}",
+        f"- total_pnl: {summary['total_pnl']}",
+        f"- combined_realized_pnl: {summary['combined_realized_pnl']}",
+        f"- combined_unrealized_pnl: {summary['combined_unrealized_pnl']}",
+        f"- action_count: {summary['action_count']}",
+        f"- open_action_count: {summary['open_action_count']}",
+        f"- close_action_count: {summary['close_action_count']}",
+        f"- spread_last: {summary['spread_last']}",
+        f"- spread_mean: {summary['spread_mean']}",
+        f"- signal_ready_count: {summary['signal_ready_count']}",
+        f"- signal_ready_spread_mean: {summary['signal_ready_spread_mean']}",
+        f"- signal_ready_spread_max_abs: {summary['signal_ready_spread_max_abs']}",
+        f"- total_execution_fees: {summary['total_execution_fees']}",
+        f"- total_upfront_fixed_cashflow: {summary['total_upfront_fixed_cashflow']}",
+        f"- total_opening_fees: {summary['total_opening_fees']}",
+        f"- total_closing_execution_fees: {summary['total_closing_execution_fees']}",
+        f"- total_settlement_fees: {summary['total_settlement_fees']}",
+        f"- total_explicit_costs: {summary['total_explicit_costs']}",
+        f"- gross_pnl_before_explicit_costs: {summary['gross_pnl_before_explicit_costs']}",
+        f"- total_perp_funding_pnl: {summary['total_perp_funding_pnl']}",
+        f"- execution_model: {summary['execution_model']}",
+        f"- settlement_index_model: {summary['settlement_index_model']}",
+        f"- mark_rate_model: {summary['mark_rate_model']}",
+        f"- protocol_alignment_mode: {summary['protocol_alignment_mode']}",
+        "",
+        "## Markets",
+    ]
+    for market_name, payload in summary["market_balances"].items():
+        report_lines.append(
+            f"- {market_name}: net_value={payload['net_value']}, realized_pnl={payload['realized_pnl']}, "
+            f"unrealized_pnl={payload['unrealized_pnl']}, position_count={payload['position_count']}, "
+            f"open_action_count={payload['open_action_count']}, close_action_count={payload['close_action_count']}, "
+            f"total_upfront_fixed_cashflow={payload['total_upfront_fixed_cashflow']}, "
+            f"total_opening_fees={payload['total_opening_fees']}, "
+            f"total_closing_execution_fees={payload['total_closing_execution_fees']}, "
+            f"total_settlement_fees={payload['total_settlement_fees']}, "
+            f"total_explicit_costs={payload['total_explicit_costs']}, "
+            f"gross_pnl_before_explicit_costs={payload['gross_pnl_before_explicit_costs']}, "
+            f"total_execution_fees={payload['total_execution_fees']}"
+        )
+    if execution_diagnostics_summary:
+        report_lines.extend(
+            [
+                "",
+                "## Execution Diagnostics",
+                f"- execution_source_counts: {execution_diagnostics_summary['execution_source_counts']}",
+                f"- selection_reason_counts: {execution_diagnostics_summary['selection_reason_counts']}",
+                f"- mean_execution_option_count: {execution_diagnostics_summary['mean_execution_option_count']}",
+            ]
+        )
+    with open(root / "report.md", "w", encoding="utf-8") as file:
+        file.write("\n".join(report_lines) + "\n")
+
+
+def run_funding_convergence_backtest(
+    event_dir: str,
+    output_dir: str,
+    market_a_name: str,
+    market_b_name: str,
+    market_a_key: str,
+    market_b_key: str,
+    venue_a: str,
+    venue_b: str,
+    maturity: datetime,
+    notional: Decimal = Decimal("100"),
+    lookback: int = 60,
+    entry_threshold: Decimal = Decimal("0.003"),
+    exit_threshold: Decimal = Decimal("0.0008"),
+    stop_loss: Decimal = Decimal("2"),
+    execution_mode: BorosExecutionMode = BorosExecutionMode.TX_REPLAY_BEST_EXEC,
+    min_time_to_maturity_seconds: int = 24 * 3600,
+    max_signal_rate: Decimal = Decimal("2"),
+    expected_holding_seconds: int | None = None,
+    min_expected_edge_after_cost: Decimal = Decimal("0"),
+    max_execution_delay_seconds: int | None = None,
+    max_pair_execution_skew_seconds: int | None = None,
+    synthetic_perp_funding: dict[str, pd.DataFrame] | None = None,
+) -> tuple[Actuator, FundingConvergenceStrategy, list[BorosMarket]]:
+    market_a_info = MarketInfo(market_a_name, MarketTypeEnum.boros)
+    market_b_info = MarketInfo(market_b_name, MarketTypeEnum.boros)
+    market_a = BorosMarket(market_a_info)
+    market_b = BorosMarket(market_b_info)
+    market_a.load_event_data(event_dir=event_dir, market_key=market_a_key, venue=venue_a, maturity=maturity)
+    market_b.load_event_data(event_dir=event_dir, market_key=market_b_key, venue=venue_b, maturity=maturity)
+    if execution_mode == BorosExecutionMode.EVENT_REPLAY_FULL_PROTO:
+        market_a.mark_rate_column = "mark_rate_full_proto"
+        market_b.mark_rate_column = "mark_rate_full_proto"
+
+    actuator = Actuator()
+    actuator.broker.add_market(market_a)
+    actuator.broker.add_market(market_b)
+    actuator.broker.set_balance(USD, Decimal("1000"))
+    strategy = FundingConvergenceStrategy(
+        market_a_info=market_a_info,
+        market_b_info=market_b_info,
+        notional=notional,
+        lookback=lookback,
+        entry_threshold=entry_threshold,
+        exit_threshold=exit_threshold,
+        stop_loss=stop_loss,
+        execution_mode=execution_mode,
+        min_time_to_maturity_seconds=min_time_to_maturity_seconds,
+        max_signal_rate=max_signal_rate,
+        expected_holding_seconds=expected_holding_seconds,
+        min_expected_edge_after_cost=min_expected_edge_after_cost,
+        max_execution_delay_seconds=max_execution_delay_seconds,
+        max_pair_execution_skew_seconds=max_pair_execution_skew_seconds,
+        synthetic_perp_funding=synthetic_perp_funding,
+    )
+    actuator.strategy = strategy
+    price_index = market_a.get_price_from_data().index.union(market_b.get_price_from_data().index)
+    actuator.set_price(pd.DataFrame(index=price_index))
+    actuator.run(print_result=True)
+    export_convergence_result(actuator=actuator, strategy=strategy, output_dir=output_dir, markets=[market_a, market_b])
+    return actuator, strategy, [market_a, market_b]

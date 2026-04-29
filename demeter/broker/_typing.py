@@ -32,6 +32,7 @@ class MarketTypeEnum(Enum):
     gmx_v1 = 5
     gmx_v2_lp = 6
     gmx_v2_prep = 7
+    boros = 8
 
 
 class MarketInfo(NamedTuple):
@@ -183,6 +184,8 @@ class ActionTypeEnum(Enum):
     gmx2_swap = "gmx2_swap"
     gmx2_increase_position = "gmx2_increase"
     gmx2_decrease_position = "gmx2_decrease"
+    boros_open_fixed_float = "boros_open_fixed_float"
+    boros_close_fixed_float = "boros_close_fixed_float"
 
     def __str__(self):
         return self.name

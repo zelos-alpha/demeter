@@ -1,0 +1,78 @@
+{
+  "dataset": {
+    "event_dir": "bn_hl_260121-260226",
+    "market_a_key": "BINANCE-ETHUSDT-27FEB2026",
+    "market_b_key": "HYPERLIQUID-ETH-27FEB2026",
+    "start_date": "2026-01-21",
+    "end_date": "2026-02-26"
+  },
+  "scenarios": {
+    "two_leg_baseline": {
+      "sample": "72_boros_funding_convergence.py",
+      "execution_mode": "tx_replay_best_exec",
+      "expected": {
+        "final_net_value": "996.1757233117264468254",
+        "total_pnl": "-3.8242766882735531746",
+        "action_count": 380,
+        "signal_ready_count": 51335
+      },
+      "tolerance": {
+        "final_net_value": "0.000001",
+        "total_pnl": "0.000001",
+        "action_count": 0,
+        "signal_ready_count": 0
+      }
+    },
+    "four_leg_synthetic_funding": {
+      "sample": "77_boros_convergence_with_perp_funding.py",
+      "execution_mode": "tx_replay_best_exec",
+      "expected": {
+        "final_net_value": "996.0851111217264468254",
+        "total_pnl": "-3.9148888782735531746",
+        "total_perp_funding_pnl": "-0.0906121900",
+        "action_count": 380
+      },
+      "tolerance": {
+        "final_net_value": "0.000001",
+        "total_pnl": "0.000001",
+        "total_perp_funding_pnl": "0.000001",
+        "action_count": 0
+      }
+    },
+    "full_execution_compare": {
+      "sample": "78_boros_full_execution_compare.py",
+      "expected": {
+        "baseline_final_net_value": "996.1757233117264468254",
+        "baseline_total_pnl": "-3.8242766882735531746",
+        "full_final_net_value": "1000.8071516078801094377",
+        "full_total_pnl": "0.8071516078801094377",
+        "pnl_delta_full_minus_baseline": "4.6314282961536626123"
+      },
+      "tolerance": {
+        "baseline_final_net_value": "0.000001",
+        "baseline_total_pnl": "0.000001",
+        "full_final_net_value": "0.000001",
+        "full_total_pnl": "0.000001",
+        "pnl_delta_full_minus_baseline": "0.000001"
+      }
+    },
+    "full_execution_diagnostics": {
+      "sample": "79_boros_full_execution_diagnostics.py",
+      "execution_mode": "event_replay_full_proto",
+      "expected": {
+        "final_net_value": "1000.8801861607634281958",
+        "total_pnl": "0.8801861607634281958",
+        "action_count": 328,
+        "orderbook_fill_count": 155,
+        "amm_fill_count": 25
+      },
+      "tolerance": {
+        "final_net_value": "0.000001",
+        "total_pnl": "0.000001",
+        "action_count": 0,
+        "orderbook_fill_count": 0,
+        "amm_fill_count": 0
+      }
+    }
+  }
+}
