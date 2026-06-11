@@ -6,7 +6,7 @@ from .liquidity_math import get_amounts, get_liquidity
 from .. import DECIMAL_1
 
 
-class V3CoreLib(object):
+class V3CoreLib:
     @staticmethod
     def new_position(
         pool: UniV3Pool,

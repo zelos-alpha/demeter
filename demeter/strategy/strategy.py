@@ -14,7 +14,7 @@ from ..broker import MarketInfo, BaseAction, Market
 logger = logging.getLogger(__name__)
 
 
-class Strategy(object):
+class Strategy:
     """
     Parent class of strategy, all user's strategy should inherit this class
     """

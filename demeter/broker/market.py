@@ -171,6 +171,6 @@ class Market(ABC):
         if isinstance(value, pd.DataFrame):
             self._data = value
         else:
-            raise ValueError()
+            raise ValueError("data must be a pandas DataFrame")
 
     # endregion

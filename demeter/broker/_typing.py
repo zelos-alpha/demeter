@@ -55,7 +55,7 @@ class AssetDescription(NamedTuple):
     value: float
 
 
-class Asset(object):
+class Asset:
     """
     Wallet of broker, manage balance of an asset.
     It will prevent excess usage on asset.
@@ -195,7 +195,7 @@ class ActionTypeEnum(Enum):
 
 
 @dataclass
-class BaseAction(object):
+class BaseAction:
     """
     Parent class of broker actions,
 

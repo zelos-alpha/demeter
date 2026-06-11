@@ -40,7 +40,7 @@ def object_to_decimal(num: Any) -> Any:
     :return: Decimal value
     :rtype: Any
     """
-    return Decimal(str(num)) if (isinstance(num, float) or type(num) == int) else num
+    return Decimal(str(num)) if isinstance(num, (float, int)) else num
 
 
 def dict_to_object(dict_entity: Dict) -> Any:

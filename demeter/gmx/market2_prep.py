@@ -1,8 +1,11 @@
 from datetime import date
 from decimal import Decimal
 import logging
+import warnings
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 from orjson import orjson
 
 from ._typing2 import (
@@ -266,7 +269,7 @@ class GmxV2PerpMarket(PrepMarket):
         if size_in_usd is None and expect_size_in_token is None:
             raise DemeterError("size_in_usd or size_in_token is required")
         elif size_in_usd is not None and expect_size_in_token is not None:
-            print("Warning, size_in_token and size_in_usd is filled, will use size_in_usd")
+            logger.warning("size_in_token and size_in_usd are both filled, will use size_in_usd")
         if size_in_usd is None:
             size_in_usd = expect_size_in_token * self._market_status.data.longPrice
         order = Order(

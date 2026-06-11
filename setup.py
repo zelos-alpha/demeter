@@ -22,7 +22,6 @@ setup(
         "pandas>=2.2.0",
         "python-dateutil>=2.9.0.post0",
         "pytz>=2024.1",
-        "six>=1.16.0",
         "db-dtypes>=1.2.0",
         "tqdm>=4.66.2",
         "orjson>=3.9.15",

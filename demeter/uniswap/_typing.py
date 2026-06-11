@@ -65,7 +65,7 @@ class PositionStatus(NamedTuple):
     P: Decimal
 
 
-class UniV3Pool(object):
+class UniV3Pool:
     """
     pool information, corresponding with definition in pool contract.
 
@@ -224,7 +224,7 @@ class UniLpBalance(MarketBalance):
 
 
 @dataclass
-class Position(object):
+class Position:
     """
     keeps variables for get_position
     """

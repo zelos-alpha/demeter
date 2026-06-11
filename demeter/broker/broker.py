@@ -86,7 +86,7 @@ class Broker:
         :type market: Market
         """
         if market.market_info in self._markets:
-            raise DemeterError("market has exist")
+            raise DemeterError("market already exists")
         self._markets[market.market_info] = market
         market.broker = self
         market._record_action_callback = self._record_action_callback

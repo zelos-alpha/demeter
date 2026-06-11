@@ -80,7 +80,7 @@ class TokenInfo:
     :param decimal: decimal of this token, e.g. 6
     :type decimal: int
     :param address: Address of token, for aave market, this attribute has to be filled to load data.
-    :type decimal: str
+    :type address: str
     """
 
     name: str
@@ -111,6 +111,7 @@ class TokenInfo:
 class DemeterError(RuntimeError):
     def __init__(self, message):
         self.message = message
+        super().__init__(message)
 
 
 class DemeterAssertionError(DemeterError):

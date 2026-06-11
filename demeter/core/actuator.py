@@ -37,7 +37,7 @@ class RunningCount:
     get_account_status_df: int = 0
 
 
-class Actuator(object):
+class Actuator:
     """
     Core component of a back test. Manage the resources in a test, including broker/strategy/data/indicator,
 
@@ -67,7 +67,7 @@ class Actuator(object):
         self.__start_time = None
         self.__backtest_duration = None
         self.__backtest_finished = False
-        self.__runnning_count: RunningCount = RunningCount()
+        self.__running_count: RunningCount = RunningCount()
         self.print_action = False
         self.init_account_status = None
         # set backtest with other freq to make it faster, freq should be larger than 1 minute
@@ -196,12 +196,12 @@ class Actuator(object):
         :rtype: DataFrame
         """
         if not self.__backtest_finished:
-            if self.__runnning_count.get_account_status_df >= 10:
+            if self.__running_count.get_account_status_df >= 10:
                 raise DemeterWarning(
                     "Frequent calls to account_status_df will generate multiple DataFrame objects, "
                     "consuming a lot of time and memory. Consider using account_status instead."
                 )
-            self.__runnning_count.get_account_status_df += 1
+            self.__running_count.get_account_status_df += 1
 
             self._account_status_df = AccountStatus.to_dataframe(self._account_status_list)
         return self._account_status_df
@@ -216,7 +216,7 @@ class Actuator(object):
 
     # endregion
     def comment_last_action(self, message: str, action_type: ActionTypeEnum | None = None):
-        if len(self._action_list) < 0:
+        if len(self._action_list) == 0:
             raise DemeterWarning("No action yet")
         if action_type is None:
             self._action_list[len(self._action_list) - 1].comment = message
