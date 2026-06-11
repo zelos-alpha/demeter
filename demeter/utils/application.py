@@ -91,15 +91,16 @@ def get_enum_by_name(me: Enum, name: str):
 
 def require(condition: bool, error_msg: str):
     """
-    Checking whether the condition is True, if not, will raise a AssertionError
+    Checking whether the condition is True, if not, will raise a DemeterAssertionError
 
     :param condition: condition
     :type condition: bool
-    :param error_msg: error message contains in AssertionError
-    :param error_msg: str
+    :param error_msg: error message contains in DemeterAssertionError
+    :type error_msg: str
     """
     if not condition:
-        raise AssertionError(error_msg)
+        from .._typing import DemeterAssertionError
+        raise DemeterAssertionError(error_msg)
 
 
 def to_multi_index_df(df: pd.DataFrame, level0: str):

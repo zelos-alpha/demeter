@@ -82,11 +82,13 @@ class BacktestManager:
         elif len(self.strategies) == 1 or self.threads == 1:
             # start in single thread by default
             for strategy in self.strategies:
-                actuator = _start_with_param_data(self.config, self.data, strategy, self.backtest_config)
-                e_callback(actuator)
+                try:
+                    _start_with_param_data(self.config, self.data, strategy, self.backtest_config)
+                except Exception as e:
+                    e_callback(e)
         else:
             if self.threads > cpu_count():
-                raise RuntimeError("Threads should lower than " + cpu_count())
+                raise RuntimeError(f"Threads should be less than {cpu_count()}")
 
             if "Windows" in platform.system():
                 logger.warning(
@@ -120,5 +122,4 @@ class BacktestManager:
                         )
                         tasks.append(result1)
                     [x.wait() for x in tasks]
-                pass
         logger.info(f"All backtest finished, total execute time {(time.time() - start_time):.3f}s")

@@ -6,7 +6,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Generic, NamedTuple, List, Dict, TypeVar, Union
 
-from .._typing import DemeterError, TokenInfo, UnitDecimal
+from .._typing import DemeterError, DemeterAssertionError, TokenInfo, UnitDecimal
 from ..utils import to_multi_index_df
 from ..utils.console_text import get_action_str, ForColorEnum
 
@@ -120,7 +120,7 @@ class Asset(object):
             if abs((self.balance - amount) / base) < 0.00001:
                 self.balance = Decimal(0)
             elif self.balance - amount < Decimal(0):
-                raise AssertionError(
+                raise DemeterAssertionError(
                     f"insufficient balance, balance is {self.balance}{self.name}, "
                     f"but sub amount is {amount}{self.name}"
                 )
@@ -288,9 +288,6 @@ class MarketStatus:
 
     timestamp: datetime | None
     data: pd.Series | None = None
-
-
-T = TypeVar("T")
 
 
 class MarketDict(Generic[T]):

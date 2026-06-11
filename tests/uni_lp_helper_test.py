@@ -1,7 +1,7 @@
 import unittest
 from decimal import Decimal
 
-from demeter.uniswap import helper, liquitidy_math
+from demeter.uniswap import helper, liquidity_math
 from tests.common import assert_equal_with_error
 
 D0 = Decimal(1)
@@ -27,9 +27,9 @@ class UniLpDataTest(unittest.TestCase):
         lower_sqrt = helper.base_unit_price_to_sqrt_price_x96(Decimal(1100), d0, d1, True)
         upper_sqrt = helper.base_unit_price_to_sqrt_price_x96(Decimal(600), d0, d1, True)
 
-        liquidity = liquitidy_math.get_liquidity(sqrt, lower_tick, upper_tick, Decimal(1000), Decimal(1), d0, d1)
+        liquidity = liquidity_math.get_liquidity(sqrt, lower_tick, upper_tick, Decimal(1000), Decimal(1), d0, d1)
 
-        amount0, amount1 = liquitidy_math.get_amounts(sqrt, lower_tick, upper_tick, liquidity, d0, d1)
+        amount0, amount1 = liquidity_math.get_amounts(sqrt, lower_tick, upper_tick, liquidity, d0, d1)
         net_value_old = amount0 + amount1 * price
         print(amount0, amount1)
 
@@ -60,9 +60,9 @@ class UniLpDataTest(unittest.TestCase):
         lower_sqrt = helper.base_unit_price_to_sqrt_price_x96(Decimal(600), d0, d1, False)
         upper_sqrt = helper.base_unit_price_to_sqrt_price_x96(Decimal(1100), d0, d1, False)
 
-        liquidity = liquitidy_math.get_liquidity(sqrt, lower_tick, upper_tick, Decimal(1), Decimal(1000), d0, d1)
+        liquidity = liquidity_math.get_liquidity(sqrt, lower_tick, upper_tick, Decimal(1), Decimal(1000), d0, d1)
 
-        amount0, amount1 = liquitidy_math.get_amounts(sqrt, lower_tick, upper_tick, liquidity, d0, d1)
+        amount0, amount1 = liquidity_math.get_amounts(sqrt, lower_tick, upper_tick, liquidity, d0, d1)
         net_value_old = amount0 * price + amount1
         print(amount0, amount1)
 

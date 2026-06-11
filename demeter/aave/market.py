@@ -25,7 +25,7 @@ from ._typing import (
     AaveMarketStatus,
 )
 from .core import AaveV3CoreLib
-from .. import DemeterError, TokenInfo
+from .. import DemeterError, DemeterAssertionError, TokenInfo
 from .._typing import DECIMAL_0, UnitDecimal, ChainType, USD
 from ..broker import Market, MarketInfo, write_func
 from ..utils import get_formatted_predefined, STYLE, get_formatted_from_dict, console_text
@@ -533,7 +533,7 @@ class AaveV3Market(Market):
             # revert
             self._supplies[token_info].collateral = old_collateral
             self._collaterals_amount_cache.reset()
-            raise AssertionError("health factor lower than liquidation threshold")
+            raise DemeterAssertionError("health factor lower than liquidation threshold")
 
     @write_func
     @float_param_formatter
@@ -564,7 +564,7 @@ class AaveV3Market(Market):
             self._supplies_amount_cache.reset()
             self._collaterals_amount_cache.reset()
             if self.health_factor < AaveV3CoreLib.HEALTH_FACTOR_LIQUIDATION_THRESHOLD:
-                raise AssertionError("health factor lower than liquidation threshold")
+                raise DemeterAssertionError("health factor lower than liquidation threshold")
             self._supplies[token_info].base_amount = old_base_amount
 
         final_base_amount = self.__sub_supply_amount(token_info, amount)
@@ -832,7 +832,7 @@ class AaveV3Market(Market):
 
             try:
                 self._do_liquidate(max_supply_key, min_borrow_key, min_borrow_value)
-            except AssertionError:
+            except DemeterAssertionError:
                 # if a liquidated is rejected, choose another delt token to liquidate
                 pass
             health_factor = self.health_factor

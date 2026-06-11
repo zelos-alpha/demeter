@@ -9,10 +9,12 @@ import pandas as pd
 
 from . import UniV3Pool
 from .data import fillna
-from .liquitidy_math import get_sqrt_ratio_at_tick, get_liquidity, get_amounts
+from .liquidity_math import get_sqrt_ratio_at_tick, get_liquidity, get_amounts
 from .. import DemeterError, TokenInfo, MarketTypeEnum
 from ..data import CacheManager
 from ..utils import to_decimal, config_log
+
+logger = logging.getLogger(__name__)
 
 
 

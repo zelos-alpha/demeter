@@ -52,6 +52,7 @@ class GmxMarket(Market):
 
         return orjson.dumps(self.description, default=orjson_default).decode()
 
+    @property
     def description(self):
         return GmxDescription(
             type=type(self).__name__,

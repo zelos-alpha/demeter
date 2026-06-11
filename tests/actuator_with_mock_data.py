@@ -7,7 +7,7 @@ import pandas as pd
 from tests.utils import get_uni_v3_mock_data
 from demeter import TokenInfo, Actuator, Strategy, Snapshot, MarketInfo
 from demeter.uniswap import UniLpBalance, UniV3Pool, V3CoreLib, UniLpMarket
-from demeter.uniswap.liquitidy_math import get_sqrt_ratio_at_tick
+from demeter.uniswap.liquidity_math import get_sqrt_ratio_at_tick
 
 pd.options.display.max_columns = None
 pd.options.display.max_rows = None

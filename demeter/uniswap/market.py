@@ -40,7 +40,7 @@ from .helper import (
     get_price_from_data,
     _add_statistic_column,
 )
-from .liquitidy_math import (
+from .liquidity_math import (
     get_sqrt_ratio_at_tick,
     estimate_ratio,
     get_liquidity,

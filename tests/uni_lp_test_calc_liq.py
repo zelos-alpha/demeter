@@ -6,7 +6,7 @@ import pandas as pd
 
 from demeter import TokenInfo, Broker, MarketInfo, MarketStatus
 from demeter.uniswap import UniLpMarket, UniV3Pool
-from demeter.uniswap.liquitidy_math import estimate_ratio
+from demeter.uniswap.liquidity_math import estimate_ratio
 
 test_market = MarketInfo("market1")
 

@@ -10,10 +10,10 @@ class Formats:
     global_num_format: str = ".8g"
 
 
-# constant value for number 1
+# constant value for number 0
 DECIMAL_0 = Decimal(0)
 
-# constant value for number 0
+# constant value for number 1
 DECIMAL_1 = Decimal(1)
 
 
@@ -111,6 +111,11 @@ class TokenInfo:
 class DemeterError(RuntimeError):
     def __init__(self, message):
         self.message = message
+
+
+class DemeterAssertionError(DemeterError):
+    """Raised when a business logic assertion fails."""
+    pass
 
 
 class DemeterWarning(RuntimeWarning):

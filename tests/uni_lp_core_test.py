@@ -10,7 +10,7 @@ from demeter.uniswap.helper import (
     get_swap_value,
     get_swap_value_with_part_balance_used,
 )
-from demeter.uniswap.liquitidy_math import get_amounts, estimate_ratio
+from demeter.uniswap.liquidity_math import get_amounts, estimate_ratio
 from tests.common import assert_equal_with_error
 
 eth = TokenInfo(name="eth", decimal=18)

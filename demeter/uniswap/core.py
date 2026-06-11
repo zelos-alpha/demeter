@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from ._typing import UniV3Pool, Position, UniV3PoolStatus, PositionInfo
 from .helper import base_unit_price_to_tick, from_atomic_unit
-from .liquitidy_math import get_amounts, get_liquidity
+from .liquidity_math import get_amounts, get_liquidity
 from .. import DECIMAL_1
 
 

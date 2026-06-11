@@ -14,6 +14,7 @@ from tqdm import tqdm  # process bar
 from .. import Broker, Asset, ActionTypeEnum
 from .._typing import (
     DemeterError,
+    DemeterAssertionError,
     UnitDecimal,
     DemeterWarning,
     TokenInfo,
@@ -418,6 +419,7 @@ class Actuator(object):
                 # execute strategy, and some calculate
                 self._currents.timestamp = timestamp_index.to_pydatetime()
                 snapshot = self.__get_snapshot(timestamp_index, row_id, current_price)
+                after_snapshot = snapshot  # default to current snapshot in case of early exception
                 try:
                     self._strategy.before_bar(snapshot)
 
@@ -445,7 +447,7 @@ class Actuator(object):
                     after_snapshot = self.__get_snapshot(timestamp_index, row_id, current_price)
                     self._strategy.after_bar(after_snapshot)
                     self.notify(self.strategy, self._currents.actions)
-                except (RuntimeError, AssertionError) as e:
+                except (RuntimeError, DemeterAssertionError) as e:
                     # notify what has already happened
                     self.notify(self.strategy, self._currents.actions)
                     # equal means after_snapshot has already set in this loop, so error should in after_bar or notify

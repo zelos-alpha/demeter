@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List, Callable
 
@@ -9,6 +10,8 @@ from .. import Broker, MarketDict, AccountStatus, AssetDict, Asset, Snapshot
 # from ..core import Actuator
 from .._typing import DemeterError
 from ..broker import MarketInfo, BaseAction, Market
+
+logger = logging.getLogger(__name__)
 
 
 class Strategy(object):
@@ -74,7 +77,7 @@ class Strategy(object):
 
         you can continue backtest if you do not throw this error again
         """
-        print("Exception on ", snapshot.timestamp, "Error message: ", e)
+        logger.error("Exception on %s, Error message: %s", snapshot.timestamp, e)
         raise e
 
     def notify(self, action: BaseAction):
