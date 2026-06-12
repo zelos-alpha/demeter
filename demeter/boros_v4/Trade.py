@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
 from ._typing import Side
-from .PMath import PMath
+from .pmath import PMath
 
 @dataclass
 class Trade:

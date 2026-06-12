@@ -1,5 +1,5 @@
 """
-Test cases for Trade.py module.
+Test cases for trade.py module.
 
 Note: Due to circular import issues in the source code (_typing.py <-> AMM.py),
 this test file includes essential classes inline to allow tests to run.

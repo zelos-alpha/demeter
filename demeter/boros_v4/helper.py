@@ -11,7 +11,7 @@ import pandas as pd
 
 from .._typing import DemeterError
 from ..utils import to_decimal
-from .PMath import PMath
+from .pmath import PMath
 from ._typing import Side
 
 SIZE_SCALE = Decimal("1e18")

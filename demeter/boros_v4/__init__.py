@@ -10,7 +10,7 @@ from .helper import (
     load_boros_tx_ledger,
     load_hyperliquid_funding_history,
 )
-from .Trade import Fill, Trade
+from .trade import Fill, Trade
 from ._typing import Side, TimeInForce
 from .market import (
     BorosBalance,

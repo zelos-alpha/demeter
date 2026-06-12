@@ -1,5 +1,5 @@
 """
-Test cases for TickBitmap.py module.
+Test cases for tick_bitmap.py module.
 
 Note: Due to circular import issues in the source code (_typing.py <-> AMM.py),
 this test file includes the essential TickBitmap classes inline to allow tests to run.

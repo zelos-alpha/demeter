@@ -5,7 +5,7 @@ Tests for all functions in PMath.py
 
 import unittest
 from decimal import Decimal
-from demeter.boros_v4.PMath import PMath, PMathOverflowError
+from demeter.boros_v4.pmath import PMath, PMathOverflowError
 
 
 class TestPMathConstants(unittest.TestCase):

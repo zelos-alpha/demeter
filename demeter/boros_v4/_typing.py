@@ -4,8 +4,8 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, List, Tuple
 
 if TYPE_CHECKING:
-    from .AMM import AMM
-    from .Trade import Trade
+    from .amm import AMM
+    from .trade import Trade
 
 
 class TimeInForce(IntEnum):

@@ -3,7 +3,7 @@ Test cases for TickMath module.
 """
 import unittest
 import math
-from demeter.boros_v4.TickMath import TickMath
+from demeter.boros_v4.tick_math import TickMath
 
 
 class TestTickMathConstants(unittest.TestCase):

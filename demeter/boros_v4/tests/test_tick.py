@@ -1,9 +1,9 @@
 """
-Test cases for Tick.py module.
+Test cases for tick.py module.
 """
 import unittest
 from decimal import Decimal
-from demeter.boros_v4.Tick import (
+from demeter.boros_v4.tick import (
     FenwickNodeMath,
     OrderStatus,
     FTag,

@@ -1,5 +1,5 @@
 """
-Test cases for TickSweepStateLib.py module.
+Test cases for tick_sweep_state_lib.py module.
 
 Note: Due to circular import issues in the source code (_typing.py <-> AMM.py),
 this test file includes essential classes inline to allow tests to run.
