@@ -2,7 +2,7 @@ import logging
 import math
 import os
 from datetime import date, timedelta, time, datetime
-from decimal import Decimal, getcontext
+from decimal import Decimal, getcontext, localcontext
 from typing import Tuple, NamedTuple
 
 import pandas as pd
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 Q96 = Decimal(2**96)
 SQRT_1p0001 = math.sqrt(Decimal(1.0001))
-getcontext().prec = 35  # default is 28, 33 is good enough for fee 3000
+HIGH_DECIMAL_PRECISION = 35  # precision needed for fee 3000 pools (default is 28)
 MIN_ERROR = Decimal("1e-31")
 
 
@@ -31,7 +31,9 @@ def _from_x96(number: int) -> Decimal:
     :param number: sqrted x96 price
     :return: sqrted price
     """
-    return Decimal(number) / Q96
+    with localcontext() as ctx:
+        ctx.prec = HIGH_DECIMAL_PRECISION
+        return Decimal(number) / Q96
 
 
 def _to_x96(sqrt_price: Decimal) -> int:
@@ -43,7 +45,9 @@ def _to_x96(sqrt_price: Decimal) -> int:
     """
     if not isinstance(sqrt_price, Decimal):
         sqrt_price = Decimal(sqrt_price)
-    return int(sqrt_price * Q96)
+    with localcontext() as ctx:
+        ctx.prec = HIGH_DECIMAL_PRECISION
+        return int(sqrt_price * Q96)
 
 
 def sqrt_price_x96_to_base_unit_price(
@@ -58,10 +62,12 @@ def sqrt_price_x96_to_base_unit_price(
     :param is_token0_quote: is token 0 the quote token
     :return: price in base unit, e.g. 1234.56 eth/usdc
     """
-    sqrt_price = _from_x96(sqrt_price_x96)
-    pool_price = sqrt_price**2 * Decimal(10 ** (token_0_decimal - token_1_decimal))
+    with localcontext() as ctx:
+        ctx.prec = HIGH_DECIMAL_PRECISION
+        sqrt_price = _from_x96(sqrt_price_x96)
+        pool_price = sqrt_price**2 * Decimal(10 ** (token_0_decimal - token_1_decimal))
 
-    return Decimal(1 / pool_price) if is_token0_quote else pool_price
+        return Decimal(1 / pool_price) if is_token0_quote else pool_price
 
 
 def base_unit_price_to_sqrt_price_x96(
@@ -78,10 +84,12 @@ def base_unit_price_to_sqrt_price_x96(
     """
     # quote price->add decimal pool price->sqrt_price ->ticker
 
-    price = 1 / price if is_token0_quote else price
-    atomic_unit_price = price / Decimal(10 ** (token_0_decimal - token_1_decimal))
-    sqrt_price = Decimal.sqrt(atomic_unit_price)
-    return _to_x96(sqrt_price)
+    with localcontext() as ctx:
+        ctx.prec = HIGH_DECIMAL_PRECISION
+        price = 1 / price if is_token0_quote else price
+        atomic_unit_price = price / Decimal(10 ** (token_0_decimal - token_1_decimal))
+        sqrt_price = Decimal.sqrt(atomic_unit_price)
+        return _to_x96(sqrt_price)
 
 
 # can round by spacing?
@@ -103,7 +111,9 @@ def _sqrt_price_to_tick(sqrt_price: Decimal) -> int:
     :param sqrt_price: sqrt price
     :return: tick price
     """
-    return int(math.log(sqrt_price, SQRT_1p0001))
+    with localcontext() as ctx:
+        ctx.prec = HIGH_DECIMAL_PRECISION
+        return int(math.log(sqrt_price, SQRT_1p0001))
 
 
 def tick_to_sqrt_price_x96(tick: int) -> int:
@@ -126,10 +136,12 @@ def tick_to_base_unit_price(tick: int, token_0_decimal: int, token_1_decimal: in
     :param is_token0_quote: quote on token0
     :return: quote price
     """
-    sqrt_price_x96 = get_sqrt_ratio_at_tick(tick)
-    atomic_unit_price = _from_x96(sqrt_price_x96) ** 2
-    pool_price = atomic_unit_price * Decimal(10 ** (token_0_decimal - token_1_decimal))
-    return Decimal(1 / pool_price) if is_token0_quote else pool_price
+    with localcontext() as ctx:
+        ctx.prec = HIGH_DECIMAL_PRECISION
+        sqrt_price_x96 = get_sqrt_ratio_at_tick(tick)
+        atomic_unit_price = _from_x96(sqrt_price_x96) ** 2
+        pool_price = atomic_unit_price * Decimal(10 ** (token_0_decimal - token_1_decimal))
+        return Decimal(1 / pool_price) if is_token0_quote else pool_price
 
 
 def base_unit_price_to_tick(price: Decimal, token_0_decimal: int, token_1_decimal: int, is_token0_quote: bool) -> int:
@@ -143,11 +155,13 @@ def base_unit_price_to_tick(price: Decimal, token_0_decimal: int, token_1_decima
     :return: tick price
     """
 
-    # quote price->add decimal pool price->sqrt_price ->tick
-    price = 1 / price if is_token0_quote else price
-    atomic_unit_price = price / Decimal(10 ** (token_0_decimal - token_1_decimal))
-    sqrt_price = Decimal.sqrt(atomic_unit_price)
-    return _sqrt_price_to_tick(sqrt_price)
+    with localcontext() as ctx:
+        ctx.prec = HIGH_DECIMAL_PRECISION
+        # quote price->add decimal pool price->sqrt_price ->tick
+        price = 1 / price if is_token0_quote else price
+        atomic_unit_price = price / Decimal(10 ** (token_0_decimal - token_1_decimal))
+        sqrt_price = Decimal.sqrt(atomic_unit_price)
+        return _sqrt_price_to_tick(sqrt_price)
 
 
 def from_atomic_unit(atomic_unit_amount: int, decimal: int) -> Decimal:
@@ -158,7 +172,9 @@ def from_atomic_unit(atomic_unit_amount: int, decimal: int) -> Decimal:
     :param decimal: decimal of token
     :return: token amount in base unit
     """
-    return Decimal(int(atomic_unit_amount)) / Decimal(10**decimal)
+    with localcontext() as ctx:
+        ctx.prec = HIGH_DECIMAL_PRECISION
+        return Decimal(int(atomic_unit_amount)) / Decimal(10**decimal)
 
 
 class Greeks(NamedTuple):
@@ -169,19 +185,22 @@ class Greeks(NamedTuple):
 def get_greeks(P: Decimal, L: Decimal, H: Decimal) -> Greeks:
     # get greeks for 1 u
 
-    if P >= H:
-        return Greeks(Decimal(0), Decimal(0))
+    with localcontext() as ctx:
+        ctx.prec = HIGH_DECIMAL_PRECISION
 
-    liq = 1 / (2 - L.sqrt() - 1 / H.sqrt())
+        if P >= H:
+            return Greeks(Decimal(0), Decimal(0))
 
-    if P < L:
-        delta = liq * (1 / L.sqrt() - 1 / H.sqrt())
-        return Greeks(delta, Decimal(0))
+        liq = 1 / (2 - L.sqrt() - 1 / H.sqrt())
 
-    delta = liq * (1 / P.sqrt() - 1 / H.sqrt())
-    gamma = Decimal("-0.5") * liq * (P ** Decimal("-1.5"))
+        if P < L:
+            delta = liq * (1 / L.sqrt() - 1 / H.sqrt())
+            return Greeks(delta, Decimal(0))
 
-    return Greeks(delta, gamma)
+        delta = liq * (1 / P.sqrt() - 1 / H.sqrt())
+        gamma = Decimal("-0.5") * liq * (P ** Decimal("-1.5"))
+
+        return Greeks(delta, gamma)
 
 
 def get_swap_value(swap_from_token_val, swap_to_token_val, fee_rate, final_ratio):

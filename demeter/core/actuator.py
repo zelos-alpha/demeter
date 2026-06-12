@@ -2,6 +2,7 @@ import logging
 import os
 import pickle
 import time
+import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -197,9 +198,11 @@ class Actuator:
         """
         if not self.__backtest_finished:
             if self.__running_count.get_account_status_df >= 10:
-                raise DemeterWarning(
+                warnings.warn(
                     "Frequent calls to account_status_df will generate multiple DataFrame objects, "
-                    "consuming a lot of time and memory. Consider using account_status instead."
+                    "consuming a lot of time and memory. Consider using account_status instead.",
+                    DemeterWarning,
+                    stacklevel=2,
                 )
             self.__running_count.get_account_status_df += 1
 
@@ -217,7 +220,7 @@ class Actuator:
     # endregion
     def comment_last_action(self, message: str, action_type: ActionTypeEnum | None = None):
         if len(self._action_list) == 0:
-            raise DemeterWarning("No action yet")
+            raise DemeterError("No action yet")
         if action_type is None:
             self._action_list[len(self._action_list) - 1].comment = message
         else:

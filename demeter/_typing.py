@@ -122,6 +122,7 @@ class DemeterAssertionError(DemeterError):
 class DemeterWarning(RuntimeWarning):
     def __init__(self, message):
         self.message = message
+        super().__init__(message)
 
 
 class ChainType(int, Enum):
