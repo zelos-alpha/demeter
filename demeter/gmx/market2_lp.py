@@ -4,7 +4,7 @@ from decimal import Decimal
 import pandas as pd
 from orjson import orjson
 
-from ._typing2 import (
+from .v2_typing import (
     GmxV2LpDescription,
     GmxV2LpMarketStatus,
     GmxV2LpBalance,

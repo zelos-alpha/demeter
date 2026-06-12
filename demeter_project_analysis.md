@@ -265,7 +265,7 @@ Demeter 是一个基于以太坊虚拟链的 DeFi 回测框架，支持 Uniswap 
 | Q-003 | isinstance 替代 type() == | P2 | ✅ 已修复 |
 | Q-005 | Decimal 全局精度修改 | P2 | ✅ 已修复 |
 | Q-006 | pickle 安全风险 | P2 | ⚠️ 待规划 |
-| S-002 | GMX _typing 文件重命名 | P2 | ⚠️ 待规划 |
+| S-002 | GMX `_typing` 文件重命名 | P2 | ✅ 已修复 |
 | S-003 | Boros PascalCase 文件名 | P2 | ⚠️ 待规划 |
 | Doc-001 | 添加 `__all__` 导出声明 | P2 | ✅ 已修复 |
 | Doc-002 | 类型注解修正 | P2 | ✅ 部分修复（broker/market.py ValueError） |
@@ -480,7 +480,7 @@ def some_high_precision_function():
 | A-001 | MarketTypeEnum 硬编码问题 | P1 | 4-6h |
 | A-003 | Market 基类类型注解完善 | P1 | 2-3h |
 | Q-006 | pickle 安全风险 | P2 | 2-3h |
-| S-002 | GMX _typing 文件重命名 | P2 | 1-2h |
+| S-002 | GMX `_typing` 文件重命名 | P2 | ✅ 已修复 — `_typing.py`→`v1_typing.py`, `_typing2.py`→`v2_typing.py` |
 | S-003 | Boros PascalCase 文件名 | P2 | 1h |
 | Doc-001 | 添加 `__all__` 导出声明 | P2 | ✅ 已修复 — 24 个 `__init__.py` 文件 |
 | Doc-002 | 类型注解全面修正 | P2 | 2h |
@@ -496,8 +496,8 @@ def some_high_precision_function():
 |--------|------|--------|--------|
 | P0 | 4 | 4 | 0 |
 | P1 | 6 | 4 | 2 |
-| P2 | 10 | 6 | 4 |
+| P2 | 10 | 7 | 3 |
 | P3 | 7 | 0 | 7 |
-| **合计** | **27** | **16** | **11** |
+| **合计** | **27** | **17** | **10** |
 
 **关键路径**: P0 修复已全部完成。P1 剩余的 A-001（MarketTypeEnum 架构重构）和 A-003（Market 基类类型注解）需要较大工作量，建议在下一个 sprint 中规划。P2/P3 可作为技术债务逐步消化。

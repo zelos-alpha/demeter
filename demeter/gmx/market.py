@@ -6,7 +6,7 @@ import pandas as pd
 from orjson import orjson
 
 from demeter import MarketStatus
-from ._typing import GmxDescription, GmxBalance, BuyGlpAction, SellGlpAction, PRICE_PRECISION
+from .v1_typing import GmxDescription, GmxBalance, BuyGlpAction, SellGlpAction, PRICE_PRECISION
 from .helper import load_gmx_v1_data, get_price_from_data
 from .._typing import TokenInfo, ChainType, USD
 from ..broker import Market, MarketInfo

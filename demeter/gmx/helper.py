@@ -7,7 +7,7 @@ import pandas as pd
 from demeter import ChainType, MarketTypeEnum
 from demeter.data import CacheManager
 from demeter.utils import to_decimal
-from ._typing import PRICE_PRECISION
+from .v1_typing import PRICE_PRECISION
 
 
 def get_price_from_data(data: pd.DataFrame):

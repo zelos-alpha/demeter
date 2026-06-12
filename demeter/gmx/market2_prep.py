@@ -8,7 +8,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 from orjson import orjson
 
-from ._typing2 import (
+from .v2_typing import (
     GmxV2LpMarketStatus,
     GmxV2PoolStatus,
     Gmx2IncreasePositionAction,
