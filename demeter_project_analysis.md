@@ -303,10 +303,10 @@ demeter/
 
 | 编号 | 问题 | 优先级 | 涉及文件 | 工作量 |
 |------|------|--------|---------|--------|
-| E-001 | `indicator/common.py` return 异常而非 raise | P0 | [`indicator/common.py:24`](demeter/indicator/common.py:24) | 5 min |
+| E-001 | `indicator/common.py` return 异常改为 raise | P0 | [`indicator/common.py:24`](demeter/indicator/common.py:24) | ✅ 已修复 |
 | Q-001 | `uniswap/helper.py` 遗留 print 调试输出 | P0 | [`uniswap/helper.py:304`](demeter/uniswap/helper.py:304) | 10 min |
 | Q-002 | `actuator.py` ValueError 无错误信息 | P0 | [`core/actuator.py:187`](demeter/core/actuator.py:187) | 5 min |
-| A-004 | BacktestManager fork 方式兼容性 | P0 | [`core/backtest.py`](demeter/core/backtest.py) | 1h |
+| A-004 | BacktestManager fork 方式兼容性 | P0 | [`core/backtest.py`](demeter/core/backtest.py) | ✅ 已修复 |
 
 ### 阶段二：架构改进（P1 — 本迭代内完成）
 
@@ -527,12 +527,12 @@ def config_log(level: int = logging.INFO, force: bool = False):
 | S-002 | GMX typing 文件重命名 | gmx/v1_typing.py, gmx/v2_typing.py | ✅ 已修复 |
 | S-003 | Boros PascalCase 文件名 | 14 个文件重命名为 snake_case | ✅ 已修复 |
 | Doc-002 | 类型注解修正（MarketDict） | broker/_typing.py, core/_typing.py | ✅ 已修复 |
+| E-001 | `indicator/common.py` return 异常改为 raise | indicator/common.py | ✅ 已修复 |
 
-### 待处理（14 项）
+### 待处理（13 项）
 
 | 编号 | 问题 | 优先级 | 预估工作量 |
 |------|------|--------|-----------|
-| E-001 | `indicator/common.py` return 异常而非 raise | **P0** | 5 min |
 | Q-001 | `uniswap/helper.py` print 调试输出 | **P0** | 10 min |
 | Q-002 | `actuator.py` ValueError 无错误信息 | **P0** | 5 min |
 | A-001 | MarketTypeEnum 硬编码问题 | P1 | 4-6h |
@@ -551,11 +551,11 @@ def config_log(level: int = logging.INFO, force: bool = False):
 
 | 优先级 | 总数 | 已修复 | 待处理 |
 |--------|------|--------|--------|
-| P0 | 4 | 2 | 2 |
+| P0 | 4 | 3 | 1 |
 | P1 | 6 | 2 | 4 |
 | P2 | 7 | 2 | 5 |
 | P3 | 11 | 10 | 1 |
-| **合计** | **28** | **16** | **12** |
+| **合计** | **28** | **17** | **11** |
 
 ---
 
