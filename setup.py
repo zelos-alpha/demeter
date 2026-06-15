@@ -26,6 +26,20 @@ setup(
         "tqdm>=4.66.2",
         "orjson>=3.9.15",
     ],
+    extras_require={
+        "dev": [
+            "pytest>=7.0",
+            "pytest-cov>=4.0",
+            "mypy>=1.0",
+            "ruff>=0.1.0",
+            "twine>=5.0",
+        ],
+        "docs": [
+            "Sphinx>=7.0",
+            "myst-parser>=2.0",
+            "sphinx_rtd_theme>=2.0",
+        ],
+    },
 )
 
 # rm -rf ./demeter.egg-info/ && python setup.py sdist upload -r private

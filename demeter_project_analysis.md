@@ -178,6 +178,7 @@ demeter/
       ]
   }
   ```
+- **修复状态**：✅ 已修复 — 在 `setup.py` 中添加 `extras_require`（`dev` 和 `docs` 两组）
 
 #### D-002：setup.py 缺少项目元数据
 - **严重程度**：低
@@ -319,7 +320,7 @@ demeter/
 | A-001 | MarketTypeEnum 硬编码问题 | P1 | [`broker/_typing.py`](demeter/broker/_typing.py) | 4-6h |
 | A-003 | Market 基类类型注解完善 | P1 | [`broker/market.py`](demeter/broker/market.py) | ✅ 已修复 |
 | E-002 | DemeterWarning 语义明确化 | P1 | [`_typing.py`](demeter/_typing.py) | ✅ 已修复 |
-| D-001 | 添加开发依赖声明 | P1 | [`setup.py`](setup.py) | 1h |
+| D-001 | 添加开发依赖声明 | P1 | [`setup.py`](setup.py) | ✅ 已修复 |
 
 ### 阶段三：代码规范化（P2 — 下个迭代）
 
@@ -536,13 +537,13 @@ def config_log(level: int = logging.INFO, force: bool = False):
 | Q-002 | `actuator.py` ValueError 无错误信息（TypeError） | core/actuator.py | ✅ 已修复 |
 | A-003 | Market 基类类型注解完善（TypeVar 泛型） | broker/market.py, 7 个子类 | ✅ 已修复 |
 | E-002 | DemeterWarning 语义明确化 | _typing.py, __init__.py | ✅ 已修复 |
+| D-001 | 添加开发依赖声明 | setup.py | ✅ 已修复 |
 
 ### 待处理（10 项）
 
 | 编号 | 问题 | 优先级 | 预估工作量 |
 |------|------|--------|-----------|
 | A-001 | MarketTypeEnum 硬编码问题 | P1 | 4-6h |
-| D-001 | 添加开发依赖声明 | P1 | 1h |
 | Q-003 | pickle 安全风险 | P2 | 2-3h |
 | Q-005 | logger 配置模块化 | P2 | 1-2h |
 | S-001 | 清理空文件 | P2 | 30 min |
@@ -556,10 +557,10 @@ def config_log(level: int = logging.INFO, force: bool = False):
 | 优先级 | 总数 | 已修复 | 待处理 |
 |--------|------|--------|--------|
 | P0 | 4 | 4 | 0 |
-| P1 | 6 | 4 | 2 |
+| P1 | 6 | 5 | 1 |
 | P2 | 7 | 2 | 5 |
 | P3 | 11 | 10 | 1 |
-| **合计** | **28** | **21** | **7** |
+| **合计** | **28** | **22** | **6** |
 
 ---
 
