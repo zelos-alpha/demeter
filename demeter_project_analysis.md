@@ -256,6 +256,7 @@ demeter/
 - **修改建议**：
   1. 删除 `ReaderPricingUtils.py` 空文件
   2. 将 `gmx/utils.py` 的函数合并到相关模块中
+- **修复状态**：✅ 已修复 — 删除 `ReaderPricingUtils.py`，将 `load_pool_config` 内联到 `market2_prep.py`
 
 #### S-002：GMX 模块文件命名混乱
 - **严重程度**：中
@@ -328,7 +329,7 @@ demeter/
 |------|------|--------|---------|--------|
 | Q-003 | pickle 安全风险 | P2 | [`data/data_cache.py`](demeter/data/data_cache.py), [`core/actuator.py`](demeter/core/actuator.py) | 2-3h |
 | Q-005 | logger 配置模块化 | P2 | [`utils/logging_util.py`](demeter/utils/logging_util.py) | 1-2h |
-| S-001 | 清理空文件和占位文件 | P2 | [`gmx/gmx_v2/reader/ReaderPricingUtils.py`](demeter/gmx/gmx_v2/reader/ReaderPricingUtils.py) | 30 min |
+| S-001 | 清理空文件和占位文件 | P2 | [`gmx/gmx_v2/reader/ReaderPricingUtils.py`](demeter/gmx/gmx_v2/reader/ReaderPricingUtils.py) | ✅ 已修复 |
 | S-002 | GMX 模块目录重组 | P2 | [`gmx/`](demeter/gmx/) | 2-3h |
 | P-001 | CacheManager 性能优化 | P2 | [`data/data_cache.py`](demeter/data/data_cache.py) | 2-3h |
 
@@ -538,15 +539,15 @@ def config_log(level: int = logging.INFO, force: bool = False):
 | A-003 | Market 基类类型注解完善（TypeVar 泛型） | broker/market.py, 7 个子类 | ✅ 已修复 |
 | E-002 | DemeterWarning 语义明确化 | _typing.py, __init__.py | ✅ 已修复 |
 | D-001 | 添加开发依赖声明 | setup.py | ✅ 已修复 |
+| S-001 | 清理空文件和占位文件 | market2_prep.py, 删除 ReaderPricingUtils.py, utils.py | ✅ 已修复 |
 
-### 待处理（10 项）
+### 待处理（9 项）
 
 | 编号 | 问题 | 优先级 | 预估工作量 |
 |------|------|--------|-----------|
 | A-001 | MarketTypeEnum 硬编码问题 | P1 | 4-6h |
 | Q-003 | pickle 安全风险 | P2 | 2-3h |
 | Q-005 | logger 配置模块化 | P2 | 1-2h |
-| S-001 | 清理空文件 | P2 | 30 min |
 | S-002 | GMX 模块目录重组 | P2 | 2-3h |
 | P-001 | CacheManager 性能优化 | P2 | 2-3h |
 | T-001~003 | 测试基础设施改进 | P3 | 11-15h |
@@ -558,9 +559,9 @@ def config_log(level: int = logging.INFO, force: bool = False):
 |--------|------|--------|--------|
 | P0 | 4 | 4 | 0 |
 | P1 | 6 | 5 | 1 |
-| P2 | 7 | 2 | 5 |
+| P2 | 7 | 3 | 4 |
 | P3 | 11 | 10 | 1 |
-| **合计** | **28** | **22** | **6** |
+| **合计** | **28** | **23** | **5** |
 
 ---
 

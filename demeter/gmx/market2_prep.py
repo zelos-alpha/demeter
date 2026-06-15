@@ -1,3 +1,4 @@
+import json
 from datetime import date
 from decimal import Decimal
 import logging
@@ -34,12 +35,18 @@ from .gmx_v2.pricing import PositionFees
 from .gmx_v2.reader.ReaderPositionUtils import ReaderPositionUtils, PositionInfo
 from .gmx_v2.swap.SwapUtils import SwapResult
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
-from .utils import load_pool_config
 from .. import TokenInfo, DECIMAL_0, ChainType, UnitDecimal, DemeterError
 from .._typing import USD
 from ..broker import MarketInfo
 from ..broker.prep_market import PrepMarket
 from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE, require
+
+
+def load_pool_config(path: str) -> PoolConfig:
+    """Load a GMX V2 pool configuration from a JSON file."""
+    with open(path, "r") as f:
+        config_json = json.load(f)
+    return PoolConfig(**config_json)
 
 
 class GmxV2PerpMarket(PrepMarket):
