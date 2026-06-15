@@ -5,7 +5,7 @@ import pandas as pd
 
 from demeter import TokenInfo, MarketInfo, MarketTypeEnum, ChainType, Broker
 from demeter.gmx import GmxV2Pool, GmxV2PerpMarket, load_gmx_v2_data, get_price_from_v2_data
-from demeter.gmx._typing2 import GmxV2LpMarketStatus
+from demeter.gmx.v2_typing import GmxV2LpMarketStatus
 from demeter.gmx.gmx_v2 import PositionKey, Position
 from decimal import Decimal
 

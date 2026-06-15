@@ -6,7 +6,7 @@ import pandas as pd
 
 from demeter import MarketInfo, MarketTypeEnum, TokenInfo, ChainType
 from demeter.gmx import GmxV2PerpMarket, GmxV2Pool, load_gmx_v2_data, get_price_from_v2_data
-from demeter.gmx._typing2 import GmxV2LpMarketStatus
+from demeter.gmx.v2_typing import GmxV2LpMarketStatus
 
 
 class TestActuator(unittest.TestCase):

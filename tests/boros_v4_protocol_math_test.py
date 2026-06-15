@@ -2,11 +2,11 @@ import unittest
 from decimal import Decimal
 from unittest.mock import patch
 
-from demeter.boros_v4.AMM import AMM
-from demeter.boros_v4.PaymentLib import FIndex, PayFee, PaymentLib
-from demeter.boros_v4.SwapMath import SwapMathParams
-from demeter.boros_v4.Trade import Fill, Trade
-from demeter.boros_v4.TradeModule import TradeModule
+from demeter.boros_v4.amm import AMM
+from demeter.boros_v4.payment_lib import FIndex, PayFee, PaymentLib
+from demeter.boros_v4.swap_math import SwapMathParams
+from demeter.boros_v4.trade import Fill, Trade
+from demeter.boros_v4.trade_module import TradeModule
 from demeter.boros_v4._typing import CancelData, OrderId, Side, TimeInForce
 
 
@@ -96,7 +96,7 @@ class BorosV4ProtocolMathTest(unittest.TestCase):
             time_to_mat=30 * 24 * 3600,
         )
 
-        with patch("demeter.boros_v4.SwapMath.TickMath.get_rate_at_tick", return_value=0.05):
+        with patch("demeter.boros_v4.swap_math.TickMath.get_rate_at_tick", return_value=0.05):
             self.assertAlmostEqual(float(params_long.convert_book_tick_to_base_rate(100)), 0.051, places=12)
             self.assertAlmostEqual(float(params_short.convert_book_tick_to_base_rate(100)), 0.049, places=12)
 

@@ -193,10 +193,10 @@ class UniLpMarket(Market[UniswapMarketStatus]):
         total_virtual_liq = sum([p.liquidity for p in self._positions.values()])
         self.last_tick = self._market_status.data.closeTick if "closeTick" in self._market_status.data.index else np.nan
 
-        if market_status.data is None:
-            market_status.data = self.data.loc[market_status.timestamp].copy()
-        market_status.data.currentLiquidity = market_status.data.currentLiquidity + total_virtual_liq
-        self._market_status = market_status
+        if data.data is None:
+            data.data = self.data.loc[data.timestamp].copy()
+        data.data.currentLiquidity = data.data.currentLiquidity + total_virtual_liq
+        self._market_status = data
 
     def _convert_pair(self, any0, any1):
         """

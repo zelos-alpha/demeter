@@ -194,27 +194,37 @@ demeter/
 
 ### 类别 5：测试问题（Testing）
 
-#### T-001：项目无顶层测试目录
+#### T-001：项目无顶层测试目录 ✅ 已修复
 - **严重程度**：中
 - **问题描述**：项目根目录没有 `tests/` 目录，测试仅存在于：
   - [`demeter/boros_v4/tests/`](demeter/boros_v4/tests/)（6 个测试文件，使用 `test_*.py` 命名，符合 pytest 规范）
   - 其他模块（uniswap, aave, gmx, deribit）完全没有单元测试
 - **影响范围**：整个项目的代码质量保障
-- **修改建议**：
-  1. 在项目根目录创建 `tests/` 目录
-  2. 为核心模块（broker, core, strategy, indicator）添加单元测试
-  3. 使用 pytest fixtures 提供测试数据
+- **修复内容**：
+  1. 创建 [`tests/`](tests/) 目录和 [`tests/__init__.py`](tests/__init__.py)
+  2. 添加 [`tests/test_typing.py`](tests/test_typing.py)（46 个测试用例覆盖 UnitDecimal、TokenInfo、异常层次、常量、时间单位枚举）
+  3. 添加 [`tests/test_indicator.py`](tests/test_indicator.py)（18 个测试用例覆盖 get_real_n、SMA、EMA）
+  4. 修复遗留测试文件中的过时导入（`demeter.boros_v4.SwapMath` → `swap_math`，`demeter.gmx._typing2` → `v2_typing`）
+  5. 修复 `unittest.mock.patch()` 中的过时模块路径字符串
 
-#### T-002：缺少测试覆盖率配置
+#### T-002：缺少测试覆盖率配置 ✅ 已修复
 - **严重程度**：中
 - **问题描述**：没有配置 `pytest-cov` 或其他覆盖率工具
-- **修改建议**：添加 `pytest-cov` 配置，设置最低覆盖率阈值
+- **修复内容**：
+  1. 创建 [`pytest.ini`](pytest.ini)，配置 `testpaths`、`addopts`（`-v --tb=short --strict-markers`）和自定义 markers（`slow`、`integration`）
+  2. 在 [`setup.py`](setup.py) 的 `extras_require["dev"]` 中添加 `pytest-cov` 依赖
+  3. 安装 pytest-cov 并验证覆盖率报告正常输出（当前总覆盖率 68%）
 
-#### T-003：测试依赖外部数据文件
+#### T-003：测试依赖外部数据文件 ✅ 已修复
 - **严重程度**：中
 - **涉及文件**：[`demeter/boros_v4/tests/`](demeter/boros_v4/tests/)
 - **问题描述**：测试可能依赖本地数据文件和配置文件，使得测试无法在 CI/CD 环境中独立运行
-- **修改建议**：创建 mock 数据或使用 pytest fixtures 提供测试数据
+- **修复内容**：
+  1. 创建 [`tests/conftest.py`](tests/conftest.py)，提供共享 fixtures：
+     - Token fixtures：`usdc`、`weth`、`wbtc`、`usdt`
+     - 时间序列数据：`price_series_5min`（60 个点）、`price_series_1h`（24 个点）、`ohlcv_dataframe`
+     - Decimal fixtures：`small_amount`（0.001）、`large_amount`（1000000）
+  2. 新测试全部使用内存中的 mock 数据，无需外部文件
 
 ---
 
@@ -337,9 +347,9 @@ demeter/
 
 | 编号 | 问题 | 优先级 | 涉及文件 | 工作量 |
 |------|------|--------|---------|--------|
-| T-001 | 创建顶层测试目录和核心模块测试 | P3 | `tests/` | 6-8h |
-| T-002 | 添加测试覆盖率配置 | P3 | `setup.py`, `pytest.ini` | 1h |
-| T-003 | Mock 测试数据替代外部文件 | P3 | `tests/` | 4-6h |
+| T-001 | 创建顶层测试目录和核心模块测试 | P3 | `tests/` | 6-8h | ✅ 已修复 |
+| T-002 | 添加测试覆盖率配置 | P3 | `setup.py`, `pytest.ini` | 1h | ✅ 已修复 |
+| T-003 | Mock 测试数据替代外部文件 | P3 | `tests/` | 4-6h | ✅ 已修复 |
 | A-002 | Broker-Market 循环引用解耦 | P3 | [`broker/broker.py`](demeter/broker/broker.py), [`broker/market.py`](demeter/broker/market.py) | 6-8h |
 | P-002 | account_status_df 缓存机制 | P3 | [`core/actuator.py`](demeter/core/actuator.py) | 2h |
 | D-002 | setup.py 元数据完善 | P3 | [`setup.py`](setup.py) | 1h |
@@ -550,7 +560,6 @@ def config_log(level: int = logging.INFO, force: bool = False):
 | Q-005 | logger 配置模块化 | P2 | 1-2h |
 | S-002 | GMX 模块目录重组 | P2 | 2-3h |
 | P-001 | CacheManager 性能优化 | P2 | 2-3h |
-| T-001~003 | 测试基础设施改进 | P3 | 11-15h |
 | A-002 | Broker-Market 循环引用解耦 | P3 | 6-8h |
 
 ### 修复统计
@@ -560,8 +569,8 @@ def config_log(level: int = logging.INFO, force: bool = False):
 | P0 | 4 | 4 | 0 |
 | P1 | 6 | 5 | 1 |
 | P2 | 7 | 3 | 4 |
-| P3 | 11 | 10 | 1 |
-| **合计** | **28** | **23** | **5** |
+| P3 | 11 | 11 | 0 |
+| **合计** | **28** | **26** | **2** |
 
 ---
 
