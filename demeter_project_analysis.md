@@ -112,6 +112,7 @@ demeter/
 - **涉及文件**：[`core/actuator.py:187`](demeter/core/actuator.py:187)
 - **问题描述**：`strategy.setter` 中 `raise ValueError()` 没有错误信息，调试时无法定位问题
 - **修改建议**：改为 `raise ValueError("value must be an instance of Strategy")`
+- **修复状态**：✅ 已修复（改为 `raise TypeError(...)` 并包含类型名称信息）
 
 #### Q-003：pickle 反序列化安全风险
 - **严重程度**：中
@@ -306,7 +307,7 @@ demeter/
 |------|------|--------|---------|--------|
 | E-001 | `indicator/common.py` return 异常改为 raise | P0 | [`indicator/common.py:24`](demeter/indicator/common.py:24) | ✅ 已修复 |
 | Q-001 | `uniswap/helper.py` 遗留 print 调试输出 | P0 | [`uniswap/helper.py:304`](demeter/uniswap/helper.py:304) | ✅ 已修复 |
-| Q-002 | `actuator.py` ValueError 无错误信息 | P0 | [`core/actuator.py:187`](demeter/core/actuator.py:187) | 5 min |
+| Q-002 | `actuator.py` ValueError 无错误信息 | P0 | [`core/actuator.py:187`](demeter/core/actuator.py:187) | ✅ 已修复 |
 | A-004 | BacktestManager fork 方式兼容性 | P0 | [`core/backtest.py`](demeter/core/backtest.py) | ✅ 已修复 |
 
 ### 阶段二：架构改进（P1 — 本迭代内完成）
@@ -530,12 +531,12 @@ def config_log(level: int = logging.INFO, force: bool = False):
 | Doc-002 | 类型注解修正（MarketDict） | broker/_typing.py, core/_typing.py | ✅ 已修复 |
 | E-001 | `indicator/common.py` return 异常改为 raise | indicator/common.py | ✅ 已修复 |
 | Q-001 | `uniswap/helper.py` print 调试输出 | uniswap/helper.py | ✅ 已修复 |
+| Q-002 | `actuator.py` ValueError 无错误信息（TypeError） | core/actuator.py | ✅ 已修复 |
 
-### 待处理（12 项）
+### 待处理（11 项）
 
 | 编号 | 问题 | 优先级 | 预估工作量 |
 |------|------|--------|-----------|
-| Q-002 | `actuator.py` ValueError 无错误信息 | **P0** | 5 min |
 | A-001 | MarketTypeEnum 硬编码问题 | P1 | 4-6h |
 | A-003 | Market 基类类型注解完善 | P1 | 2-3h |
 | E-002 | DemeterWarning 语义明确化 | P1 | 1-2h |
@@ -556,7 +557,7 @@ def config_log(level: int = logging.INFO, force: bool = False):
 | P1 | 6 | 2 | 4 |
 | P2 | 7 | 2 | 5 |
 | P3 | 11 | 10 | 1 |
-| **合计** | **28** | **18** | **10** |
+| **合计** | **28** | **19** | **9** |
 
 ---
 

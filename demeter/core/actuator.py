@@ -184,7 +184,7 @@ class Actuator:
         if isinstance(value, Strategy):
             self._strategy = value
         else:
-            raise ValueError()
+            raise TypeError(f"strategy must be an instance of Strategy, got {type(value).__name__}")
 
     @property
     def account_status_df(self) -> pd.DataFrame:
