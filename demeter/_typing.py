@@ -119,10 +119,28 @@ class DemeterAssertionError(DemeterError):
     pass
 
 
-class DemeterWarning(RuntimeWarning):
+class DemeterWarning(UserWarning):
+    """Base warning class for demeter-specific warnings.
+
+    Use with ``warnings.warn(message, DemeterWarning, stacklevel=N)`` to emit
+    library-specific warnings that users can filter via
+    ``warnings.filterwarnings("ignore", category=DemeterWarning)``.
+
+    Subclass this for more specific categories, e.g.::
+
+        class DemeterDeprecationWarning(DemeterWarning):
+            pass
+    """
+
     def __init__(self, message):
         self.message = message
         super().__init__(message)
+
+
+class DemeterDeprecationWarning(DemeterWarning):
+    """Warning for features or APIs scheduled for removal in a future release."""
+
+    pass
 
 
 class ChainType(int, Enum):
