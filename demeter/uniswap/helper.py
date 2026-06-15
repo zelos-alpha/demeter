@@ -301,7 +301,7 @@ def find_tick_range_at_rate(
     rate = rate.quantize(error)
 
     while center_tick + idx <= 887272:
-        print("trying", center_tick + idx)
+        logger.debug("trying tick %d", center_tick + idx)
         upper = center_tick + idx
         lower_idx = idx
         val1, val0 = 0, 1

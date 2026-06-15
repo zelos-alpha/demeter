@@ -104,7 +104,8 @@ demeter/
   - [`core/actuator.py:506-513`](demeter/core/actuator.py:506) — `print_result()` 方法中大量使用 `print()` 输出
 - **问题描述**：多处使用裸 `print()` 输出信息，应统一使用 `logging` 模块
 - **修改建议**：将所有 `print()` 替换为 `logger.info()` / `logger.debug()`
-- **注意**：[`utils/console_text.py`](demeter/utils/console_text.py) 中的 `print()` 是专用的控制台输出模块，属于合理使用
+- **注意**：[`utils/console_text.py`](demeter/utils/console_text.py) 中的 `print()` 是专用的控制台输出模块，属于合理使用；[`core/actuator.py`](demeter/core/actuator.py) 的 `print_result()` 是用户接口方法，`print()` 用于格式化终端输出，保留合理
+- **修复状态**：✅ 已修复（`uniswap/helper.py` 的调试 print 已替换为 `logger.debug()`）
 
 #### Q-002：策略 setter 中 raise ValueError 无错误信息
 - **严重程度**：低
@@ -304,7 +305,7 @@ demeter/
 | 编号 | 问题 | 优先级 | 涉及文件 | 工作量 |
 |------|------|--------|---------|--------|
 | E-001 | `indicator/common.py` return 异常改为 raise | P0 | [`indicator/common.py:24`](demeter/indicator/common.py:24) | ✅ 已修复 |
-| Q-001 | `uniswap/helper.py` 遗留 print 调试输出 | P0 | [`uniswap/helper.py:304`](demeter/uniswap/helper.py:304) | 10 min |
+| Q-001 | `uniswap/helper.py` 遗留 print 调试输出 | P0 | [`uniswap/helper.py:304`](demeter/uniswap/helper.py:304) | ✅ 已修复 |
 | Q-002 | `actuator.py` ValueError 无错误信息 | P0 | [`core/actuator.py:187`](demeter/core/actuator.py:187) | 5 min |
 | A-004 | BacktestManager fork 方式兼容性 | P0 | [`core/backtest.py`](demeter/core/backtest.py) | ✅ 已修复 |
 
@@ -528,12 +529,12 @@ def config_log(level: int = logging.INFO, force: bool = False):
 | S-003 | Boros PascalCase 文件名 | 14 个文件重命名为 snake_case | ✅ 已修复 |
 | Doc-002 | 类型注解修正（MarketDict） | broker/_typing.py, core/_typing.py | ✅ 已修复 |
 | E-001 | `indicator/common.py` return 异常改为 raise | indicator/common.py | ✅ 已修复 |
+| Q-001 | `uniswap/helper.py` print 调试输出 | uniswap/helper.py | ✅ 已修复 |
 
-### 待处理（13 项）
+### 待处理（12 项）
 
 | 编号 | 问题 | 优先级 | 预估工作量 |
 |------|------|--------|-----------|
-| Q-001 | `uniswap/helper.py` print 调试输出 | **P0** | 10 min |
 | Q-002 | `actuator.py` ValueError 无错误信息 | **P0** | 5 min |
 | A-001 | MarketTypeEnum 硬编码问题 | P1 | 4-6h |
 | A-003 | Market 基类类型注解完善 | P1 | 2-3h |
@@ -551,11 +552,11 @@ def config_log(level: int = logging.INFO, force: bool = False):
 
 | 优先级 | 总数 | 已修复 | 待处理 |
 |--------|------|--------|--------|
-| P0 | 4 | 3 | 1 |
+| P0 | 4 | 4 | 0 |
 | P1 | 6 | 2 | 4 |
 | P2 | 7 | 2 | 5 |
 | P3 | 11 | 10 | 1 |
-| **合计** | **28** | **17** | **11** |
+| **合计** | **28** | **18** | **10** |
 
 ---
 
