@@ -21,7 +21,7 @@ def get_real_n(data: pd.Series, window: timedelta):
         raise DemeterError("not enough data for simple_moving_average")
     timespan: Timedelta = data.index[1] - data.index[0]
     if timespan.seconds % 60 != 0:
-        return DemeterError("no seconds is allowed")
+        raise DemeterError("no seconds is allowed")
     data_span_in_minute = timespan.total_seconds() / 60
     window_minutes = int(window.total_seconds()) // 60
     if window_minutes % data_span_in_minute != 0:
