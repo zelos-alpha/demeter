@@ -7,7 +7,7 @@ from enum import Enum
 import pandas as pd
 
 from .._typing import DemeterError, USD, TokenInfo
-from ..broker import ActionTypeEnum, BaseAction, Market, MarketBalance, MarketInfo, MarketStatus, write_func
+from ..broker import ActionTypeEnum, BaseAction, Market, MarketBalance, MarketInfo, MarketStatus, write_func, MS
 from ..utils import ForColorEnum, get_formatted_from_dict, get_formatted_predefined, require, STYLE
 from ..utils.console_text import get_action_str
 from ._typing import Side
@@ -183,7 +183,7 @@ class CloseFixedFloatAction(BaseAction):
         )
 
 
-class BorosMarket(Market):
+class BorosMarket(Market[MarketStatus]):
     def __init__(self, market_info: MarketInfo, data: pd.DataFrame | None = None, data_path: str = "./data"):
         super().__init__(market_info=market_info, data=data, data_path=data_path)
         self.quote_token: TokenInfo = USD

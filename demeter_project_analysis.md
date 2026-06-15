@@ -79,8 +79,9 @@ demeter/
 #### A-003：Market 基类的抽象接口类型注解不完善
 - **严重程度**：中
 - **涉及文件**：[`broker/market.py:104`](demeter/broker/market.py:104)
-- **问题描述**：[`Market`](demeter/broker/market.py:28) 作为 ABC 抽象基类，其 [`set_market_status`](demeter/broker/market.py:104) 的参数类型为 `MarketStatus`，但子类（如 [`UniLpMarket`](demeter/uniswap/market.py)）实际传入的是各自特定的类型（如 `UniswapMarketStatus`），类型注解与实际使用不一致。
+- **问题描述**：[`Market`](demeter/broker/market.py:30) 作为 ABC 抽象基类，其 [`set_market_status`](demeter/broker/market.py:106) 的参数类型为 `MarketStatus`，但子类（如 [`UniLpMarket`](demeter/uniswap/market.py)）实际传入的是各自特定的类型（如 `UniswapMarketStatus`），类型注解与实际使用不一致。
 - **修改建议**：使用泛型（`TypeVar`）对 `Market` 基类的 `MarketStatus` 进行参数化
+- **修复状态**：✅ 已修复（使用 `TypeVar("MS", bound=MarketStatus)` + `Generic[MS]`，所有子类已更新为 `Market[SpecificType]`）
 
 #### A-004：BacktestManager 多进程设计存在全局状态风险
 - **严重程度**：高
@@ -315,7 +316,7 @@ demeter/
 | 编号 | 问题 | 优先级 | 涉及文件 | 工作量 |
 |------|------|--------|---------|--------|
 | A-001 | MarketTypeEnum 硬编码问题 | P1 | [`broker/_typing.py`](demeter/broker/_typing.py) | 4-6h |
-| A-003 | Market 基类类型注解完善 | P1 | [`broker/market.py`](demeter/broker/market.py) | 2-3h |
+| A-003 | Market 基类类型注解完善 | P1 | [`broker/market.py`](demeter/broker/market.py) | ✅ 已修复 |
 | E-002 | DemeterWarning 语义明确化 | P1 | [`_typing.py`](demeter/_typing.py) | 1-2h |
 | D-001 | 添加开发依赖声明 | P1 | [`setup.py`](setup.py) | 1h |
 
@@ -532,13 +533,13 @@ def config_log(level: int = logging.INFO, force: bool = False):
 | E-001 | `indicator/common.py` return 异常改为 raise | indicator/common.py | ✅ 已修复 |
 | Q-001 | `uniswap/helper.py` print 调试输出 | uniswap/helper.py | ✅ 已修复 |
 | Q-002 | `actuator.py` ValueError 无错误信息（TypeError） | core/actuator.py | ✅ 已修复 |
+| A-003 | Market 基类类型注解完善（TypeVar 泛型） | broker/market.py, 7 个子类 | ✅ 已修复 |
 
-### 待处理（11 项）
+### 待处理（10 项）
 
 | 编号 | 问题 | 优先级 | 预估工作量 |
 |------|------|--------|-----------|
 | A-001 | MarketTypeEnum 硬编码问题 | P1 | 4-6h |
-| A-003 | Market 基类类型注解完善 | P1 | 2-3h |
 | E-002 | DemeterWarning 语义明确化 | P1 | 1-2h |
 | D-001 | 添加开发依赖声明 | P1 | 1h |
 | Q-003 | pickle 安全风险 | P2 | 2-3h |
@@ -554,10 +555,10 @@ def config_log(level: int = logging.INFO, force: bool = False):
 | 优先级 | 总数 | 已修复 | 待处理 |
 |--------|------|--------|--------|
 | P0 | 4 | 4 | 0 |
-| P1 | 6 | 2 | 4 |
+| P1 | 6 | 3 | 3 |
 | P2 | 7 | 2 | 5 |
 | P3 | 11 | 10 | 1 |
-| **合计** | **28** | **19** | **9** |
+| **合计** | **28** | **20** | **8** |
 
 ---
 

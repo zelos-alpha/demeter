@@ -27,12 +27,12 @@ from ._typing import (
 from .core import AaveV3CoreLib
 from .. import DemeterError, DemeterAssertionError, TokenInfo
 from .._typing import DECIMAL_0, UnitDecimal, ChainType, USD
-from ..broker import Market, MarketInfo, write_func
+from ..broker import Market, MarketInfo, write_func, MS
 from ..utils import get_formatted_predefined, STYLE, get_formatted_from_dict, console_text
 from ..utils.application import require, float_param_formatter, to_decimal
 
 
-class AaveV3Market(Market):
+class AaveV3Market(Market[AaveMarketStatus]):
     """
     | AaveV3Market is the simulator of aave v3, here you can simulate some transactions like supply/borrow etc. this class also tracks value change.
     | AaveV3Market corresponds to a pool on chain, and one chan has one pool.

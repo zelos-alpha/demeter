@@ -19,11 +19,11 @@ from .gmx_v2.market import MarketUtils
 from .helper2 import load_gmx_v2_data, get_price_from_v2_data
 from .. import TokenInfo, DECIMAL_0, ChainType, DemeterError, UnitDecimal
 from .._typing import USD
-from ..broker import Market, MarketInfo
+from ..broker import Market, MarketInfo, MS
 from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE, require
 
 
-class GmxV2LpMarket(Market):
+class GmxV2LpMarket(Market[GmxV2LpMarketStatus]):
     def __init__(
         self, market_info: MarketInfo, pool: GmxV2Pool, data: pd.DataFrame | None = None, data_path: str = "./data"
     ):

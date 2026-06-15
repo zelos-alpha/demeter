@@ -48,7 +48,7 @@ from .liquidity_math import (
     get_liquidity_for_amount1,
 )
 from .._typing import DemeterError, DECIMAL_0, UnitDecimal
-from ..broker import MarketBalance, Market, MarketInfo, write_func
+from ..broker import MarketBalance, Market, MarketInfo, write_func, MS
 from ..utils import (
     get_formatted_from_dict,
     get_formatted_predefined,
@@ -58,7 +58,7 @@ from ..utils import (
 )
 
 
-class UniLpMarket(Market):
+class UniLpMarket(Market[UniswapMarketStatus]):
     """
     | UniLpMarket is the simulator of uniswap v3, it can simulate transactions such as add/remove liquidity, swap assets. and calculate position net value
     | UniLpMarket corresponds to a pool on chain, which means a token pair in a chain.
@@ -171,7 +171,7 @@ class UniLpMarket(Market):
 
     def set_market_status(
         self,
-        market_status: UniswapMarketStatus | None,
+        data: UniswapMarketStatus | None,
         price: pd.Series | None,
     ):
         """
@@ -182,13 +182,13 @@ class UniLpMarket(Market):
         | UniswapMarketStatus.price is the relative price of pool token pair. It's calculated from pool swap events.
         | if base token in pool is stable coin and its price is 1, the two price will be the same. But if stable coin price is not 1, there will be a gap between two prices.
 
-        :param market_status: market data
-        :type market_status: UniswapMarketStatus
+        :param data: market data
+        :type data: UniswapMarketStatus
         :param price: price of token at this moment
         :type price: pd.Series
         """
         # update price tick
-        super().set_market_status(market_status, price)
+        super().set_market_status(data, price)
 
         total_virtual_liq = sum([p.liquidity for p in self._positions.values()])
         self.last_tick = self._market_status.data.closeTick if "closeTick" in self._market_status.data.index else np.nan

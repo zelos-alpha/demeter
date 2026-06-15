@@ -5,15 +5,14 @@ from typing import List, Set
 import pandas as pd
 from orjson import orjson
 
-from demeter import MarketStatus
 from .v1_typing import GmxDescription, GmxBalance, BuyGlpAction, SellGlpAction, PRICE_PRECISION
 from .helper import load_gmx_v1_data, get_price_from_data
 from .._typing import TokenInfo, ChainType, USD
-from ..broker import Market, MarketInfo
+from ..broker import Market, MarketInfo, MS, MarketStatus
 from ..utils import get_formatted_predefined, get_formatted_from_dict, STYLE, console_text, require
 
 
-class GmxMarket(Market):
+class GmxMarket(Market[MarketStatus]):
     """
     GMX Market is the simulator for the GMX, here you can simulate some transactions
     """

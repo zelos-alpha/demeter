@@ -20,6 +20,7 @@ __all__ = [
     "Broker",
     "Market",
     "write_func",
+    "MS",
 ]
 
 from ._typing import (
@@ -39,4 +40,4 @@ from ._typing import (
     BASE_FREQ,
 )
 from .broker import Broker
-from .market import Market, write_func
+from .market import Market, write_func, MS

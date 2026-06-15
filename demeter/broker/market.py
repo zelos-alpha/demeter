@@ -1,12 +1,14 @@
 import logging
 from abc import abstractmethod, ABC
 from functools import wraps
-from typing import Callable
+from typing import Callable, TypeVar, Generic
 
 import pandas as pd
 
 from ._typing import BaseAction, MarketBalance, MarketStatus, MarketInfo, Snapshot
 from .._typing import DemeterError, TokenInfo, USD
+
+MS = TypeVar("MS", bound=MarketStatus)
 
 
 # DEFAULT_DATA_PATH = "./data"
@@ -25,7 +27,7 @@ def write_func(func):
     return wrapper_func
 
 
-class Market(ABC):
+class Market(ABC, Generic[MS]):
     """
 
     | Market is the place to invest your assets.
@@ -46,7 +48,7 @@ class Market(ABC):
         self.broker = None
         self._record_action_callback: Callable[[BaseAction], None] | None = None
         self.logger = logging.getLogger(__name__)
-        self._market_status: MarketStatus = MarketStatus(None, pd.Series())
+        self._market_status: MS = MarketStatus(None, pd.Series())  # type: ignore[assignment]
         self._price_status: pd.Series | None = None
         # if some var that related to market status has changed, should set this to True,
         # then the second set_market_status in every minute will be triggerd
@@ -103,7 +105,7 @@ class Market(ABC):
     @abstractmethod
     def set_market_status(
         self,
-        data: MarketStatus,
+        data: MS,
         price: pd.Series,
     ):
         """

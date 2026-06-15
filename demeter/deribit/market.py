@@ -29,7 +29,7 @@ from ._typing import (
 from .helper import round_decimal, position_to_df, get_new_order_list, load_deribit_option_data, get_price_from_data
 from .. import TokenInfo
 from .._typing import DemeterError
-from ..broker import Market, MarketInfo, write_func
+from ..broker import Market, MarketInfo, write_func, MS
 from ..utils import (
     float_param_formatter,
     get_formatted_predefined,
@@ -42,7 +42,7 @@ DEFAULT_DATA_PATH = "./data"
 BASIC_INTERVAL = pd.Timedelta("1h")
 
 
-class DeribitOptionMarket(Market):
+class DeribitOptionMarket(Market[DeribitMarketStatus]):
     """
     The Deribit options market can be utilized for options investment or backtesting of Greek hedging strategies.
     In this market, you can buy or sell options based on the current order book.

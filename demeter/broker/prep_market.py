@@ -10,7 +10,7 @@ from ._typing import BaseAction, MarketBalance, MarketStatus, MarketInfo, Snapsh
 from .._typing import DemeterError, TokenInfo, USD
 
 
-class PrepMarket(Market):
+class PrepMarket(Market[MarketStatus]):
     """
 
     | Market is the place to invest your assets.
