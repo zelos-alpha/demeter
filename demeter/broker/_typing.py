@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
+from collections.abc import ItemsView, KeysView, ValuesView
 from typing import Generic, NamedTuple, List, Dict, TypeVar, Union
 
 from .._typing import DemeterError, DemeterAssertionError, TokenInfo, UnitDecimal
@@ -331,21 +332,21 @@ class MarketDict(Generic[T]):
         """
         self._default = value
 
-    def items(self) -> (List[MarketInfo], List[T]):
+    def items(self) -> ItemsView[MarketInfo, T]:
         """
         get dict items
         :return:
         """
         return self.data.items()
 
-    def keys(self) -> List[MarketInfo]:
+    def keys(self) -> KeysView[MarketInfo]:
         """
         get dict keys
         :return:
         """
         return self.data.keys()
 
-    def values(self) -> List[T]:
+    def values(self) -> ValuesView[T]:
         """
         get dict values
         :return:

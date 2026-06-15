@@ -52,7 +52,7 @@ class BacktestConfig:
     :param callback: A function will be called after backtest.
     :type callback:  Callable[[Actuator], None] | None = None
     """
-    print_actions:bool = False
+    print_actions: bool = False
     print_result: bool = False
     interval: str = "1min"
-    quote_token:TokenInfo = None
+    quote_token: TokenInfo = None
