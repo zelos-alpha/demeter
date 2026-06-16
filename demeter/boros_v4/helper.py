@@ -610,6 +610,11 @@ def load_boros_event_data(
         data["mark_rate_full_proto"].notna(), data["mark_rate"]
     )
 
+    # Normalize datetime resolution so merge keys match (pandas 2.x requires
+    # identical datetime64 resolution on both sides of merge_asof).
+    data_ts_dtype = data.index.dtype
+    state_frame = state_frame.copy()
+    state_frame["latest_f_time_timestamp"] = state_frame["latest_f_time_timestamp"].astype(data_ts_dtype)
     merged_state = pd.merge_asof(
         pd.DataFrame({"timestamp": data.index}).sort_values("timestamp"),
         state_frame.sort_values("latest_f_time_timestamp"),
@@ -622,6 +627,8 @@ def load_boros_event_data(
         ["timestamp", "opening_fee_rate_annualized"],
     ].sort_values("timestamp")
     if len(opening_fee_frame.index) > 0:
+        opening_fee_frame = opening_fee_frame.copy()
+        opening_fee_frame["timestamp"] = opening_fee_frame["timestamp"].astype(data_ts_dtype)
         merged_opening_fee = pd.merge_asof(
             pd.DataFrame({"timestamp": data.index}).sort_values("timestamp"),
             opening_fee_frame,
