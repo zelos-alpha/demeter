@@ -24,7 +24,7 @@ class TestActuator(unittest.TestCase):
             "0x70d95587d40a2caf56bd97485ab3eec10bee6336",
             datetime.date(2025, 6, 22),
             datetime.date(2025, 6, 24),
-            "/data/gmx_v2/arbitrum",
+            "tests/data/gmx_v2/arbitrum",
         )
         price = get_price_from_v2_data(data, self.pool)
         return market, data, price

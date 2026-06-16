@@ -33,13 +33,16 @@ def to_decimal(value: Any) -> Decimal:
 
 def object_to_decimal(num: Any) -> Any:
     """
-    If number is float or int, return Decimal, else return original value
+    If number is float or int, return Decimal, else return original value.
+    bool is explicitly excluded since it is a subclass of int in Python.
 
     :param value: any value
     :type value: Any
     :return: Decimal value
     :rtype: Any
     """
+    if isinstance(num, bool):
+        return num
     return Decimal(str(num)) if isinstance(num, (float, int)) else num
 
 

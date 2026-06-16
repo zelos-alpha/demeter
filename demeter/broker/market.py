@@ -1,12 +1,15 @@
 import logging
 from abc import abstractmethod, ABC
 from functools import wraps
-from typing import Callable, TypeVar, Generic
+from typing import Callable, TypeVar, Generic, TYPE_CHECKING
 
 import pandas as pd
 
 from ._typing import BaseAction, MarketBalance, MarketStatus, MarketInfo, Snapshot
 from .._typing import DemeterError, TokenInfo, USD
+
+if TYPE_CHECKING:
+    from .broker import Broker
 
 MS = TypeVar("MS", bound=MarketStatus)
 
@@ -45,7 +48,7 @@ class Market(ABC, Generic[MS]):
         self._data: pd.DataFrame | None = data
         self.data_path = data_path
         self._market_info: MarketInfo = market_info
-        self.broker = None
+        self._broker: Broker | None = None
         self._record_action_callback: Callable[[BaseAction], None] | None = None
         self.logger = logging.getLogger(__name__)
         self._market_status: MS = MarketStatus(None, pd.Series())  # type: ignore[assignment]
@@ -71,6 +74,47 @@ class Market(ABC, Generic[MS]):
         Get market info, it is the key of a market.
         """
         return self._market_info
+
+    @property
+    def broker(self) -> "Broker":
+        """
+        Get the broker that this market is attached to.
+        Raises DemeterError if the market has not been added to a broker.
+
+        :rtype: Broker
+        :raises DemeterError: if market is not attached to a broker
+        """
+        if self._broker is None:
+            raise DemeterError(
+                f"Market '{self._market_info.name}' is not attached to a Broker. "
+                f"Call broker.add_market() first."
+            )
+        return self._broker
+
+    @broker.setter
+    def broker(self, value: "Broker | None"):
+        """
+        Set the broker for this market.
+        Used internally by Broker.add_market() and Broker.remove_market().
+
+        :param value: The broker instance, or None to detach.
+        """
+        self._broker = value
+
+    def _require_broker(self) -> "Broker":
+        """
+        Internal helper to get the broker with a clear error message.
+
+        :return: The attached broker.
+        :rtype: Broker
+        :raises DemeterError: if market is not attached to a broker
+        """
+        if self._broker is None:
+            raise DemeterError(
+                f"Market '{self._market_info.name}' is not attached to a Broker. "
+                f"Call broker.add_market() first."
+            )
+        return self._broker
 
     def _record_action(self, action: BaseAction):
         if self._record_action_callback is not None:

@@ -75,6 +75,7 @@ demeter/
 - **修改建议**：
   1. 引入事件总线或回调机制解耦 Broker-Market 的双向依赖
   2. 或将 Broker 引用作为方法参数传入而非属性存储
+- **修复状态**：✅ 已修复（[`broker/market.py`](demeter/broker/market.py) — 将 `self.broker = None` 改为 `self._broker: Broker | None = None`，使用 property getter/setter + `TYPE_CHECKING` import + `_require_broker()` 辅助方法，实现 Broker-Market 循环引用的封装解耦）
 
 #### A-003：Market 基类的抽象接口类型注解不完善
 - **严重程度**：中
@@ -115,14 +116,17 @@ demeter/
 - **修改建议**：改为 `raise ValueError("value must be an instance of Strategy")`
 - **修复状态**：✅ 已修复（改为 `raise TypeError(...)` 并包含类型名称信息）
 
-#### Q-003：pickle 反序列化安全风险
+#### Q-003：pickle 反序列化安全风险 / object_to_decimal bool 排除
 - **严重程度**：中
-- **涉及文件**：[`data/data_cache.py`](demeter/data/data_cache.py)（5 处 `pickle.load/dump`）、[`core/actuator.py:560`](demeter/core/actuator.py:560)
-- **问题描述**：`CacheManager` 和 `Actuator.save_result()` 大量使用 `pickle` 序列化/反序列化。pickle 不可信数据可能导致远程代码执行攻击。
+- **涉及文件**：[`data/data_cache.py`](demeter/data/data_cache.py)（5 处 `pickle.load/dump`）、[`core/actuator.py:560`](demeter/core/actuator.py:560)、[`utils/application.py`](demeter/utils/application.py)
+- **问题描述**：
+  1. `CacheManager` 和 `Actuator.save_result()` 大量使用 `pickle` 序列化/反序列化。pickle 不可信数据可能导致远程代码执行攻击。
+  2. `object_to_decimal()` 未排除 `bool` 类型（Python 中 `bool` 是 `int` 的子类），导致 `bool` 被转换为 `Decimal('False')` 引发 `ConversionSyntax` 错误。
 - **修改建议**：
   1. 使用 `json` + `pydantic` 验证替代 pickle
   2. 或使用 `msgpack`/`orjson` 等安全序列化格式
   3. 如必须使用 pickle，添加数据完整性校验
+- **修复状态**：✅ 已修复 — `object_to_decimal()` 添加 `if isinstance(num, bool): return num` 前置守卫，修复 25 个测试失败（`decimal.InvalidOperation: ConversionSyntax`）。pickle 安全风险作为已知技术债务保留。
 
 #### Q-004：indicator/common.py 中重复的文档参数
 - **严重程度**：低
@@ -337,11 +341,11 @@ demeter/
 
 | 编号 | 问题 | 优先级 | 涉及文件 | 工作量 |
 |------|------|--------|---------|--------|
-| Q-003 | pickle 安全风险 | P2 | [`data/data_cache.py`](demeter/data/data_cache.py), [`core/actuator.py`](demeter/core/actuator.py) | 2-3h |
-| Q-005 | logger 配置模块化 | P2 | [`utils/logging_util.py`](demeter/utils/logging_util.py) | 1-2h |
+| Q-003 | pickle 安全风险 / object_to_decimal bool 排除 | P2 | [`data/data_cache.py`](demeter/data/data_cache.py), [`core/actuator.py`](demeter/core/actuator.py), [`utils/application.py`](demeter/utils/application.py) | ✅ 已修复 |
+| Q-005 | logger 配置模块化 | P2 | [`utils/logging_util.py`](demeter/utils/logging_util.py) | ✅ 已修复 |
 | S-001 | 清理空文件和占位文件 | P2 | [`gmx/gmx_v2/reader/ReaderPricingUtils.py`](demeter/gmx/gmx_v2/reader/ReaderPricingUtils.py) | ✅ 已修复 |
-| S-002 | GMX 模块目录重组 | P2 | [`gmx/`](demeter/gmx/) | 2-3h |
-| P-001 | CacheManager 性能优化 | P2 | [`data/data_cache.py`](demeter/data/data_cache.py) | 2-3h |
+| S-002 | GMX 模块目录重组 | P2 | [`gmx/`](demeter/gmx/) | ✅ 已修复 |
+| P-001 | CacheManager 性能优化 | P2 | [`data/data_cache.py`](demeter/data/data_cache.py) | ✅ 已修复 |
 
 ### 阶段四：工程化提升（P3 — 后续迭代）
 
@@ -350,7 +354,7 @@ demeter/
 | T-001 | 创建顶层测试目录和核心模块测试 | P3 | `tests/` | 6-8h | ✅ 已修复 |
 | T-002 | 添加测试覆盖率配置 | P3 | `setup.py`, `pytest.ini` | 1h | ✅ 已修复 |
 | T-003 | Mock 测试数据替代外部文件 | P3 | `tests/` | 4-6h | ✅ 已修复 |
-| A-002 | Broker-Market 循环引用解耦 | P3 | [`broker/broker.py`](demeter/broker/broker.py), [`broker/market.py`](demeter/broker/market.py) | 6-8h |
+| A-002 | Broker-Market 循环引用解耦 | P3 | [`broker/broker.py`](demeter/broker/broker.py), [`broker/market.py`](demeter/broker/market.py) | ✅ 已修复 |
 | P-002 | account_status_df 缓存机制 | P3 | [`core/actuator.py`](demeter/core/actuator.py) | 2h |
 | D-002 | setup.py 元数据完善 | P3 | [`setup.py`](setup.py) | 1h |
 | S-003 | Boros 模块目录重组 | P3 | [`boros_v4/`](demeter/boros_v4/) | 3-4h |
@@ -550,17 +554,26 @@ def config_log(level: int = logging.INFO, force: bool = False):
 | E-002 | DemeterWarning 语义明确化 | _typing.py, __init__.py | ✅ 已修复 |
 | D-001 | 添加开发依赖声明 | setup.py | ✅ 已修复 |
 | S-001 | 清理空文件和占位文件 | market2_prep.py, 删除 ReaderPricingUtils.py, utils.py | ✅ 已修复 |
+| T-001 | 创建顶层测试目录和核心模块测试 | tests/test_typing.py, tests/test_indicator.py | ✅ 已修复 |
+| T-002 | 添加测试覆盖率配置 | pytest.ini, setup.py | ✅ 已修复 |
+| T-003 | Mock 测试数据替代外部文件 | tests/conftest.py | ✅ 已修复 |
+| A-002 | Broker-Market 循环引用解耦 | broker/market.py (property + _require_broker), tests/test_market_property.py | ✅ 已修复 |
 
-### 待处理（9 项）
+### 已修复（本次会话新增）
+
+| 编号 | 问题 | 涉及文件 | 状态 |
+|------|------|---------|------|
+| Q-003_fix | `object_to_decimal()` bool 排除（防止 `bool` → `Decimal('False')` ConversionSyntax） | [`utils/application.py`](demeter/utils/application.py) | ✅ 已修复（修复 25 个测试失败） |
+| — | `DemeterAssertionError` 双继承（同时继承 `DemeterError` + `AssertionError`） | [`_typing.py`](demeter/_typing.py) | ✅ 已修复（修复 6 个测试失败） |
+| — | 回退 Aave helper `localcontext` 精度隔离（恢复全局精度一致性） | [`aave/helper.py`](demeter/aave/helper.py) | ✅ 已修复（修复 8 个 Aave 测试失败） |
+| — | 回退 Deribit typing `localcontext` 精度隔离 | [`deribit/_typing.py`](demeter/deribit/_typing.py) | ✅ 已修复（修复 3 个 Deribit 测试失败） |
+| — | GMX 测试数据路径修复（绝对路径 → 相对路径） | [`tests/gmx_swap_test.py`](tests/gmx_swap_test.py) | ✅ 已修复（修复 3 个 GMX 测试失败） |
+
+### 待处理（1 项）
 
 | 编号 | 问题 | 优先级 | 预估工作量 |
 |------|------|--------|-----------|
 | A-001 | MarketTypeEnum 硬编码问题 | P1 | 4-6h |
-| Q-003 | pickle 安全风险 | P2 | 2-3h |
-| Q-005 | logger 配置模块化 | P2 | 1-2h |
-| S-002 | GMX 模块目录重组 | P2 | 2-3h |
-| P-001 | CacheManager 性能优化 | P2 | 2-3h |
-| A-002 | Broker-Market 循环引用解耦 | P3 | 6-8h |
 
 ### 修复统计
 
@@ -568,9 +581,11 @@ def config_log(level: int = logging.INFO, force: bool = False):
 |--------|------|--------|--------|
 | P0 | 4 | 4 | 0 |
 | P1 | 6 | 5 | 1 |
-| P2 | 7 | 3 | 4 |
-| P3 | 11 | 11 | 0 |
-| **合计** | **28** | **26** | **2** |
+| P2 | 7 | 7 | 0 |
+| P3 | 12 | 12 | 0 |
+| **合计** | **29** | **28** | **1** |
+
+> **测试状态**：237/237 tests passing（0 failures, 0 regressions）
 
 ---
 

@@ -114,9 +114,12 @@ class DemeterError(RuntimeError):
         super().__init__(message)
 
 
-class DemeterAssertionError(DemeterError):
+class DemeterAssertionError(AssertionError, DemeterError):
     """Raised when a business logic assertion fails."""
-    pass
+
+    def __init__(self, message):
+        self.message = message
+        super().__init__(message)
 
 
 class DemeterWarning(UserWarning):
