@@ -226,7 +226,7 @@ class UniLpDataTest(unittest.TestCase):
     def test_load_data(self):
         market_key = MarketInfo("aave_test", MarketTypeEnum.aave_v3)
         market = AaveV3Market(market_key, risk_file_path)
-        market.data_path = "data"
+        market.data_path = "tests/data"
         market.load_data(ChainType.polygon, [weth], date(2023, 8, 14), date(2023, 8, 17))
         self.assertEqual(len(market.data.index), 1440 * 4)
         self.assertEqual(market.data.index[0].to_pydatetime(), datetime(2023, 8, 14, 0, 0))

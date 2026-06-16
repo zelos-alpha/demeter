@@ -388,7 +388,7 @@ class TestUniLpMarket(unittest.TestCase):
 
     def test_get_price(self):
         market = UniLpMarket(test_market, self.pool)
-        market.data_path = "data"
+        market.data_path = "tests/data"
         market.load_data(
             ChainType.polygon.name, "0x45dda9cb7c25131df268515131f647d726f50608", date(2023, 8, 15), date(2023, 8, 15)
         )

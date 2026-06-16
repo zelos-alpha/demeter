@@ -42,7 +42,7 @@ class TestActuator(unittest.TestCase):
             TokenInfo(name='usdc', decimal=6, address='0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e'),
         ]
         market = GmxMarket(market_key, tokens=tokens)
-        market.data_path = "./data"
+        market.data_path = "tests/data"
         market.load_data(
             chain=ChainType.avalanche,
             start_date=date(2024, 10, 15),
