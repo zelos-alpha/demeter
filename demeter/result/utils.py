@@ -1,6 +1,9 @@
+import logging
 from typing import List, Dict, Tuple
 
 from demeter import BaseAction, MarketTypeEnum, ActionTypeEnum, MarketInfo
+
+logger = logging.getLogger(__name__)
 from ._typing import OptionPosition, LpPosition, Position
 from .._typing import MarketDescription
 from ..deribit import decode_instrument
@@ -97,8 +100,15 @@ def get_positions(action_list: List[BaseAction], markets: List[MarketDescription
                 if left_amount > 0:
                     market_active_pos[action.market][action_key] = __new_option_position(action)
                     market_active_pos[action.market][action_key].amount = left_amount
-        if action.market.type == MarketTypeEnum.aave_v3:
+        elif action.market.type == MarketTypeEnum.aave_v3:
             pass
+        else:
+            logger.warning(
+                "get_positions(): unhandled MarketTypeEnum %s for market '%s' — "
+                "position tracking is not implemented for this market type.",
+                action.market.type,
+                action.market.name,
+            )
     for mkey, mpos in market_active_pos.items():
         if len(mpos) > 0:
             market_pos[mkey].extend(list(mpos.values()))

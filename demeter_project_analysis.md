@@ -67,6 +67,7 @@ demeter/
   1. 将 `MarketTypeEnum` 改为可扩展机制，允许各市场模块通过注册方式添加自己的类型
   2. 或使用字符串类型标识（如 `str` 枚举）替代固定数值枚举
   3. 考虑使用 Python 的 `register()` 模式实现市场类型注册
+- **修复状态**：⚠️ Plan B 已应用（最小化修复）— 已注释掉死代码引用 `MarketTypeEnum.squeeth`（[`samples/strategy-example/41_squeeth_tutorial.py`](samples/strategy-example/41_squeeth_tutorial.py)），并在 [`result/utils.py`](demeter/result/utils.py) 的 `get_positions()` 函数中添加了未处理 `MarketTypeEnum` 的 `logging.warning()` 提示。完整的注册表模式重构（Plan A）仍作为后续改进保留。
 
 #### A-002：Broker 与 Market 之间存在循环引用
 - **严重程度**：中
@@ -332,7 +333,7 @@ demeter/
 
 | 编号 | 问题 | 优先级 | 涉及文件 | 工作量 |
 |------|------|--------|---------|--------|
-| A-001 | MarketTypeEnum 硬编码问题 | P1 | [`broker/_typing.py`](demeter/broker/_typing.py) | 4-6h |
+| A-001 | MarketTypeEnum 硬编码问题 | P1 | [`broker/_typing.py`](demeter/broker/_typing.py) | ⚠️ Plan B 已应用（最小化修复）；Plan A 待后续迭代 |
 | A-003 | Market 基类类型注解完善 | P1 | [`broker/market.py`](demeter/broker/market.py) | ✅ 已修复 |
 | E-002 | DemeterWarning 语义明确化 | P1 | [`_typing.py`](demeter/_typing.py) | ✅ 已修复 |
 | D-001 | 添加开发依赖声明 | P1 | [`setup.py`](setup.py) | ✅ 已修复 |
@@ -569,20 +570,20 @@ def config_log(level: int = logging.INFO, force: bool = False):
 | — | 回退 Deribit typing `localcontext` 精度隔离 | [`deribit/_typing.py`](demeter/deribit/_typing.py) | ✅ 已修复（修复 3 个 Deribit 测试失败） |
 | — | GMX 测试数据路径修复（绝对路径 → 相对路径） | [`tests/gmx_swap_test.py`](tests/gmx_swap_test.py) | ✅ 已修复（修复 3 个 GMX 测试失败） |
 
-### 待处理（1 项）
+### 部分修复（1 项）
 
-| 编号 | 问题 | 优先级 | 预估工作量 |
-|------|------|--------|-----------|
-| A-001 | MarketTypeEnum 硬编码问题 | P1 | 4-6h |
+| 编号 | 问题 | 优先级 | 修复状态 | 备注 |
+|------|------|--------|----------|------|
+| A-001 | MarketTypeEnum 硬编码问题 | P1 | ⚠️ Plan B 已应用 | 注释掉死代码引用 `MarketTypeEnum.squeeth`；`get_positions()` 添加未处理类型的 warning 日志。完整注册表模式重构（Plan A）待后续迭代。 |
 
 ### 修复统计
 
-| 优先级 | 总数 | 已修复 | 待处理 |
-|--------|------|--------|--------|
-| P0 | 4 | 4 | 0 |
-| P1 | 6 | 5 | 1 |
-| P2 | 7 | 7 | 0 |
-| P3 | 12 | 12 | 0 |
+| 优先级 | 总数 | 已修复 | 部分修复 | 待处理 |
+|--------|------|--------|----------|--------|
+| P0 | 4 | 4 | 0 | 0 |
+| P1 | 6 | 5 | 1 | 0 |
+| P2 | 7 | 7 | 0 | 0 |
+| P3 | 12 | 12 | 0 | 0 |
 | **合计** | **29** | **28** | **1** |
 
 > **测试状态**：237/237 tests passing（0 failures, 0 regressions）
